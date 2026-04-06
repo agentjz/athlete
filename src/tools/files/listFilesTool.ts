@@ -1,0 +1,76 @@
+import fs from "node:fs/promises";
+
+import { assertPathAllowed } from "../../utils/fs.js";
+import { isPathIgnored } from "../../utils/ignore.js";
+import { clampNumber, okResult, parseArgs, readBoolean, readString, walkDirectory } from "../shared.js";
+import type { RegisteredTool } from "../types.js";
+
+export const listFilesTool: RegisteredTool = {
+  definition: {
+    type: "function",
+    function: {
+      name: "list_files",
+      description: "List local files or directories in the workspace. Use this to explore a folder before reading or editing local files, not for webpages.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "File or directory path. Relative paths resolve from the current working directory.",
+          },
+          recursive: {
+            type: "boolean",
+            description: "Whether to descend into subdirectories.",
+          },
+          max_entries: {
+            type: "number",
+            description: "Maximum entries to return.",
+          },
+        },
+        required: ["path"],
+        additionalProperties: false,
+      },
+    },
+  },
+  async execute(rawArgs, context) {
+    const args = parseArgs(rawArgs);
+    const targetPath = readString(args.path, "path");
+    const recursive = readBoolean(args.recursive, false);
+    const maxEntries = clampNumber(args.max_entries, 1, 1_000, 200);
+    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const stats = await fs.stat(resolved);
+
+    if (stats.isFile()) {
+      return okResult(
+        JSON.stringify(
+          {
+            path: resolved,
+            type: "file",
+            size: stats.size,
+            modifiedAt: stats.mtime.toISOString(),
+          },
+          null,
+          2,
+        ),
+      );
+    }
+
+    const entries = await walkDirectory(resolved, recursive, maxEntries, {
+      shouldIgnore: (entryPath, isDirectory) =>
+        entryPath !== resolved && isPathIgnored(entryPath, context.projectContext.ignoreRules, isDirectory),
+    });
+
+    return okResult(
+      JSON.stringify(
+        {
+          path: resolved,
+          recursive,
+          total: entries.length,
+          entries,
+        },
+        null,
+        2,
+      ),
+    );
+  },
+};
