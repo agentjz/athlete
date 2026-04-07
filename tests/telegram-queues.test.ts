@@ -47,9 +47,8 @@ test("telegram per-peer command queue serializes turns for the same peer while a
   assert.equal(peer2Start1Index < peer1End1Index, true);
 });
 
-test("telegram turn display only emits tool names, todo previews, and the final reply", async () => {
-  const deliveries: Array<{ chatId: number; text: string }> = [];
-  const stageMessages: Array<{ chatId: number; text: string }> = [];
+test("telegram turn display emits tool and todo stages immediately, then emits assistant once the stage completes", async () => {
+  const messages: Array<{ chatId: number; text: string }> = [];
   const typingCalls: number[] = [];
   const scheduled: Array<() => Promise<void> | void> = [];
 
@@ -58,15 +57,8 @@ test("telegram turn display only emits tool names, todo previews, and the final 
     sendTyping: async (chatId) => {
       typingCalls.push(chatId);
     },
-    sendProgressMessage: async (chatId, text) => {
-      stageMessages.push({ chatId, text });
-      return {
-        chatId,
-        messageId: stageMessages.length,
-      };
-    },
-    enqueueReply: async (target, text) => {
-      deliveries.push({ chatId: target.chatId, text });
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ chatId: target.chatId, text });
     },
     typingIntervalMs: 500,
     scheduleTypingTick(callback) {
@@ -80,46 +72,121 @@ test("telegram turn display only emits tool names, todo previews, and the final 
   });
 
   display.callbacks.onStatus?.("thinking");
-  display.callbacks.onAssistantDelta?.("hello");
-  await scheduled[0]?.();
-  display.callbacks.onReasoningDelta?.("First, inspect the task. ");
-  display.callbacks.onReasoningDelta?.("Then decide the next step.");
+  display.callbacks.onReasoningDelta?.("reasoning-1");
+  display.callbacks.onReasoningDelta?.("reasoning-2");
   display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
-  display.callbacks.onToolResult?.("search_files", "sensitive output should stay hidden");
-  display.callbacks.onToolCall?.(
+  display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
+  display.callbacks.onToolResult?.(
     "todo_write",
     JSON.stringify({
-      items: [
-        { id: "1", text: "Inspect repo", status: "completed" },
-        { id: "2", text: "Update docs", status: "in_progress" },
-      ],
+      ok: true,
+      preview: "[ ] #1: same todo preview",
     }),
   );
   display.callbacks.onToolResult?.(
     "todo_write",
     JSON.stringify({
       ok: true,
-      items: [
-        { id: "1", text: "Inspect repo", status: "completed" },
-        { id: "2", text: "Update docs", status: "in_progress" },
-      ],
-      preview: "[x] #1: Inspect repo\n[>] #2: Update docs\n- Progress: 1/2 completed",
+      preview: "[ ] #1: same todo preview",
     }),
   );
-  display.callbacks.onStatus?.("organizing final answer");
-  display.callbacks.onAssistantDelta?.(" world");
-  display.callbacks.onAssistantText?.("hello world");
-  display.callbacks.onAssistantDone?.("hello world");
+  display.callbacks.onAssistantDelta?.("assistant");
+  display.callbacks.onAssistantDelta?.(" content");
+  display.callbacks.onAssistantDone?.("assistant content");
+  await scheduled[0]?.();
   await display.flush();
   display.dispose();
 
   assert.deepEqual(typingCalls, [99, 99]);
-  assert.deepEqual(stageMessages, [
+  assert.deepEqual(messages, [
     { chatId: 99, text: "search_files" },
-    { chatId: 99, text: "todo_write" },
-    { chatId: 99, text: "[x] #1: Inspect repo\n[>] #2: Update docs\n- Progress: 1/2 completed" },
+    { chatId: 99, text: "search_files" },
+    { chatId: 99, text: "[ ] #1: same todo preview" },
+    { chatId: 99, text: "[ ] #1: same todo preview" },
+    { chatId: 99, text: "assistant content" },
   ]);
-  assert.deepEqual(deliveries, [{ chatId: 99, text: "hello world" }]);
+});
+
+test("telegram turn display hides reasoning events from chat output", async () => {
+  const messages: Array<{ chatId: number; text: string }> = [];
+
+  const display = new TelegramTurnDisplay({
+    chatId: 99,
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ chatId: target.chatId, text });
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onReasoningDelta?.("reasoning-1");
+  display.callbacks.onReasoning?.("reasoning-2");
+  await display.flush();
+  display.dispose();
+
+  assert.deepEqual(messages, []);
+});
+
+test("telegram turn display emits onAssistantText once and does not replay it at onAssistantDone", async () => {
+  const messages: Array<{ chatId: number; text: string }> = [];
+
+  const display = new TelegramTurnDisplay({
+    chatId: 99,
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ chatId: target.chatId, text });
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onAssistantText?.("assistant-text");
+  display.callbacks.onAssistantDone?.("assistant-text");
+  await display.flush();
+  display.dispose();
+
+  assert.deepEqual(messages, [{ chatId: 99, text: "assistant-text" }]);
+});
+
+test("telegram turn display surfaces durable enqueue failures instead of swallowing them", async () => {
+  const display = new TelegramTurnDisplay({
+    chatId: 99,
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async () => {
+      throw new Error("durable enqueue failed");
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onAssistantText?.("assistant");
+
+  await assert.rejects(display.flush(), /durable enqueue failed/);
 });
 
 test("telegram delivery queue retries failed sends with persisted backoff and restart recovery", async (t) => {

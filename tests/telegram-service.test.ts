@@ -144,6 +144,7 @@ test("telegram service runs private inbound messages through the Athlete turn/se
       seenInputs.push(options.input);
       options.callbacks?.onStatus?.("working");
       options.callbacks?.onAssistantDelta?.("done");
+      options.callbacks?.onAssistantText?.("done");
       options.callbacks?.onAssistantDone?.("done");
       return {
         session: await options.sessionStore.save({
@@ -245,6 +246,7 @@ test("telegram service restores offset and peer-to-session mapping across restar
     offsetStore,
     deliveryQueue: firstDeliveryQueue,
     runTurn: async (options) => {
+      options.callbacks?.onAssistantText?.("first reply");
       options.callbacks?.onAssistantDone?.("first reply");
       return {
         session: await options.sessionStore.save(options.session),

@@ -7,20 +7,23 @@ import type { WeixinRawMessage } from "../src/weixin/types.js";
 function createTextMessage(
   overrides: {
     fromUserId?: string;
+    toUserId?: string;
     text?: string;
     contextToken?: string;
     groupId?: string;
     messageType?: number;
+    clientId?: string;
   } = {},
 ): WeixinRawMessage {
   return {
     seq: 1,
     message_id: 101,
     from_user_id: overrides.fromUserId ?? "wxid_alice",
-    to_user_id: "athlete-bot",
+    to_user_id: overrides.toUserId ?? "athlete-bot",
     create_time_ms: 0,
     message_type: overrides.messageType ?? 1,
     context_token: overrides.contextToken ?? "ctx-001",
+    client_id: overrides.clientId,
     group_id: overrides.groupId,
     item_list: [
       {
@@ -159,6 +162,27 @@ test("weixin classifier rejects unauthorized, grouped, empty, and unsupported me
   );
   assert.equal(unsupported.kind, "ignore");
   assert.equal(unsupported.reason, "unsupported_message");
+});
+
+test("weixin classifier recognizes outbound bot text echo receipts by client_id", () => {
+  const classified = classifyWeixinMessage(
+    createTextMessage({
+      fromUserId: "athlete-bot",
+      toUserId: "wxid_alice",
+      text: "final reply",
+      messageType: 2,
+      clientId: "athlete-weixin:receipt-001",
+    }),
+    {
+      allowedUserIds: ["wxid_alice"],
+    },
+  );
+
+  assert.equal(classified.kind, "outbound_text_echo");
+  assert.equal(classified.peerKey, "weixin:private:wxid_alice");
+  assert.equal(classified.userId, "wxid_alice");
+  assert.equal(classified.clientId, "athlete-weixin:receipt-001");
+  assert.equal(classified.text, "final reply");
 });
 
 test("weixin classifier distinguishes image, file, video, and voice messages", () => {

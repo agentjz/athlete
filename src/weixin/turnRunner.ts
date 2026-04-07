@@ -27,6 +27,7 @@ export interface WeixinActiveTurn {
   controller: AbortController;
   userId: string;
   sessionId: string;
+  waitForVisibleMessages: () => Promise<void>;
 }
 
 export async function runWeixinTurn(options: {
@@ -103,14 +104,7 @@ export async function runWeixinTurn(options: {
 
         await options.client.sendTyping(userId, typingTicket, WEIXIN_TYPING_STATUS);
       },
-      sendProgressMessage: async (userId, text) => {
-        await options.enqueueReply(userId, text);
-        return {
-          userId,
-          messageId: Date.now(),
-        };
-      },
-      enqueueReply: async (target, text) => options.enqueueReply(target.userId, text),
+      enqueueVisibleMessage: async (target, text) => options.enqueueReply(target.userId, text),
       typingIntervalMs: options.config.weixin.typingIntervalMs,
     });
     const controller = new AbortController();
@@ -119,6 +113,7 @@ export async function runWeixinTurn(options: {
       controller,
       userId: options.message.userId,
       sessionId: session.id,
+      waitForVisibleMessages: async () => display.waitForDurableVisible(),
     });
     options.markQueuedTurnStarted(options.message.peerKey);
 

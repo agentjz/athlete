@@ -23,6 +23,17 @@ export interface WeixinPrivateMessageBase {
   raw: WeixinRawMessage;
 }
 
+export interface WeixinOutboundTextEchoMessage {
+  kind: "outbound_text_echo";
+  peerKey: string;
+  userId: string;
+  messageId: number;
+  seq: number;
+  clientId: string;
+  text: string;
+  raw: WeixinRawMessage;
+}
+
 export interface WeixinPrivateTextMessage extends WeixinPrivateMessageBase {
   kind: "private_text_message";
 }
@@ -75,4 +86,7 @@ export type WeixinPrivateMessage =
   | WeixinPrivateVideoMessage
   | WeixinPrivateVoiceMessage;
 
-export type WeixinClassifiedMessage = WeixinPrivateMessage | WeixinIgnoredMessage;
+export type WeixinClassifiedMessage =
+  | WeixinPrivateMessage
+  | WeixinOutboundTextEchoMessage
+  | WeixinIgnoredMessage;

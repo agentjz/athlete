@@ -10,6 +10,7 @@ import {
   WeixinDeliveryQueue,
   type WeixinDeliveryTarget,
 } from "../src/weixin/deliveryQueue.js";
+import { chunkWeixinMessage } from "../src/weixin/messageChunking.js";
 import { WeixinTurnDisplay } from "../src/weixin/turnDisplay.js";
 import { createTempWorkspace } from "./helpers.js";
 
@@ -50,9 +51,18 @@ test("weixin per-peer command queue serializes turns for the same peer while all
   assert.equal(peer2Start1Index < peer1End1Index, true);
 });
 
-test("weixin turn display only emits tool names, todo previews, and the final reply", async () => {
-  const deliveries: Array<{ userId: string; text: string }> = [];
-  const stageMessages: Array<{ userId: string; text: string }> = [];
+test("weixin message chunking uses a utf8 byte budget so long Chinese replies split before platform-visible overflow", () => {
+  const longChineseReply = "根据我对当前目录和 README 文件的了解，让我向你介绍我的功能和能力。".repeat(40);
+  const chunks = chunkWeixinMessage(longChineseReply, 350);
+
+  assert.equal(chunks.length > 1, true);
+  for (const chunk of chunks) {
+    assert.equal(Buffer.byteLength(chunk, "utf8") <= 350, true);
+  }
+});
+
+test("weixin turn display emits tool and todo stages immediately, then emits assistant once the stage completes", async () => {
+  const messages: Array<{ userId: string; text: string }> = [];
   const typingCalls: string[] = [];
   const scheduled: Array<() => Promise<void> | void> = [];
 
@@ -61,15 +71,8 @@ test("weixin turn display only emits tool names, todo previews, and the final re
     sendTyping: async (userId) => {
       typingCalls.push(userId);
     },
-    sendProgressMessage: async (userId, text) => {
-      stageMessages.push({ userId, text });
-      return {
-        userId,
-        messageId: stageMessages.length,
-      };
-    },
-    enqueueReply: async (target, text) => {
-      deliveries.push({ userId: target.userId, text });
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ userId: target.userId, text });
     },
     typingIntervalMs: 500,
     scheduleTypingTick(callback) {
@@ -83,38 +86,119 @@ test("weixin turn display only emits tool names, todo previews, and the final re
   });
 
   display.callbacks.onStatus?.("thinking");
-  display.callbacks.onAssistantDelta?.("hello");
-  await scheduled[0]?.();
-  display.callbacks.onReasoningDelta?.("Reasoning should stay hidden.");
+  display.callbacks.onReasoningDelta?.("reasoning-1");
+  display.callbacks.onReasoningDelta?.("reasoning-2");
   display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
-  display.callbacks.onToolResult?.("search_files", "tool output hidden");
-  display.callbacks.onToolCall?.(
+  display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
+  display.callbacks.onToolResult?.(
     "todo_write",
     JSON.stringify({
-      items: [
-        { id: "1", text: "Inspect repo", status: "completed" },
-        { id: "2", text: "Update docs", status: "in_progress" },
-      ],
+      ok: true,
+      preview: "[ ] #1: same todo preview",
     }),
   );
   display.callbacks.onToolResult?.(
     "todo_write",
     JSON.stringify({
       ok: true,
-      preview: "[x] #1: Inspect repo\n[>] #2: Update docs\n- Progress: 1/2 completed",
+      preview: "[ ] #1: same todo preview",
     }),
   );
-  display.callbacks.onAssistantDone?.("hello world");
+  display.callbacks.onAssistantDelta?.("assistant");
+  display.callbacks.onAssistantDelta?.(" content");
+  display.callbacks.onAssistantDone?.("assistant content");
+  await scheduled[0]?.();
   await display.flush();
   display.dispose();
 
   assert.deepEqual(typingCalls, ["wxid_alice", "wxid_alice"]);
-  assert.deepEqual(stageMessages, [
-    { userId: "wxid_alice", text: "search_files" },
-    { userId: "wxid_alice", text: "todo_write" },
-    { userId: "wxid_alice", text: "[x] #1: Inspect repo\n[>] #2: Update docs\n- Progress: 1/2 completed" },
+  assert.deepEqual(messages, [
+    { userId: "wxid_alice", text: "[ ] #1: same todo preview" },
+    { userId: "wxid_alice", text: "[ ] #1: same todo preview" },
+    { userId: "wxid_alice", text: "assistant content" },
   ]);
-  assert.deepEqual(deliveries, [{ userId: "wxid_alice", text: "hello world" }]);
+});
+
+test("weixin turn display hides reasoning events from chat output", async () => {
+  const messages: Array<{ userId: string; text: string }> = [];
+
+  const display = new WeixinTurnDisplay({
+    userId: "wxid_alice",
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ userId: target.userId, text });
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onReasoningDelta?.("reasoning-1");
+  display.callbacks.onReasoning?.("reasoning-2");
+  await display.flush();
+  display.dispose();
+
+  assert.deepEqual(messages, []);
+});
+
+test("weixin turn display emits onAssistantText once and does not replay it at onAssistantDone", async () => {
+  const messages: Array<{ userId: string; text: string }> = [];
+
+  const display = new WeixinTurnDisplay({
+    userId: "wxid_alice",
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async (target, text) => {
+      messages.push({ userId: target.userId, text });
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onAssistantText?.("assistant-text");
+  display.callbacks.onAssistantDone?.("assistant-text");
+  await display.flush();
+  display.dispose();
+
+  assert.deepEqual(messages, [{ userId: "wxid_alice", text: "assistant-text" }]);
+});
+
+test("weixin turn display surfaces durable enqueue failures instead of swallowing them", async () => {
+  const display = new WeixinTurnDisplay({
+    userId: "wxid_alice",
+    sendTyping: async () => {
+      return;
+    },
+    enqueueVisibleMessage: async () => {
+      throw new Error("durable enqueue failed");
+    },
+    typingIntervalMs: 500,
+    scheduleTypingTick() {
+      return {
+        cancel() {
+          return;
+        },
+      };
+    },
+  });
+
+  display.callbacks.onAssistantText?.("assistant");
+
+  await assert.rejects(display.flush(), /durable enqueue failed/);
 });
 
 test("weixin delivery queue routes text, image, video, and file sends through the current context token", async (t) => {
@@ -138,7 +222,7 @@ test("weixin delivery queue routes text, image, video, and file sends through th
   const sent: string[] = [];
   const target: WeixinDeliveryTarget = {
     async sendText(request) {
-      sent.push(`text:${request.userId}:${request.contextToken}:${request.text}`);
+      sent.push(`text:${request.userId}:${request.contextToken}:${request.clientId}:${request.text}`);
     },
     async sendImage(request) {
       sent.push(`image:${request.userId}:${request.contextToken}:${path.basename(request.filePath)}`);
@@ -159,6 +243,7 @@ test("weixin delivery queue routes text, image, video, and file sends through th
       maxRetries: 5,
       baseDelayMs: 250,
       maxDelayMs: 2_000,
+      receiptTimeoutMs: 250,
     },
   });
 
@@ -190,8 +275,8 @@ test("weixin delivery queue routes text, image, video, and file sends through th
   await queue.flushDue();
 
   assert.deepEqual(await queue.listPending(), []);
-  assert.deepEqual(sent, [
-    "text:wxid_alice:ctx-001:queued text",
+  assert.match(sent[0] ?? "", /^text:wxid_alice:ctx-001:athlete-weixin:.*:queued text$/);
+  assert.deepEqual(sent.slice(1), [
     "image:wxid_alice:ctx-001:photo.png",
     "video:wxid_alice:ctx-001:clip.mp4",
     "file:wxid_alice:ctx-001:brief.pdf",
@@ -227,6 +312,7 @@ test("weixin delivery queue keeps pending entries when the context token is miss
       maxRetries: 5,
       baseDelayMs: 250,
       maxDelayMs: 2_000,
+      receiptTimeoutMs: 5_000,
     },
   });
 
@@ -259,6 +345,7 @@ test("weixin delivery queue keeps pending entries when the context token is miss
       maxRetries: 5,
       baseDelayMs: 250,
       maxDelayMs: 2_000,
+      receiptTimeoutMs: 5_000,
     },
   });
 
@@ -309,6 +396,7 @@ test("weixin delivery queue marks invalid context tokens fail-closed and resumes
       maxRetries: 5,
       baseDelayMs: 250,
       maxDelayMs: 2_000,
+      receiptTimeoutMs: 5_000,
     },
   });
 

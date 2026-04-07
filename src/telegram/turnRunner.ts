@@ -27,6 +27,7 @@ export interface TelegramActiveTurn {
   chatId: number;
   userId: number;
   sessionId: string;
+  waitForVisibleMessages: () => Promise<void>;
 }
 
 export async function runTelegramTurn(options: {
@@ -96,14 +97,7 @@ export async function runTelegramTurn(options: {
           action: "typing",
         });
       },
-      sendProgressMessage: async (chatId, text) => options.bot.sendMessage({
-        chatId,
-        text,
-      }),
-      editProgressMessage: async (request) => {
-        await options.bot.editMessageText(request);
-      },
-      enqueueReply: async (target, text) => options.enqueueReply(target.chatId, text),
+      enqueueVisibleMessage: async (target, text) => options.enqueueReply(target.chatId, text),
       typingIntervalMs: options.config.telegram.typingIntervalMs,
     });
     const controller = new AbortController();
@@ -113,6 +107,7 @@ export async function runTelegramTurn(options: {
       chatId: options.message.chatId,
       userId: options.message.userId,
       sessionId: session.id,
+      waitForVisibleMessages: async () => display.waitForDurableVisible(),
     });
     options.markQueuedTurnStarted(options.message.peerKey);
 

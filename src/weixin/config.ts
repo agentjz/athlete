@@ -18,6 +18,7 @@ export interface WeixinConfig {
     maxRetries: number;
     baseDelayMs: number;
     maxDelayMs: number;
+    receiptTimeoutMs: number;
   };
   messageChunkChars: number;
   typingIntervalMs: number;
@@ -49,6 +50,7 @@ export const DEFAULT_WEIXIN_CONFIG: WeixinConfig = {
     maxRetries: 6,
     baseDelayMs: 1_000,
     maxDelayMs: 30_000,
+    receiptTimeoutMs: 5_000,
   },
   messageChunkChars: 3_500,
   typingIntervalMs: 4_000,
@@ -83,6 +85,12 @@ export function normalizeWeixinConfig(config: Partial<WeixinConfig> = {}): Weixi
         1_000,
         120_000,
         DEFAULT_WEIXIN_CONFIG.delivery.maxDelayMs,
+      ),
+      receiptTimeoutMs: clampNumber(
+        config.delivery?.receiptTimeoutMs,
+        1_000,
+        300_000,
+        DEFAULT_WEIXIN_CONFIG.delivery.receiptTimeoutMs,
       ),
     },
     messageChunkChars: clampNumber(

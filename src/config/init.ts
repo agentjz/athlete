@@ -125,6 +125,7 @@ function buildProjectEnvTemplate(example: boolean): string {
     "# ATHLETE_WEIXIN_DELIVERY_MAX_RETRIES=6",
     "# ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS=1000",
     "# ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS=30000",
+    "# ATHLETE_WEIXIN_DELIVERY_RECEIPT_TIMEOUT_MS=5000",
     "# ATHLETE_WEIXIN_ROUTE_TAG=",
     "# ATHLETE_WEIXIN_ROUTE_TAG 只有在你明确知道 OpeniLink 给了 route tag 时才需要填，否则留空。",
     "",

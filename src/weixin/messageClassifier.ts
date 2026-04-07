@@ -1,5 +1,6 @@
 import type {
   WeixinClassifiedMessage,
+  WeixinOutboundTextEchoMessage,
   WeixinPrivateFileMessage,
   WeixinPrivateImageMessage,
   WeixinPrivateTextMessage,
@@ -9,6 +10,7 @@ import type {
 } from "./types.js";
 
 const MESSAGE_TYPE_USER = 1;
+const MESSAGE_TYPE_BOT = 2;
 const ITEM_TYPE_TEXT = 1;
 const ITEM_TYPE_IMAGE = 2;
 const ITEM_TYPE_VOICE = 3;
@@ -22,9 +24,12 @@ export function classifyWeixinMessage(
   },
 ): WeixinClassifiedMessage {
   const userId = String(message.from_user_id ?? "").trim();
+  const recipientUserId = String(message.to_user_id ?? "").trim();
   const groupId = String(message.group_id ?? "").trim();
   const contextToken = String(message.context_token ?? "").trim();
   const itemList = Array.isArray(message.item_list) ? message.item_list : [];
+  const messageType = toInteger(message.message_type);
+  const text = extractText(itemList);
 
   if (groupId) {
     return {
@@ -32,6 +37,30 @@ export function classifyWeixinMessage(
       reason: "group_chat_unsupported",
       userId: userId || undefined,
       groupId,
+      raw: message,
+    };
+  }
+
+  if (messageType === MESSAGE_TYPE_BOT) {
+    const clientId = String(message.client_id ?? "").trim();
+    if (recipientUserId && options.allowedUserIds.includes(recipientUserId) && clientId && text) {
+      const classified: WeixinOutboundTextEchoMessage = {
+        kind: "outbound_text_echo",
+        peerKey: `weixin:private:${recipientUserId}`,
+        userId: recipientUserId,
+        messageId: toInteger(message.message_id),
+        seq: toInteger(message.seq),
+        clientId,
+        text,
+        raw: message,
+      };
+      return classified;
+    }
+
+    return {
+      kind: "ignore",
+      reason: "unsupported_message",
+      userId: recipientUserId || userId || undefined,
       raw: message,
     };
   }
@@ -45,7 +74,7 @@ export function classifyWeixinMessage(
     };
   }
 
-  if (message.message_type !== undefined && message.message_type !== MESSAGE_TYPE_USER) {
+  if (messageType !== 0 && messageType !== MESSAGE_TYPE_USER) {
     return {
       kind: "ignore",
       reason: "unsupported_message",
@@ -60,7 +89,7 @@ export function classifyWeixinMessage(
     messageId: toInteger(message.message_id),
     seq: toInteger(message.seq),
     contextToken,
-    text: extractText(itemList),
+    text,
     raw: message,
   };
 

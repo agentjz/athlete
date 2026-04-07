@@ -231,20 +231,27 @@ Weixin 端命令语义与本地 CLI 有明确边界：
 
 ## 过程输出
 
-Weixin 过程输出保持聊天式，但不刷底层噪音。
+Weixin 过程输出保持聊天式，但优先保证“最终结果稳定可见”，不刷底层噪音。
 
-聊天框里的阶段消息：
+聊天框里的可见消息：
 
-- 工具调用时，只发工具名
-- `todo_write` 时，只发 todo preview
-- 最终结果单独发一条
+- `todo_write` 对应的可见 preview 一次，就发一条 todo preview 消息
+- `onAssistantDelta` 只作为阶段内缓冲信号，不直接发聊天消息
+- `onAssistantText` 表示拿到了完整 assistant 文本时，发一条 assistant 消息
+- `onAssistantDone` 带文本且当前 assistant 阶段尚未发出时，发一条最终 assistant 消息
+- 不合并多段 assistant
+- Weixin 不再发送 tool call 聊天消息，避免挤占最终回复的可见额度
+- 短回复走普通文本；长回复超过阈值时直接写成 `.txt` 文件并作为文件发送
+- 不把 todo / assistant 混成一条
 
 不发送：
 
-- reasoning
+- tool call
 - 工具输出正文
 - 大段文件原文
 - 底层噪音日志
+- reasoning
+- `onStatus` 一类非可见噪音
 
 终端日志持续输出高层事件：
 
@@ -252,6 +259,15 @@ Weixin 过程输出保持聊天式，但不刷底层噪音。
 - 当前进入哪个 session
 - 当前阶段、工具、成功 / 失败 / 停止
 - 当前是否发送了文本或媒体
+
+显式信号与可靠性约束：
+
+- Weixin / Telegram 共享同一层可见事件判定与 durable turn display
+- durable outbound 只按事件顺序发送，不按文本去重
+- 如果要防重复，只能基于 event id / delivery state，不能基于文本内容
+- `runOnce` 必须等当前 turn 的可见输出 durable 完成后再 commit 输入
+- `serve` 主循环通过显式 pending-commit 队列继续轮询和处理 `/stop`，不靠时序猜测
+- 可见消息 durable enqueue 失败不能 silent swallow，必须继续上抛
 
 ## 串行与隔离
 

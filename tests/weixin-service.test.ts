@@ -18,7 +18,8 @@ function delay(ms: number): Promise<void> {
 }
 
 class FakeWeixinClient implements WeixinClientLike {
-  public readonly sentTexts: Array<{ userId: string; contextToken: string; text: string }> = [];
+  public readonly sentTexts: Array<{ userId: string; contextToken: string; text: string; clientId: string }> = [];
+  public readonly sentFiles: Array<{ userId: string; contextToken: string; filePath: string; fileName?: string; caption?: string }> = [];
   public readonly typingCalls: Array<{ userId: string; typingTicket: string; status: number }> = [];
   public readonly configRequests: Array<{ userId: string; contextToken: string }> = [];
 
@@ -41,7 +42,7 @@ class FakeWeixinClient implements WeixinClientLike {
     this.typingCalls.push({ userId, typingTicket, status });
   }
 
-  async sendText(request: { userId: string; contextToken: string; text: string }): Promise<void> {
+  async sendText(request: { userId: string; contextToken: string; text: string; clientId: string }): Promise<void> {
     this.sentTexts.push(request);
   }
 
@@ -53,8 +54,8 @@ class FakeWeixinClient implements WeixinClientLike {
     throw new Error("not implemented");
   }
 
-  async sendFile(): Promise<never> {
-    throw new Error("not implemented");
+  async sendFile(request: { userId: string; contextToken: string; filePath: string; fileName?: string; caption?: string }): Promise<void> {
+    this.sentFiles.push(request);
   }
 
   async downloadMedia(): Promise<never> {
@@ -79,6 +80,7 @@ function createWeixinConfig(root: string): Record<string, unknown> {
       maxRetries: 4,
       baseDelayMs: 25,
       maxDelayMs: 250,
+      receiptTimeoutMs: 5_000,
     },
     messageChunkChars: 256,
     typingIntervalMs: 50,
@@ -149,6 +151,7 @@ function createTextMessage(
   };
 }
 
+
 async function waitFor(
   predicate: () => boolean | Promise<boolean>,
   options: { timeoutMs?: number; intervalMs?: number } = {},
@@ -206,6 +209,7 @@ test("weixin service runs private inbound messages through the Athlete runtime a
     pollingSource,
     runTurn: async (options) => {
       seenInputs.push(options.input);
+      options.callbacks?.onAssistantText?.("done");
       options.callbacks?.onAssistantDone?.("done");
       return {
         session: await options.sessionStore.save({
@@ -382,11 +386,13 @@ test("weixin /stop aborts only the current peer while other peers continue and t
 
       if (options.input === "independent peer") {
         otherPeerProcessed = true;
+        options.callbacks?.onAssistantText?.("peer2 ok");
         options.callbacks?.onAssistantDone?.("peer2 ok");
       }
 
       if (options.input === "post-stop follow-up") {
         followUpProcessed = true;
+        options.callbacks?.onAssistantText?.("peer1 recovered");
         options.callbacks?.onAssistantDone?.("peer1 recovered");
       }
 
@@ -465,6 +471,7 @@ test("weixin service retries pending deliveries after the next inbound token ref
     deliveryQueue,
     pollingSource,
     runTurn: async (options) => {
+      options.callbacks?.onAssistantText?.("new reply");
       options.callbacks?.onAssistantDone?.("new reply");
       return {
         session: await options.sessionStore.save(options.session),
@@ -484,4 +491,59 @@ test("weixin service retries pending deliveries after the next inbound token ref
     ["pending before restart", "new reply"],
   );
   assert.deepEqual(await deliveryQueue.listPending(), []);
+});
+
+test("weixin service sends long visible replies as txt files instead of fragile long chat messages", async (t) => {
+  const root = await createTempWorkspace("weixin-long-visible-file", t);
+  const runtime = createTestRuntimeConfig(root);
+  const weixin = createWeixinConfig(root);
+  const client = new FakeWeixinClient();
+  const sessionStore = new SessionStore(runtime.paths.sessionsDir);
+  const sessionMapStore = new FileWeixinSessionMapStore(path.join(String(weixin.stateDir), "session-map.json"));
+  const syncBufStore = new FileWeixinSyncBufStore(path.join(String(weixin.stateDir), "sync-buf.json"));
+  const contextTokenStore = new FileWeixinContextTokenStore(path.join(String(weixin.stateDir), "context-token.json"));
+  const deliveryQueue = new WeixinDeliveryQueue({
+    storePath: path.join(String(weixin.stateDir), "delivery.json"),
+    target: client,
+    contextTokenStore,
+    deliveryConfig: (weixin.delivery ?? {}) as never,
+  });
+  const pollingSource = createPollingSource([
+    {
+      messages: [createTextMessage(50, "long reply please")],
+      syncBuf: "sync-buf-050",
+    },
+  ]);
+  const longReply = "根据 README 的信息，这是一个面向复杂任务的 AI Agent 框架。".repeat(40);
+
+  const service = new WeixinService({
+    cwd: root,
+    config: {
+      ...runtime,
+      weixin,
+    } as never,
+    client,
+    sessionStore,
+    sessionMapStore,
+    syncBufStore,
+    contextTokenStore,
+    deliveryQueue,
+    pollingSource,
+    runTurn: async (options) => {
+      options.callbacks?.onAssistantDone?.(longReply);
+      return {
+        session: await options.sessionStore.save(options.session),
+        changedPaths: [],
+        verificationAttempted: false,
+        yielded: false,
+      };
+    },
+  });
+
+  await service.runOnce();
+  await service.waitForIdle();
+
+  assert.equal(client.sentTexts.length, 0);
+  assert.equal(client.sentFiles.length, 1);
+  assert.match(client.sentFiles[0]!.fileName ?? "", /^athlete-reply-.*\.txt$/);
 });

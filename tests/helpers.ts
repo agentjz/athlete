@@ -111,6 +111,7 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
         maxRetries: 4,
         baseDelayMs: 250,
         maxDelayMs: 10_000,
+        receiptTimeoutMs: 5_000,
       },
       messageChunkChars: 3_500,
       typingIntervalMs: 4_000,

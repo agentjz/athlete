@@ -12,7 +12,7 @@ export class WeixinContextTokenDeliveryError extends Error {
 }
 
 export interface WeixinDeliveryTarget {
-  sendText(request: { userId: string; contextToken: string; text: string }): Promise<void>;
+  sendText(request: { userId: string; contextToken: string; text: string; clientId: string }): Promise<void>;
   sendImage(request: { userId: string; contextToken: string; filePath: string; caption?: string }): Promise<void>;
   sendVideo(request: { userId: string; contextToken: string; filePath: string; caption?: string }): Promise<void>;
   sendFile(request: { userId: string; contextToken: string; filePath: string; fileName?: string; caption?: string }): Promise<void>;
@@ -35,6 +35,7 @@ interface WeixinDeliveryEntryBase {
 export interface WeixinTextDeliveryEntry extends WeixinDeliveryEntryBase {
   kind: "text";
   text: string;
+  clientId: string;
 }
 
 export interface WeixinImageDeliveryEntry extends WeixinDeliveryEntryBase {
@@ -72,7 +73,7 @@ export class WeixinDeliveryQueue {
       contextTokenStore: WeixinContextTokenStoreLike;
       deliveryConfig: WeixinConfig["delivery"];
       now?: () => number;
-      onDelivered?: (entry: WeixinDeliveryEntry) => void;
+      onAccepted?: (entry: WeixinDeliveryEntry) => void;
       onDeliveryFailed?: (entry: WeixinDeliveryEntry, error: unknown) => void;
       onBlocked?: (entry: WeixinDeliveryEntry, reason: WeixinDeliveryBlockedReason) => void;
     },
@@ -84,6 +85,7 @@ export class WeixinDeliveryQueue {
       userId: input.userId,
       kind: "text",
       text: input.text,
+      clientId: buildWeixinTextClientId(),
     });
   }
 
@@ -153,7 +155,7 @@ export class WeixinDeliveryQueue {
         try {
           await this.deliver(entry, token);
           dirty = true;
-          this.options.onDelivered?.(entry);
+          this.options.onAccepted?.(entry);
         } catch (error) {
           if (isContextTokenDeliveryFailure(error)) {
             await this.options.contextTokenStore.markInvalid(entry.peerKey, getErrorMessage(error));
@@ -189,6 +191,10 @@ export class WeixinDeliveryQueue {
     return this.withLock(async () => this.readEntries());
   }
 
+  async confirmTextReceipt(input: { peerKey: string; clientId: string }): Promise<boolean> {
+    return false;
+  }
+
   private async enqueue<T extends WeixinDeliveryEntry>(
     entryLike: Omit<T, "id" | "attemptCount" | "createdAt" | "nextAttemptAt">,
   ): Promise<T> {
@@ -215,6 +221,7 @@ export class WeixinDeliveryQueue {
         userId: entry.userId,
         contextToken,
         text: entry.text,
+        clientId: entry.clientId,
       });
       return;
     }
@@ -282,6 +289,10 @@ export class WeixinDeliveryQueue {
   private now(): number {
     return this.options.now?.() ?? Date.now();
   }
+}
+
+function buildWeixinTextClientId(): string {
+  return `athlete-weixin:${crypto.randomUUID()}`;
 }
 
 function computeBackoffMs(attemptCount: number, config: WeixinConfig["delivery"]): number {

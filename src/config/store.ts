@@ -152,6 +152,9 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
         parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS) ?? fileConfig.weixin.delivery.baseDelayMs,
       maxDelayMs:
         parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS) ?? fileConfig.weixin.delivery.maxDelayMs,
+      receiptTimeoutMs:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_RECEIPT_TIMEOUT_MS) ??
+        fileConfig.weixin.delivery.receiptTimeoutMs,
     },
     messageChunkChars:
       parseIntegerEnv(process.env.ATHLETE_WEIXIN_MESSAGE_CHUNK_CHARS) ?? fileConfig.weixin.messageChunkChars,

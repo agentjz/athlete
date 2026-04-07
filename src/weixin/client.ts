@@ -22,6 +22,7 @@ export interface WeixinTextSendRequest {
   userId: string;
   contextToken: string;
   text: string;
+  clientId: string;
 }
 
 export interface WeixinMediaSendRequest {
@@ -49,6 +50,9 @@ export interface WeixinClientLike {
 }
 
 export const WEIXIN_TYPING_STATUS = 1;
+const WEIXIN_BOT_MESSAGE_TYPE = 2;
+const WEIXIN_FINISHED_MESSAGE_STATE = 2;
+const WEIXIN_TEXT_ITEM_TYPE = 1;
 
 export class OpenILinkWeixinClient implements WeixinClientLike {
   private clientPromise: Promise<OpenILinkRuntimeClient> | null = null;
@@ -128,7 +132,22 @@ export class OpenILinkWeixinClient implements WeixinClientLike {
 
   async sendText(request: WeixinTextSendRequest): Promise<void> {
     const client = await this.getClient();
-    await client.sendText(request.userId, request.text, request.contextToken);
+    await client.sendMessage({
+      from_user_id: "",
+      to_user_id: request.userId,
+      client_id: request.clientId,
+      message_type: WEIXIN_BOT_MESSAGE_TYPE,
+      message_state: WEIXIN_FINISHED_MESSAGE_STATE,
+      context_token: request.contextToken,
+      item_list: [
+        {
+          type: WEIXIN_TEXT_ITEM_TYPE,
+          text_item: {
+            text: request.text,
+          },
+        },
+      ],
+    });
   }
 
   async sendImage(request: WeixinMediaSendRequest): Promise<void> {
@@ -198,6 +217,7 @@ export class OpenILinkWeixinClient implements WeixinClientLike {
 interface OpenILinkRuntimeClient {
   baseUrl: string;
   cdnBaseUrl: string;
+  sendMessage(message: Record<string, unknown>): Promise<void>;
   loginWithQr(
     callbacks?: {
       on_qrcode?: (url: string) => void;

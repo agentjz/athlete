@@ -48,6 +48,12 @@ export class TelegramService {
   private readonly inFlightTasks = new Set<Promise<void>>();
   private readonly activeTurns = new Map<string, TelegramActiveTurn>();
   private readonly pendingStopRequests = new Set<string>();
+  private readonly pendingUpdateCommits: Array<{
+    updateId: number;
+    settled: boolean;
+    error: unknown;
+  }> = [];
+  private readonly pendingUpdateIds = new Set<number>();
   private readonly queuedTurnCounts = new Map<string, number>();
   private stopped = false;
 
@@ -76,7 +82,7 @@ export class TelegramService {
     try {
       while (!this.stopped && !signal?.aborted) {
         try {
-          await this.runOnce(signal);
+          await this.runPollIteration(signal);
         } catch (error) {
           if (signal?.aborted) {
             break;
@@ -94,15 +100,48 @@ export class TelegramService {
   }
 
   async runOnce(signal?: AbortSignal): Promise<void> {
+    await this.runCommittedIteration(signal);
+  }
+
+  private async runCommittedIteration(signal?: AbortSignal): Promise<void> {
     await this.ensureStateDirectory();
     await this.options.deliveryQueue.flushDue();
 
     const updates = await this.pollingSource.getUpdates(signal);
+    const turnTasks: Promise<void>[] = [];
     for (const update of updates) {
-      await this.processUpdate(update);
+      const { task } = await this.processUpdate(update);
+      if (task) {
+        turnTasks.push(task);
+      }
+    }
+    if (turnTasks.length > 0) {
+      await Promise.all(turnTasks);
+    }
+    for (const update of updates) {
       await this.pollingSource.commit(update.update_id);
     }
 
+    await this.options.deliveryQueue.flushDue();
+  }
+
+  private async runPollIteration(signal?: AbortSignal): Promise<void> {
+    await this.ensureStateDirectory();
+    await this.options.deliveryQueue.flushDue();
+
+    const updates = await this.pollingSource.getUpdates(signal);
+
+    for (const update of updates) {
+      if (this.pendingUpdateIds.has(update.update_id)) {
+        continue;
+      }
+
+      this.pendingUpdateIds.add(update.update_id);
+      const { task } = await this.processUpdate(update);
+      this.queuePendingUpdateCommit(update.update_id, task ? [task] : []);
+    }
+
+    await this.drainPendingUpdateCommits();
     await this.options.deliveryQueue.flushDue();
   }
 
@@ -112,18 +151,20 @@ export class TelegramService {
     }
   }
 
-  private async processUpdate(update: TelegramUpdate): Promise<void> {
+  private async processUpdate(update: TelegramUpdate): Promise<{
+    task: Promise<void> | null;
+  }> {
     const classified = classifyTelegramUpdate(update, {
       allowedUserIds: this.options.config.telegram.allowedUserIds,
     });
 
     if (classified.kind === "ignore") {
-      return;
+      return { task: null };
     }
 
     if (classified.kind === "private_message" && isStopCommand(classified.text)) {
       await this.handleStopCommand(classified);
-      return;
+      return { task: null };
     }
 
     this.logger.info("received inbound message", {
@@ -158,11 +199,13 @@ export class TelegramService {
         },
       });
     });
-    this.trackTask(task, {
-      peerKey: classified.peerKey,
-      userId: classified.userId,
-      chatId: classified.chatId,
-    });
+    return {
+      task: this.trackTask(task, {
+        peerKey: classified.peerKey,
+        userId: classified.userId,
+        chatId: classified.chatId,
+      }),
+    };
   }
 
   private async handleStopCommand(message: TelegramPrivateMessage): Promise<void> {
@@ -216,6 +259,8 @@ export class TelegramService {
         detail: summarizeText(chunk),
       });
     }
+
+    await this.options.deliveryQueue.flushDue();
   }
 
   private async ensureStateDirectory(): Promise<void> {
@@ -229,24 +274,29 @@ export class TelegramService {
       userId: number;
       chatId: number;
     },
-  ): void {
+  ): Promise<void> {
     const tracked = task
       .catch((error) => {
         this.logger.error("background task failure", {
           ...context,
           detail: error instanceof Error ? error.message : String(error),
         });
+        throw error;
       })
       .finally(async () => {
         this.inFlightTasks.delete(tracked);
-        await this.options.deliveryQueue.flushDue().catch((error) => {
+        try {
+          await this.options.deliveryQueue.flushDue();
+        } catch (error) {
           this.logger.error("delivery flush failure", {
             ...context,
             detail: error instanceof Error ? error.message : String(error),
           });
-        });
+          throw error;
+        }
       });
     this.inFlightTasks.add(tracked);
+    return tracked;
   }
 
   private abortAllActiveTurns(message: string): void {
@@ -286,6 +336,42 @@ export class TelegramService {
 
   private getQueuedTurnCount(peerKey: string): number {
     return this.queuedTurnCounts.get(peerKey) ?? 0;
+  }
+
+  private queuePendingUpdateCommit(updateId: number, tasks: Promise<void>[]): void {
+    const entry = {
+      updateId,
+      settled: false,
+      error: null as unknown,
+    };
+
+    Promise.all(tasks)
+      .then(() => {
+        entry.settled = true;
+      })
+      .catch((error) => {
+        entry.error = error;
+        entry.settled = true;
+      });
+
+    this.pendingUpdateCommits.push(entry);
+  }
+
+  private async drainPendingUpdateCommits(): Promise<void> {
+    while (this.pendingUpdateCommits.length > 0) {
+      const next = this.pendingUpdateCommits[0]!;
+      if (!next.settled) {
+        return;
+      }
+
+      if (next.error) {
+        throw next.error;
+      }
+
+      await this.pollingSource.commit(next.updateId);
+      this.pendingUpdateCommits.shift();
+      this.pendingUpdateIds.delete(next.updateId);
+    }
   }
 }
 

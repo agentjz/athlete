@@ -4,14 +4,14 @@ export function chunkWeixinMessage(text: string, maxChars = 4_096): string[] {
   }
 
   const limit = Math.max(1, Math.trunc(maxChars));
-  if (text.length <= limit) {
+  if (Buffer.byteLength(text, "utf8") <= limit) {
     return [text];
   }
 
   const chunks: string[] = [];
   let remaining = text;
 
-  while (remaining.length > limit) {
+  while (Buffer.byteLength(remaining, "utf8") > limit) {
     const cut = findCutPoint(remaining, limit);
     chunks.push(remaining.slice(0, cut));
     remaining = remaining.slice(cut);
@@ -25,12 +25,26 @@ export function chunkWeixinMessage(text: string, maxChars = 4_096): string[] {
 }
 
 function findCutPoint(text: string, limit: number): number {
+  let candidate = 0;
+  let usedBytes = 0;
+
+  for (const char of text) {
+    const nextBytes = Buffer.byteLength(char, "utf8");
+    if (usedBytes + nextBytes > limit) {
+      break;
+    }
+
+    usedBytes += nextBytes;
+    candidate += char.length;
+  }
+
+  const head = text.slice(0, candidate);
   for (const separator of ["\n\n", "\n", " "]) {
-    const cut = text.lastIndexOf(separator, limit);
+    const cut = head.lastIndexOf(separator);
     if (cut > 0) {
-      return cut + separator.length <= limit ? cut + separator.length : cut;
+      return cut + separator.length;
     }
   }
 
-  return limit;
+  return candidate > 0 ? candidate : 1;
 }

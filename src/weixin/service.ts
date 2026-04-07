@@ -18,6 +18,7 @@ import type { WeixinSessionMapStoreLike } from "./sessionMapStore.js";
 import type { WeixinSyncBufStoreLike } from "./syncBufStore.js";
 import { runWeixinTurn, type WeixinActiveTurn } from "./turnRunner.js";
 import type { WeixinPollingSourceLike, WeixinPrivateTextMessage, WeixinRawMessage } from "./types.js";
+import { packageWeixinVisibleReply } from "./visibleReplyPackaging.js";
 
 export interface WeixinServiceOptions {
   cwd: string;
@@ -46,6 +47,13 @@ export class WeixinService {
   private readonly inFlightTasks = new Set<Promise<void>>();
   private readonly activeTurns = new Map<string, WeixinActiveTurn>();
   private readonly pendingStopRequests = new Set<string>();
+  private readonly pendingBatchCommits: Array<{
+    syncBuf: string | null;
+    messageKeys: string[];
+    settled: boolean;
+    error: unknown;
+  }> = [];
+  private readonly pendingMessageKeys = new Set<string>();
   private readonly queuedTurnCounts = new Map<string, number>();
   private stopped = false;
 
@@ -76,7 +84,7 @@ export class WeixinService {
     try {
       while (!this.stopped && !signal?.aborted) {
         try {
-          await this.runOnce(signal);
+          await this.runPollIteration(signal);
         } catch (error) {
           if (signal?.aborted) {
             break;
@@ -94,17 +102,56 @@ export class WeixinService {
   }
 
   async runOnce(signal?: AbortSignal): Promise<void> {
+    await this.runCommittedIteration(signal);
+  }
+
+  private async runCommittedIteration(signal?: AbortSignal): Promise<void> {
     await this.ensureStateDirectory();
     await this.options.deliveryQueue.flushDue();
 
     const batch = await this.pollingSource.poll(signal);
+    const turnTasks: Promise<void>[] = [];
     for (const message of batch.messages) {
-      await this.processMessage(message);
+      const { task } = await this.processMessage(message);
+      if (task) {
+        turnTasks.push(task);
+      }
+    }
+    if (turnTasks.length > 0) {
+      await Promise.all(turnTasks);
     }
     if (batch.syncBuf) {
       await this.options.syncBufStore.save(batch.syncBuf);
     }
     await this.pollingSource.commit(batch.syncBuf);
+    await this.options.deliveryQueue.flushDue();
+  }
+
+  private async runPollIteration(signal?: AbortSignal): Promise<void> {
+    await this.ensureStateDirectory();
+    await this.options.deliveryQueue.flushDue();
+
+    const batch = await this.pollingSource.poll(signal);
+    const turnTasks: Promise<void>[] = [];
+    const messageKeys: string[] = [];
+
+    for (const message of batch.messages) {
+      const messageKey = getWeixinMessageKey(message);
+      if (this.pendingMessageKeys.has(messageKey)) {
+        continue;
+      }
+
+      this.pendingMessageKeys.add(messageKey);
+      messageKeys.push(messageKey);
+
+      const { task } = await this.processMessage(message);
+      if (task) {
+        turnTasks.push(task);
+      }
+    }
+
+    this.queuePendingBatchCommit(batch.syncBuf, messageKeys, turnTasks);
+    await this.drainPendingBatchCommits();
     await this.options.deliveryQueue.flushDue();
   }
 
@@ -114,20 +161,26 @@ export class WeixinService {
     }
   }
 
-  private async processMessage(message: WeixinRawMessage): Promise<void> {
+  private async processMessage(message: WeixinRawMessage): Promise<{
+    task: Promise<void> | null;
+  }> {
     const classified = classifyWeixinMessage(message, {
       allowedUserIds: this.options.config.weixin.allowedUserIds,
     });
 
     if (classified.kind === "ignore") {
-      return;
+      return { task: null };
+    }
+
+    if (classified.kind === "outbound_text_echo") {
+      return { task: null };
     }
 
     await this.captureContextToken(classified.peerKey, classified.userId, classified.contextToken);
 
     if (classified.kind === "private_text_message" && isStopCommand(classified.text)) {
       await this.handleStopCommand(classified);
-      return;
+      return { task: null };
     }
 
     this.logger.info("received inbound message", {
@@ -161,10 +214,12 @@ export class WeixinService {
         },
       });
     });
-    this.trackTask(task, {
-      peerKey: classified.peerKey,
-      userId: classified.userId,
-    });
+    return {
+      task: this.trackTask(task, {
+        peerKey: classified.peerKey,
+        userId: classified.userId,
+      }),
+    };
   }
 
   private async captureContextToken(peerKey: string, userId: string, contextToken: string): Promise<void> {
@@ -220,7 +275,29 @@ export class WeixinService {
     }
 
     const peerKey = `weixin:private:${userId}`;
-    for (const chunk of chunkWeixinMessage(text, this.options.config.weixin.messageChunkChars)) {
+    const payload = await packageWeixinVisibleReply({
+      stateDir: this.options.config.weixin.stateDir,
+      text,
+    });
+
+    if (payload.kind === "file") {
+      await this.options.deliveryQueue.enqueueFile({
+        peerKey,
+        userId,
+        filePath: payload.filePath,
+        fileName: payload.fileName,
+      });
+      this.logger.info("queued file reply", {
+        peerKey,
+        userId,
+        fileName: payload.fileName,
+        detail: summarizeText(text),
+      });
+      await this.options.deliveryQueue.flushDue();
+      return;
+    }
+
+    for (const chunk of chunkWeixinMessage(payload.text, this.options.config.weixin.messageChunkChars)) {
       await this.options.deliveryQueue.enqueueText({
         peerKey,
         userId,
@@ -232,6 +309,8 @@ export class WeixinService {
         detail: summarizeText(chunk),
       });
     }
+
+    await this.options.deliveryQueue.flushDue();
   }
 
   private async ensureStateDirectory(): Promise<void> {
@@ -244,24 +323,29 @@ export class WeixinService {
       peerKey: string;
       userId: string;
     },
-  ): void {
+  ): Promise<void> {
     const tracked = task
       .catch((error) => {
         this.logger.error("background task failure", {
           ...context,
           detail: error instanceof Error ? error.message : String(error),
         });
+        throw error;
       })
       .finally(async () => {
         this.inFlightTasks.delete(tracked);
-        await this.options.deliveryQueue.flushDue().catch((error) => {
+        try {
+          await this.options.deliveryQueue.flushDue();
+        } catch (error) {
           this.logger.error("delivery flush failure", {
             ...context,
             detail: error instanceof Error ? error.message : String(error),
           });
-        });
+          throw error;
+        }
       });
     this.inFlightTasks.add(tracked);
+    return tracked;
   }
 
   private abortAllActiveTurns(message: string): void {
@@ -302,6 +386,53 @@ export class WeixinService {
   private getQueuedTurnCount(peerKey: string): number {
     return this.queuedTurnCounts.get(peerKey) ?? 0;
   }
+
+  private queuePendingBatchCommit(
+    syncBuf: string | null,
+    messageKeys: string[],
+    tasks: Promise<void>[],
+  ): void {
+    const entry = {
+      syncBuf,
+      messageKeys,
+      settled: false,
+      error: null as unknown,
+    };
+
+    Promise.all(tasks)
+      .then(() => {
+        entry.settled = true;
+      })
+      .catch((error) => {
+        entry.error = error;
+        entry.settled = true;
+      });
+
+    this.pendingBatchCommits.push(entry);
+  }
+
+  private async drainPendingBatchCommits(): Promise<void> {
+    while (this.pendingBatchCommits.length > 0) {
+      const next = this.pendingBatchCommits[0]!;
+      if (!next.settled) {
+        return;
+      }
+
+      if (next.error) {
+        throw next.error;
+      }
+
+      if (next.syncBuf) {
+        await this.options.syncBufStore.save(next.syncBuf);
+      }
+      await this.pollingSource.commit(next.syncBuf);
+      this.pendingBatchCommits.shift();
+
+      for (const messageKey of next.messageKeys) {
+        this.pendingMessageKeys.delete(messageKey);
+      }
+    }
+  }
 }
 
 function isStopCommand(input: string): boolean {
@@ -315,4 +446,8 @@ function summarizeText(value: string, maxChars = 100): string {
   }
 
   return normalized.length <= maxChars ? normalized : `${normalized.slice(0, maxChars - 3)}...`;
+}
+
+function getWeixinMessageKey(message: WeixinRawMessage): string {
+  return `${message.seq}:${message.message_id}`;
 }

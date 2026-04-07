@@ -87,7 +87,7 @@ export async function createWeixinService(options: {
     target: client,
     contextTokenStore,
     deliveryConfig: options.config.weixin.delivery,
-    onDelivered(entry) {
+    onAccepted(entry) {
       logger.info("delivery sent", {
         peerKey: entry.peerKey,
         userId: entry.userId,

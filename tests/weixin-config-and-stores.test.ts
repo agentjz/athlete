@@ -37,6 +37,7 @@ test("weixin config exposes formal defaults and normalizes overrides", () => {
   assert.equal(defaults.qrTimeoutMs, 480_000);
   assert.equal(defaults.delivery.baseDelayMs, 1_000);
   assert.equal(defaults.delivery.maxDelayMs, 30_000);
+  assert.equal(defaults.delivery.receiptTimeoutMs, 5_000);
 
   const normalized = normalizeWeixinConfig({
     baseUrl: " https://weixin.example.test/ ",
@@ -50,6 +51,7 @@ test("weixin config exposes formal defaults and normalizes overrides", () => {
       maxRetries: 0,
       baseDelayMs: 100,
       maxDelayMs: 999_999,
+      receiptTimeoutMs: 10,
     },
     messageChunkChars: 20,
     typingIntervalMs: 40,
@@ -65,6 +67,7 @@ test("weixin config exposes formal defaults and normalizes overrides", () => {
   assert.equal(normalized.delivery.maxRetries, 1);
   assert.equal(normalized.delivery.baseDelayMs, 250);
   assert.equal(normalized.delivery.maxDelayMs, 120_000);
+  assert.equal(normalized.delivery.receiptTimeoutMs, 1_000);
   assert.equal(normalized.messageChunkChars, 128);
   assert.equal(normalized.typingIntervalMs, 500);
   assert.equal(normalized.qrTimeoutMs, 30_000);
@@ -98,6 +101,7 @@ test("resolveRuntimeConfig reads ATHLETE_WEIXIN_* from the project .env file", a
       "ATHLETE_WEIXIN_DELIVERY_MAX_RETRIES=7",
       "ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS=500",
       "ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS=60000",
+      "ATHLETE_WEIXIN_DELIVERY_RECEIPT_TIMEOUT_MS=8000",
       "ATHLETE_WEIXIN_ROUTE_TAG=athlete-route",
     ].join("\n"),
     "utf8",
@@ -115,6 +119,7 @@ test("resolveRuntimeConfig reads ATHLETE_WEIXIN_* from the project .env file", a
     "ATHLETE_WEIXIN_DELIVERY_MAX_RETRIES",
     "ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS",
     "ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS",
+    "ATHLETE_WEIXIN_DELIVERY_RECEIPT_TIMEOUT_MS",
     "ATHLETE_WEIXIN_ROUTE_TAG",
   ]);
 
@@ -140,6 +145,7 @@ test("resolveRuntimeConfig reads ATHLETE_WEIXIN_* from the project .env file", a
     assert.equal(runtime.weixin.delivery.maxRetries, 7);
     assert.equal(runtime.weixin.delivery.baseDelayMs, 500);
     assert.equal(runtime.weixin.delivery.maxDelayMs, 60_000);
+    assert.equal(runtime.weixin.delivery.receiptTimeoutMs, 8_000);
     assert.equal(runtime.weixin.routeTag, "athlete-route");
     assert.match(runtime.weixin.stateDir, /[\\/]\.athlete[\\/]weixin$/i);
     assert.match(runtime.weixin.credentialsFile, /credentials\.json$/i);
