@@ -223,6 +223,9 @@ athlete config show
 | `athlete undo [changeId]` | 回滚最近一次或指定变更 |
 | `athlete diff [path]` | 查看当前项目的 Git diff |
 | `athlete doctor` | 检查本地环境和 API 连接 |
+| `athlete weixin login` | 扫码登录 Weixin 通道并保存登录态 |
+| `athlete weixin serve` | 启动 Weixin 私聊服务 |
+| `athlete weixin logout` | 清理 Weixin 登录态 |
 
 ### 配置命令
 
@@ -540,6 +543,196 @@ Telegram 端不只是一直显示 typing。
 4. 在项目根目录启动 `athlete telegram serve`
 5. 去 Telegram 私聊 bot，直接发文字或文件任务
 6. 需要停止时发 `/stop`
+
+## Weixin 私聊远程控制
+
+Athlete 现在也支持把 Weixin 私聊当成正式远程控制通道来用，整体体验尽量对齐当前 Telegram 正式通道，但严格服从 OpeniLink 的真实能力边界。
+
+### 1. 配置 `.athlete/.env`
+
+如果当前项目里还没有 `.athlete/.env`，先运行：
+
+```powershell
+athlete init
+```
+
+然后在 `.athlete/.env` 里至少填这些值：
+
+```text
+ATHLETE_API_KEY=replace-with-your-key
+ATHLETE_BASE_URL=https://api.deepseek.com
+ATHLETE_MODEL=deepseek-reasoner
+
+ATHLETE_WEIXIN_ALLOWED_USER_IDS=wxid_alice,wxid_bob
+ATHLETE_WEIXIN_BASE_URL=https://ilinkai.weixin.qq.com
+ATHLETE_WEIXIN_CDN_BASE_URL=https://novac2c.cdn.weixin.qq.com/c2c
+ATHLETE_WEIXIN_POLLING_TIMEOUT_MS=30000
+ATHLETE_WEIXIN_POLLING_RETRY_BACKOFF_MS=1000
+ATHLETE_WEIXIN_MESSAGE_CHUNK_CHARS=3500
+ATHLETE_WEIXIN_TYPING_INTERVAL_MS=4000
+ATHLETE_WEIXIN_QR_TIMEOUT_MS=480000
+ATHLETE_WEIXIN_DELIVERY_MAX_RETRIES=6
+ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS=1000
+ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS=30000
+ATHLETE_WEIXIN_ROUTE_TAG=
+```
+
+说明：
+
+- `ATHLETE_WEIXIN_ALLOWED_USER_IDS` 是允许控制 Athlete 的 Weixin 用户白名单；空白名单等于任何人都不能控制。
+- `ATHLETE_WEIXIN_BASE_URL` / `ATHLETE_WEIXIN_CDN_BASE_URL` 默认就是 OpeniLink SDK 当前默认值，通常不需要改。
+- `ATHLETE_WEIXIN_ROUTE_TAG` 只有在你明确需要 OpeniLink 路由标签时才填。
+
+### 2. 登录、启动、登出
+
+首次使用先扫码登录：
+
+```powershell
+athlete weixin login
+```
+
+登录成功后，Athlete 会把登录态写到项目状态目录：
+
+```text
+<project>/.athlete/weixin/credentials.json
+```
+
+然后启动服务：
+
+```powershell
+athlete weixin serve
+```
+
+不再使用时可以清理登录态：
+
+```powershell
+athlete weixin logout
+```
+
+### 3. Weixin 通道当前能力
+
+当前正式支持：
+
+- 私聊文本入站
+- 私聊图片、视频、文件、语音入站
+- 私聊文本出站
+- 私聊图片、视频、文件出站
+- 长时间运行服务
+- 单实例保护
+- 每个 peer 固定绑定 Athlete session
+- 同一 peer 串行，不同 peer 并发
+- `/stop` 只停止当前 peer 的当前任务，不停服务
+- 聊天过程提示、工具名、todo preview、最终答复
+
+当前明确不支持：
+
+- 群聊路由
+- Weixin 语音回发
+
+### 4. 为什么现在是 private-only
+
+Weixin 通道当前明确做成 private-only，不是假装支持群聊。
+
+原因不是偷懒，而是 fail-closed：
+
+- OpeniLink 当前消息 surface 虽然有 `group_id`
+- 但在 Athlete 当前接线里，没有足够稳定的群聊 reply target / mention / 路由隔离语义
+- 本地参考 `REF/weixin-agent-sdk` 也没有提供可以直接照搬到 Athlete 主循环里的安全群聊路由方案
+
+所以当前行为是：
+
+- 私聊正常进入 Athlete runtime
+- 群聊消息直接拒绝，不进入 session
+- 文档和测试都按 private-only 固化
+
+### 5. `context_token` 是硬边界，不是可选项
+
+Weixin 和 Telegram 最关键的差异就在这里。
+
+Telegram 是 bot token 模型；Weixin 不是。
+Weixin 出站依赖用户最近入站消息里带来的 `context_token`。
+
+Athlete 当前语义是：
+
+- 每次收到入站消息，都会捕获并刷新当前 peer 的 `context_token`
+- 所有出站文本 / 图片 / 视频 / 文件都必须走当前 token
+- 如果服务重启后队列里还有待发送项，但 token 缺失或已失效，这些项不会被丢弃，也不会误报成功
+- 待发送项会保留在 delivery queue 里
+- 只有等这个 peer 下次再发新消息、token 刷新后，队列才会继续投递
+
+这也是为什么：
+
+- `athlete weixin serve` 之前必须先 `athlete weixin login`
+- 即使已经登录，某个 peer 也必须先给你发过消息，你才能继续对它主动发送
+
+### 6. 文件与媒体怎么工作
+
+入站：
+
+- 图片、视频、文件、语音会下载到 `<project>/.athlete/weixin/files/...`
+- 附件元数据会写到 `.athlete/weixin/attachments.json`
+- 当前 turn 会自动拿到本地文件路径和上下文说明
+- 语音会通过 OpeniLink 的语音下载/解码入口落成本地 WAV
+
+出站：
+
+- Athlete 可以把本地图片、视频、文件发回当前 Weixin 私聊
+- 工具层会根据文件类型做真实路由
+- 如果是音频/语音文件，Athlete 会 fail-closed 拒绝，因为上游没有稳定的语音发送接口
+
+### 7. 命令语义和过程输出
+
+Weixin 里保留这些正式命令：
+
+- `/help`
+- `/stop`
+- `/session`
+- `/config`
+- `/todos`
+- `/runtime`
+- `/tasks`
+- `/team`
+- `/background`
+- `/worktrees`
+- `/inbox`
+
+明确拒绝：
+
+- `quit`
+- `reset`
+- `/reset`
+- `/multi`
+
+过程输出只会发这些高层信息：
+
+- 工具名
+- `todo_write` 的 preview
+- 最终答复
+
+不会泄露：
+
+- reasoning
+- 大段工具输出正文
+- 底层噪音日志
+
+### 8. 常见问题
+
+`为什么我刚重启服务，消息没有立刻发出去？`
+
+- 先看这个 peer 最近有没有新的入站消息
+- 如果没有，通常是缺少可用的 `context_token`
+- 待发送内容会留在 queue 里，等下次这个 peer 再发消息后恢复投递
+
+`为什么群聊里没反应？`
+
+- 当前版本明确只支持 Weixin 私聊
+- 群聊是 fail-closed 拒绝，不是 silent failure
+
+`为什么语音能收不能回？`
+
+- 当前上游 SDK 明确有语音下载/解码入口
+- 但没有稳定的语音回发接口
+- Athlete 因此只做语音入站，不伪造语音出站能力
 
 ## 轻装上下文运行时
 

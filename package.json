@@ -43,6 +43,7 @@
   "dependencies": {
     "@inquirer/prompts": "^7.9.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@openilink/openilink-sdk-node": "^0.6.0",
     "@playwright/mcp": "^0.0.70",
     "@types/adm-zip": "^0.5.8",
     "adm-zip": "^0.5.17",
@@ -59,6 +60,7 @@
     "mammoth": "^1.10.0",
     "marked": "^17.0.4",
     "openai": "^6.4.0",
+    "silk-wasm": "^3.7.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

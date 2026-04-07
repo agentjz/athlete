@@ -10,6 +10,13 @@ import {
   parseTelegramAllowedUserIds,
   resolveTelegramRuntimeConfig,
 } from "../telegram/config.js";
+import { FileWeixinCredentialStore } from "../weixin/credentialsStore.js";
+import {
+  DEFAULT_WEIXIN_CONFIG,
+  normalizeWeixinConfig,
+  parseWeixinAllowedUserIds,
+  resolveWeixinRuntimeConfig,
+} from "../weixin/config.js";
 import type { AgentMode, AppConfig, CliOverrides, MineruRuntimeConfig, RuntimeConfig } from "../types.js";
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -34,6 +41,7 @@ const DEFAULT_CONFIG: AppConfig = {
   showReasoning: true,
   mcp: getDefaultMcpConfig(),
   telegram: DEFAULT_TELEGRAM_CONFIG,
+  weixin: DEFAULT_WEIXIN_CONFIG,
 };
 
 export async function ensureAppDirectories(): Promise<ReturnType<typeof getAppPaths>> {
@@ -120,6 +128,40 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
     typingIntervalMs:
       parseIntegerEnv(process.env.ATHLETE_TELEGRAM_TYPING_INTERVAL_MS) ?? fileConfig.telegram.typingIntervalMs,
   });
+  const weixinAllowedUserIds = process.env.ATHLETE_WEIXIN_ALLOWED_USER_IDS
+    ? parseWeixinAllowedUserIds(process.env.ATHLETE_WEIXIN_ALLOWED_USER_IDS)
+    : fileConfig.weixin.allowedUserIds;
+  const weixinConfig = normalizeWeixinConfig({
+    ...fileConfig.weixin,
+    baseUrl: process.env.ATHLETE_WEIXIN_BASE_URL ?? fileConfig.weixin.baseUrl,
+    cdnBaseUrl: process.env.ATHLETE_WEIXIN_CDN_BASE_URL ?? fileConfig.weixin.cdnBaseUrl,
+    allowedUserIds: weixinAllowedUserIds,
+    polling: {
+      ...fileConfig.weixin.polling,
+      timeoutMs:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_POLLING_TIMEOUT_MS) ?? fileConfig.weixin.polling.timeoutMs,
+      retryBackoffMs:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_POLLING_RETRY_BACKOFF_MS) ??
+        fileConfig.weixin.polling.retryBackoffMs,
+    },
+    delivery: {
+      ...fileConfig.weixin.delivery,
+      maxRetries:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_MAX_RETRIES) ?? fileConfig.weixin.delivery.maxRetries,
+      baseDelayMs:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_BASE_DELAY_MS) ?? fileConfig.weixin.delivery.baseDelayMs,
+      maxDelayMs:
+        parseIntegerEnv(process.env.ATHLETE_WEIXIN_DELIVERY_MAX_DELAY_MS) ?? fileConfig.weixin.delivery.maxDelayMs,
+    },
+    messageChunkChars:
+      parseIntegerEnv(process.env.ATHLETE_WEIXIN_MESSAGE_CHUNK_CHARS) ?? fileConfig.weixin.messageChunkChars,
+    typingIntervalMs:
+      parseIntegerEnv(process.env.ATHLETE_WEIXIN_TYPING_INTERVAL_MS) ?? fileConfig.weixin.typingIntervalMs,
+    qrTimeoutMs: parseIntegerEnv(process.env.ATHLETE_WEIXIN_QR_TIMEOUT_MS) ?? fileConfig.weixin.qrTimeoutMs,
+    routeTag: process.env.ATHLETE_WEIXIN_ROUTE_TAG ?? fileConfig.weixin.routeTag,
+  });
+  const provisionalWeixin = resolveWeixinRuntimeConfig(weixinConfig, projectRoots.stateRootDir);
+  const weixinCredentials = await new FileWeixinCredentialStore(provisionalWeixin.credentialsFile).load();
 
   const merged = normalizeConfig({
     ...fileConfig,
@@ -144,6 +186,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       },
     },
     telegram: telegramConfig,
+    weixin: weixinConfig,
   }, {
     cwd,
     cacheDir: paths.cacheDir,
@@ -158,6 +201,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
     mineru: readMineruRuntimeConfig(),
     paths,
     telegram: resolveTelegramRuntimeConfig(merged.telegram, projectRoots.stateRootDir),
+    weixin: resolveWeixinRuntimeConfig(merged.weixin, projectRoots.stateRootDir, weixinCredentials),
   };
 }
 
@@ -243,6 +287,7 @@ function normalizeConfig(
     showReasoning: Boolean(config.showReasoning),
     mcp: normalizeMcpConfig(config.mcp, runtime),
     telegram: normalizeTelegramConfig(config.telegram),
+    weixin: normalizeWeixinConfig(config.weixin),
   };
 }
 
@@ -268,6 +313,18 @@ function mergeAppConfig(base: AppConfig, patch: Partial<AppConfig>): AppConfig {
       delivery: {
         ...base.telegram.delivery,
         ...(patch.telegram?.delivery ?? {}),
+      },
+    },
+    weixin: {
+      ...base.weixin,
+      ...(patch.weixin ?? {}),
+      polling: {
+        ...base.weixin.polling,
+        ...(patch.weixin?.polling ?? {}),
+      },
+      delivery: {
+        ...base.weixin.delivery,
+        ...(patch.weixin?.delivery ?? {}),
       },
     },
   };

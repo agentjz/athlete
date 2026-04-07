@@ -1,6 +1,7 @@
 import type { McpConfig } from "./mcp/types.js";
 import type { LoadedSkill } from "./skills/types.js";
 import type { TelegramConfig, TelegramRuntimeConfig } from "./telegram/config.js";
+import type { WeixinConfig, WeixinRuntimeConfig } from "./weixin/config.js";
 
 export type {
   LoadedSkill,
@@ -43,6 +44,7 @@ export interface AppConfig {
   showReasoning: boolean;
   mcp: McpConfig;
   telegram: TelegramConfig;
+  weixin: WeixinConfig;
 }
 
 export interface RuntimeConfig extends AppConfig {
@@ -50,6 +52,7 @@ export interface RuntimeConfig extends AppConfig {
   mineru: MineruRuntimeConfig;
   paths: AppPaths;
   telegram: TelegramRuntimeConfig;
+  weixin: WeixinRuntimeConfig;
 }
 
 export interface CliOverrides {

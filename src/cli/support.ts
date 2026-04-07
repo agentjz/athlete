@@ -114,7 +114,8 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
     case "provider":
       return "deepseek" as AppConfig[keyof AppConfig];
     case "mcp":
-    case "telegram": {
+    case "telegram":
+    case "weixin": {
       const parsed = tryParseJson(rawValue);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         throw new Error(`Expected a JSON object for ${key}.`);

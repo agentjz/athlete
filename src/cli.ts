@@ -27,6 +27,13 @@ import type { AppConfig, RuntimeConfig } from "./types.js";
 import { startInteractiveChat } from "./ui/interactive.js";
 import { ui } from "./utils/console.js";
 import { installStdioGuards, writeStdoutLine } from "./utils/stdio.js";
+import {
+  createWeixinService as createConfiguredWeixinService,
+  loginWeixin as loginConfiguredWeixin,
+  logoutWeixin as logoutConfiguredWeixin,
+  registerWeixinCommands,
+} from "./weixin/cli.js";
+import { acquireWeixinProcessLock } from "./weixin/processLock.js";
 
 export interface CliProgramDependencies {
   startInteractive?: typeof startInteractiveChat;
@@ -38,6 +45,16 @@ export interface CliProgramDependencies {
     stop?(): void;
   }>;
   acquireProcessLock?: typeof acquireTelegramProcessLock;
+  loginWeixin?: typeof loginConfiguredWeixin;
+  createWeixinService?: (options: {
+    cwd: string;
+    config: RuntimeConfig;
+  }) => Promise<{
+    run(signal?: AbortSignal): Promise<void>;
+    stop?(): void;
+  }>;
+  logoutWeixin?: typeof logoutConfiguredWeixin;
+  acquireWeixinProcessLock?: typeof acquireWeixinProcessLock;
   resolveRuntime?: typeof resolveCliRuntime;
 }
 
@@ -45,6 +62,7 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
   const program = new Command();
   const startInteractive = dependencies.startInteractive ?? startInteractiveChat;
   const createTelegramService = dependencies.createTelegramService ?? createConfiguredTelegramService;
+  const createWeixinService = dependencies.createWeixinService ?? createConfiguredWeixinService;
   const resolveRuntimeForCommand = dependencies.resolveRuntime ?? resolveCliRuntime;
 
   program
@@ -256,6 +274,11 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
               token: runtime.config.telegram.token ? "set" : "missing",
               stateDir: runtime.config.telegram.stateDir,
             },
+            weixin: {
+              ...config.weixin,
+              credentials: runtime.config.weixin.credentials ? "set" : "missing",
+              stateDir: runtime.config.weixin.stateDir,
+            },
             configFile: runtime.paths.configFile,
             sessionsDir: runtime.paths.sessionsDir,
             changesDir: runtime.paths.changesDir,
@@ -342,6 +365,14 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
     resolveRuntime: resolveRuntimeForCommand,
     createTelegramService,
     acquireProcessLock: dependencies.acquireProcessLock ?? acquireTelegramProcessLock,
+  });
+  registerWeixinCommands(program, {
+    getCliOverrides: () => extractCliOverrides(program.opts()),
+    resolveRuntime: resolveRuntimeForCommand,
+    loginWeixin: dependencies.loginWeixin ?? loginConfiguredWeixin,
+    createWeixinService,
+    logoutWeixin: dependencies.logoutWeixin ?? logoutConfiguredWeixin,
+    acquireProcessLock: dependencies.acquireWeixinProcessLock ?? acquireWeixinProcessLock,
   });
 
   const workerCommand = program.command("__worker__");

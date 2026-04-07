@@ -1,0 +1,51 @@
+{
+  "name": "@openilink/openilink-sdk-node",
+  "version": "0.6.0",
+  "description": "Node.js SDK for the OpenILink Bot API.",
+  "homepage": "https://github.com/openilink/openilink-sdk-node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openilink/openilink-sdk-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/openilink/openilink-sdk-node/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test"
+  },
+  "keywords": [
+    "openilink",
+    "wechat",
+    "bot",
+    "sdk"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.2"
+  }
+}
