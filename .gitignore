@@ -17,3 +17,4 @@ validation/
 .test-tmp-*
 out.txt
 out-round3.txt
+/output
