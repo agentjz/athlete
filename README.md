@@ -338,9 +338,9 @@ ATHLETE_TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
 
 说明：
 
-- `ATHLETE_TELEGRAM_TOKEN` 是你从 `@BotFather` 拿到的 token
-- `ATHLETE_TELEGRAM_ALLOWED_USER_IDS` 是允许控制这个 bot 的数字 user id 白名单
-- `ATHLETE_TELEGRAM_PROXY_URL` 是 Telegram 专用代理入口。像 Clash Verge 这种本地代理软件，通常会提供一个固定的本地代理地址，例如 `http://127.0.0.1:7897`
+- `ATHLETE_TELEGRAM_TOKEN` 是你从 `@BotFather` 拿到的 bot token。获取路径：Telegram 搜索 `@BotFather` -> `/start` -> `/newbot` -> 按提示创建 bot -> 复制回复里的 token。像 `123456789:AA...` 这种格式里，冒号前是 bot 的数字编号，后面是一长串密钥。
+- `ATHLETE_TELEGRAM_ALLOWED_USER_IDS` 是允许控制这个 bot 的数字 user id 白名单。获取路径：Telegram 搜索 `@userinfobot` -> `/start` -> 复制回复里的 `Id`。这里填的是纯数字，例如 `7333287071`，不是 `@username`。
+- `ATHLETE_TELEGRAM_PROXY_URL` 是 Telegram 专用代理入口。如果你本机能直接访问 Telegram，可以先不填；如果你在用 Clash Verge、Clash for Windows、v2rayN 之类代理软件，就去它们的设置页找 `HTTP` 或 `Mixed Port`。例如看到 `mixed-port: 7897`，就填 `http://127.0.0.1:7897`。这里的 `127.0.0.1` 表示“你自己的这台电脑”，`7897` 是本地代理端口。
 - `.athlete/.env.example` 里有同样的配置模板，可以直接对照填写
 
 ### 4. 什么是代理、本地入口、本地代理入口
@@ -579,9 +579,10 @@ ATHLETE_WEIXIN_ROUTE_TAG=
 
 说明：
 
-- `ATHLETE_WEIXIN_ALLOWED_USER_IDS` 是允许控制 Athlete 的 Weixin 用户白名单；空白名单等于任何人都不能控制。
+- `ATHLETE_WEIXIN_ALLOWED_USER_IDS` 是允许控制 Athlete 的 Weixin 用户 ID 白名单。最容易的找法是先运行 `athlete weixin serve`，再让目标微信号先给你发一条消息，终端日志会出现类似 `[weixin] received inbound message user=o9cq...@im.wechat`，把 `user=` 后面的值原样填进来。多个用户用英文逗号分隔；空白名单等于任何人都不能控制。
+- 如果你只是先用当前登录账号自己测试，`athlete weixin login` 成功后也会打印 `login complete user=...`，可以先把这个 `user` 填进 `ATHLETE_WEIXIN_ALLOWED_USER_IDS`。
 - `ATHLETE_WEIXIN_BASE_URL` / `ATHLETE_WEIXIN_CDN_BASE_URL` 默认就是 OpeniLink SDK 当前默认值，通常不需要改。
-- `ATHLETE_WEIXIN_ROUTE_TAG` 只有在你明确需要 OpeniLink 路由标签时才填。
+- `ATHLETE_WEIXIN_ROUTE_TAG` 只有在你明确知道 OpeniLink 给了 route tag 时才填，否则留空。
 
 ### 2. 登录、启动、登出
 
@@ -596,6 +597,14 @@ athlete weixin login
 ```text
 <project>/.athlete/weixin/credentials.json
 ```
+
+登录成功时，终端还会打印一行类似：
+
+```text
+[weixin] login complete user=o9cq...@im.wechat bot=... state=...
+```
+
+如果你是先拿当前登录账号自测，`user=` 后面的值也可以先填进 `ATHLETE_WEIXIN_ALLOWED_USER_IDS`。
 
 然后启动服务：
 
