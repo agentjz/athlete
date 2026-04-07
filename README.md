@@ -616,10 +616,12 @@ npm run verify:runtime-observability-api
 ## 文件能力
 
 - 文本文件：读取、搜索、修改、补丁式改写
-- Word：支持 `read_docx` / `write_docx` / `edit_docx`
+- MinerU 文档读取：支持 `mineru_pdf_read` / `mineru_image_read` / `mineru_doc_read` / `mineru_ppt_read`
+- MinerU workflow skills：支持 `mineru-pdf-reading` / `mineru-image-reading` / `mineru-doc-reading` / `mineru-ppt-reading`
+- Word：保留 `read_docx` / `write_docx` / `edit_docx`，其中 `.docx` 读取默认走 `mineru_doc_read`，`read_docx` 是明确降级路径
 - 表格：支持 `xlsx/xls/csv/tsv/ods`
+- MinerU 限制：单文件上限 200 MB，单文件页数上限 600 页，超限直接拒绝且不做切分
 - 项目规则：支持项目级 `AGENTS.md` / `SKILL.md`
-- 不直接强读：`.doc`、`.pdf`、`.pptx` 和大多数二进制文件
 
 ## 发布到 NPM
 

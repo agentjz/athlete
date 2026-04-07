@@ -226,7 +226,10 @@ function buildToolCallDisplay(
       };
     }
     case "read_docx":
-    case "read_pdf":
+    case "mineru_doc_read":
+    case "mineru_image_read":
+    case "mineru_pdf_read":
+    case "mineru_ppt_read":
     case "read_spreadsheet":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,

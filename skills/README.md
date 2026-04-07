@@ -14,8 +14,14 @@
   作用：测试优先、回归保护、缩小改动范围
 - `spec-alignment`
   作用：实现与 SPEC / docs 对齐
-- `pdf-reading`
-  作用：PDF 走 `read_pdf` / MinerU 提取链路
+- `mineru-pdf-reading`
+  作用：PDF 走 `mineru_pdf_read` / MinerU 提取链路
+- `mineru-image-reading`
+  作用：图片文档走 `mineru_image_read` / MinerU 提取链路
+- `mineru-doc-reading`
+  作用：`.doc` / `.docx` 走 `mineru_doc_read`，`.docx` 失败时明确降级到 `read_docx`
+- `mineru-ppt-reading`
+  作用：`.ppt` / `.pptx` 走 `mineru_ppt_read` / MinerU 提取链路
 
 下一阶段推荐的联网相关 skill：
 

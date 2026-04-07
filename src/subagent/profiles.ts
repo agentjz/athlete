@@ -13,6 +13,10 @@ export interface SubagentProfile {
 const READ_ONLY_SUBAGENT_TOOLS = [
   "list_files",
   "read_file",
+  "mineru_pdf_read",
+  "mineru_image_read",
+  "mineru_doc_read",
+  "mineru_ppt_read",
   "read_docx",
   "read_spreadsheet",
   "search_files",

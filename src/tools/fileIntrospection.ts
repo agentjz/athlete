@@ -1,6 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import {
+  MINERU_DOC_EXTENSIONS,
+  MINERU_IMAGE_EXTENSIONS,
+  MINERU_PDF_EXTENSIONS,
+  MINERU_PPT_EXTENSIONS,
+} from "../integrations/mineru/constants.js";
+
 export const SPREADSHEET_EXTENSIONS = new Set([
   ".xlsx",
   ".xls",
@@ -9,29 +16,12 @@ export const SPREADSHEET_EXTENSIONS = new Set([
   ".ods",
 ]);
 
-export const DOCX_EXTENSIONS = new Set([
-  ".docx",
-]);
-
-const LEGACY_WORD_EXTENSIONS = new Set([
-  ".doc",
-  ".docm",
-]);
-
 const KNOWN_BINARY_EXTENSIONS = new Set([
-  ".pdf",
-  ".ppt",
-  ".pptx",
   ".epub",
   ".mobi",
   ".zip",
   ".7z",
   ".rar",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".webp",
   ".ico",
   ".mp3",
   ".mp4",
@@ -50,10 +40,16 @@ export interface InspectedFile {
   action?:
     | "skip_file_content"
     | "use_read_spreadsheet"
-    | "use_read_docx"
-    | "use_read_pdf"
-    | "convert_to_docx_first";
-  suggestedTool?: "read_spreadsheet" | "read_docx" | "read_pdf";
+    | "use_mineru_doc_read"
+    | "use_mineru_image_read"
+    | "use_mineru_pdf_read"
+    | "use_mineru_ppt_read";
+  suggestedTool?:
+    | "read_spreadsheet"
+    | "mineru_doc_read"
+    | "mineru_image_read"
+    | "mineru_pdf_read"
+    | "mineru_ppt_read";
   suggestedPath?: string;
   size: number;
   extension: string;
@@ -74,34 +70,45 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
     };
   }
 
-  if (DOCX_EXTENSIONS.has(extension)) {
+  if (MINERU_DOC_EXTENSIONS.includes(extension as never)) {
     return {
       readable: false,
-      reason: `Word .docx document detected: ${extension}`,
-      action: "use_read_docx",
-      suggestedTool: "read_docx",
+      reason: `MinerU Word document detected: ${extension}`,
+      action: "use_mineru_doc_read",
+      suggestedTool: "mineru_doc_read",
       size: stat.size,
       extension,
     };
   }
 
-  if (LEGACY_WORD_EXTENSIONS.has(extension)) {
+  if (MINERU_PDF_EXTENSIONS.includes(extension as never)) {
     return {
       readable: false,
-      reason: `Legacy Word format detected: ${extension}`,
-      action: "convert_to_docx_first",
-      suggestedPath: replaceExtension(filePath, ".docx"),
+      reason: `MinerU PDF document detected: ${extension}`,
+      action: "use_mineru_pdf_read",
+      suggestedTool: "mineru_pdf_read",
       size: stat.size,
       extension,
     };
   }
 
-  if (extension === ".pdf") {
+  if (MINERU_IMAGE_EXTENSIONS.includes(extension as never)) {
     return {
       readable: false,
-      reason: `PDF document detected: ${extension}`,
-      action: "use_read_pdf",
-      suggestedTool: "read_pdf",
+      reason: `MinerU image document detected: ${extension}`,
+      action: "use_mineru_image_read",
+      suggestedTool: "mineru_image_read",
+      size: stat.size,
+      extension,
+    };
+  }
+
+  if (MINERU_PPT_EXTENSIONS.includes(extension as never)) {
+    return {
+      readable: false,
+      reason: `MinerU presentation detected: ${extension}`,
+      action: "use_mineru_ppt_read",
+      suggestedTool: "mineru_ppt_read",
       size: stat.size,
       extension,
     };
@@ -135,9 +142,4 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
     size: stat.size,
     extension,
   };
-}
-
-function replaceExtension(filePath: string, nextExtension: string): string {
-  const extension = path.extname(filePath);
-  return extension ? filePath.slice(0, -extension.length) + nextExtension : `${filePath}${nextExtension}`;
 }

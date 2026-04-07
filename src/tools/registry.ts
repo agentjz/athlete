@@ -10,9 +10,12 @@ import { idleTool } from "./team/idleTool.js";
 import { listFilesTool } from "./files/listFilesTool.js";
 import { listTeammatesTool } from "./team/listTeammatesTool.js";
 import { loadSkillTool } from "./skills/loadSkillTool.js";
+import { mineruDocReadTool } from "./documents/mineruDocReadTool.js";
+import { mineruImageReadTool } from "./documents/mineruImageReadTool.js";
+import { mineruPdfReadTool } from "./documents/mineruPdfReadTool.js";
+import { mineruPptReadTool } from "./documents/mineruPptReadTool.js";
 import { planApprovalTool } from "./team/planApprovalTool.js";
 import { readDocxTool } from "./documents/readDocxTool.js";
-import { readPdfTool } from "./documents/readPdfTool.js";
 import { readFileTool } from "./files/readFileTool.js";
 import { readInboxTool } from "./team/readInboxTool.js";
 import { readSpreadsheetTool } from "./documents/readSpreadsheetTool.js";
@@ -47,7 +50,10 @@ const READ_ONLY_TOOLS: readonly RegisteredTool[] = [
   taskTool,
   listFilesTool,
   readFileTool,
-  readPdfTool,
+  mineruPdfReadTool,
+  mineruImageReadTool,
+  mineruDocReadTool,
+  mineruPptReadTool,
   readDocxTool,
   readSpreadsheetTool,
   searchFilesTool,

@@ -71,15 +71,23 @@ function buildToolRecoveryHint(toolName: string, message: string): string {
   }
 
   if (lower.includes(".docx") || lower.includes("word .docx")) {
-    return "The target is a .docx Word document. Use read_docx to inspect it, or write_docx to create one.";
+    return "The target is a .docx Word document. Use mineru_doc_read first. If MinerU is unavailable for that file, fall back to read_docx.";
   }
 
   if (lower.includes(".pdf") || lower.includes("pdf")) {
-    return "The target is a PDF document. Use read_pdf instead of read_file so the MinerU-backed extraction path can produce Markdown output.";
+    return "The target is a PDF document. Use mineru_pdf_read instead of read_file so the MinerU-backed extraction path can produce Markdown output.";
   }
 
-  if (lower.includes("legacy word") || lower.includes("convert_to_docx_first") || lower.includes(".doc files")) {
-    return "The target is an old .doc Word file. Ask the user to convert it to .docx first, then use read_docx.";
+  if (lower.includes(".png") || lower.includes(".jpg") || lower.includes(".jpeg") || lower.includes(".jp2") || lower.includes(".webp") || lower.includes(".gif") || lower.includes(".bmp") || lower.includes("image")) {
+    return "The target is an image document. Use mineru_image_read so MinerU can extract structured Markdown output.";
+  }
+
+  if (lower.includes(".ppt") || lower.includes(".pptx") || lower.includes("presentation") || lower.includes("deck")) {
+    return "The target is a presentation document. Use mineru_ppt_read so MinerU can extract the deck into Markdown artifacts.";
+  }
+
+  if (lower.includes("legacy word") || lower.includes(".doc files") || lower.includes(".doc")) {
+    return "The target is a Word document. Use mineru_doc_read so MinerU can parse .doc or .docx content.";
   }
 
   if (lower.includes("path not allowed")) {
