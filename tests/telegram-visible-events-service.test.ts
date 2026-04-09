@@ -140,7 +140,7 @@ function createAttachmentStore() {
   };
 }
 
-test("telegram service mirrors visible callback events in chat order without final merge", async (t) => {
+test("telegram service emits assistant stages, tool calls, tool previews, todo previews, and the final reply in chat order", async (t) => {
   const root = await createTempWorkspace("telegram-visible-events-order", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -171,8 +171,11 @@ test("telegram service mirrors visible callback events in chat order without fin
     runTurn: async (options) => {
       options.callbacks?.onReasoningDelta?.("reasoning-1");
       options.callbacks?.onReasoningDelta?.("reasoning-2");
+      options.callbacks?.onAssistantDelta?.("assistant stage");
       options.callbacks?.onToolCall?.("search_files", "{}");
       options.callbacks?.onToolCall?.("search_files", "{}");
+      options.callbacks?.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/app.ts line 10\"}");
+      options.callbacks?.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/ui.ts line 22\"}");
       options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[ ] #1: same todo preview" }));
       options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[ ] #1: same todo preview" }));
       options.callbacks?.onAssistantDelta?.("assistant");
@@ -193,11 +196,85 @@ test("telegram service mirrors visible callback events in chat order without fin
   assert.deepEqual(
     bot.sentMessages.map((entry) => entry.text),
     [
+      "assistant stage",
       "search_files",
       "search_files",
+      "matched TODO in src/app.ts line 10",
+      "matched TODO in src/ui.ts line 22",
       "[ ] #1: same todo preview",
       "[ ] #1: same todo preview",
       "assistant content",
+    ],
+  );
+});
+
+test("telegram service emits non-streamed assistant stage text before todo previews", async (t) => {
+  const root = await createTempWorkspace("telegram-visible-assistant-stage", t);
+  const runtime = createTestRuntimeConfig(root);
+  const telegram = createTelegramConfig(root);
+  const bot = new FakeTelegramBotApiClient();
+  const sessionStore = new SessionStore(runtime.paths.sessionsDir);
+  const sessionMapStore = new FileTelegramSessionMapStore(path.join(telegram.stateDir, "session-map.json"));
+  const offsetStore = new FileTelegramOffsetStore(path.join(telegram.stateDir, "offset.json"));
+  const deliveryQueue = new TelegramDeliveryQueue({
+    storePath: path.join(telegram.stateDir, "delivery.json"),
+    target: bot,
+    deliveryConfig: telegram.delivery,
+  });
+  const pollingSource = createPollingSource([createPrivateUpdate(13, "assistant stage visible")]);
+
+  const service = new TelegramService({
+    cwd: root,
+    config: {
+      ...runtime,
+      telegram,
+    },
+    bot,
+    sessionStore,
+    sessionMapStore,
+    offsetStore,
+    deliveryQueue,
+    attachmentStore: createAttachmentStore() as never,
+    pollingSource: pollingSource as never,
+    runTurn: async (options) => {
+      (
+        options.callbacks as {
+          onAssistantStage?: (text: string) => void;
+        } | undefined
+      )?.onAssistantStage?.("现在我先检查一下桌面目录。");
+      options.callbacks?.onToolCall?.("list_files", "{\"path\":\"Desktop\"}");
+      options.callbacks?.onToolResult?.(
+        "list_files",
+        JSON.stringify({
+          entries: [
+            { type: "file", path: "Desktop/.env" },
+            { type: "directory", path: "Desktop/athlete" },
+          ],
+        }),
+      );
+      options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[x] #1: same todo preview" }));
+      options.callbacks?.onAssistantText?.("检查完成。");
+      options.callbacks?.onAssistantDone?.("检查完成。");
+      return {
+        session: await options.sessionStore.save(options.session),
+        changedPaths: [],
+        verificationAttempted: false,
+        yielded: false,
+      };
+    },
+  });
+
+  await service.runOnce();
+  await service.waitForIdle();
+
+  assert.deepEqual(
+    bot.sentMessages.map((entry) => entry.text),
+    [
+      "现在我先检查一下桌面目录。",
+      "list_files",
+      "file Desktop/.env dir Desktop/athlete",
+      "[x] #1: same todo preview",
+      "检查完成。",
     ],
   );
 });

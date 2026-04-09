@@ -24,7 +24,8 @@ export class WeixinTurnDisplay extends DurableTurnDisplay<{ userId: string }> {
       },
       sendTyping: async (target) => options.sendTyping(target.userId),
       enqueueVisibleMessage: options.enqueueVisibleMessage,
-      shouldEmitEvent: (event) => event.kind !== "tool_call",
+      shouldEmitEvent: (event) => event.kind === "assistant",
+      dropBufferedAssistantBeforeToolEvents: true,
       typingIntervalMs: options.typingIntervalMs,
       scheduleTypingTick: options.scheduleTypingTick,
     });

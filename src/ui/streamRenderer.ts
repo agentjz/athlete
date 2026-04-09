@@ -123,6 +123,14 @@ export function createStreamRenderer(
         beginAssistant();
         writeStdout(delta);
       },
+      onAssistantStage(text) {
+        if (isAborted()) {
+          return;
+        }
+
+        beginAssistant();
+        writeStdout(text);
+      },
       onAssistantText(text) {
         if (isAborted()) {
           return;

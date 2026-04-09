@@ -19,6 +19,9 @@ export class DurableTurnDisplay<TTarget> {
       sendTyping: (target: TTarget) => Promise<void>;
       enqueueVisibleMessage: (target: TTarget, text: string) => Promise<void>;
       shouldEmitEvent?: (event: VisibleTurnEvent) => boolean;
+      flushBufferedAssistantBeforeToolEvents?: boolean;
+      dropBufferedAssistantBeforeToolEvents?: boolean;
+      enableAssistantStageEvents?: boolean;
       typingIntervalMs: number;
       scheduleTypingTick?: (
         callback: () => Promise<void> | void,
@@ -34,6 +37,9 @@ export class DurableTurnDisplay<TTarget> {
         this.enqueueVisibleText(event.text);
       },
       shouldEmitEvent: options.shouldEmitEvent,
+      flushBufferedAssistantBeforeToolEvents: options.flushBufferedAssistantBeforeToolEvents,
+      dropBufferedAssistantBeforeToolEvents: options.dropBufferedAssistantBeforeToolEvents,
+      enableAssistantStageEvents: options.enableAssistantStageEvents,
     });
   }
 

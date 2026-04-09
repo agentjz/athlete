@@ -514,7 +514,7 @@ test("weixin service sends long visible replies as txt files instead of fragile 
       syncBuf: "sync-buf-050",
     },
   ]);
-  const longReply = "根据 README 的信息，这是一个面向复杂任务的 AI Agent 框架。".repeat(40);
+  const longReply = "LONG_VISIBLE_REPLY::" + "X".repeat(6_000);
 
   const service = new WeixinService({
     cwd: root,

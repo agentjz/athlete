@@ -148,6 +148,9 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         emitAssistantFinalOutput(response, options);
         return completed.result;
       }
+      if (response.content && !response.streamedAssistantContent) {
+        options.callbacks?.onAssistantStage?.(response.content);
+      }
       session = await options.sessionStore.appendMessages(session, [
         createMessage("assistant", response.content, {
           reasoningContent: response.reasoningContent,

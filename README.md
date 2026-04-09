@@ -131,7 +131,7 @@ Athlete 想坚持的，不是“让模型显得更聪明”，而是让任务真
 | `athlete weixin serve` | 启动 Weixin 私聊服务 |
 | `athlete weixin logout` | 清理 Weixin 登录态 |
 
-文档读取能力依赖 `MINERU_API_TOKEN`。Telegram 需要 `ATHLETE_TELEGRAM_TOKEN` 和 `ATHLETE_TELEGRAM_ALLOWED_USER_IDS`。Weixin 需要先执行 `athlete weixin login`，再配置 `ATHLETE_WEIXIN_ALLOWED_USER_IDS`。
+文档读取能力依赖 `MINERU_API_TOKEN`。Telegram 需要 `ATHLETE_TELEGRAM_TOKEN` 和 `ATHLETE_TELEGRAM_ALLOWED_USER_IDS`。Weixin 需要先执行 `athlete weixin login`，再配置 `ATHLETE_WEIXIN_ALLOWED_USER_IDS`。Telegram 和 Weixin 私聊里都支持 `/stop`，用于停止当前任务但不关闭服务。
 
 ### NPM 发布
 

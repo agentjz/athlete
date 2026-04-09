@@ -13,6 +13,7 @@ export interface AgentCallbacks {
   onModelWaitStart?: () => void;
   onModelWaitStop?: () => void;
   onStatus?: (text: string) => void;
+  onAssistantStage?: (text: string) => void;
   onAssistantDelta?: (delta: string) => void;
   onAssistantDone?: (fullText: string) => void;
   onAssistantText?: (text: string) => void;

@@ -561,7 +561,7 @@ test.skip("telegram service only streams tool-use, todo previews, and the final 
   assert.doesNotMatch(terminalTranscript, /SECRET_TOOL_OUTPUT::/);
 });
 
-test("telegram service only streams tool names, todo previews, and the final reply in chat order", async (t) => {
+test("telegram service streams assistant stages, tool calls, tool previews, todo previews, and the final reply in chat order", async (t) => {
   const root = await createTempWorkspace("telegram-tool-todo-final", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -589,6 +589,7 @@ test("telegram service only streams tool names, todo previews, and the final rep
     runTurn: async (options) => {
       options.callbacks?.onStatus?.("analyzing task");
       options.callbacks?.onReasoningDelta?.("This reasoning should stay hidden.");
+      options.callbacks?.onAssistantDelta?.("Understanding requirements.");
       options.callbacks?.onToolCall?.("search_files", "{\"pattern\":\"TODO\"}");
       options.callbacks?.onToolResult?.("search_files", "tool output hidden");
       options.callbacks?.onToolCall?.(
@@ -625,7 +626,9 @@ test("telegram service only streams tool names, todo previews, and the final rep
   assert.deepEqual(
     bot.sentMessages.map((entry) => entry.text),
     [
+      "Understanding requirements.",
       "search_files",
+      "tool output hidden",
       "todo_write",
       "[x] #1: Understand requirements\n[>] #2: Prepare output\n- Progress: 1/2 completed",
       "done",

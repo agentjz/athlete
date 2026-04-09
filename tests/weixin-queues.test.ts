@@ -61,7 +61,7 @@ test("weixin message chunking uses a utf8 byte budget so long Chinese replies sp
   }
 });
 
-test("weixin turn display emits tool and todo stages immediately, then emits assistant once the stage completes", async () => {
+test("weixin turn display only emits the final assistant reply to chat output", async () => {
   const messages: Array<{ userId: string; text: string }> = [];
   const typingCalls: string[] = [];
   const scheduled: Array<() => Promise<void> | void> = [];
@@ -112,11 +112,7 @@ test("weixin turn display emits tool and todo stages immediately, then emits ass
   display.dispose();
 
   assert.deepEqual(typingCalls, ["wxid_alice", "wxid_alice"]);
-  assert.deepEqual(messages, [
-    { userId: "wxid_alice", text: "[ ] #1: same todo preview" },
-    { userId: "wxid_alice", text: "[ ] #1: same todo preview" },
-    { userId: "wxid_alice", text: "assistant content" },
-  ]);
+  assert.deepEqual(messages, [{ userId: "wxid_alice", text: "assistant content" }]);
 });
 
 test("weixin turn display hides reasoning events from chat output", async () => {

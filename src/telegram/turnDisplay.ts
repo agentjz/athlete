@@ -24,6 +24,8 @@ export class TelegramTurnDisplay extends DurableTurnDisplay<{ chatId: number }> 
       },
       sendTyping: async (target) => options.sendTyping(target.chatId),
       enqueueVisibleMessage: options.enqueueVisibleMessage,
+      flushBufferedAssistantBeforeToolEvents: true,
+      enableAssistantStageEvents: true,
       typingIntervalMs: options.typingIntervalMs,
       scheduleTypingTick: options.scheduleTypingTick,
     });

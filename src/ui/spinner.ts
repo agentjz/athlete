@@ -83,6 +83,10 @@ export function wrapCallbacksWithSpinnerStop(
       stopSpinner();
       callbacks.onAssistantDelta?.(delta);
     },
+    onAssistantStage(text) {
+      stopSpinner();
+      callbacks.onAssistantStage?.(text);
+    },
     onAssistantDone(fullText) {
       stopSpinner();
       callbacks.onAssistantDone?.(fullText);

@@ -162,7 +162,7 @@ function createAttachmentStore() {
   };
 }
 
-test("weixin service mirrors visible callback events in chat order without final merge", async (t) => {
+test("weixin service only sends the final assistant reply to chat output", async (t) => {
   const root = await createTempWorkspace("weixin-visible-events-order", t);
   const runtime = createTestRuntimeConfig(root);
   const weixin = createWeixinConfig(root);
@@ -220,11 +220,7 @@ test("weixin service mirrors visible callback events in chat order without final
 
   assert.deepEqual(
     client.sentTexts.map((entry) => entry.text),
-    [
-      "[ ] #1: same todo preview",
-      "[ ] #1: same todo preview",
-      "assistant content",
-    ],
+    ["assistant content"],
   );
 });
 
