@@ -458,7 +458,7 @@ test("telegram service does not expose or execute quit/reset in private chat and
   assert.equal(await sessionMapStore.get("telegram:private:5001") !== null, true);
 });
 
-test.skip("telegram service only streams tool-use, todo previews, and the final reply", { concurrency: false }, async (t) => {
+test.skip("telegram service only streams tool previews, todo previews, and the final reply", { concurrency: false }, async (t) => {
   const root = await createTempWorkspace("telegram-progress-and-logs", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -547,8 +547,6 @@ test.skip("telegram service only streams tool-use, todo previews, and the final 
     bot.sentMessages.map((entry) => entry.text),
     [
       "先理解任务范围，再决定要读哪些文件。",
-      "search_files",
-      "todo_write",
       "[x] #1: 理解需求\n[>] #2: 整理输出\n- Progress: 1/2 completed",
       "done",
     ],
@@ -561,7 +559,7 @@ test.skip("telegram service only streams tool-use, todo previews, and the final 
   assert.doesNotMatch(terminalTranscript, /SECRET_TOOL_OUTPUT::/);
 });
 
-test("telegram service streams assistant stages, tool calls, tool previews, todo previews, and the final reply in chat order", async (t) => {
+test("telegram service streams assistant stages, tool previews, todo previews, and the final reply in chat order", async (t) => {
   const root = await createTempWorkspace("telegram-tool-todo-final", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -627,9 +625,7 @@ test("telegram service streams assistant stages, tool calls, tool previews, todo
     bot.sentMessages.map((entry) => entry.text),
     [
       "Understanding requirements.",
-      "search_files",
       "tool output hidden",
-      "todo_write",
       "[x] #1: Understand requirements\n[>] #2: Prepare output\n- Progress: 1/2 completed",
       "done",
     ],

@@ -47,7 +47,7 @@ test("telegram per-peer command queue serializes turns for the same peer while a
   assert.equal(peer2Start1Index < peer1End1Index, true);
 });
 
-test("telegram turn display emits assistant stages, tool calls, tool result previews, todo previews, and the final assistant reply", async () => {
+test("telegram turn display emits assistant stages, tool result previews, todo previews, and the final assistant reply", async () => {
   const messages: Array<{ chatId: number; text: string }> = [];
   const typingCalls: number[] = [];
   const scheduled: Array<() => Promise<void> | void> = [];
@@ -103,8 +103,6 @@ test("telegram turn display emits assistant stages, tool calls, tool result prev
   assert.deepEqual(typingCalls, [99, 99]);
   assert.deepEqual(messages, [
     { chatId: 99, text: "assistant stage" },
-    { chatId: 99, text: "search_files" },
-    { chatId: 99, text: "search_files" },
     { chatId: 99, text: "matched TODO in src/app.ts line 10" },
     { chatId: 99, text: "matched TODO in src/ui.ts line 22" },
     { chatId: 99, text: "[ ] #1: same todo preview" },
@@ -220,7 +218,6 @@ test("telegram turn display emits non-streamed assistant stage text before todo 
 
   assert.deepEqual(messages, [
     { chatId: 99, text: "现在我先检查目录。" },
-    { chatId: 99, text: "list_files" },
     { chatId: 99, text: "file Desktop/.env dir Desktop/athlete" },
     { chatId: 99, text: "[x] #1: same todo preview" },
     { chatId: 99, text: "检查完成。" },

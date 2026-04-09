@@ -140,7 +140,7 @@ function createAttachmentStore() {
   };
 }
 
-test("telegram service emits assistant stages, tool calls, tool previews, todo previews, and the final reply in chat order", async (t) => {
+test("telegram service emits assistant stages, tool previews, todo previews, and the final reply in chat order", async (t) => {
   const root = await createTempWorkspace("telegram-visible-events-order", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -197,8 +197,6 @@ test("telegram service emits assistant stages, tool calls, tool previews, todo p
     bot.sentMessages.map((entry) => entry.text),
     [
       "assistant stage",
-      "search_files",
-      "search_files",
       "matched TODO in src/app.ts line 10",
       "matched TODO in src/ui.ts line 22",
       "[ ] #1: same todo preview",
@@ -271,7 +269,6 @@ test("telegram service emits non-streamed assistant stage text before todo previ
     bot.sentMessages.map((entry) => entry.text),
     [
       "现在我先检查一下桌面目录。",
-      "list_files",
       "file Desktop/.env dir Desktop/athlete",
       "[x] #1: same todo preview",
       "检查完成。",
