@@ -36,6 +36,7 @@ test("MCP tool adapter produces RegisteredTool objects compatible with the tool 
       serverName: "demo",
       name: "echo",
       description: "Echo the provided text.",
+      readOnly: true,
       inputSchema: {
         type: "object",
         properties: {
@@ -71,6 +72,7 @@ test("registry integration can turn discovered MCP tools into includeTools witho
     serverName: "planner",
     name: "summarize",
     description: "Summarize input.",
+    readOnly: true,
     inputSchema: {
       type: "object",
       properties: {

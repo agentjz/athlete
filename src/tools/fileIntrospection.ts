@@ -1,20 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import {
-  MINERU_DOC_EXTENSIONS,
-  MINERU_IMAGE_EXTENSIONS,
-  MINERU_PDF_EXTENSIONS,
-  MINERU_PPT_EXTENSIONS,
-} from "../integrations/mineru/constants.js";
-
-export const SPREADSHEET_EXTENSIONS = new Set([
-  ".xlsx",
-  ".xls",
-  ".csv",
-  ".tsv",
-  ".ods",
-]);
+import { getToolRouteHintForPath } from "./routing.js";
 
 const KNOWN_BINARY_EXTENSIONS = new Set([
   ".epub",
@@ -50,6 +37,7 @@ export interface InspectedFile {
     | "mineru_image_read"
     | "mineru_pdf_read"
     | "mineru_ppt_read";
+  routeCode?: string;
   suggestedPath?: string;
   size: number;
   extension: string;
@@ -59,56 +47,14 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
   const stat = await fs.stat(filePath);
   const extension = path.extname(filePath).toLowerCase();
 
-  if (SPREADSHEET_EXTENSIONS.has(extension)) {
+  const route = getToolRouteHintForPath(filePath);
+  if (route) {
     return {
       readable: false,
-      reason: `Spreadsheet format detected: ${extension}`,
-      action: "use_read_spreadsheet",
-      suggestedTool: "read_spreadsheet",
-      size: stat.size,
-      extension,
-    };
-  }
-
-  if (MINERU_DOC_EXTENSIONS.includes(extension as never)) {
-    return {
-      readable: false,
-      reason: `MinerU Word document detected: ${extension}`,
-      action: "use_mineru_doc_read",
-      suggestedTool: "mineru_doc_read",
-      size: stat.size,
-      extension,
-    };
-  }
-
-  if (MINERU_PDF_EXTENSIONS.includes(extension as never)) {
-    return {
-      readable: false,
-      reason: `MinerU PDF document detected: ${extension}`,
-      action: "use_mineru_pdf_read",
-      suggestedTool: "mineru_pdf_read",
-      size: stat.size,
-      extension,
-    };
-  }
-
-  if (MINERU_IMAGE_EXTENSIONS.includes(extension as never)) {
-    return {
-      readable: false,
-      reason: `MinerU image document detected: ${extension}`,
-      action: "use_mineru_image_read",
-      suggestedTool: "mineru_image_read",
-      size: stat.size,
-      extension,
-    };
-  }
-
-  if (MINERU_PPT_EXTENSIONS.includes(extension as never)) {
-    return {
-      readable: false,
-      reason: `MinerU presentation detected: ${extension}`,
-      action: "use_mineru_ppt_read",
-      suggestedTool: "mineru_ppt_read",
+      reason: `${route.reason}: ${extension}`,
+      action: route.action,
+      suggestedTool: route.suggestedTool,
+      routeCode: route.code,
       size: stat.size,
       extension,
     };

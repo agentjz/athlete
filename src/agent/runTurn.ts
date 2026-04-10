@@ -15,7 +15,7 @@ import { createInternalReminder } from "./taskState.js";
 import { buildRunTurnResult, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { initializeTurnSession, persistRecoveryTurn, persistToolBatchCheckpoint, persistYieldedTurn } from "./turnPersistence.js";
 import { createStoredToolMessage } from "./toolResultStorage.js";
-import { prioritizeToolDefinitionsForTurn } from "./toolPriority.js";
+import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "./toolPriority.js";
 import { hasIncompleteTodos } from "./todos.js";
 import { executeToolCallWithRecovery } from "./toolExecutor.js";
 import { getLightweightVerificationAttempt, readVerificationProgress } from "./verificationSignals.js";
@@ -43,7 +43,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const client = new OpenAI({ apiKey: options.config.apiKey, baseURL: options.config.baseUrl });
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
-  const availableToolNames = toolRegistry.definitions.map((tool) => tool.function.name);
+  const availableToolNames = toolRegistry.entries?.map((entry) => entry.name) ?? toolRegistry.definitions.map((tool) => tool.function.name);
   const changeStore = new ChangeStore(options.config.paths.changesDir);
   const loopGuard = new ToolLoopGuard();
   const softToolLimit = Math.max(1, options.config.maxToolIterations);
@@ -88,7 +88,19 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       const requestModel = pickRequestModel(options.config.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
       const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
-      const prioritizedToolDefinitions = prioritizeToolDefinitionsForTurn(toolRegistry.definitions, { input: options.input, objective: session.taskState?.objective, taskSummary: runtimeState.taskSummary, missingRequiredSkillNames: skillRuntimeState.missingRequiredSkills.map((skill) => skill.name) });
+      const prioritizedToolDefinitions = toolRegistry.entries
+        ? prioritizeToolEntriesForTurn(toolRegistry.entries, {
+            input: options.input,
+            objective: session.taskState?.objective,
+            taskSummary: runtimeState.taskSummary,
+            missingRequiredSkillNames: skillRuntimeState.missingRequiredSkills.map((skill) => skill.name),
+          }).map((entry) => entry.definition)
+        : prioritizeToolDefinitionsForTurn(toolRegistry.definitions, {
+            input: options.input,
+            objective: session.taskState?.objective,
+            taskSummary: runtimeState.taskSummary,
+            missingRequiredSkillNames: skillRuntimeState.missingRequiredSkills.map((skill) => skill.name),
+          });
       const turnToolDefinitions = filterToolDefinitionsForCloseout(prioritizedToolDefinitions, { session, changedPaths, hasSubstantiveToolActivity, verificationState: session.verificationState });
       session = requestContext.compressed ? noteRuntimeCompression(session) : session;
       if (requestContext.compressed && !compressionAnnounced) {

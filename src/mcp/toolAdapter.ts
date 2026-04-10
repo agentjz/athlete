@@ -25,6 +25,12 @@ export function adaptDiscoveredMcpTools(tools: readonly McpDiscoveredTool[]): Re
         output: result.output,
       };
     },
+    origin: {
+      kind: "mcp",
+      serverName: tool.serverName,
+      toolName: tool.name,
+      readOnlyHint: tool.readOnly,
+    },
   }));
 }
 

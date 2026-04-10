@@ -1,4 +1,6 @@
+import { getBrowserStepRank, getToolGovernanceForName, isBrowserGovernedTool } from "../tools/governance.js";
 import type { FunctionToolDefinition } from "../tools/index.js";
+import type { ToolRegistryEntry } from "../tools/types.js";
 
 export interface ToolPriorityOptions {
   input?: string;
@@ -15,8 +17,37 @@ const WEB_INTENT_PATTERNS = [
 ];
 
 const WEB_WORKFLOW_SKILLS = new Set(["web-research", "browser-automation"]);
-const LOCAL_FILE_TOOLS = new Set(["list_files", "read_file", "search_files"]);
-const SHELL_FALLBACK_TOOLS = new Set(["run_shell", "background_run"]);
+
+export function prioritizeToolEntriesForTurn(
+  entries: ToolRegistryEntry[],
+  options: ToolPriorityOptions,
+): ToolRegistryEntry[] {
+  if (!shouldPrioritizeBrowserEntries(entries, options)) {
+    return entries;
+  }
+
+  const missingSkillNames = new Set(
+    (options.missingRequiredSkillNames ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean),
+  );
+  const shouldPreferLoadSkill =
+    entries.some((entry) => entry.name === "load_skill") &&
+    [...missingSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
+
+  return entries
+    .map((entry, index) => ({
+      entry,
+      index,
+      rank: getToolPriorityRank(entry.name, entry.governance, shouldPreferLoadSkill),
+    }))
+    .sort((left, right) => {
+      if (left.rank !== right.rank) {
+        return left.rank - right.rank;
+      }
+
+      return left.index - right.index;
+    })
+    .map((item) => item.entry);
+}
 
 export function prioritizeToolDefinitionsForTurn(
   definitions: FunctionToolDefinition[],
@@ -37,7 +68,11 @@ export function prioritizeToolDefinitionsForTurn(
     .map((definition, index) => ({
       definition,
       index,
-      rank: getToolPriorityRank(definition.function.name, shouldPreferLoadSkill),
+      rank: getToolPriorityRank(
+        definition.function.name,
+        getToolGovernanceForName(definition.function.name),
+        shouldPreferLoadSkill,
+      ),
     }))
     .sort((left, right) => {
       if (left.rank !== right.rank) {
@@ -56,8 +91,18 @@ function shouldPrioritizeBrowserTools(
   return hasPlaywrightBrowserTool(definitions) && matchesWebIntent(options);
 }
 
+function shouldPrioritizeBrowserEntries(
+  entries: ToolRegistryEntry[],
+  options: ToolPriorityOptions,
+): boolean {
+  return entries.some((entry) => isBrowserGovernedTool(entry.governance)) && matchesWebIntent(options);
+}
+
 function hasPlaywrightBrowserTool(definitions: FunctionToolDefinition[]): boolean {
-  return definitions.some((tool) => isPlaywrightBrowserToolName(tool.function.name));
+  return definitions.some((tool) => {
+    const governance = getToolGovernanceForName(tool.function.name);
+    return governance ? isBrowserGovernedTool(governance) : false;
+  });
 }
 
 function matchesWebIntent(options: ToolPriorityOptions): boolean {
@@ -73,50 +118,26 @@ function matchesWebIntent(options: ToolPriorityOptions): boolean {
   return WEB_INTENT_PATTERNS.some((pattern) => pattern.test(combinedText));
 }
 
-function getToolPriorityRank(name: string, shouldPreferLoadSkill: boolean): number {
+function getToolPriorityRank(
+  name: string,
+  governance: ReturnType<typeof getToolGovernanceForName>,
+  shouldPreferLoadSkill: boolean,
+): number {
   if (shouldPreferLoadSkill && name === "load_skill") {
     return 0;
   }
 
-  if (isPlaywrightBrowserToolName(name)) {
-    return 10 + getPlaywrightBrowserToolOrder(name);
+  if (governance && isBrowserGovernedTool(governance)) {
+    return 10 + getBrowserStepRank(governance);
   }
 
-  if (LOCAL_FILE_TOOLS.has(name)) {
+  if (governance?.specialty === "filesystem" && governance.mutation === "read") {
     return 200;
   }
 
-  if (SHELL_FALLBACK_TOOLS.has(name)) {
+  if (governance?.fallbackOnlyInWorkflows.some((workflow) => WEB_WORKFLOW_SKILLS.has(workflow))) {
     return 300;
   }
 
   return 150;
-}
-
-function getPlaywrightBrowserToolOrder(name: string): number {
-  if (name.endsWith("_browser_navigate")) {
-    return 0;
-  }
-
-  if (name.endsWith("_browser_snapshot")) {
-    return 1;
-  }
-
-  if (name.endsWith("_browser_take_screenshot")) {
-    return 2;
-  }
-
-  if (name.endsWith("_browser_click")) {
-    return 3;
-  }
-
-  if (name.endsWith("_browser_type")) {
-    return 4;
-  }
-
-  return 20;
-}
-
-function isPlaywrightBrowserToolName(name: string): boolean {
-  return /^mcp_playwright_browser_/i.test(name);
 }

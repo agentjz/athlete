@@ -70,6 +70,7 @@ export const readFileTool: RegisteredTool = {
             reason: inspected.reason,
             size: inspected.size,
             extension: inspected.extension,
+            routeCode: inspected.routeCode,
             action: inspected.action ?? "skip_file_content",
             suggestedTool: inspected.suggestedTool,
             suggestedPath: inspected.suggestedPath,

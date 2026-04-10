@@ -1,5 +1,6 @@
 import type { ChangeStore } from "../changes/store.js";
 import { ToolExecutionError } from "../tools/errors.js";
+import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../tools/routing.js";
 import { createToolRegistry } from "../tools/index.js";
 import type { ProjectContext, ToolCallRecord, ToolExecutionResult } from "../types.js";
 import type { RunTurnOptions } from "./types.js";
@@ -36,7 +37,7 @@ export async function executeToolCallWithRecovery(
     const payload: Record<string, unknown> = {
       ok: false,
       error: message,
-      hint: buildToolRecoveryHint(toolCall.function.name, message),
+      hint: buildToolRecoveryHint(toolCall.function.name, toolCall.function.arguments, message),
       next_step:
         "Use the error to retry with a safer path, inspect directory structure first, or skip unreadable files.",
     };
@@ -55,8 +56,13 @@ export async function executeToolCallWithRecovery(
   }
 }
 
-function buildToolRecoveryHint(toolName: string, message: string): string {
+function buildToolRecoveryHint(toolName: string, rawArgs: string, message: string): string {
   const lower = message.toLowerCase();
+  const route = readRouteHint(rawArgs, message);
+
+  if (route) {
+    return buildToolRoutingHint(route);
+  }
 
   if (lower.includes("enoent") || lower.includes("no such file") || lower.includes("file not found")) {
     return `The path used by ${toolName} does not exist. Use list_files or search_files, inspect suggestions, and retry with the exact path.`;
@@ -64,30 +70,6 @@ function buildToolRecoveryHint(toolName: string, message: string): string {
 
   if (lower.includes("unsupported binary") || lower.includes("binary file detected")) {
     return `The target is not a readable text file. Skip raw content reading and reason from metadata, filenames, or other text files instead.`;
-  }
-
-  if (lower.includes("spreadsheet")) {
-    return "The target looks like a spreadsheet. Use read_spreadsheet instead of read_file, then continue from the structured preview.";
-  }
-
-  if (lower.includes(".docx") || lower.includes("word .docx")) {
-    return "The target is a .docx Word document. Use mineru_doc_read first. If MinerU is unavailable for that file, fall back to read_docx.";
-  }
-
-  if (lower.includes(".pdf") || lower.includes("pdf")) {
-    return "The target is a PDF document. Use mineru_pdf_read instead of read_file so the MinerU-backed extraction path can produce Markdown output.";
-  }
-
-  if (lower.includes(".png") || lower.includes(".jpg") || lower.includes(".jpeg") || lower.includes(".jp2") || lower.includes(".webp") || lower.includes(".gif") || lower.includes(".bmp") || lower.includes("image")) {
-    return "The target is an image document. Use mineru_image_read so MinerU can extract structured Markdown output.";
-  }
-
-  if (lower.includes(".ppt") || lower.includes(".pptx") || lower.includes("presentation") || lower.includes("deck")) {
-    return "The target is a presentation document. Use mineru_ppt_read so MinerU can extract the deck into Markdown artifacts.";
-  }
-
-  if (lower.includes("legacy word") || lower.includes(".doc files") || lower.includes(".doc")) {
-    return "The target is a Word document. Use mineru_doc_read so MinerU can parse .doc or .docx content.";
   }
 
   if (lower.includes("path not allowed")) {
@@ -107,4 +89,14 @@ function buildToolRecoveryHint(toolName: string, message: string): string {
   }
 
   return `The ${toolName} tool failed. Inspect the error, verify assumptions, and retry using a narrower and safer operation.`;
+}
+
+function readRouteHint(rawArgs: string, message: string) {
+  try {
+    const parsed = JSON.parse(rawArgs) as { path?: unknown };
+    const targetPath = typeof parsed.path === "string" ? parsed.path : "";
+    return getToolRouteHintForPath(targetPath) ?? getToolRouteHintForText(message);
+  } catch {
+    return getToolRouteHintForText(message);
+  }
 }

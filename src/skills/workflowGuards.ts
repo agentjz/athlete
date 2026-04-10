@@ -1,9 +1,9 @@
 import { isInternalMessage } from "../agent/taskState.js";
+import { getToolGovernanceForName, isBrowserGovernedTool } from "../tools/governance.js";
 import type { SessionRecord, StoredMessage, ToolExecutionResult } from "../types.js";
 import type { SkillRuntimeState } from "./types.js";
 
 const BROWSER_WORKFLOW_SKILLS = new Set(["web-research", "browser-automation"]);
-const LOCAL_WEB_DETOUR_TOOLS = new Set(["list_files", "read_file", "search_files", "run_shell", "background_run"]);
 const WEB_FETCH_PATTERNS = [
   /\bcurl(\.exe)?\b/i,
   /\bwget\b/i,
@@ -18,7 +18,8 @@ export function getWorkflowToolGateResult(
   session: Pick<SessionRecord, "messages">,
   runtimeState: SkillRuntimeState,
 ): ToolExecutionResult | null {
-  if (!hasLoadedBrowserWorkflow(runtimeState) || !LOCAL_WEB_DETOUR_TOOLS.has(toolName)) {
+  const governance = getToolGovernanceForName(toolName);
+  if (!hasLoadedBrowserWorkflow(runtimeState) || !governance || !isWorkflowFallbackTool(governance)) {
     return null;
   }
 
@@ -71,12 +72,13 @@ function readBrowserWorkflowState(messages: StoredMessage[]): {
       continue;
     }
 
-    if (!message.name.startsWith("mcp_playwright_browser_")) {
+    const governance = getToolGovernanceForName(message.name);
+    if (!governance || !isBrowserGovernedTool(governance)) {
       continue;
     }
 
     hasBrowserActivity = true;
-    if (message.name === "mcp_playwright_browser_snapshot") {
+    if (governance.browserStep === "snapshot") {
       hasSnapshot = true;
     }
   }
@@ -134,4 +136,8 @@ function buildBlockedWorkflowResult(
       2,
     ),
   };
+}
+
+function isWorkflowFallbackTool(governance: NonNullable<ReturnType<typeof getToolGovernanceForName>>): boolean {
+  return governance.fallbackOnlyInWorkflows.some((name) => BROWSER_WORKFLOW_SKILLS.has(name));
 }

@@ -1,13 +1,12 @@
-import type { RegisteredTool } from "./types.js";
+import { getBrowserStepRank, isBrowserGovernedTool } from "./governance.js";
+import type { ToolRegistryEntry } from "./types.js";
 
-const SHELL_LIKE_TOOLS = new Set(["run_shell", "background_run"]);
-
-export function sortRegisteredToolsForExposure(tools: readonly RegisteredTool[]): RegisteredTool[] {
-  return [...tools]
+export function sortToolRegistryEntriesForExposure(entries: readonly ToolRegistryEntry[]): ToolRegistryEntry[] {
+  return [...entries]
     .map((tool, index) => ({
       tool,
       index,
-      rank: getExposureRank(tool.definition.function.name),
+      rank: getExposureRank(tool),
     }))
     .sort((left, right) => {
       if (left.rank !== right.rank) {
@@ -19,16 +18,24 @@ export function sortRegisteredToolsForExposure(tools: readonly RegisteredTool[])
     .map((entry) => entry.tool);
 }
 
-function getExposureRank(name: string): number {
-  if (/^mcp_playwright_browser_/i.test(name)) {
-    return 0;
+function getExposureRank(entry: ToolRegistryEntry): number {
+  if (isBrowserGovernedTool(entry.governance)) {
+    return getBrowserStepRank(entry.governance);
   }
 
-  if (/^mcp_/i.test(name)) {
-    return 10;
+  if (entry.governance.specialty === "document" && entry.governance.mutation === "read") {
+    return 20;
   }
 
-  if (SHELL_LIKE_TOOLS.has(name)) {
+  if (entry.governance.source === "mcp") {
+    return 30;
+  }
+
+  if (entry.governance.specialty === "filesystem" && entry.governance.mutation === "read") {
+    return 40;
+  }
+
+  if (entry.governance.specialty === "shell" || entry.governance.specialty === "background") {
     return 100;
   }
 

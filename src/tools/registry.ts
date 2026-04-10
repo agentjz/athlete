@@ -43,7 +43,8 @@ import type { RegisteredTool, ToolRegistry, ToolRegistryOptions } from "./types.
 import type { AgentMode } from "../types.js";
 import { writeDocxTool } from "./documents/writeDocxTool.js";
 import { writeFileTool } from "./files/writeFileTool.js";
-import { sortRegisteredToolsForExposure } from "./order.js";
+import { sortToolRegistryEntriesForExposure } from "./order.js";
+import { resolveToolRegistryEntries, validateToolExecutionResult } from "./governance.js";
 
 const READ_ONLY_TOOLS: readonly RegisteredTool[] = [
   todoWriteTool,
@@ -95,21 +96,29 @@ const AGENT_TOOLS: readonly RegisteredTool[] = [
 ] as const;
 
 export function createToolRegistry(mode: AgentMode, options: ToolRegistryOptions = {}): ToolRegistry {
+  const { entries: rawEntries, blocked } = resolveToolRegistryEntries(selectTools(mode, options));
+  const resolved = sortToolRegistryEntriesForExposure(rawEntries);
   const tools = new Map<string, RegisteredTool>();
+  const entries = new Map<string, (typeof resolved)[number]>();
 
-  for (const tool of selectTools(mode, options)) {
-    register(tools, tool);
+  for (const entry of resolved) {
+    register(tools, entry.tool);
+    entries.set(entry.name, entry);
   }
 
   return {
-    definitions: [...tools.values()].map((tool) => tool.definition),
+    definitions: [...entries.values()].map((entry) => entry.definition),
+    entries: [...entries.values()],
+    blocked,
     async execute(name, rawArgs, context) {
       const tool = tools.get(name);
-      if (!tool) {
+      const entry = entries.get(name);
+      if (!tool || !entry) {
         throw new Error(`Unknown tool: ${name}`);
       }
 
-      return tool.execute(rawArgs, context);
+      const result = await tool.execute(rawArgs, context);
+      return validateToolExecutionResult(entry, result);
     },
     async close() {
       return;
@@ -122,14 +131,12 @@ function selectTools(mode: AgentMode, options: ToolRegistryOptions): RegisteredT
   const onlyNames = options.onlyNames ? new Set(options.onlyNames) : null;
   const excludeNames = new Set(options.excludeNames ?? []);
 
-  return sortRegisteredToolsForExposure(
-    [...availableTools, ...(options.includeTools ?? [])].filter((tool) => {
-      const name = tool.definition.function.name;
-      if (onlyNames && !onlyNames.has(name)) {
-        return false;
-      }
+  return [...availableTools, ...(options.includeTools ?? [])].filter((tool) => {
+    const name = tool.definition.function.name;
+    if (onlyNames && !onlyNames.has(name)) {
+      return false;
+    }
 
-      return !excludeNames.has(name);
-    }),
-  );
+    return !excludeNames.has(name);
+  });
 }
