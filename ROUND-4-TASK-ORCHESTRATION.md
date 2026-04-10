@@ -1,339 +1,244 @@
 # 第 4 轮：任务编排成熟化
 
-下面这份文本不是“阶段总结”，而是给**新开对话**直接使用的强约束任务提示词。  
-目标是让新的对话窗口一次性完整完成 round4，不留尾巴，不停在分析，不把控制面风险留到下一轮。
+## 当前状态
 
----
+状态：已完成
 
-# 第 4 轮：任务编排成熟化
+结论：这一轮要求的任务编排成熟化已经落到当前仓库实现、spec 和测试里，交付的不是“更长的 orchestrator prompt”，而是一个真正由控制面真相驱动、可恢复、可解释、缺状态时会 fail-closed 的任务编排层。
 
-这一轮默认建立在**第 1 轮到第 3 轮都已完成**的基础上。  
-round1 已经把 runtime transition 做成机器显式。  
-round2 已经把 runtime observability 做成 durable truth + derived diagnostics。  
-round3 已经把 tool plane 做成统一治理、fail-closed、machine-consumable 的执行平面。
+这一轮完成后，Athlete 不再只靠：
 
-这一轮不是“再加几个 orchestrator feature”，也不是“把 swarm 玩得更花”。  
-这一轮的唯一目标，是把 Athlete 的控制面做成**真正成熟、可恢复、可解释、不会 silently 漏状态**的任务编排系统。
+- `task.status`
+- 零散的 `owner / assignee`
+- prompt 里的调度提醒
+- route / dispatch 里的局部 heuristics
 
-这是一项**一次性完整交付**任务。  
-不要停在分析、方案、半成品 patch、或只补几条 routing heuristic。  
-必须把失败测试、实现、验证、最小 spec 同步一起做完。
+来猜一个任务现在是不是该跑、该谁跑、能不能派工。
 
-## 执行前提
+相反，系统现在会先从既有真相源派生一个 machine lifecycle snapshot，再让 route / dispatch / claim / recovery 等路径消费它。
 
-1. 把 Athlete 当成**快速演进的新项目**。
-2. **不要为旧的含糊 lifecycle、旧的旁路 handoff、旧的偶然行为投入兼容成本。**
-3. 如果某个旧测试只是保护历史偶然性，而不是保护当前机器真相，应当删除或改写。
-4. 但不能借“新项目”之名破坏当前已成立的机器边界：
-   - `SessionRecord`
-   - `checkpoint`
-   - `verificationState`
-   - `runtimeStats`
-   - 已完成的 tool governance
-   - continuation / compact / closeout
-   - 现有 task / team / background / worktree store
+## 已落地的核心结果
 
-## 你的角色
+### 1. 统一的 orchestration lifecycle 模型已经存在
 
-你不是做 swarm demo 的人。  
-你是一个强调控制面真相、系统边界、恢复能力、状态转移、上下文隔离、机器可解释性的高级架构师兼落地工程师。
+当前代码：
 
-你现在在本地 `Athlete` 仓库中工作。
+- `src/orchestrator/taskLifecycle.ts`
+- `src/orchestrator/taskLifecycleShared.ts`
+- `src/orchestrator/types.ts`
 
-## 本轮唯一目标
+当前模型不新建平行 JSON，而是从既有控制面真相派生：
 
-把 Athlete 的任务编排系统升级成真正受治理的工业级控制面，让系统自己知道：
+- `TaskStore`
+- `TeamStore`
+- `BackgroundJobStore`
+- `WorktreeStore`
+- orchestrator task metadata
 
-- 一个任务现在处于什么生命周期阶段
-- 为什么它是 ready / blocked / in_progress / completed
-- 归属是谁，谁能接，谁不能接
-- 什么时候应该 lead 自己做，什么时候应该派 teammate / subagent / background
-- worktree 与 task 的绑定关系何时生效、何时解除、何时完成
-- background job 与 task / protocol / lead 之间如何对齐
-- interruption / yield / recovery 之后，为什么 orchestration reality 仍然一致
-- 如果控制面事实缺失或矛盾，系统为什么会 fail-closed，而不是继续默许推进
+每个 orchestrated task 现在都可以被机器化描述为：
 
-重点是：
+- `stage`: `blocked | ready | active | completed`
+- `runnableBy`: `lead | teammate | none`
+- `owner`
+- `handoff`
+- `worktree`
+- `reasonCode`
+- `reason`
+- `illegal`
 
-- agent 更稳，是因为控制面更硬
-- 不是因为 prompt 更长
-- 不是因为又写了一份调度说明书
+也就是说，系统现在能直接回答：
 
-## 宪法原则
+- 为什么这个任务是 ready
+- 为什么它仍然 blocked
+- 为什么它归 lead / teammate / background
+- 为什么它现在不能继续派工
 
-### P18 主循环和文件都不能长胖
+### 2. lead-ready 不再是软启发式，而是 lifecycle 派生结果
 
-- 不要把 `managedTurn.ts`、`runTurn.ts`、`prepareLeadTurn.ts`、`dispatch.ts`、`route.ts` 写胖。
-- 超过 300 行先怀疑职责耦合，不要先堆代码。
-- 只要出现“一个文件里有两件以上主要事情”，优先拆小模块。
+当前代码：
 
-### P13 session 是任务现场
+- `src/orchestrator/progress.ts`
+- `src/orchestrator/route.ts`
 
-- orchestration 不能新增 session 平行真相源。
-- 如果某个编排事实要跨 turn 一致，只能扩在既有 truth source 或现有记录结构里，不能额外造 JSON。
+当前行为已经做到：
 
-### P06 上下文要能压缩
+- `loadOrchestratorProgress` 先派生 lifecycle，再给 lead 可消费的 `readyTasks`
+- lead-ready 现在严格要求 `stage === "ready"` 且 `runnableBy.kind === "lead"`
+- 预留给 teammate 的任务，不再继续出现在 lead-ready 里
+- 已有 background handoff 的任务，不再被 lead 当成普通 ready task 重复推进
+- 缺失或冲突的 handoff 会直接标记为 `illegal`
 
-- 调度真相不能靠 prompt 维护完整任务图。
-- lifecycle、ownership、readiness、handoff 必须由机器逻辑驱动，不能破坏 compact / continuation。
+这意味着 route 不再只是“看起来像 ready 就继续派”，而是消费统一 lifecycle。
 
-### P07 任务图要落盘
+### 3. ownership / handoff 开始被真实执行层消费
 
-- 任务编排不是“本轮脑内计划”。
-- 任务图、依赖、归属、handoff 需要落在既有 task / team / background / worktree 真相源里。
+当前代码：
 
-### P12 工作区和任务要隔离
-
-- worktree 不是装饰物，必须继续作为隔离执行单元。
-- 不允许用 prompt 约定代替 worktree / task 的真实绑定。
-
-### 状态与真相源
-
-- 不允许新建平行 orchestrator 真相源 JSON。
-- orchestration truth 优先落在：
-  - `TaskStore`
-  - `TeamStore`
-  - `ProtocolRequestStore`
-  - `CoordinationPolicyStore`
-  - `BackgroundJobStore`
-  - `WorktreeStore`
-  - `SessionRecord.checkpoint`
-- 任何跨 turn 一致性都不能只放在 prompt 文案里。
-
-## 核心原则
-
-1. 编排政策属于机器层，不属于 prompt 叙述。
-2. prompt 只能保留高层原则，不能继续膨胀成完整调度表。
-3. lifecycle、ownership、readiness、handoff 应该驱动 route / dispatch / reconcile / recovery 等机器决策。
-4. fail-closed 比 best-effort 更重要。
-5. 不要推翻现有 orchestrator / task / team / background / worktree 框架，优先增强既有控制面。
-6. 不要做第二套 task system，不要发明平行 orchestration plane。
-7. 现有 continuation / checkpoint / verification / closeout / tool governance 都必须保住。
-
-## 第一步必须先做什么
-
-### 第一步必须是：先写失败测试
-
-不要先改实现。  
-先把这一轮真正要保护的任务编排行为写成失败测试，再开始实现。
-
-如果现有测试表达的是“维持旧排序 / 旧偶然行为 / 旧旁路 handoff”，而不是保护当前 machine truth：
-
-- 删除它，或
-- 改写成保护当前 truth source 的测试
-
-但不要两者并存。
-
-## 必须先读
-
-先读这些，再动代码：
-
-- `ROUND-1-KERNEL-HARDENING.md`
-- `ROUND-2-OBSERVABILITY.md`
-- `ROUND-3-TOOL-GOVERNANCE.md`
-- `spec/architecture/总体架构.md`
-- `spec/architecture/状态与真相源.md`
-- `spec/architecture/运行时循环.md`
-- `spec/overview/产品定义.md`
-- `spec/overview/v0范围.md`
-- `spec/principles/P18-主循环和文件都不能长胖.md`
-- `spec/principles/P13-session是任务现场.md`
-- `spec/principles/P12-工作区和任务要隔离.md`
-- `spec/principles/P07-任务图要落盘.md`
-- `spec/principles/P06-上下文要能压缩.md`
-- `src/tasks/types.ts`
-- `src/tasks/store.ts`
-- `src/team/types.ts`
-- `src/team/store.ts`
-- `src/team/policyStore.ts`
-- `src/team/requestStore.ts`
-- `src/team/messageBus.ts`
-- `src/team/worker.ts`
-- `src/background/types.ts`
-- `src/background/store.ts`
-- `src/background/reconcile.ts`
-- `src/background/spawn.ts`
-- `src/worktrees/types.ts`
+- `src/orchestrator/dispatch.ts`
+- `src/tools/tasks/claimTaskTool.ts`
 - `src/worktrees/store.ts`
-- `src/orchestrator/analyze.ts`
-- `src/orchestrator/taskPlanning.ts`
+
+当前行为已经做到：
+
+- subagent / teammate / background dispatch 前会先检查 lifecycle legality
+- 非法 handoff 不再 best-effort，直接阻断
+- duplicate background dispatch 会被挡住
+- `claim_task` 现在必须拿到真实 worktree，否则回滚 claim
+- teammate 拿到任务后的 worktree 绑定继续来自真实 store，而不是 prompt 约定
+
+也就是说，ownership 和 handoff 已经不只是展示文案，而是执行前置条件。
+
+### 4. continuation / recovery 后的 orchestration reality 更稳定
+
+当前代码：
+
+- `src/orchestrator/prepareLeadTurn.ts`
+- `src/orchestrator/progress.ts`
+- `src/agent/managedTurn.ts`
+
+当前行为已经做到：
+
+- continuation 后重新读取 durable truth，再派生 task lifecycle
+- 已在运行的 background job 不会在 continuation/reload 后被静默重复创建
+- lead orchestration 仍然挂在 `prepareLeadTurn -> runManagedAgentTurn -> runTurn` 的既有路径上
+- 没有新增 session 平行 orchestration JSON
+
+这保证了 recovery / continuation 不需要靠 prompt 记住完整任务图。
+
+### 5. prompt 仍然保持 principle-level
+
+当前代码：
+
+- `src/agent/prompt/static.ts`
+- `tests/system-prompt-contract.test.ts`
+
+当前 prompt 仍然只保留高层原则，例如：
+
+- 使用 task board / coordination policy / background / worktrees
+- 依据 machine truth 协调长任务
+- lead 负责协调，worker 负责执行
+
+当前 prompt 没有回退成：
+
+- `delegate_subagent / delegate_teammate / run_in_background` 的调度表
+- readiness / handoff reason code 列表
+- 完整任务生命周期手册
+
+## 当前变强的 fail-closed 行为
+
+这一轮收口的关键 fail-closed 点包括：
+
+### 1. background handoff 缺状态时阻断
+
+如果 orchestrator task metadata 里指向一个不存在的 `jobId`：
+
+- task lifecycle 会变成 `blocked`
+- `illegal = true`
+- lead-ready 过滤会把它挡掉
+- dispatch 不会继续默许推进
+
+### 2. teammate handoff 缺状态时阻断
+
+如果任务保留了 teammate reservation / ownership，但：
+
+- teammate 不存在
+- teammate 已 shutdown
+- teammate ownership 与 assignment 冲突
+
+系统会把它视为控制面冲突，而不是继续当成可运行任务。
+
+### 3. worktree 失效时阻断
+
+如果任务仍绑定 worktree，但 worktree 已 removed / 缺失：
+
+- lifecycle 会进入 blocked / illegal
+- teammate active 状态不会继续被默许
+- `claim_task` 现在在创建 worktree 失败时会回滚 claim，而不是留下半绑定状态
+
+### 4. duplicate background dispatch 被阻断
+
+如果 validation/background work 已经有真实 running job：
+
+- continuation / reload 后不会再次 silently spawn 第二个 job
+
+## 这一轮删掉或改写的 ad hoc / 历史包袱
+
+### 1. 删掉了旧的 ready heuristic 中心
+
+旧逻辑的核心是：
+
+- 不是 completed
+- `blockedBy.length === 0`
+- `owner` 为空或是 lead
+
+这不足以表达：
+
+- teammate reservation
+- background handoff
+- 缺失 job
+- 缺失 worktree
+- ownership 冲突
+
+现在这一层被 lifecycle 派生替代。
+
+### 2. 改掉了 `claim_task` 的 best-effort 旁路
+
+旧行为里，claim 后即使 worktree 没建出来，也可能继续留下 task 已 claim 的状态。
+
+现在：
+
+- 没有 worktree 就直接报错
+- 并把 task 回滚到 `pending`
+- 不允许留下半绑定任务
+
+### 3. 收紧了 dispatch 的宽松行为
+
+旧 dispatch 更接近“给了 decision 就尽量执行”。
+
+现在 dispatch 会先检查：
+
+- task 是否真的 ready
+- runnableBy 是否真的是 lead
+- handoff 是否非法
+- background handoff 是否已存在
+
+### 4. 没有新增平行 orchestrator 真相源
+
+这一轮没有新增：
+
+- `.athlete/orchestrator/*.json`
+- 第二套 orchestration registry
+- prompt-only 调度状态
+
+新增长的只是派生模块，不是新的 durable truth source。
+
+## 当前 truth source 边界
+
+这一轮完成后，orchestration 相关 durable truth 仍然主要落在：
+
+- `TaskStore`
+- `TeamStore`
+- `ProtocolRequestStore`
+- `CoordinationPolicyStore`
+- `BackgroundJobStore`
+- `WorktreeStore`
+- `SessionRecord.checkpoint`
+
+task lifecycle 本身是机器派生层，不是额外落盘的新真相源。
+
+## 当前关键文件
+
+本轮最终落点主要在：
+
+- `src/orchestrator/taskLifecycle.ts`
+- `src/orchestrator/taskLifecycleShared.ts`
+- `src/orchestrator/progress.ts`
 - `src/orchestrator/route.ts`
 - `src/orchestrator/dispatch.ts`
-- `src/orchestrator/progress.ts`
-- `src/orchestrator/prepareLeadTurn.ts`
-- `src/orchestrator/metadata.ts`
 - `src/orchestrator/types.ts`
-- `src/agent/managedTurn.ts`
-- `src/agent/runTurn.ts`
-- `src/agent/runtimeState.ts`
-- 所有与 orchestrator / teammate / background / worktree / task lifecycle 相关测试
+- `src/tools/tasks/claimTaskTool.ts`
 
-## 本轮必须参考的本地 REF
-
-这轮必须参考下面这些本地资料，但**只能提炼控制面、任务系统、多 agent 编排、上下文隔离与协调方式**，不能照抄实现，也不能把 Athlete 做成另一个项目的翻版：
-
-- `C:\Users\Administrator\Desktop\athlete\REF\txt\顶级开发团队设计的Harness工程项目源码什么样.txt`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\coordinator\coordinatorMode.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\tasks.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\Task.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\assistant\sessionHistory.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\services\AgentSummary\agentSummary.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\remote\RemoteSessionManager.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\remote\sdkMessageAdapter.ts`
-
-重点看：
-
-- 顶级 harness 如何做控制面 / 数据面分离
-- 任务归属、切换、隔离、恢复如何组织
-- 多 agent 协作时如何避免上下文污染
-- 编排层如何协调，而不是自己下场做所有事
-
-## 你真正要做成什么样
-
-这一轮完成后，系统至少要能机器化回答：
-
-- 为什么某个任务现在 ready
-- 为什么某个任务仍然 blocked
-- 为什么这个任务归 lead / teammate / background / subagent
-- 为什么这个 handoff 现在合法
-- 为什么这个 worktree 仍然绑定这个任务
-- 为什么 interruption / recovery 之后没有丢 orchestration truth
-- 如果状态缺失或冲突，系统为什么会阻断而不是继续默许推进
-
-## 推荐实现方向
-
-优先按下面方向收敛：
-
-### 1. 先把任务生命周期做硬
-
-优先收敛或强化：
-
-- readiness
-- ownership
-- assignment
-- dependency satisfaction
-- blocked / runnable / active / terminal 的机器边界
-
-不要只加更多 heuristics。  
-先让状态转移更明确，再增加行为。
-
-### 2. ownership / handoff 必须被真实执行层消费
-
-ownership 不能只是展示文案。  
-至少要让它被下面这些机器决策真实消费：
-
-- route
-- dispatch
-- teammate claim / worker pickup
-- background handoff
-- worktree bind / unbind
-- recovery / reconciliation
-- fail-closed blocking
-
-### 3. 收紧现有控制面之间的协同
-
-重点收敛这些已存在但仍偏散的逻辑：
-
-- task readiness / dependency transition
-- task 与 worktree 的真实生命周期联动
-- teammate 与 background 的 handoff 语义
-- orchestrator progress / reconcile
-- continuation / yield / recovery 的 orchestration reality 保持
-
-要求：
-
-- 不破坏现有外部行为
-- 但尽量减少“这个文件里手写一点、那个文件里再写一点”的 ad hoc 规则
-
-### 4. prompt 保持 principle-level
-
-不要把任务编排重新写回 prompt。  
-这一轮结束后，prompt 仍然只能保留高层原则，例如：
-
-- 遵循 task board / ownership / worktree binding
-- lead 负责协调，worker 负责执行
-- 依据 machine truth 做 delegation / recovery
-
-不能退回成完整的调度说明书。
-
-## 优先考虑的代码区域
-
-- `src/tasks/types.ts`
-- `src/tasks/store.ts`
-- `src/team/*`
-- `src/background/*`
-- `src/worktrees/store.ts`
-- `src/orchestrator/*`
-- `src/agent/managedTurn.ts`
-- `src/agent/runtimeState.ts`
-
-如需新增模块：
-
-- 可以新增小模块
-- 不要新增“大一统 orchestrator 管理器”
-- 不要新增第二套 task / orchestration registry
-
-## 不要做的事
-
-- 不要做一个庞大的 swarm 框架。
-- 不要添加系统根本管不住的新角色。
-- 不要把调度真相塞进 prompt、runtime summary、或新的临时 JSON。
-- 不要把 lead/orchestrator 重新做成“自己下场做所有实现”的执行者。
-- 不要做无关 UX 工程。
-- 不要顺手回退 round3 已成立的 tool governance 边界。
-
-## 必须先写的失败测试
-
-至少先补下面这些失败测试，再开始实现：
-
-1. task readiness / ownership / dependency transition 是 machine-enforced 的，而不是软启发式。
-2. task 与 worktree 的生命周期联动来自真实 store 状态，而不是 prompt 约定。
-3. teammate 与 background 的 handoff 经过统一控制面，而不是各走各的旁路。
-4. recovery / continuation / yield 后，orchestration truth 仍然一致。
-5. lead path 的 orchestration 没继续写胖主循环。
-6. prompt 仍然保持 principle-level，不重新膨胀成调度说明书。
-7. 不新增平行 orchestrator 真相源。
-
-如果现有测试是为了保护旧 shape、旧偶然行为、旧旁路 handoff：
-
-- 直接删掉，或
-- 重写成保护当前 truth source
-
-## 最低验收标准
-
-你只有在下面全部满足时，才能认为本轮完成：
-
-1. lifecycle / readiness / ownership 至少有两类以上机器决策真正开始消费。
-2. task / teammate / background / worktree 的联动边界更明确，没有继续依赖 prompt 记忆。
-3. continuation / recovery / checkpoint 没被打坏，并且 orchestration truth 更稳定。
-4. 状态缺失、冲突或非法 handoff 时，行为是 fail-closed，不是默许推进。
-5. prompt 仍然只保留 principle-level，不回退成调度手册。
-6. 没有新增平行真相源。
-7. 文件职责仍然清晰，没有明显违反 P18。
-
-## 必须执行的验证
-
-严格按这个顺序执行：
-
-1. `npm.cmd run test:build`
-2. 跑与以下相关的 targeted tests：
-   - `orchestrator-routing`
-   - `orchestrator-dispatch`
-   - `orchestrator-task-board`
-   - `orchestrator-truth-sources`
-   - `orchestrator-managed-turn`
-   - `task-and-background`
-   - `worktree-isolation`
-   - `protocol-and-runtime`
-   - `managed-turn`
-   - 任何新增的 orchestration targeted tests
-3. `npm.cmd run test:core`
-
-如果这轮触及区域有失败，必须继续修到通过为止。
-
-## 如果 spec 需要同步
-
-只做最小必要同步：
+最小 spec 同步在：
 
 - `spec/architecture/总体架构.md`
 - `spec/architecture/状态与真相源.md`
@@ -343,21 +248,65 @@ ownership 不能只是展示文案。
 - `spec/modules/task-state.md`
 - `spec/implementation/目录结构到代码文件映射表.md`
 
-如果文档里还在把调度写成 prompt-ish 描述，也要顺手收敛成机器策略导向。
+## 当前测试与验证状态
 
-## 最终回复必须包含
+本轮按要求执行并通过：
 
-最终只回答这些：
+1. `npm.cmd run test:build`
+2. targeted tests
+   - `orchestrator-routing`
+   - `orchestrator-dispatch`
+   - `orchestrator-task-board`
+   - `orchestrator-truth-sources`
+   - `orchestrator-managed-turn`
+   - `task-and-background`
+   - `worktree-isolation`
+   - `protocol-and-runtime`
+   - `managed-turn`
+   - `system-prompt-contract`
+   - `structure-slimming`
+3. `npm.cmd run test:core`
 
-- 现在的 orchestration lifecycle 模型是什么
-- 哪些控制面规则从 prompt-ish 逻辑下沉到了机器逻辑
-- 哪些 fail-closed 行为变强了
-- 你删掉或改写了哪些旧的 ad hoc / 历史包袱
-- 跑了哪些测试，结果如何
-- 残余风险是什么
+本轮新增并保护的关键 round4 测试包括：
 
----
+- `tests/orchestrator-task-board.test.ts`
+  - teammate-reserved task 不再进入 lead-ready
+  - missing background job 会 fail-closed
+- `tests/orchestrator-dispatch.test.ts`
+  - continuation/reload 后不会重复启动 background job
+- `tests/worktree-isolation.test.ts`
+  - claim_task 在缺 worktree 时回滚，不留下半状态
+- `tests/system-prompt-contract.test.ts`
+  - prompt 仍保持 principle-level
+- `tests/structure-slimming.test.ts`
+  - orchestrator 核心文件继续受 P18 预算约束
 
-这是一项**完整交付任务**。  
-不要留下一句“后续可以继续细化 lifecycle”就结束。  
-如果你发现风险点没有收口，那就继续做，直到收口为止。
+当前完整核心测试结果：
+
+- `npm.cmd run test:core` 通过
+- 213 个测试中 212 个通过
+- 1 个既有 skip
+- 0 失败
+
+## 残余风险
+
+这一轮已经收口，但当前仍有几点残余风险需要记住：
+
+1. lifecycle reason 目前主要服务机器决策和 targeted tests，面向人的任务板摘要还没有完整展示全部 reason code。
+2. `src/tasks/store.ts` 和 `src/worktrees/store.ts` 仍偏大，这一轮避免继续写胖，但没有彻底拆瘦。
+3. subagent 仍然是短生命周期 handoff，不是持久 actor；这不是 round4 的缺口，而是当前范围边界。
+
+## 当前结论
+
+round4 现在已经完成，而且不是“先写了一版调度规则文档”式完成，而是：
+
+- lifecycle 机器化
+- ownership / handoff 被执行层消费
+- background / teammate / worktree 联动更硬
+- continuation / recovery 下 orchestration truth 更稳
+- 缺状态或冲突时默认 fail-closed
+- prompt 仍保持 principle-level
+- 没有新增平行真相源
+- P18 没有被明显破坏
+
+后续如果还要继续演进 orchestrator，必须把 round4 视为既成的机器边界，而不是再退回 prompt-ish 调度描述。

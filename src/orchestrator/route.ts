@@ -1,4 +1,5 @@
 import type { TeamMemberRecord } from "../team/types.js";
+import { getOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 import type {
   OrchestratorAnalysis,
   OrchestratorDecision,
@@ -12,10 +13,24 @@ export function routeOrchestratorAction(input: {
   progress: OrchestratorProgressSnapshot;
   plan: OrchestratorTaskPlan;
 }): OrchestratorDecision {
-  const readyTasks = input.plan.readyTasks.length > 0 ? input.plan.readyTasks : input.progress.readyTasks;
+  const readyTasks = (input.plan.readyTasks.length > 0 ? input.plan.readyTasks : input.progress.readyTasks)
+    .filter((task) => {
+      const lifecycle = getOrchestratorTaskLifecycle(task);
+      return lifecycle.stage === "ready" && lifecycle.runnableBy.kind === "lead";
+    });
+  const conflictingTask = input.progress.relevantTasks.find((task) => getOrchestratorTaskLifecycle(task).illegal);
   const surveyTask = readyTasks.find((task) => task.meta.kind === "survey");
   const implementationTask = readyTasks.find((task) => task.meta.kind === "implementation");
   const validationTask = readyTasks.find((task) => task.meta.kind === "validation");
+
+  if (conflictingTask) {
+    const lifecycle = getOrchestratorTaskLifecycle(conflictingTask);
+    return {
+      action: "self_execute",
+      reason: `Task #${conflictingTask.record.id} has a control-plane conflict (${lifecycle.reasonCode}): ${lifecycle.reason}`,
+      task: conflictingTask,
+    };
+  }
 
   if (surveyTask) {
     return {
@@ -35,7 +50,7 @@ export function routeOrchestratorAction(input: {
       };
     }
 
-    const targetTask = validationTask ?? implementationTask;
+    const targetTask = [validationTask, implementationTask].find((task) => task && !task.meta.jobId);
     if (targetTask) {
       return {
         action: "run_in_background",
@@ -123,5 +138,15 @@ function selectTeammateTarget(
 }
 
 function hasRunningDelegatedWork(progress: OrchestratorProgressSnapshot): boolean {
-  return progress.runningBackgroundJobs.length > 0 || progress.workingTeammates.length > 0;
+  if (progress.runningBackgroundJobs.length > 0 || progress.workingTeammates.length > 0) {
+    return true;
+  }
+
+  return progress.relevantTasks.some((task) => {
+    const lifecycle = getOrchestratorTaskLifecycle(task);
+    return (
+      (lifecycle.stage === "active" && (lifecycle.owner.kind === "background" || lifecycle.owner.kind === "teammate")) ||
+      (lifecycle.stage === "ready" && lifecycle.runnableBy.kind === "teammate")
+    );
+  });
 }

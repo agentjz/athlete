@@ -43,3 +43,25 @@ test("claim_task creates or binds an isolated worktree and remove completes the 
   const indexEntry = await worktreeStore.find(worktree.name);
   assert.equal(indexEntry?.status, "removed");
 });
+
+test("claim_task fails closed instead of leaving a teammate task half-claimed when no worktree can be created", async (t) => {
+  const root = await createTempWorkspace("worktree-fail-closed", t);
+  const taskStore = new TaskStore(root);
+  const task = await taskStore.create("auth refactor", "", { assignee: "alpha" });
+
+  await assert.rejects(
+    () =>
+      claimTaskTool.execute(
+        JSON.stringify({ task_id: task.id }),
+        makeToolContext(root, root, {
+          identity: { kind: "teammate", name: "alpha", role: "writer", teamName: "default" },
+        }) as any,
+      ),
+    /worktree/i,
+  );
+
+  const reloaded = await taskStore.load(task.id);
+  assert.equal(reloaded.status, "pending");
+  assert.equal(reloaded.owner, "");
+  assert.equal(reloaded.worktree, "");
+});

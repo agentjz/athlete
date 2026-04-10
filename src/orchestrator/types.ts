@@ -31,9 +31,38 @@ export interface OrchestratorTaskMeta {
   jobId?: string;
 }
 
+export type OrchestratorActorKind = "lead" | "teammate" | "background" | "subagent" | "none";
+
+export interface OrchestratorActorTarget {
+  kind: OrchestratorActorKind;
+  name?: string;
+}
+
+export type OrchestratorTaskStage = "blocked" | "ready" | "active" | "completed";
+
+export interface OrchestratorTaskLifecycle {
+  stage: OrchestratorTaskStage;
+  runnableBy: OrchestratorActorTarget;
+  owner: OrchestratorActorTarget;
+  handoff: {
+    kind: "none" | "teammate" | "background" | "subagent";
+    target?: string;
+    jobId?: string;
+    legal: boolean;
+  };
+  worktree: {
+    status: "not_required" | "bound" | "missing" | "removed";
+    name?: string;
+  };
+  reasonCode: string;
+  reason: string;
+  illegal: boolean;
+}
+
 export interface OrchestratorTaskSnapshot {
   record: TaskRecord;
   meta: OrchestratorTaskMeta;
+  lifecycle?: OrchestratorTaskLifecycle;
 }
 
 export interface OrchestratorAnalysis {

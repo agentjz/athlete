@@ -93,6 +93,21 @@ test("system prompt aligns verification wording with targeted and lightweight ve
   assert.match(prompt, /file introspection or tool recovery points to a better specialized tool/i);
 });
 
+test("system prompt keeps orchestration guidance at the principle level instead of embedding a dispatch table", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+    ),
+  );
+
+  assert.match(prompt, /Use the task board, coordination policy, protocol tools, background jobs, and worktrees/i);
+  assert.doesNotMatch(prompt, /delegate_subagent|delegate_teammate|run_in_background/);
+  assert.doesNotMatch(prompt, /ready\.teammate_reserved|blocked\.missing_background_job|active\.background_running/);
+  assert.doesNotMatch(prompt, /Survey:|Implement:|Validate:/);
+});
+
 test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   const webResearch = createSkill({
     name: "web-research",

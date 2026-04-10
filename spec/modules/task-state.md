@@ -20,15 +20,22 @@
 2. `owner` 表示现在谁正在做。
 3. 被阻塞任务不能启动。
 4. 已完成任务不能随意重开。
+5. `status / blockedBy / assignee / owner / worktree` 不是孤立看的，lead orchestrator 会联合 `TeamStore`、`BackgroundJobStore`、`WorktreeStore` 派生任务 lifecycle。
+6. 同一个任务的 machine lifecycle 至少要能区分：
+   - `blocked`
+   - `ready`
+   - `active`
+   - `completed`
+7. `ready` 还要继续区分是谁能接：
+   - lead
+   - 指定 teammate
+   - nobody（缺失或冲突时 fail-closed）
+8. 如果 task 仍绑定失效 worktree、指向缺失 background job、或保留了不存在 teammate 的 handoff，系统必须阻断继续派工。
 
 ## 下一阶段演进方向
 
-任务系统要支持总指挥层，优先考虑增加：
+任务系统后续如要继续长：
 
-- 优先级
-- 父子任务
-- 重试次数
-- 产物引用
-- review / verify 要求
-
-这些演进必须建立在现有持久化任务板上，而不是另起一套任务宇宙。
+- 优先先扩现有 task truth
+- 不新造平行 orchestration plane
+- 继续让 lifecycle / ownership / handoff 由机器从既有真相源派生

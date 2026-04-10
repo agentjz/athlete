@@ -34,20 +34,25 @@ export const claimTaskTool: RegisteredTool = {
     const store = new TaskStore(context.projectContext.stateRootDir);
     const task = await store.claim(taskId, context.identity.name);
     let worktree: Awaited<ReturnType<WorktreeStore["ensureForTask"]>> | undefined;
-    let worktreeError: string | undefined;
     try {
       worktree = await new WorktreeStore(context.projectContext.stateRootDir).ensureForTask(task.id, task.subject);
     } catch (error) {
-      worktreeError = String((error as { message?: unknown }).message ?? error);
+      await store.update(task.id, {
+        status: "pending",
+        owner: "",
+        worktree: "",
+      }).catch(() => null);
+      const message = String((error as { message?: unknown }).message ?? error);
+      throw new Error(`Task ${task.id} requires an isolated worktree before it can be claimed: ${message}`);
     }
+    const claimedTask = await store.load(task.id);
 
     return okResult(
       JSON.stringify(
         {
           ok: true,
-          task,
+          task: claimedTask,
           worktree,
-          worktreeError,
           preview: await store.summarize(),
         },
         null,

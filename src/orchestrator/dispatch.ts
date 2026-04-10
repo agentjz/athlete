@@ -11,6 +11,7 @@ import { createToolRegistry } from "../tools/index.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
 import { readOrchestratorMetadata, writeOrchestratorMetadata } from "./metadata.js";
+import { getOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 import type {
   OrchestratorAnalysis,
   OrchestratorDecision,
@@ -58,6 +59,7 @@ export async function dispatchOrchestratorAction(input: {
       if (!task) {
         return { session, decision: input.decision };
       }
+      assertTaskReadyFor("delegate_subagent", task, "lead");
 
       await claimForLead(taskStore, task.record.id);
       const result = await deps.runSubagentTask({
@@ -85,6 +87,10 @@ export async function dispatchOrchestratorAction(input: {
       const teammate = input.decision.teammate;
       if (!task || !teammate) {
         return { session, decision: input.decision };
+      }
+      assertTaskReadyFor("delegate_teammate", task, "lead");
+      if (task.meta.jobId) {
+        throw new Error(`Task #${task.record.id} already has background handoff '${task.meta.jobId}'.`);
       }
 
       await taskStore.assign(task.record.id, teammate.name);
@@ -123,6 +129,12 @@ export async function dispatchOrchestratorAction(input: {
       const command = normalizeBackgroundCommand(input.decision.backgroundCommand ?? input.analysis.backgroundCommand);
       if (!command) {
         return { session, decision: input.decision };
+      }
+      if (input.decision.task) {
+        assertTaskReadyFor("run_in_background", input.decision.task, "lead");
+        if (input.decision.task.meta.jobId) {
+          throw new Error(`Task #${input.decision.task.record.id} already points to background job '${input.decision.task.meta.jobId}'.`);
+        }
       }
 
       const cwd = input.decision.task
@@ -167,12 +179,19 @@ export async function dispatchOrchestratorAction(input: {
 
     case "self_execute":
     default: {
-      if (input.decision.task && (!input.decision.task.record.owner || input.decision.task.record.owner === "lead")) {
+      if (input.decision.task && canLeadClaimTask(input.decision.task)) {
         await claimForLead(taskStore, input.decision.task.record.id);
         session = await appendOrchestratorNote(
           session,
           input.sessionStore,
           `Orchestrator kept Task #${input.decision.task.record.id} on the lead for direct execution.`,
+        );
+      } else if (input.decision.task) {
+        const lifecycle = getOrchestratorTaskLifecycle(input.decision.task);
+        session = await appendOrchestratorNote(
+          session,
+          input.sessionStore,
+          `Orchestrator blocked direct execution for Task #${input.decision.task.record.id} until the control plane is reconciled: ${lifecycle.reason}`,
         );
       }
       break;
@@ -253,4 +272,24 @@ function buildTeammatePrompt(analysis: OrchestratorAnalysis, taskId: number, sub
     `Task focus: ${subject}`,
     "Keep the task board updated, use isolated worktrees when provided, and message the lead if you are blocked.",
   ].join("\n");
+}
+
+function assertTaskReadyFor(
+  action: "delegate_subagent" | "delegate_teammate" | "run_in_background",
+  task: NonNullable<OrchestratorDecision["task"]>,
+  actorKind: "lead",
+): void {
+  const lifecycle = getOrchestratorTaskLifecycle(task);
+  if (lifecycle.illegal) {
+    throw new Error(`Task #${task.record.id} is not safe for ${action}: ${lifecycle.reason}`);
+  }
+
+  if (lifecycle.stage !== "ready" || lifecycle.runnableBy.kind !== actorKind) {
+    throw new Error(`Task #${task.record.id} is not ready for ${action}: ${lifecycle.reason}`);
+  }
+}
+
+function canLeadClaimTask(task: NonNullable<OrchestratorDecision["task"]>): boolean {
+  const lifecycle = getOrchestratorTaskLifecycle(task);
+  return !lifecycle.illegal && lifecycle.stage === "ready" && lifecycle.runnableBy.kind === "lead";
 }

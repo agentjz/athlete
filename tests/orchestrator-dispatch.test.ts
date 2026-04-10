@@ -5,6 +5,7 @@ import { MemorySessionStore } from "../src/agent/sessionStore.js";
 import { dispatchOrchestratorAction } from "../src/orchestrator/dispatch.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
+import { prepareLeadTurn } from "../src/orchestrator/prepareLeadTurn.js";
 import { BackgroundJobStore } from "../src/background/store.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
@@ -168,4 +169,44 @@ test("dispatchOrchestratorAction creates real background jobs through Background
   assert.equal(jobs.length, 1);
   assert.equal(jobs[0]?.pid, 9876);
   assert.equal(jobs[0]?.command, "node -e \"setTimeout(() => console.log(123), 500)\"");
+});
+
+test("prepareLeadTurn does not silently launch duplicate background jobs after continuation reload", async (t) => {
+  const root = await createTempWorkspace("orchestrator-background-repeat", t);
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(root);
+  let spawnCount = 0;
+
+  const first = await prepareLeadTurn({
+    input: "Run the validation suite in the background: `npm test -- --watch=false`",
+    cwd: root,
+    config: createTestRuntimeConfig(root),
+    session,
+    sessionStore,
+    deps: {
+      spawnBackgroundProcess: () => {
+        spawnCount += 1;
+        return 9000 + spawnCount;
+      },
+    },
+  });
+
+  const second = await prepareLeadTurn({
+    input: "continue",
+    cwd: root,
+    config: createTestRuntimeConfig(root),
+    session: first.session,
+    sessionStore,
+    deps: {
+      spawnBackgroundProcess: () => {
+        spawnCount += 1;
+        return 9000 + spawnCount;
+      },
+    },
+  });
+
+  const jobs = await new BackgroundJobStore(root).list();
+  assert.equal(spawnCount, 1);
+  assert.equal(jobs.length, 1);
+  assert.notEqual(second.decision.action, "run_in_background");
 });

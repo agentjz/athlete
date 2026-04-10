@@ -7,6 +7,7 @@ import { TeamStore } from "../team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { readOrchestratorTask } from "./metadata.js";
+import { deriveOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 import type { OrchestratorObjective, OrchestratorProgressSnapshot, OrchestratorTaskSnapshot } from "./types.js";
 
 const TASK_KIND_ORDER = {
@@ -46,15 +47,26 @@ export async function loadOrchestratorProgress(input: {
   const relevantTasks = refreshedTasks
     .map((task) => readOrchestratorTask(task))
     .filter((task): task is OrchestratorTaskSnapshot => Boolean(task && task.meta.key === input.objective.key));
-  const readyTasks = relevantTasks
-    .filter((task) => isReadyTask(task))
+  const lifecycleTasks = relevantTasks
+    .map((task) => ({
+      ...task,
+      lifecycle: deriveOrchestratorTaskLifecycle({
+        task,
+        teammates,
+        backgroundJobs: relevantBackgroundJobs,
+        worktrees,
+      }),
+    }))
+    .sort(compareTasks);
+  const readyTasks = lifecycleTasks
+    .filter((task) => task.lifecycle?.stage === "ready" && task.lifecycle.runnableBy.kind === "lead")
     .sort(compareTasks);
 
   return {
     rootDir: input.rootDir,
     cwd: input.cwd,
     tasks: refreshedTasks,
-    relevantTasks: relevantTasks.sort(compareTasks),
+    relevantTasks: lifecycleTasks,
     readyTasks,
     relevantBackgroundJobs,
     runningBackgroundJobs: relevantBackgroundJobs.filter((job) => job.status === "running"),
@@ -89,18 +101,6 @@ async function syncSuccessfulBackgroundTasks(
       owner: task.owner || "lead",
     }).catch(() => null);
   }
-}
-
-function isReadyTask(task: OrchestratorTaskSnapshot): boolean {
-  if (task.record.status === "completed") {
-    return false;
-  }
-
-  if (task.record.blockedBy.length > 0) {
-    return false;
-  }
-
-  return !task.record.owner || task.record.owner === "lead";
 }
 
 function compareTasks(left: OrchestratorTaskSnapshot, right: OrchestratorTaskSnapshot): number {
