@@ -1,4 +1,4 @@
-import { isInternalMessage } from "../agent/taskState.js";
+import { isInternalMessage } from "../agent/session.js";
 import { getToolGovernanceForName, isBrowserGovernedTool } from "../tools/governance.js";
 import type { SessionRecord, StoredMessage, ToolExecutionResult } from "../types.js";
 import type { SkillRuntimeState } from "./types.js";

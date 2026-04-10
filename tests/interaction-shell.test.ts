@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { InteractiveSessionDriver } from "../src/interaction/sessionDriver.js";
 import type { InteractionShell } from "../src/interaction/shell.js";
 import { startInteractiveChat, type StartInteractiveChatDependencies } from "../src/ui/interactive.js";

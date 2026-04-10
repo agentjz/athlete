@@ -1,4 +1,4 @@
-import type { SessionStoreLike } from "../agent/sessionStore.js";
+import type { SessionStoreLike } from "../agent/session.js";
 import { InteractiveSessionDriver } from "../interaction/sessionDriver.js";
 import type { InteractiveSessionDriverOptions } from "../interaction/sessionDriver.js";
 import type { InteractionShell } from "../interaction/shell.js";

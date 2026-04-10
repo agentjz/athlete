@@ -1,4 +1,4 @@
-import type { ManagedTurnOptions } from "../agent/managedTurn.js";
+import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { TelegramLogger } from "./logger.js";
 import { TelegramTurnDisplay } from "./turnDisplay.js";
 

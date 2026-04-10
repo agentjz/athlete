@@ -5,11 +5,11 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../src/agent/contextBuilder.js";
-import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
-import { createMessage } from "../src/agent/messages.js";
-import { shrinkMessagesForContextLimit } from "../src/agent/recovery.js";
-import { SessionStore } from "../src/agent/sessionStore.js";
+import { buildRequestContext } from "../src/agent/context.js";
+import { runManagedAgentTurn } from "../src/agent/turn.js";
+import { createMessage } from "../src/agent/session.js";
+import { shrinkMessagesForContextLimit } from "../src/agent/turn.js";
+import { SessionStore } from "../src/agent/session.js";
 import { buildSystemPrompt } from "../src/agent/systemPrompt.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../src/tools/index.js";
 import type { ProjectContext, StoredMessage, ToolExecutionResult } from "../src/types.js";

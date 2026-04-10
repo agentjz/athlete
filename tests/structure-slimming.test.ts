@@ -8,11 +8,29 @@ async function countFileLines(relativePath: string): Promise<number> {
   return source.split(/\r?\n/).length;
 }
 
-test("critical orchestration files stay within the line-count budget after Playwright MCP integration", async () => {
+test("critical runtime files stay within the line-count budget after agent kernel consolidation", async () => {
   const checks: Array<[string, number]> = [
     ["src/cli.ts", 490],
     ["src/agent/runTurn.ts", 300],
-    ["src/agent/closeout.ts", 220],
+    ["src/agent/turn/closeout.ts", 120],
+    ["src/agent/context/builder.ts", 320],
+    ["src/agent/toolResults/preview.ts", 320],
+    ["src/agent/toolResults/storage.ts", 240],
+    ["src/agent/session/store.ts", 220],
+    ["src/agent/session/taskState.ts", 220],
+    ["src/agent/session/taskStateHistory.ts", 240],
+    ["src/agent/session/todos.ts", 180],
+    ["src/agent/verification/state.ts", 280],
+    ["src/agent/verification/signals.ts", 140],
+    ["src/agent/turn/managed.ts", 140],
+    ["src/agent/turn/finalize.ts", 280],
+    ["src/agent/turn/persistence.ts", 140],
+    ["src/agent/turn/toolExecutor.ts", 140],
+    ["src/agent/turn/toolless.ts", 140],
+    ["src/agent/turn/recovery.ts", 260],
+    ["src/agent/turn/loopGuard.ts", 100],
+    ["src/agent/turn/planGate.ts", 100],
+    ["src/agent/turn/state.ts", 100],
     ["src/agent/systemPrompt.ts", 220],
     ["src/agent/promptSections.ts", 120],
     ["src/agent/prompt/static.ts", 220],

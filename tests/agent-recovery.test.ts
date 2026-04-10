@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fetchAssistantResponse } from "../src/agent/api.js";
-import { withApiRetries } from "../src/agent/recovery.js";
+import { withApiRetries } from "../src/agent/turn.js";
 import type { FunctionToolDefinition } from "../src/tools/index.js";
 
 test("fetchAssistantResponse falls back to deepseek-chat when the primary model rejects tool use", async () => {

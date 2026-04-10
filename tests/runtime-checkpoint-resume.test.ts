@@ -3,12 +3,12 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../src/agent/contextBuilder.js";
+import { buildRequestContext } from "../src/agent/context.js";
 import { normalizeSessionCheckpoint } from "../src/agent/checkpoint.js";
-import { createMessage } from "../src/agent/messages.js";
-import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
+import { createMessage } from "../src/agent/session.js";
+import { runManagedAgentTurn } from "../src/agent/turn.js";
 import { runAgentTurn } from "../src/agent/runTurn.js";
-import { SessionStore } from "../src/agent/sessionStore.js";
+import { SessionStore } from "../src/agent/session.js";
 import { buildSystemPrompt } from "../src/agent/systemPrompt.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../src/tools/index.js";
 import type { ProjectContext, ToolExecutionResult } from "../src/types.js";

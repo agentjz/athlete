@@ -1,4 +1,4 @@
-import { buildRequestContext } from "../agent/contextBuilder.js";
+import { buildRequestContext } from "../agent/context.js";
 import { loadPromptRuntimeState } from "../agent/runtimeState.js";
 import { buildSystemPromptLayers } from "../agent/systemPrompt.js";
 import type { RuntimePromptDiagnostics } from "../agent/runtimeMetrics.js";

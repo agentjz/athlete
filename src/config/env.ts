@@ -21,11 +21,7 @@ export function loadDotEnvFiles(cwd: string): void {
   }
 
   managedEnvValues.clear();
-  const packageRoot = path.resolve(__dirname, "..");
-  const candidateFiles = uniquePaths([
-    path.join(packageRoot, ".athlete", ".env"),
-    path.join(cwd, ".athlete", ".env"),
-  ]);
+  const candidateFiles = findProjectDotEnvFiles(cwd);
 
   for (const filePath of candidateFiles) {
     if (!fs.existsSync(filePath)) {
@@ -42,6 +38,22 @@ export function loadDotEnvFiles(cwd: string): void {
       managedEnvValues.set(key, value);
     }
   }
+}
+
+function findProjectDotEnvFiles(cwd: string): string[] {
+  const candidates: string[] = [];
+  let currentDir = path.resolve(cwd);
+
+  while (true) {
+    candidates.push(path.join(currentDir, ".athlete", ".env"));
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return uniquePaths(candidates.reverse());
 }
 
 function uniquePaths(paths: string[]): string[] {

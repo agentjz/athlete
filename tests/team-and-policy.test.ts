@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { injectInboxMessagesIfNeeded } from "../src/agent/runtimeState.js";
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { MessageBus } from "../src/team/messageBus.js";
 import { CoordinationPolicyStore } from "../src/team/policyStore.js";
 import { ProtocolRequestStore } from "../src/team/requestStore.js";

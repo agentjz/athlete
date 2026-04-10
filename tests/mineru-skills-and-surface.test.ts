@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { buildSystemPromptLayers, renderPromptLayers } from "../src/agent/promptSections.js";
-import { executeToolCallWithRecovery } from "../src/agent/toolExecutor.js";
+import { executeToolCallWithRecovery } from "../src/agent/turn.js";
 import { discoverSkills } from "../src/skills/discovery.js";
 import { selectSkillsForTurn } from "../src/skills/matching.js";
 import { createStreamRenderer } from "../src/ui/streamRenderer.js";

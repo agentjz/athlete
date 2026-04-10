@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { normalizeTodoItems } from "../agent/todos.js";
+import { normalizeTodoItems } from "../agent/session.js";
 import { ensureProjectStateDirectories, getProjectStatePaths } from "../project/statePaths.js";
 import type { TaskRecord, TaskStatus } from "./types.js";
 import type { TodoItem } from "../types.js";

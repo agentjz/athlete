@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { runManagedAgentTurn } from "../src/agent/turn.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { getDefaultPlaywrightMcpConfig } from "../src/mcp/playwright/config.js";
 import type { RuntimeConfig } from "../src/types.js";
 import { createCheckpointFixture } from "./helpers.js";

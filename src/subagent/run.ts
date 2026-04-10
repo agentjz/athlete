@@ -1,5 +1,5 @@
 import { runAgentTurn } from "../agent/runTurn.js";
-import { MemorySessionStore } from "../agent/sessionStore.js";
+import { MemorySessionStore } from "../agent/session.js";
 import type { AgentCallbacks, RunTurnResult } from "../agent/types.js";
 import type { ToolRegistryFactory } from "../tools/types.js";
 import type { RuntimeConfig, StoredMessage, ToolExecutionMetadata } from "../types.js";

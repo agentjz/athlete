@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { getErrorMessage } from "../agent/errors.js";
-import { SessionStore } from "../agent/sessionStore.js";
+import { SessionStore } from "../agent/session.js";
 import type { CliOverrides, RuntimeConfig } from "../types.js";
 import { FetchTelegramBotApiClient } from "./botApiClient.js";
 import { TelegramDeliveryQueue } from "./deliveryQueue.js";

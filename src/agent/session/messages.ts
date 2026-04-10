@@ -1,6 +1,6 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-import type { ExternalizedToolResultReference, StoredMessage, ToolCallRecord } from "../types.js";
+import type { ExternalizedToolResultReference, StoredMessage, ToolCallRecord } from "../../types.js";
 
 export function buildChatMessages(
   systemPrompt: string,

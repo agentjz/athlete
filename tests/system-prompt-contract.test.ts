@@ -7,10 +7,10 @@ import {
   measurePromptLayers,
   renderPromptLayers,
 } from "../src/agent/promptSections.js";
-import { buildRequestContext } from "../src/agent/contextBuilder.js";
+import { buildRequestContext } from "../src/agent/context.js";
 import { formatSkillPromptBlock } from "../src/skills/prompt.js";
 import type { LoadedSkill, ProjectContext, SkillRuntimeState } from "../src/types.js";
-import { createMessage } from "../src/agent/messages.js";
+import { createMessage } from "../src/agent/session.js";
 import { createTestRuntimeConfig } from "./helpers.js";
 
 const ROOT = process.cwd();

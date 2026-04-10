@@ -1,4 +1,4 @@
-import type { SessionRecord, VerificationAttempt, VerificationState, VerificationStatus } from "../types.js";
+import type { SessionRecord, VerificationAttempt, VerificationState, VerificationStatus } from "../../types.js";
 
 const MAX_PENDING_PATHS = 12;
 const DEFAULT_MAX_ATTEMPTS = 3;

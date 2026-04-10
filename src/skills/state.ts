@@ -1,4 +1,4 @@
-import { isInternalMessage } from "../agent/taskState.js";
+import { isInternalMessage } from "../agent/session.js";
 import type { SessionRecord, StoredMessage, ToolExecutionResult } from "../types.js";
 import { selectSkillsForTurn } from "./matching.js";
 import { readLoadedSkillName } from "./loading.js";

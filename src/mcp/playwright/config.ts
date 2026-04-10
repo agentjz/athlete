@@ -17,7 +17,7 @@ export function getDefaultPlaywrightMcpConfig(): PlaywrightMcpConfig {
     enabled: false,
     command: process.platform === "win32" ? "npx.cmd" : "npx",
     packageSpec: DEFAULT_PLAYWRIGHT_PACKAGE,
-    browser: "",
+    browser: "chromium",
     headless: false,
     isolated: false,
     userDataDir: "",
@@ -144,6 +144,8 @@ export function buildPlaywrightMcpServer(playwright: PlaywrightMcpConfig): McpSe
 
 function normalizeBrowserName(value: unknown): PlaywrightBrowserName {
   switch (String(value ?? "").trim().toLowerCase()) {
+    case "chromium":
+      return "chromium";
     case "chrome":
       return "chrome";
     case "firefox":
@@ -153,7 +155,7 @@ function normalizeBrowserName(value: unknown): PlaywrightBrowserName {
     case "msedge":
       return "msedge";
     default:
-      return "";
+      return "chromium";
   }
 }
 

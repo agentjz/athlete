@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { prepareLeadTurn } from "../src/orchestrator/prepareLeadTurn.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "./helpers.js";

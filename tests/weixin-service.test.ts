@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { SessionStore } from "../src/agent/sessionStore.js";
+import { SessionStore } from "../src/agent/session.js";
 import { WeixinDeliveryQueue } from "../src/weixin/deliveryQueue.js";
 import { FileWeixinContextTokenStore } from "../src/weixin/contextTokenStore.js";
 import type { WeixinClientLike } from "../src/weixin/client.js";

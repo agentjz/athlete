@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { buildToolPayloadPreview, compactToolPayload } from "../../agent/toolResultPreview.js";
+import { buildToolPayloadPreview, compactToolPayload } from "../../agent/context.js";
 import { getProjectStatePaths } from "../../project/statePaths.js";
 import { formatFileWithLineNumbers } from "../../utils/fs.js";
 import type { InspectedFile } from "../fileIntrospection.js";

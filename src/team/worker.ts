@@ -1,7 +1,7 @@
 import process from "node:process";
 
-import { runManagedAgentTurn } from "../agent/managedTurn.js";
-import { SessionStore } from "../agent/sessionStore.js";
+import { runManagedAgentTurn } from "../agent/turn.js";
+import { SessionStore } from "../agent/session.js";
 import type { RuntimeConfig } from "../types.js";
 import { MessageBus } from "./messageBus.js";
 import { reconcileTeamState } from "./reconcile.js";

@@ -1,6 +1,6 @@
 export type McpTransportType = "stdio" | "sse" | "streamable-http";
 
-export type PlaywrightBrowserName = "" | "chrome" | "firefox" | "webkit" | "msedge";
+export type PlaywrightBrowserName = "chromium" | "chrome" | "firefox" | "webkit" | "msedge";
 
 export interface PlaywrightMcpConfig {
   enabled: boolean;

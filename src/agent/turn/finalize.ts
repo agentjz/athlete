@@ -1,6 +1,7 @@
-import { noteCheckpointCompleted } from "./checkpoint.js";
-import { canFinishWithPlanningTodos, shouldIgnoreIncompleteTodosForCloseout } from "./closeout.js";
-import { createMessage } from "./messages.js";
+import { noteCheckpointCompleted } from "../checkpoint.js";
+import { createMessage } from "../session/messages.js";
+import { createInternalReminder } from "../session/taskState.js";
+import { hasIncompleteTodos } from "../session/todos.js";
 import {
   buildRunTurnResult,
   createFinalizeTransition,
@@ -8,14 +9,13 @@ import {
   createVerificationFailedTransition,
   createVerificationPauseTransition,
   createVerificationRequiredTransition,
-} from "./runtimeTransition.js";
-import { createInternalReminder } from "./taskState.js";
-import { hasIncompleteTodos } from "./todos.js";
-import { persistCheckpointTransition } from "./turnPersistence.js";
-import { getAutoVerificationAttempt } from "./verificationSignals.js";
-import { isVerificationAwaitingUser, isVerificationRequired, noteVerificationReminder, recordVerificationAttempt } from "./verificationState.js";
-import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "./types.js";
-import type { RuntimeContinueTransition, SessionRecord, ToolCallRecord, VerificationState } from "../types.js";
+} from "../runtimeTransition.js";
+import { canFinishWithPlanningTodos, shouldIgnoreIncompleteTodosForCloseout } from "./closeout.js";
+import { persistCheckpointTransition } from "./persistence.js";
+import { getAutoVerificationAttempt } from "../verification/signals.js";
+import { isVerificationAwaitingUser, isVerificationRequired, noteVerificationReminder, recordVerificationAttempt } from "../verification/state.js";
+import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "../types.js";
+import type { RuntimeContinueTransition, SessionRecord, ToolCallRecord, VerificationState } from "../../types.js";
 
 interface HandleCompletedAssistantResponseParams {
   session: SessionRecord;

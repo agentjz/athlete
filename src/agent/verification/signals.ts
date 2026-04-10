@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { isVerificationRequired } from "./verificationState.js";
-import type { SessionRecord } from "../types.js";
-import type { VerificationAttempt } from "../types.js";
+import { isVerificationRequired } from "./state.js";
+import type { SessionRecord } from "../../types.js";
+import type { VerificationAttempt } from "../../types.js";
 
 const LIGHTWEIGHT_VERIFICATION_EXTENSIONS = new Set([".md", ".txt"]);
 const DISALLOWED_LIGHTWEIGHT_ROOTS = new Set([".athlete", ".test-build", "dist", "scripts", "src", "tests"]);

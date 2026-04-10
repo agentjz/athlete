@@ -1,6 +1,6 @@
-import type { PromptLayers } from "./promptSections.js";
-import type { AgentCallbacks } from "./types.js";
-import type { SessionCheckpoint } from "../types.js";
+import type { PromptLayers } from "../promptSections.js";
+import type { AgentCallbacks } from "../types.js";
+import type { SessionCheckpoint } from "../../types.js";
 
 export function extendPromptLayersForTurnState(
   promptLayers: PromptLayers,

@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../agent/taskState.js";
+import { isContinuationDirective, isInternalMessage } from "../agent/session.js";
 import type { SessionRecord } from "../types.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
 import {

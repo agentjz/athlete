@@ -1,8 +1,8 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-import { expandStartToToolBoundary, findLatestUserIndex } from "./messages.js";
-import { compactToolPayloadForTransport } from "./toolResultPreview.js";
-import { isAbortError, sleepWithSignal } from "../utils/abort.js";
+import { expandStartToToolBoundary, findLatestUserIndex } from "../session/messages.js";
+import { compactToolPayloadForTransport } from "../toolResults/preview.js";
+import { isAbortError, sleepWithSignal } from "../../utils/abort.js";
 
 const API_MAX_RETRIES = 3;
 const API_RETRY_BASE_DELAY_MS = 1200;

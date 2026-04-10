@@ -1,7 +1,7 @@
 import path from "node:path";
 
-import type { SessionStore } from "../agent/sessionStore.js";
-import { runManagedAgentTurn } from "../agent/managedTurn.js";
+import type { SessionStore } from "../agent/session.js";
+import { runManagedAgentTurn } from "../agent/turn.js";
 import { parseAgentMode, resolveRuntimeConfig } from "../config/store.js";
 import type { AgentMode, AppConfig, CliOverrides, RuntimeConfig, SessionRecord } from "../types.js";
 import { createStreamRenderer } from "../ui/streamRenderer.js";

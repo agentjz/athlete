@@ -25,6 +25,6 @@ session 里应该能承接：
 
 ## 当前对应
 
-- `src/agent/sessionStore.ts`
-- `src/agent/taskState.ts`
-- `src/agent/verificationState.ts`
+- `src/agent/session.ts`
+- `src/agent/session/taskState.ts`
+- `src/agent/verification.ts`

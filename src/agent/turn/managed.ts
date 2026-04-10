@@ -1,7 +1,7 @@
-import { buildCheckpointContinuationInput } from "./checkpoint.js";
-import { runAgentTurn } from "./runTurn.js";
-import { prepareLeadTurn } from "../orchestrator/prepareLeadTurn.js";
-import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "./types.js";
+import { buildCheckpointContinuationInput } from "../checkpoint.js";
+import { runAgentTurn } from "../runTurn.js";
+import { prepareLeadTurn } from "../../orchestrator/prepareLeadTurn.js";
+import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "../types.js";
 
 export interface ManagedTurnYieldContext {
   result: RunTurnResult;

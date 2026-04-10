@@ -3,9 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { createMessage, createToolMessage } from "../src/agent/messages.js";
-import { SessionStore } from "../src/agent/sessionStore.js";
-import { createInternalReminder } from "../src/agent/taskState.js";
+import { createMessage, createToolMessage } from "../src/agent/session.js";
+import { SessionStore } from "../src/agent/session.js";
+import { createInternalReminder } from "../src/agent/session.js";
 import { discoverSkills } from "../src/skills/discovery.js";
 import { buildSkillRuntimeState, getSkillToolGateResult } from "../src/skills/state.js";
 import { loadSkillTool } from "../src/tools/skills/loadSkillTool.js";

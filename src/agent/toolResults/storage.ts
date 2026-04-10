@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { createToolMessage } from "./messages.js";
-import { buildToolPayloadPreview, compactToolPayload } from "./toolResultPreview.js";
-import { getProjectStatePaths } from "../project/statePaths.js";
-import type { ExternalizedToolResultReference, ProjectContext, StoredMessage } from "../types.js";
+import { createToolMessage } from "../session/messages.js";
+import { buildToolPayloadPreview, compactToolPayload } from "./preview.js";
+import { getProjectStatePaths } from "../../project/statePaths.js";
+import type { ExternalizedToolResultReference, ProjectContext, StoredMessage } from "../../types.js";
 
 const LARGE_TOOL_RESULT_CHAR_THRESHOLD = 12_000;
 const LARGE_TOOL_RESULT_BYTE_THRESHOLD = 16_000;

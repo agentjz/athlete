@@ -1,4 +1,4 @@
-import type { SessionRecord, StoredMessage, TodoItem, TodoStatus } from "../types.js";
+import type { SessionRecord, StoredMessage, TodoItem, TodoStatus } from "../../types.js";
 
 const MAX_TODO_ITEMS = 20;
 const MAX_TODO_TEXT_CHARS = 240;

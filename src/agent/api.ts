@@ -4,7 +4,7 @@ import type {
   ChatCompletionMessageParam,
 } from "openai/resources/chat/completions";
 
-import { collapseContentParts, readReasoningContent } from "./messages.js";
+import { collapseContentParts, readReasoningContent } from "./session/messages.js";
 import { normalizeAssistantResponse } from "./responseNormalization.js";
 import {
   isContentPolicyError,
@@ -13,7 +13,7 @@ import {
   sanitizeMessagesForContentPolicy,
   shrinkMessagesForContextLimit,
   withApiRetries,
-} from "./recovery.js";
+} from "./turn/recovery.js";
 import type { ModelRequestMetric, ProviderUsageSnapshot } from "./runtimeMetrics.js";
 import { createAbortError, isAbortError, throwIfAborted } from "../utils/abort.js";
 import type { AssistantResponse, AgentCallbacks } from "./types.js";

@@ -1,8 +1,8 @@
-import { hasIncompleteTodos } from "./todos.js";
-import { isVerificationRequired } from "./verificationState.js";
-import type { AgentIdentity } from "./types.js";
-import type { FunctionToolDefinition } from "../tools/index.js";
-import type { SessionRecord, VerificationState } from "../types.js";
+import { hasIncompleteTodos } from "../session/todos.js";
+import { isVerificationRequired } from "../verification/state.js";
+import type { AgentIdentity } from "../types.js";
+import type { FunctionToolDefinition } from "../../tools/index.js";
+import type { SessionRecord, VerificationState } from "../../types.js";
 
 const TASK_CLOSEOUT_TOOL_NAMES = new Set(["task_list", "task_get", "task_update"]);
 const CLOSEOUT_TOOL_NAMES = new Set([...TASK_CLOSEOUT_TOOL_NAMES, "todo_write"]);

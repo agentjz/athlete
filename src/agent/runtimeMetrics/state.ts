@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../taskState.js";
+import { isContinuationDirective, isInternalMessage } from "../session/taskState.js";
 import type {
   ExternalizedToolResultReference,
   SessionRecord,

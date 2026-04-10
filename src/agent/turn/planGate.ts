@@ -1,7 +1,7 @@
-import { hasIncompleteTodos } from "./todos.js";
-import type { AgentIdentity } from "./types.js";
-import type { SessionRecord } from "../types.js";
-import { classifyCommand } from "../utils/commandPolicy.js";
+import { hasIncompleteTodos } from "../session/todos.js";
+import type { AgentIdentity } from "../types.js";
+import type { SessionRecord } from "../../types.js";
+import { classifyCommand } from "../../utils/commandPolicy.js";
 
 const PLAN_REQUIRED_TOOLS = new Set([
   "write_file",

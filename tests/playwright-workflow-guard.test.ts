@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createMessage, createToolMessage } from "../src/agent/messages.js";
+import { createMessage, createToolMessage } from "../src/agent/session.js";
 import { getWorkflowToolGateResult } from "../src/skills/workflowGuards.js";
 import type { SkillRuntimeState } from "../src/types.js";
 

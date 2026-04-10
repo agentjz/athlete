@@ -1,10 +1,6 @@
 const PRIMARY_PREVIEW_KEYS = ["preview", "markdownPreview", "content", "output"] as const;
 
-export function compactToolPayload(
-  toolName: string | undefined,
-  raw: string,
-  maxChars: number,
-): string {
+export function compactToolPayload(toolName: string | undefined, raw: string, maxChars: number): string {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -145,10 +141,7 @@ export function compactToolPayloadForTransport(raw: string, maxChars: number): s
 
       const preview = readScalar(parsed.preview);
       if (preview) {
-        compacted.preview = truncate(
-          normalizeBlock(preview),
-          Math.max(80, Math.floor(maxChars * 0.35)),
-        );
+        compacted.preview = truncate(normalizeBlock(preview), Math.max(80, Math.floor(maxChars * 0.35)));
       }
 
       let compactedJson = JSON.stringify(compacted, null, 2);
@@ -294,11 +287,7 @@ function pushFragment(fragments: string[], key: string, value: string | undefine
   fragments.push(`${key}=${value}`);
 }
 
-function copyScalar(
-  target: Record<string, unknown>,
-  source: Record<string, unknown>,
-  key: string,
-): void {
+function copyScalar(target: Record<string, unknown>, source: Record<string, unknown>, key: string): void {
   const value = source[key];
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     target[key] = value;

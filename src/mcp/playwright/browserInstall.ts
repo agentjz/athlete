@@ -53,6 +53,8 @@ export async function ensurePlaywrightBrowserAvailableForServer(
 
 export function resolvePlaywrightInstallTarget(browser: PlaywrightBrowserName): PlaywrightInstallTarget {
   switch (browser) {
+    case "chromium":
+      return "chromium";
     case "chrome":
       return "chrome";
     case "firefox":
@@ -126,10 +128,12 @@ function resolvePlaywrightCliPath(): string {
 function readBrowserFlag(args: string[]): PlaywrightBrowserName {
   const index = args.indexOf("--browser");
   if (index < 0) {
-    return "";
+    return "chromium";
   }
 
   switch (String(args[index + 1] ?? "").trim().toLowerCase()) {
+    case "chromium":
+      return "chromium";
     case "chrome":
       return "chrome";
     case "firefox":
@@ -139,7 +143,7 @@ function readBrowserFlag(args: string[]): PlaywrightBrowserName {
     case "msedge":
       return "msedge";
     default:
-      return "";
+      return "chromium";
   }
 }
 

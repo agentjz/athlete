@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { ToolLoopGuard } from "../src/agent/loopGuard.js";
-import { createStoredToolMessage } from "../src/agent/toolResultStorage.js";
+import { ToolLoopGuard } from "../src/agent/turn.js";
+import { createStoredToolMessage } from "../src/agent/context.js";
 import { readFileTool } from "../src/tools/files/readFileTool.js";
 import type { ToolCallRecord } from "../src/types.js";
 import { createTempWorkspace, makeToolContext } from "./helpers.js";

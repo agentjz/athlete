@@ -1,4 +1,4 @@
-import type { ToolCallRecord, ToolExecutionResult } from "../types.js";
+import type { ToolCallRecord, ToolExecutionResult } from "../../types.js";
 
 const MAX_IDENTICAL_TOOL_CALLS = 2;
 

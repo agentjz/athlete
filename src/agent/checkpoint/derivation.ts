@@ -1,4 +1,4 @@
-import { isVerificationRequired } from "../verificationState.js";
+import { isVerificationRequired } from "../verification/state.js";
 import type { ExternalizedToolResultReference, SessionCheckpoint, SessionCheckpointArtifact, SessionCheckpointToolBatch, SessionRecord, StoredMessage } from "../../types.js";
 import { displayPath, MAX_ARTIFACTS, MAX_BATCH_PATHS, MAX_BATCH_TOOLS, MAX_COMPLETED_STEPS, MAX_LABEL_CHARS, MAX_PREVIEW_CHARS, MAX_SUMMARY_CHARS, normalizeArtifacts, normalizeText, normalizeTimestamp, oneLine, readString, safeParseObject, takeLastUnique, truncate } from "./shared.js";
 

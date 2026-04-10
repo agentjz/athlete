@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { dispatchOrchestratorAction } from "../src/orchestrator/dispatch.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";

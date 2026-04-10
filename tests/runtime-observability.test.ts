@@ -4,12 +4,12 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
-import { createMessage } from "../src/agent/messages.js";
+import { runManagedAgentTurn } from "../src/agent/turn.js";
+import { createMessage } from "../src/agent/session.js";
 import { buildSessionRuntimeSummary } from "../src/agent/runtimeMetrics.js";
 import { createProviderRecoveryTransition } from "../src/agent/runtimeTransition.js";
-import { SessionStore } from "../src/agent/sessionStore.js";
-import { persistRecoveryTurn } from "../src/agent/turnPersistence.js";
+import { SessionStore } from "../src/agent/session.js";
+import { persistRecoveryTurn } from "../src/agent/turn.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../src/tools/index.js";
 import { handleLocalCommand } from "../src/ui/localCommands.js";
 import type { ToolExecutionResult } from "../src/types.js";

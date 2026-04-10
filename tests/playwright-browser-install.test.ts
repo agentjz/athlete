@@ -9,11 +9,11 @@ import {
 } from "../src/mcp/playwright/browserInstall.js";
 
 test("resolvePlaywrightInstallTarget maps runtime browser config to install targets", () => {
+  assert.equal(resolvePlaywrightInstallTarget("chromium"), "chromium");
   assert.equal(resolvePlaywrightInstallTarget("chrome"), "chrome");
   assert.equal(resolvePlaywrightInstallTarget("firefox"), "firefox");
   assert.equal(resolvePlaywrightInstallTarget("webkit"), "webkit");
   assert.equal(resolvePlaywrightInstallTarget("msedge"), "msedge");
-  assert.equal(resolvePlaywrightInstallTarget(""), "chromium");
 });
 
 test("parsePlaywrightInstallLocation reads the primary install location from playwright CLI dry-run output", () => {

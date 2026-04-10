@@ -1,4 +1,4 @@
-import type { ManagedTurnOptions } from "../agent/managedTurn.js";
+import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { WeixinLogger } from "./logger.js";
 import { WeixinTurnDisplay } from "./turnDisplay.js";
 

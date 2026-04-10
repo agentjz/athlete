@@ -2,12 +2,12 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { SessionRecord, StoredMessage } from "../types.js";
-import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "./checkpoint.js";
-import { createEmptyRuntimeStats, normalizeSessionRuntimeStats } from "./runtimeMetrics.js";
+import type { SessionRecord, StoredMessage } from "../../types.js";
+import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "../checkpoint.js";
+import { createEmptyRuntimeStats, normalizeSessionRuntimeStats } from "../runtimeMetrics.js";
 import { createEmptyTaskState, deriveTaskState, normalizeSessionRecord as normalizeTaskStateSessionRecord } from "./taskState.js";
 import { deriveTodoItems } from "./todos.js";
-import { createEmptyVerificationState, normalizeSessionVerificationState } from "./verificationState.js";
+import { createEmptyVerificationState, normalizeSessionVerificationState } from "../verification/state.js";
 
 export interface SessionStoreLike {
   create(cwd: string): Promise<SessionRecord>;

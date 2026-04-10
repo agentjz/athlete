@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { ManagedTurnOptions } from "../agent/managedTurn.js";
-import type { SessionStoreLike } from "../agent/sessionStore.js";
+import type { ManagedTurnOptions } from "../agent/turn.js";
+import type { SessionStoreLike } from "../agent/session.js";
 import type { RunTurnResult } from "../agent/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { PerPeerCommandQueue } from "./commandQueue.js";

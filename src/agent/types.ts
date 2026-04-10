@@ -1,4 +1,4 @@
-import type { SessionStoreLike } from "./sessionStore.js";
+import type { SessionStoreLike } from "./session/store.js";
 import type { ToolRegistry } from "../tools/types.js";
 import type { RuntimeConfig, RuntimeTerminalTransition, SessionRecord, ToolCallRecord } from "../types.js";
 

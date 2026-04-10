@@ -4,12 +4,12 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { filterToolDefinitionsForCloseout } from "../src/agent/closeout.js";
-import { handleCompletedAssistantResponse } from "../src/agent/finalize.js";
+import { filterToolDefinitionsForCloseout } from "../src/agent/turn.js";
+import { handleCompletedAssistantResponse } from "../src/agent/turn.js";
 import { runAgentTurn } from "../src/agent/runTurn.js";
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
-import { createEmptyVerificationState, markVerificationRequired, recordVerificationAttempt } from "../src/agent/verificationState.js";
-import { getLightweightVerificationAttempt } from "../src/agent/verificationSignals.js";
+import { MemorySessionStore } from "../src/agent/session.js";
+import { createEmptyVerificationState, markVerificationRequired, recordVerificationAttempt } from "../src/agent/verification.js";
+import { getLightweightVerificationAttempt } from "../src/agent/verification.js";
 import type { RunTurnOptions } from "../src/agent/types.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../src/tools/index.js";
 import type { ToolExecutionResult } from "../src/types.js";

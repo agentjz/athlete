@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
-import { MemorySessionStore } from "../src/agent/sessionStore.js";
+import { runManagedAgentTurn } from "../src/agent/turn.js";
+import { MemorySessionStore } from "../src/agent/session.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "./helpers.js";
 

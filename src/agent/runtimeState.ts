@@ -1,5 +1,5 @@
-import { createMessage } from "./messages.js";
-import { createInternalReminder } from "./taskState.js";
+import { createMessage } from "./session/messages.js";
+import { createInternalReminder } from "./session/taskState.js";
 import type { PromptRuntimeState } from "./systemPrompt.js";
 import type { AgentIdentity, RunTurnOptions } from "./types.js";
 import type { SessionRecord } from "../types.js";

@@ -6,7 +6,7 @@ import OpenAI from "openai";
 
 import { runBackgroundWorker } from "./background/worker.js";
 import { getErrorMessage } from "./agent/errors.js";
-import { SessionStore } from "./agent/sessionStore.js";
+import { SessionStore } from "./agent/session.js";
 import { ChangeStore } from "./changes/store.js";
 import {
   coerceConfigValue,
@@ -263,19 +263,18 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
     .description("Show config file values and API key status.")
     .action(async () => {
       const runtime = await resolveRuntimeForCommand(extractCliOverrides(program.opts()));
-      const config = await loadConfig();
       writeStdoutLine(
         JSON.stringify(
           {
-            ...config,
+            ...runtime.config,
             apiKey: runtime.config.apiKey ? "set" : "missing",
             telegram: {
-              ...config.telegram,
+              ...runtime.config.telegram,
               token: runtime.config.telegram.token ? "set" : "missing",
               stateDir: runtime.config.telegram.stateDir,
             },
             weixin: {
-              ...config.weixin,
+              ...runtime.config.weixin,
               credentials: runtime.config.weixin.credentials ? "set" : "missing",
               stateDir: runtime.config.weixin.stateDir,
             },

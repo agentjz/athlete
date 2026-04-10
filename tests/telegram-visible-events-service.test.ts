@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { SessionStore } from "../src/agent/sessionStore.js";
+import { SessionStore } from "../src/agent/session.js";
 import { TelegramDeliveryQueue } from "../src/telegram/deliveryQueue.js";
 import { FileTelegramOffsetStore } from "../src/telegram/offsetStore.js";
 import { FileTelegramSessionMapStore } from "../src/telegram/sessionMapStore.js";

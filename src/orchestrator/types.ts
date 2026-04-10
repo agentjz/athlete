@@ -1,4 +1,4 @@
-import type { SessionStoreLike } from "../agent/sessionStore.js";
+import type { SessionStoreLike } from "../agent/session.js";
 import type { AgentCallbacks } from "../agent/types.js";
 import type { BackgroundJobRecord } from "../background/types.js";
 import type { RunSubagentTaskResult } from "../subagent/run.js";

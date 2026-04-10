@@ -45,7 +45,7 @@ function resolveInstallTarget(rawValue) {
     case "msedge":
       return "msedge";
     default:
-      return "chrome";
+      return "chromium";
   }
 }
 

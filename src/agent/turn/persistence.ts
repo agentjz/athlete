@@ -4,18 +4,18 @@ import {
   noteCheckpointTransition,
   noteCheckpointTurnInput,
   noteCheckpointYield,
-} from "./checkpoint.js";
-import { createMessage } from "./messages.js";
-import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "./runtimeMetrics.js";
-import { clearVerificationPause } from "./verificationState.js";
-import type { SessionStoreLike } from "./sessionStore.js";
+} from "../checkpoint.js";
+import { createMessage } from "../session/messages.js";
+import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "../runtimeMetrics.js";
+import { clearVerificationPause } from "../verification/state.js";
+import type { SessionStoreLike } from "../session/store.js";
 import type {
   RuntimeRecoverTransition,
   RuntimeTransition,
   RuntimeYieldTransition,
   SessionRecord,
   StoredMessage,
-} from "../types.js";
+} from "../../types.js";
 
 interface PersistToolBatchInput {
   session: SessionRecord;

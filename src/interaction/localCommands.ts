@@ -1,4 +1,4 @@
-import { formatTodoBlock } from "../agent/todos.js";
+import { formatTodoBlock } from "../agent/session.js";
 import { reconcileBackgroundJobs } from "../background/reconcile.js";
 import { BackgroundJobStore } from "../background/store.js";
 import { loadProjectContext } from "../context/projectContext.js";

@@ -1,10 +1,10 @@
-import type { ChangeStore } from "../changes/store.js";
-import { ToolExecutionError } from "../tools/errors.js";
-import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../tools/routing.js";
-import { createToolRegistry } from "../tools/index.js";
-import type { ProjectContext, ToolCallRecord, ToolExecutionResult } from "../types.js";
-import type { RunTurnOptions } from "./types.js";
-import { isAbortError } from "../utils/abort.js";
+import type { ChangeStore } from "../../changes/store.js";
+import { ToolExecutionError } from "../../tools/errors.js";
+import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../tools/routing.js";
+import { createToolRegistry } from "../../tools/index.js";
+import type { ProjectContext, ToolCallRecord, ToolExecutionResult } from "../../types.js";
+import type { RunTurnOptions } from "../types.js";
+import { isAbortError } from "../../utils/abort.js";
 
 export async function executeToolCallWithRecovery(
   toolRegistry: ReturnType<typeof createToolRegistry>,

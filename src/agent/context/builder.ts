@@ -1,18 +1,12 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-import {
-  expandStartToToolBoundary,
-  isAssistantMessageInLatestTurn,
-  shouldIncludeStoredAssistantReasoning,
-  toChatMessage,
-} from "./messages.js";
-import { createPromptContextDiagnostics } from "./prompt/requestDiagnostics.js";
-import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "./promptSections.js";
-import { compactToolPayload } from "./toolResultPreview.js";
-import type { PromptLayers } from "./promptSections.js";
-import type { PromptLayerMetrics } from "./promptSections.js";
-import type { RuntimeConfig, StoredMessage } from "../types.js";
-import type { PromptContextDiagnostics } from "./prompt/requestDiagnostics.js";
+import { expandStartToToolBoundary, isAssistantMessageInLatestTurn, shouldIncludeStoredAssistantReasoning, toChatMessage } from "../session/messages.js";
+import { createPromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
+import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "../promptSections.js";
+import { compactToolPayload } from "../toolResults/preview.js";
+import type { PromptLayerMetrics, PromptLayers } from "../promptSections.js";
+import type { RuntimeConfig, StoredMessage } from "../../types.js";
+import type { PromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
 
 const MIN_TAIL_MESSAGES = 8;
 const DETAILED_RECENT_MESSAGES = 8;
@@ -30,10 +24,7 @@ export interface BuiltRequestContext {
 export function buildRequestContext(
   systemPrompt: string | PromptLayers,
   messages: StoredMessage[],
-  config: Pick<
-    RuntimeConfig,
-    "contextWindowMessages" | "model" | "maxContextChars" | "contextSummaryChars"
-  >,
+  config: Pick<RuntimeConfig, "contextWindowMessages" | "model" | "maxContextChars" | "contextSummaryChars">,
 ): BuiltRequestContext {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
   const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, messages, config.model));

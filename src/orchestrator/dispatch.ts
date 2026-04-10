@@ -1,5 +1,5 @@
-import { createMessage } from "../agent/messages.js";
-import { createEmptyTaskState, createInternalReminder } from "../agent/taskState.js";
+import { createMessage } from "../agent/session.js";
+import { createEmptyTaskState, createInternalReminder } from "../agent/session.js";
 import { BackgroundJobStore } from "../background/store.js";
 import { spawnBackgroundProcess as defaultSpawnBackgroundProcess } from "../background/spawn.js";
 import { runSubagentTask as defaultRunSubagentTask } from "../subagent/run.js";

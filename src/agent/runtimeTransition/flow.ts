@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../taskState.js";
+import { isContinuationDirective, isInternalMessage } from "../session/taskState.js";
 import type { RuntimeContinueTransition, RuntimeTransition, SessionCheckpointFlow, SessionCheckpointPhase, SessionCheckpointStatus } from "../../types.js";
 import { normalizeRuntimeTransition } from "./normalize.js";
 import { clampWholeNumber, normalizeText, normalizeTimestamp } from "./shared.js";

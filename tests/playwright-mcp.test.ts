@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
@@ -16,6 +17,7 @@ test("default config keeps Playwright MCP disabled but headed by default", () =>
   const playwright = (getDefaultConfig().mcp as any).playwright;
 
   assert.equal(playwright?.enabled, false);
+  assert.equal(playwright?.browser, "chromium");
   assert.equal(playwright?.headless, false);
   assert.equal(playwright?.saveSession, true);
 });
@@ -183,6 +185,55 @@ test("resolveRuntimeConfig can enable Playwright MCP from environment overrides 
     runtime.mcp.playwright.userDataDir,
     path.join(process.cwd(), ".tmp-playwright-env-profile"),
   );
+});
+
+test("resolveRuntimeConfig reads Playwright MCP settings from the nearest project .athlete/.env", async (t) => {
+  const root = await createTempWorkspace("playwright-project-env", t);
+  const nestedCwd = path.join(root, "packages", "app");
+  await fs.mkdir(path.join(root, ".athlete"), { recursive: true });
+  await fs.mkdir(nestedCwd, { recursive: true });
+  await fs.writeFile(
+    path.join(root, ".athlete", ".env"),
+    [
+      "ATHLETE_API_KEY=test-key",
+      "ATHLETE_MCP_ENABLED=1",
+      "ATHLETE_MCP_PLAYWRIGHT_ENABLED=1",
+      "ATHLETE_MCP_PLAYWRIGHT_BROWSER=chromium",
+      "ATHLETE_MCP_PLAYWRIGHT_OUTPUT_MODE=file",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = {
+    ATHLETE_API_KEY: process.env.ATHLETE_API_KEY,
+    ATHLETE_MCP_ENABLED: process.env.ATHLETE_MCP_ENABLED,
+    ATHLETE_MCP_PLAYWRIGHT_ENABLED: process.env.ATHLETE_MCP_PLAYWRIGHT_ENABLED,
+    ATHLETE_MCP_PLAYWRIGHT_BROWSER: process.env.ATHLETE_MCP_PLAYWRIGHT_BROWSER,
+    ATHLETE_MCP_PLAYWRIGHT_OUTPUT_MODE: process.env.ATHLETE_MCP_PLAYWRIGHT_OUTPUT_MODE,
+  };
+
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (typeof value === "string") {
+        process.env[key] = value;
+      } else {
+        delete process.env[key];
+      }
+    }
+  });
+
+  delete process.env.ATHLETE_API_KEY;
+  delete process.env.ATHLETE_MCP_ENABLED;
+  delete process.env.ATHLETE_MCP_PLAYWRIGHT_ENABLED;
+  delete process.env.ATHLETE_MCP_PLAYWRIGHT_BROWSER;
+  delete process.env.ATHLETE_MCP_PLAYWRIGHT_OUTPUT_MODE;
+
+  const runtime = await resolveRuntimeConfig({ cwd: nestedCwd });
+  assert.equal(runtime.mcp.enabled, true);
+  assert.equal(runtime.mcp.playwright.enabled, true);
+  assert.equal(runtime.mcp.playwright.browser, "chromium");
+  assert.equal(runtime.mcp.playwright.outputMode, "file");
+  assert.equal(runtime.mcp.servers.some((server) => server.name === "playwright"), true);
 });
 
 test("teammate workers get a dedicated Playwright profile instead of sharing the lead profile", () => {

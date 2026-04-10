@@ -369,6 +369,8 @@ function parseIntegerEnv(value: string | undefined): number | undefined {
 
 function parsePlaywrightBrowserEnv(value: string | undefined): RuntimeConfig["mcp"]["playwright"]["browser"] | undefined {
   switch ((value ?? "").trim().toLowerCase()) {
+    case "chromium":
+      return "chromium";
     case "chrome":
       return "chrome";
     case "firefox":

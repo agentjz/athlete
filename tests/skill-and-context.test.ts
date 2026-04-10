@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../src/agent/contextBuilder.js";
-import { createMessage } from "../src/agent/messages.js";
+import { buildRequestContext } from "../src/agent/context.js";
+import { createMessage } from "../src/agent/session.js";
 import { discoverSkills } from "../src/skills/catalog.js";
 import { loadSkillTool } from "../src/tools/skills/loadSkillTool.js";
 import { createTempWorkspace, makeToolContext } from "./helpers.js";
