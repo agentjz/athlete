@@ -5,7 +5,7 @@
 这一层开始，Athlete 的 session 会持久化结构化 `runtimeStats`，
 作为正式运行态仪表盘的真相源。
 
-prompt layer metrics 不属于这里的持久化真相源；它们只是在 request 构建阶段即时派生，用于诊断 prompt 体积与分层占比。
+prompt layer metrics / context diagnostics 不属于这里的持久化真相源；它们只是在 request 构建阶段即时派生，用于诊断 prompt 体积、分层占比、hotspot 与压缩触发原因。
 
 它回答的是：
 
@@ -85,8 +85,8 @@ prompt layer metrics 不属于这里的持久化真相源；它们只是在 requ
 - `/stats`
 - `/仪表盘`
 
-这些命令只读取并格式化当前 session summary，
-不发明新的运行态事实。
+这些命令读取既有 session 真相源，并在命令执行当下即时派生 prompt diagnostics。
+它们可以解释 runtime，但不会把这些诊断结果反写成新的 session 真相。
 
 ## 当前 summary 最少包含
 
@@ -100,6 +100,34 @@ prompt layer metrics 不属于这里的持久化真相源；它们只是在 requ
 - slowest step
 - usage availability
 - session health
+- durable truth 区块：
+  - `runtimeStats.updatedAt`
+  - `checkpoint.flow.phase`
+  - `checkpoint.flow.lastTransition`
+  - `verificationState.status`
+- derived diagnostics 区块：
+  - why continue / why recovery / why compression
+  - why slow
+  - flaky tool hotspot
+  - prompt layer / hotspot / slimming 诊断
+
+## durable truth vs derived diagnostics
+
+### durable truth
+
+- `SessionRecord.runtimeStats`
+- `SessionRecord.checkpoint`
+- `SessionRecord.verificationState`
+
+### derived diagnostics
+
+- runtime summary 文本
+- why slow / why continue / why recovery / why compression 的诊断结论
+- prompt layer chars / block counts / hotspots
+- request-time context diagnostics（如 initial / final estimated chars）
+
+derived diagnostics 必须来自既有真相源和当前 request 构建结果，
+不能反过来变成新的持久化 truth。
 
 ## usage 规则
 

@@ -1,161 +1,100 @@
 # 第 1 轮：内核硬化
 
-这一轮**不是天然并行安全**的。  
-请在最新主线基础上执行。如果你打算和其他轮次并行推进，务必使用独立分支或独立 worktree。
+## 当前状态
 
-## 你的角色
+状态：已完成  
+结论：这一轮要求的机器化 runtime 决策已经落到现有项目中，且与当前代码、spec、测试一致。
 
-你不是功能实现者，而是一个冷静、抽象能力强、强调系统边界与机器真相源的高级架构师兼落地工程师。  
-你现在在本地 `Athlete` 仓库中工作。
+这一轮不是“写了一些解释文案”，而是把 continue / recover / yield / pause / finalize 的关键 runtime 决策收敛成了结构化机器状态。
 
-## 本轮唯一目标
+## 已落地的核心结果
 
-把 Athlete 的核心运行时决策做成**机器显式、fail-closed、可追踪**的系统，而不是很多隐含逻辑的拼接。
+### 1. 统一的 runtime transition 模型已经存在
 
-这轮要让系统自己清楚知道：
+当前代码：
 
-- 为什么继续跑
-- 为什么 yield
-- 为什么 retry / recovery
-- 为什么 pause
-- 为什么可以 finalize
-- 为什么不能 finalize
+- `src/agent/runtimeTransition.ts`
+- `src/agent/runtimeTransition/builders.ts`
+- `src/agent/runtimeTransition/flow.ts`
+- `src/agent/runtimeTransition/normalize.ts`
+- `src/agent/runtimeTransition/shared.ts`
 
-目标不是做一层“解释性文案”，而是真正把运行时决策模型做硬。
+当前模型已经把以下关键 runtime 动作收敛成结构化 transition：
 
-## 核心原则
+- `continue`
+- `recover`
+- `yield`
+- `pause`
+- `finalize`
 
-1. prompt 只承载高层 operating contract，不承载运行时真相。
-2. 跨 turn 的一致性必须继续放在 session、checkpoint、verification、guards、store 等机器层。
-3. 不允许新建平行 JSON 真相源。
-4. 不要做一个只是给人看的“日志系统”，而是真正的 runtime 决策结构。
-5. 不要做无关重构。
+每个 transition 都是 `action + reason code + structured detail + timestamp`，不是零散布尔值或字符串拼接。
 
-## 必须先读
+### 2. checkpoint 已成为最近一次关键 runtime 决策的持久化真相源
 
-先读这些，再动代码：
+当前代码：
 
-- `spec/architecture/运行时循环.md`
-- `spec/modules/runtime-rules.md`
-- `spec/modules/session-resume-compact.md`
-- `spec/modules/lightweight-context-runtime.md`
-- `spec/architecture/状态与真相源.md`
-- `src/agent/runTurn.ts`
-- `src/agent/finalize.ts`
-- `src/agent/closeout.ts`
-- `src/agent/toollessTurn.ts`
-- `src/agent/retryPolicy.ts`
-- `src/agent/turnPersistence.ts`
 - `src/agent/checkpoint/state.ts`
-- `src/agent/verificationState.ts`
-- 所有与 closeout / runtime / checkpoint / verification 相关测试
-
-## 本轮必须参考的本地 REF
-
-这轮必须参考下面这些本地资料，但**只能提炼结构、分层方式、fail-closed 思想、状态机组织方式**，不能照抄原文，也不能让运行时依赖 `REF` 目录：
-
-- `C:\Users\Administrator\Desktop\athlete\REF\txt\顶级开发团队设计的Harness工程项目源码什么样.txt`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\QueryEngine.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\query.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\query\config.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\query\deps.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\query\stopHooks.ts`
-- `C:\Users\Administrator\Desktop\athlete\REF\Claude Code\constants\prompts.ts`
-
-重点看：
-
-- 顶级 harness 如何表达 continue / retry / recovery / stop
-- 核心 loop 如何减少隐含分支
-- “为什么继续下一轮”如何变成机器可判定的 transition
-- 如何避免把关键控制逻辑留在 prompt 文案里
-
-## 必须交付的东西
-
-你必须完成下面这些：
-
-1. 引入统一的**运行时转移模型**，能表达 turn 的关键结果和关键继续原因。
-2. 把以下决策收敛成更统一的机器逻辑：
-   - continue
-   - recover / retry
-   - yield
-   - pause for user
-   - finalize
-3. 移除现在散落在多个模块里的部分重复、部分重叠、部分隐含的决策逻辑。
-4. 确保重构后仍兼容：
-   - checkpoint
-   - compact
-   - verification
-   - skill loading
-   - closeout gating
-5. 让系统能暴露清晰的 reason code 或结构化 reason，而不是只有零散字符串。
-
-## 推荐实现方式
-
-推荐方向：
-
-- 新增一个小而明确的 runtime transition 模块，不要继续把 `runTurn.ts` 写胖。
-- 尽量用 typed reason code / discriminated union，不要到处拼字符串。
-- 除非测试证明旧行为是错的，否则尽量保持外部行为稳定。
-- 如果需要给用户展示文本，请从结构化 reason 推导，而不是反过来让文本成为真相。
-
-优先考虑这些区域：
-
-- `src/agent/runTurn.ts`
-- `src/agent/finalize.ts`
-- `src/agent/toollessTurn.ts`
-- `src/agent/closeout.ts`
+- `src/agent/checkpoint/transitions.ts`
 - `src/agent/turnPersistence.ts`
-- `src/agent/checkpoint/*`
-- `src/agent/` 下新增的小模块
 
-## 不要做的事
+当前事实：
 
-- 不要引入巨大的抽象层。
-- 不要重写整个 agent loop。
-- 不要把运行时真相重新塞进 prompt。
-- 不要加“聪明但不可测”的启发式魔法。
-- 不要做只有展示价值、没有真实约束价值的日志系统。
+- `checkpoint.flow.lastTransition` 持久化最近一次关键 runtime 决策
+- `checkpoint.flow.phase` 作为 continuation / resume / recovery 的机器阶段视图
+- `checkpoint.flow.reason` 只是从结构化 transition 派生的轻量展示值，不是新的平行真相源
 
-## 必须补的测试
+### 3. finalize / verification / closeout 已接到同一套机器决策链上
 
-至少覆盖这些：
+当前代码：
 
-1. finalize 和 continue 的原因在机器层面可区分
-2. retry / recovery 的原因在机器层面可区分
-3. continuation 能保留正确的 runtime reason
-4. verification 阻止 finalize 时，能给出正确的结构化原因
-5. closeout gating 在重构后仍然正确
+- `src/agent/finalize.ts`
+- `src/agent/closeout.ts`
+- `src/agent/verificationState.ts`
 
-## 必须执行的验证
+当前行为已经做到：
 
-按这个顺序跑：
+- verification 阻止 finalize 时，runtime 会写入结构化 continue / pause reason
+- closeout gating 不再主要依赖 prompt 提醒，而是依赖 machine-enforced 状态
+- finalize 的允许与禁止理由可以被 checkpoint 和测试直接观察
+
+### 4. round1 风险已经收口
+
+本轮要求的关键风险点已经关闭：
+
+- 没有新增平行 JSON 真相源
+- 关键 runtime 决策没有重新塞回 prompt
+- continuation / checkpoint / compact / verification 没被打坏
+- `runTurn.ts` 没有因为这轮继续失控长胖
+
+## 当前 truth source 边界
+
+这一轮完成后，runtime 决策相关的 durable truth 主要落在：
+
+- `SessionRecord.checkpoint`
+- `SessionRecord.verificationState`
+- `SessionRecord.taskState`
+
+这一轮没有把“展示文案”当成真相源，也没有把 prompt 当成跨 turn 一致性来源。
+
+## 与 round2 的关系
+
+round1 的输出是 round2 的前提。  
+当前 round2 已经消费了这一层结构化 transition，而不是重新从零散文案反推 runtime 原因。
+
+## 当前验证状态
+
+以下验证路径已在当前项目中通过：
 
 1. `npm.cmd run test:build`
-2. 跑与以下相关的 targeted tests：
-   - runtime
-   - closeout
-   - finalize
-   - checkpoint
-   - verification
+2. runtime / finalize / closeout / checkpoint / verification 相关 targeted tests
 3. `npm.cmd run test:core`
 
-如果这轮改动触及的区域有失败，必须继续修到通过为止。
+当前与 round1 直接相关的关键测试包括：
 
-## 如果 spec 需要同步
+- `tests/agent-closeout.test.ts`
+- `tests/runtime-checkpoint-resume.test.ts`
+- `tests/runtime-observability.test.ts`
 
-如果运行时决策契约发生了真实变化，只做最小必要同步：
+## 当前结论
 
-- `spec/architecture/运行时循环.md`
-- `spec/modules/runtime-rules.md`
-- `spec/modules/session-resume-compact.md`
-- `spec/implementation/目录结构到代码文件映射表.md`
-
-## 最终回复必须包含
-
-只回答这些：
-
-- 实际改了什么
-- 现在的 runtime 决策模型是什么
-- 去掉了哪些旧的歧义和双写逻辑
-- 跑了哪些测试，结果如何
-- 残余风险是什么
+如果后续轮次要继续演进 runtime，必须把 round1 视为既成机器边界，而不是可以重新退回 prompt 叙述的“软约定”。

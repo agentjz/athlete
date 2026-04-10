@@ -229,6 +229,14 @@ test("runtime context keeps externalized tool previews across compression and re
   });
 
   assert.equal(built.compressed, true);
+  assert.ok(built.contextDiagnostics);
+  assert.equal((built.contextDiagnostics?.initialEstimatedChars ?? 0) >= built.estimatedChars, true);
+  assert.equal((built.contextDiagnostics?.maxContextChars ?? 0), 8_500);
+  assert.equal(
+    (built.contextDiagnostics?.summaryChars ?? 0) > 0 || Boolean(built.contextDiagnostics?.compactedTail),
+    true,
+  );
+  assert.equal((built.promptMetrics?.hotspots?.length ?? 0) > 0, true);
   const compressedToolMessage = built.messages.find((message) => message.role === "tool");
   assert.ok(compressedToolMessage);
   assert.match(String(compressedToolMessage?.content ?? ""), /"externalized"\s*:\s*true/);

@@ -190,8 +190,14 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   assert.equal(metrics.staticBlockCount, 6);
   assert.equal(metrics.memoryBlockCount, 1);
   assert.equal(metrics.dynamicBlockCount > 0, true);
+  assert.equal(metrics.totalChars, renderPromptLayers(layers).length);
   assert.equal(metrics.renderedChars, renderPromptLayers(layers).length);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "External content boundary"), true);
+  assert.equal(metrics.hotspots.length > 0, true);
+  const topHotspot = metrics.hotspots[0];
+  assert.ok(topHotspot);
+  assert.equal(topHotspot.chars >= (metrics.hotspots[1]?.chars ?? 0), true);
+  assert.equal(topHotspot.title.length > 0, true);
 
   const built = buildRequestContext(
     layers,
@@ -210,6 +216,8 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
 
   assert.ok(built.promptMetrics);
   assert.equal((built.promptMetrics?.memoryBlockCount ?? 0) >= 2, true);
+  assert.equal((built.promptMetrics?.totalChars ?? 0) >= metrics.totalChars, true);
+  assert.equal((built.promptMetrics?.hotspots?.length ?? 0) > 0, true);
   assert.equal((built.promptMetrics?.renderedChars ?? 0) > metrics.renderedChars, true);
 });
 

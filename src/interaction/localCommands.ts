@@ -10,6 +10,7 @@ import { TeamStore } from "../team/store.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { formatSessionRuntimeSummary } from "../ui/runtimeSummary.js";
+import { buildRuntimePromptDiagnostics } from "../ui/runtimeSummaryData.js";
 import type { ShellOutputPort } from "./shell.js";
 
 export interface LocalCommandContext {
@@ -109,7 +110,12 @@ export async function handleLocalCommand(
   }
 
   if (RUNTIME_COMMANDS.has(normalized)) {
-    output.plain(formatSessionRuntimeSummary(context.session));
+    const promptDiagnostics = await buildRuntimePromptDiagnostics({
+      cwd: context.cwd,
+      session: context.session,
+      config: context.config,
+    });
+    output.plain(formatSessionRuntimeSummary(context.session, { promptDiagnostics }));
     return "handled";
   }
 

@@ -1,5 +1,18 @@
 import type { SessionRecord, SessionRuntimeToolStats } from "../../types.js";
+import {
+  buildDerivedDiagnostics,
+  buildDurableTruth,
+  type RuntimePromptDiagnostics,
+  type RuntimeSummaryDerivedDiagnostics,
+  type RuntimeSummaryDurableTruth,
+} from "./diagnostics.js";
 import { normalizeRuntimeStats } from "./state.js";
+
+export type {
+  RuntimePromptDiagnostics,
+  RuntimeSummaryDerivedDiagnostics,
+  RuntimeSummaryDurableTruth,
+} from "./diagnostics.js";
 
 export type RuntimeUsageAvailability = "available" | "partial" | "unavailable";
 export type RuntimeHealthStatus = "healthy" | "warning" | "recovering";
@@ -42,10 +55,15 @@ export interface SessionRuntimeSummary {
     label: string;
     durationMsTotal: number;
   };
+  durableTruth: RuntimeSummaryDurableTruth;
+  derivedDiagnostics: RuntimeSummaryDerivedDiagnostics;
 }
 
 export function buildSessionRuntimeSummary(
   session: Pick<SessionRecord, "runtimeStats" | "checkpoint" | "verificationState">,
+  options: {
+    promptDiagnostics?: RuntimePromptDiagnostics;
+  } = {},
 ): SessionRuntimeSummary {
   const stats = normalizeRuntimeStats(session.runtimeStats);
   const topTools = Object.entries(stats.tools.byName)
@@ -89,6 +107,13 @@ export function buildSessionRuntimeSummary(
     },
     topTools,
     slowestStep: pickSlowestStep(stats.model.waitDurationMsTotal, topTools),
+    durableTruth: buildDurableTruth(session, stats),
+    derivedDiagnostics: buildDerivedDiagnostics({
+      session,
+      stats,
+      topTools,
+      promptDiagnostics: options.promptDiagnostics,
+    }),
   };
 }
 

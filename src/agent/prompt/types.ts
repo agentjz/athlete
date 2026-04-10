@@ -30,6 +30,8 @@ export interface PromptLayerMetrics {
   staticChars: number;
   dynamicChars: number;
   memoryChars: number;
+  totalChars: number;
   renderedChars: number;
   blockMetrics: PromptBlockMetric[];
+  hotspots: PromptBlockMetric[];
 }

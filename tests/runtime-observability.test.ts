@@ -6,6 +6,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
 import { createMessage } from "../src/agent/messages.js";
+import { buildSessionRuntimeSummary } from "../src/agent/runtimeMetrics.js";
 import { createProviderRecoveryTransition } from "../src/agent/runtimeTransition.js";
 import { SessionStore } from "../src/agent/sessionStore.js";
 import { persistRecoveryTurn } from "../src/agent/turnPersistence.js";
@@ -162,6 +163,7 @@ test("runtime observability reload preserves current runtime stats without creat
 
   const loaded = await sessionStore.load(saved.id);
   const stats = (loaded as any).runtimeStats;
+  const raw = await fsSync.promises.readFile(path.join(root, "sessions", `${saved.id}.json`), "utf8");
 
   assert.equal(stats?.version, 1);
   assert.equal(stats?.model?.requestCount, 2);
@@ -171,6 +173,100 @@ test("runtime observability reload preserves current runtime stats without creat
   assert.equal(stats?.events?.continuationCount, 1);
   assert.equal(stats?.externalizedToolResults?.count, 0);
   assert.equal("promptDiagnostics" in stats, false);
+  assert.equal(raw.includes("\"promptMetrics\""), false);
+  assert.equal(raw.includes("\"hotspots\""), false);
+  assert.equal(raw.includes("\"derivedDiagnostics\""), false);
+  assert.equal(raw.includes("\"contextDiagnostics\""), false);
+});
+
+test("runtime observability summary separates durable truth from derived diagnostics and explains the active control flow", () => {
+  const summary = buildSessionRuntimeSummary({
+    runtimeStats: {
+      version: 1,
+      model: {
+        requestCount: 4,
+        waitDurationMsTotal: 2_600,
+        usage: {
+          requestsWithUsage: 0,
+          requestsWithoutUsage: 4,
+          inputTokensTotal: 0,
+          outputTokensTotal: 0,
+          totalTokensTotal: 0,
+          reasoningTokensTotal: 0,
+        },
+      },
+      tools: {
+        callCount: 2,
+        durationMsTotal: 420,
+        byName: {
+          run_shell: {
+            callCount: 1,
+            durationMsTotal: 320,
+            okCount: 0,
+            errorCount: 1,
+          },
+          read_file: {
+            callCount: 1,
+            durationMsTotal: 100,
+            okCount: 1,
+            errorCount: 0,
+          },
+        },
+      },
+      events: {
+        continuationCount: 1,
+        yieldCount: 0,
+        recoveryCount: 2,
+        compressionCount: 1,
+      },
+      externalizedToolResults: {
+        count: 0,
+        byteLengthTotal: 0,
+      },
+      updatedAt: new Date().toISOString(),
+    },
+    checkpoint: {
+      version: 1,
+      objective: "Finish runtime observability.",
+      status: "active",
+      completedSteps: ["Captured runtime metrics"],
+      flow: {
+        phase: "active",
+        reason: "continue.verification_required",
+        lastTransition: {
+          action: "continue",
+          reason: {
+            code: "continue.verification_required",
+            pendingPaths: ["src/agent/runtimeMetrics/summary.ts"],
+            attempts: 1,
+            reminderCount: 2,
+          },
+          timestamp: new Date().toISOString(),
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      priorityArtifacts: [],
+      updatedAt: new Date().toISOString(),
+    },
+    verificationState: {
+      status: "required",
+      attempts: 1,
+      reminderCount: 2,
+      noProgressCount: 0,
+      maxAttempts: 3,
+      maxNoProgress: 2,
+      maxReminders: 3,
+      pendingPaths: ["src/agent/runtimeMetrics/summary.ts"],
+      updatedAt: new Date().toISOString(),
+    },
+  } as any);
+
+  assert.equal(summary.durableTruth.checkpoint.lastTransition?.reason.code, "continue.verification_required");
+  assert.equal(summary.durableTruth.verification.status, "required");
+  assert.equal(summary.derivedDiagnostics.controlFlow.whyContinue?.reasonCode, "continue.verification_required");
+  assert.match(summary.derivedDiagnostics.controlFlow.whyContinue?.summary ?? "", /verification/i);
+  assert.match(summary.derivedDiagnostics.performance.whySlow.map((entry) => entry.summary).join("\n"), /model wait/i);
+  assert.equal(summary.derivedDiagnostics.performance.flakyTools[0]?.name, "run_shell");
 });
 
 test("runtime observability local command prints a readable session summary with stable usage-unavailable wording", async () => {
@@ -223,20 +319,65 @@ test("runtime observability local command prints a readable session summary with
           },
           updatedAt: new Date().toISOString(),
         },
+        checkpoint: {
+          version: 1,
+          objective: "Finish the runtime dashboard.",
+          status: "active",
+          completedSteps: ["Collected runtime stats"],
+          flow: {
+            phase: "active",
+            reason: "continue.verification_required",
+            lastTransition: {
+              action: "continue",
+              reason: {
+                code: "continue.verification_required",
+                pendingPaths: ["src/ui/runtimeSummary.ts"],
+                attempts: 1,
+                reminderCount: 1,
+              },
+              timestamp: new Date().toISOString(),
+            },
+            updatedAt: new Date().toISOString(),
+          },
+          priorityArtifacts: [],
+          updatedAt: new Date().toISOString(),
+        },
+        verificationState: {
+          status: "required",
+          attempts: 1,
+          reminderCount: 1,
+          noProgressCount: 0,
+          maxAttempts: 3,
+          maxNoProgress: 2,
+          maxReminders: 3,
+          pendingPaths: ["src/ui/runtimeSummary.ts"],
+          updatedAt: new Date().toISOString(),
+        },
       } as any,
       config: {
         model: "deepseek-reasoner",
         mode: "agent",
         baseUrl: "https://api.deepseek.com",
+        allowedRoots: [process.cwd()],
+        contextWindowMessages: 16,
+        maxContextChars: 8_500,
+        contextSummaryChars: 1_200,
       } as any,
     });
 
     assert.equal(result, "handled");
   });
 
+  assert.match(output, /durable truth/i);
+  assert.match(output, /derived diagnostics/i);
   assert.match(output, /model requests/i);
   assert.match(output, /tool calls/i);
   assert.match(output, /usage: unavailable/i);
+  assert.match(output, /why continue/i);
+  assert.match(output, /verification required/i);
+  assert.match(output, /why compression/i);
+  assert.match(output, /why slow/i);
+  assert.match(output, /prompt hotspot/i);
   assert.match(output, /externalized results/i);
 });
 

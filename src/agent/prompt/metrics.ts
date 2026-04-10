@@ -7,6 +7,12 @@ export function measurePromptLayers(promptLayers: PromptLayers): PromptLayerMetr
     ...measureBlocks("dynamic", promptLayers.dynamicBlocks),
     ...measureBlocks("memory", promptLayers.memoryBlocks ?? []),
   ];
+  const hotspots = [...blockMetrics].sort((left, right) =>
+    right.chars - left.chars ||
+    right.lines - left.lines ||
+    left.title.localeCompare(right.title),
+  );
+  const renderedChars = renderPromptLayers(promptLayers).length;
 
   return {
     staticBlockCount: promptLayers.staticBlocks.length,
@@ -15,8 +21,10 @@ export function measurePromptLayers(promptLayers: PromptLayers): PromptLayerMetr
     staticChars: sumChars(promptLayers.staticBlocks),
     dynamicChars: sumChars(promptLayers.dynamicBlocks),
     memoryChars: sumChars(promptLayers.memoryBlocks ?? []),
-    renderedChars: renderPromptLayers(promptLayers).length,
+    totalChars: renderedChars,
+    renderedChars,
     blockMetrics,
+    hotspots,
   };
 }
 

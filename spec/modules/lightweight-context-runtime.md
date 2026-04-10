@@ -19,7 +19,14 @@
 3. 动态层放 cwd / root / date / taskState / todo / verification / checkpoint / task board / team / worktree / protocol / background / skill runtime 的紧凑摘要。
 4. 动态层应省略空状态和低价值 `No ...` 噪音，但要保留 checkpoint、verification pending paths、externalized tool refs 这些恢复锚点。
 5. 压缩后的会话总结不再直接拼回静态层，而是追加为 `Compressed conversation memory`。
-6. request context 构建可以派生 prompt layer metrics（如 static / dynamic / memory chars 与 block counts）用于诊断，但它们只是派生观测，不是新的持久化真相源。
+6. request context 构建可以派生 prompt diagnostics，用于诊断但不落盘：
+   - static / dynamic / memory chars
+   - static / dynamic / memory block counts
+   - block hotspot
+   - total prompt chars
+   - initial / final estimated request chars
+   - 当前这次 compression 是否由 prompt 膨胀触发
+   这些都只是派生观测，不是新的持久化真相源。
 
 ## 大 tool result 外置化
 
@@ -40,9 +47,10 @@
 
 1. continuation 继续使用 session 中的轻量 tool message，而不是重新塞回原始大正文。
 2. contextBuilder 在压缩历史时继续保留 `storagePath` 和预览信息。
-3. recovery 的 context shrink 也要保住结构化引用，不能把它打回不可追踪的大字符串。
-4. session 保存和加载后，外置化引用仍然可以恢复到落盘文件。
-5. 已通过 streaming delta 发出的 assistant 文本不会在 finalize 阶段再次整段重放。
+3. contextBuilder 产出的 prompt diagnostics 必须只存在于当次 request 构建结果里，不能写回 session。
+4. recovery 的 context shrink 也要保住结构化引用，不能把它打回不可追踪的大字符串。
+5. session 保存和加载后，外置化引用仍然可以恢复到落盘文件。
+6. 已通过 streaming delta 发出的 assistant 文本不会在 finalize 阶段再次整段重放。
 
 ## 验证方式
 

@@ -6,11 +6,13 @@ import {
   shouldIncludeStoredAssistantReasoning,
   toChatMessage,
 } from "./messages.js";
+import { createPromptContextDiagnostics } from "./prompt/requestDiagnostics.js";
 import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "./promptSections.js";
 import { compactToolPayload } from "./toolResultPreview.js";
 import type { PromptLayers } from "./promptSections.js";
 import type { PromptLayerMetrics } from "./promptSections.js";
 import type { RuntimeConfig, StoredMessage } from "../types.js";
+import type { PromptContextDiagnostics } from "./prompt/requestDiagnostics.js";
 
 const MIN_TAIL_MESSAGES = 8;
 const DETAILED_RECENT_MESSAGES = 8;
@@ -22,6 +24,7 @@ export interface BuiltRequestContext {
   estimatedChars: number;
   summary?: string;
   promptMetrics?: PromptLayerMetrics;
+  contextDiagnostics: PromptContextDiagnostics;
 }
 
 export function buildRequestContext(
@@ -33,6 +36,7 @@ export function buildRequestContext(
   >,
 ): BuiltRequestContext {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
+  const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, messages, config.model));
   let tailCount = Math.max(1, Math.min(messages.length, config.contextWindowMessages));
 
   while (true) {
@@ -56,6 +60,14 @@ export function buildRequestContext(
         estimatedChars,
         summary,
         promptMetrics,
+        contextDiagnostics: createPromptContextDiagnostics({
+          maxContextChars: safeMaxChars,
+          initialEstimatedChars,
+          finalEstimatedChars: estimatedChars,
+          summaryChars: summary?.length,
+          tailMessageCount: tailMessages.length,
+          compactedTail: false,
+        }),
       };
     }
 
@@ -71,6 +83,14 @@ export function buildRequestContext(
         estimatedChars,
         summary,
         promptMetrics,
+        contextDiagnostics: createPromptContextDiagnostics({
+          maxContextChars: safeMaxChars,
+          initialEstimatedChars,
+          finalEstimatedChars: estimatedChars,
+          summaryChars: summary?.length,
+          tailMessageCount: tailMessages.length,
+          compactedTail: true,
+        }),
       };
     }
 
@@ -95,6 +115,14 @@ export function buildRequestContext(
       estimatedChars: estimateChatMessagesChars(fallbackMessages),
       summary: fallbackSummary,
       promptMetrics: measureSystemPrompt(appendSummary(systemPrompt, fallbackSummary)),
+      contextDiagnostics: createPromptContextDiagnostics({
+        maxContextChars: safeMaxChars,
+        initialEstimatedChars,
+        finalEstimatedChars: estimateChatMessagesChars(fallbackMessages),
+        summaryChars: fallbackSummary?.length,
+        tailMessageCount: fallbackTail.length,
+        compactedTail: true,
+      }),
     };
   }
 }
@@ -255,7 +283,12 @@ function renderSystemPrompt(systemPrompt: string | PromptLayers): string {
 }
 
 function measureSystemPrompt(systemPrompt: string | PromptLayers): PromptLayerMetrics | undefined {
-  return typeof systemPrompt === "string" ? undefined : measurePromptLayers(systemPrompt);
+  return typeof systemPrompt === "string"
+    ? measurePromptLayers({
+        staticBlocks: [systemPrompt],
+        dynamicBlocks: [],
+      })
+    : measurePromptLayers(systemPrompt);
 }
 
 function oneLine(value: string): string {

@@ -21,7 +21,10 @@ export {
 } from "./runtimeMetrics/summary.js";
 
 export type {
+  RuntimePromptDiagnostics,
   RuntimeHealthStatus,
   RuntimeUsageAvailability,
+  RuntimeSummaryDerivedDiagnostics,
+  RuntimeSummaryDurableTruth,
   SessionRuntimeSummary,
 } from "./runtimeMetrics/summary.js";
