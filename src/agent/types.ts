@@ -1,6 +1,6 @@
 import type { SessionStoreLike } from "./sessionStore.js";
 import type { ToolRegistry } from "../tools/types.js";
-import type { RuntimeConfig, SessionRecord, ToolCallRecord } from "../types.js";
+import type { RuntimeConfig, RuntimeTerminalTransition, SessionRecord, ToolCallRecord } from "../types.js";
 
 export interface AgentIdentity {
   kind: "lead" | "teammate" | "subagent";
@@ -54,4 +54,5 @@ export interface RunTurnResult {
   yieldReason?: string;
   paused?: boolean;
   pauseReason?: string;
+  transition?: RuntimeTerminalTransition;
 }

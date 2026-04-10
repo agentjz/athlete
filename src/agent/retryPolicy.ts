@@ -1,7 +1,6 @@
-import { getErrorMessage } from "./errors.js";
 import { isRetryableApiError } from "./recovery.js";
 import { sleepWithSignal, throwIfAborted } from "../utils/abort.js";
-import type { RuntimeConfig } from "../types.js";
+import type { RuntimeConfig, RuntimeRecoverTransition } from "../types.js";
 
 export type RecoveryRequestConfig = Pick<
   RuntimeConfig,
@@ -61,26 +60,22 @@ export function buildRecoveryRequestConfig(
 }
 
 export function buildRecoveryStatus(
-  error: unknown,
-  consecutiveFailures: number,
-  delayMs: number,
-  configuredModel: string,
-  requestModel: string,
-  requestConfig: RecoveryRequestConfig,
+  transition: RuntimeRecoverTransition,
 ): string {
+  const reason = transition.reason;
   const fragments = [
-    `Model request failed (${truncateForStatus(getErrorMessage(error), 160)}).`,
-    `Auto-retrying in ${formatDelay(delayMs)}.`,
-    `streak=${consecutiveFailures}`,
+    `Model request failed (${truncateForStatus(reason.error, 160)}).`,
+    `Auto-retrying in ${formatDelay(reason.delayMs)}.`,
+    `streak=${reason.consecutiveFailures}`,
   ];
 
-  if (requestModel !== configuredModel) {
-    fragments.push(`modelFallback=${requestModel}`);
+  if (reason.requestModel !== reason.configuredModel) {
+    fragments.push(`modelFallback=${reason.requestModel}`);
   }
 
-  if (consecutiveFailures > 0) {
+  if (reason.consecutiveFailures > 0) {
     fragments.push(
-      `reducedContext=${requestConfig.contextWindowMessages}/${requestConfig.maxContextChars}/${requestConfig.contextSummaryChars}`,
+      `reducedContext=${reason.contextWindowMessages}/${reason.maxContextChars}/${reason.contextSummaryChars}`,
     );
   }
 

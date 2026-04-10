@@ -141,6 +141,135 @@ export type SessionCheckpointStatus = "active" | "completed";
 
 export type SessionCheckpointPhase = "active" | "continuation" | "resume" | "recovery";
 
+export interface RuntimeContinueResumeReason {
+  code: "continue.resume_from_checkpoint";
+  source: "managed_continuation" | "resume_directive";
+}
+
+export interface RuntimeContinueToolBatchReason {
+  code: "continue.after_tool_batch";
+  toolNames: string[];
+  changedPaths: string[];
+}
+
+export interface RuntimeContinueMissingSkillsReason {
+  code: "continue.required_skill_load";
+  missingSkills: string[];
+}
+
+export interface RuntimeContinueIncompleteTodosReason {
+  code: "continue.incomplete_todos";
+  incompleteTodoCount: number;
+}
+
+export interface RuntimeContinueVerificationRequiredReason {
+  code: "continue.verification_required";
+  pendingPaths: string[];
+  attempts: number;
+  reminderCount: number;
+}
+
+export interface RuntimeContinueVerificationFailedReason {
+  code: "continue.verification_failed";
+  attempts: number;
+  noProgressCount: number;
+  lastCommand?: string;
+  lastKind?: string;
+  lastExitCode?: number | null;
+}
+
+export interface RuntimeRecoverProviderRequestReason {
+  code: "recover.provider_request_retry";
+  consecutiveFailures: number;
+  error: string;
+  configuredModel: string;
+  requestModel: string;
+  contextWindowMessages: number;
+  maxContextChars: number;
+  contextSummaryChars: number;
+  delayMs: number;
+}
+
+export interface RuntimeYieldToolStepLimitReason {
+  code: "yield.tool_step_limit";
+  toolSteps: number;
+  limit?: number;
+}
+
+export interface RuntimePauseVerificationAwaitingUserReason {
+  code: "pause.verification_awaiting_user";
+  pendingPaths: string[];
+  pauseReason: string;
+  attempts: number;
+  reminderCount: number;
+  noProgressCount: number;
+}
+
+export interface RuntimeFinalizeCompletedReason {
+  code: "finalize.completed";
+  changedPaths: string[];
+  verificationOutcome: "not_required" | "passed";
+  verificationKind?: string;
+}
+
+export type RuntimeContinueReason =
+  | RuntimeContinueResumeReason
+  | RuntimeContinueToolBatchReason
+  | RuntimeContinueMissingSkillsReason
+  | RuntimeContinueIncompleteTodosReason
+  | RuntimeContinueVerificationRequiredReason
+  | RuntimeContinueVerificationFailedReason;
+
+export type RuntimeRecoverReason = RuntimeRecoverProviderRequestReason;
+
+export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason;
+
+export type RuntimePauseReason = RuntimePauseVerificationAwaitingUserReason;
+
+export type RuntimeFinalizeReason = RuntimeFinalizeCompletedReason;
+
+export interface RuntimeContinueTransition {
+  action: "continue";
+  reason: RuntimeContinueReason;
+  timestamp: string;
+}
+
+export interface RuntimeRecoverTransition {
+  action: "recover";
+  reason: RuntimeRecoverReason;
+  timestamp: string;
+}
+
+export interface RuntimeYieldTransition {
+  action: "yield";
+  reason: RuntimeYieldReason;
+  timestamp: string;
+}
+
+export interface RuntimePauseTransition {
+  action: "pause";
+  reason: RuntimePauseReason;
+  timestamp: string;
+}
+
+export interface RuntimeFinalizeTransition {
+  action: "finalize";
+  reason: RuntimeFinalizeReason;
+  timestamp: string;
+}
+
+export type RuntimeTransition =
+  | RuntimeContinueTransition
+  | RuntimeRecoverTransition
+  | RuntimeYieldTransition
+  | RuntimePauseTransition
+  | RuntimeFinalizeTransition;
+
+export type RuntimeTerminalTransition =
+  | RuntimeYieldTransition
+  | RuntimePauseTransition
+  | RuntimeFinalizeTransition;
+
 export type SessionCheckpointArtifactKind =
   | "externalized_tool_result"
   | "tool_preview"
@@ -169,6 +298,7 @@ export interface SessionCheckpointFlow {
   phase: SessionCheckpointPhase;
   reason?: string;
   recoveryFailures?: number;
+  lastTransition?: RuntimeTransition;
   updatedAt: string;
 }
 

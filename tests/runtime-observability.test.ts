@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import fsSync from "node:fs";
-import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../src/agent/managedTurn.js";
 import { createMessage } from "../src/agent/messages.js";
+import { createProviderRecoveryTransition } from "../src/agent/runtimeTransition.js";
 import { SessionStore } from "../src/agent/sessionStore.js";
 import { persistRecoveryTurn } from "../src/agent/turnPersistence.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../src/tools/index.js";
@@ -96,53 +96,81 @@ test("runtime observability records recovery runtime stats and survives reload",
   const recovered = await persistRecoveryTurn(
     session,
     sessionStore,
-    1,
-    new Error("temporary upstream timeout"),
+    createProviderRecoveryTransition({
+      consecutiveFailures: 1,
+      error: new Error("temporary upstream timeout"),
+      configuredModel: "deepseek-reasoner",
+      requestModel: "deepseek-reasoner",
+      requestConfig: {
+        model: "deepseek-reasoner",
+        contextWindowMessages: 30,
+        maxContextChars: 48_000,
+        contextSummaryChars: 8_000,
+      },
+      delayMs: 1_000,
+    }),
   );
   const reloaded = await sessionStore.load(recovered.id);
   const stats = (reloaded as any).runtimeStats;
 
   assert.equal(stats?.events?.recoveryCount, 1);
   assert.equal(reloaded.checkpoint?.flow?.phase, "recovery");
+  assert.equal(reloaded.checkpoint?.flow?.lastTransition?.reason?.code, "recover.provider_request_retry");
+  assert.equal(reloaded.checkpoint?.flow?.lastTransition?.reason?.consecutiveFailures, 1);
 });
 
-test("runtime observability normalizes legacy runtime stats instead of dropping or guessing fields", { concurrency: false }, async (t) => {
-  const root = await createTempWorkspace("round3-runtime-legacy", t);
-  const sessionsDir = path.join(root, "sessions");
-  await fs.mkdir(sessionsDir, { recursive: true });
-
-  const sessionId = "legacy-round3-runtime";
+test("runtime observability reload preserves current runtime stats without creating extra truth sources", { concurrency: false }, async (t) => {
+  const root = await createTempWorkspace("round3-runtime-reload", t);
+  const sessionStore = new SessionStore(path.join(root, "sessions"));
+  const baseSession = await sessionStore.create(root);
   const timestamp = new Date().toISOString();
-  await fs.writeFile(path.join(sessionsDir, `${sessionId}.json`), `${JSON.stringify({
-    id: sessionId,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    cwd: root,
-    messageCount: 1,
+  const saved = await sessionStore.save({
+    ...baseSession,
     messages: [createMessage("user", "Continue the same task.")],
-    todoItems: [],
     runtimeStats: {
+      version: 1,
       model: {
         requestCount: 2,
+        waitDurationMsTotal: 240,
+        usage: {
+          requestsWithUsage: 0,
+          requestsWithoutUsage: 2,
+          inputTokensTotal: 0,
+          outputTokensTotal: 0,
+          totalTokensTotal: 0,
+          reasoningTokensTotal: 0,
+        },
       },
       tools: {
         callCount: 1,
+        durationMsTotal: 120,
+        byName: {},
       },
+      events: {
+        continuationCount: 1,
+        yieldCount: 0,
+        recoveryCount: 0,
+        compressionCount: 0,
+      },
+      externalizedToolResults: {
+        count: 0,
+        byteLengthTotal: 0,
+      },
+      updatedAt: timestamp,
     },
-  }, null, 2)}\n`, "utf8");
+  } as any);
 
-  const sessionStore = new SessionStore(sessionsDir);
-  const loaded = await sessionStore.load(sessionId);
+  const loaded = await sessionStore.load(saved.id);
   const stats = (loaded as any).runtimeStats;
 
   assert.equal(stats?.version, 1);
   assert.equal(stats?.model?.requestCount, 2);
-  assert.equal(stats?.model?.usage?.requestsWithUsage, 0);
-  assert.equal(stats?.model?.usage?.requestsWithoutUsage, 0);
+  assert.equal(stats?.model?.usage?.requestsWithoutUsage, 2);
   assert.equal(stats?.tools?.callCount, 1);
   assert.deepEqual(stats?.tools?.byName ?? {}, {});
-  assert.equal(stats?.events?.yieldCount, 0);
+  assert.equal(stats?.events?.continuationCount, 1);
   assert.equal(stats?.externalizedToolResults?.count, 0);
+  assert.equal("promptDiagnostics" in stats, false);
 });
 
 test("runtime observability local command prints a readable session summary with stable usage-unavailable wording", async () => {

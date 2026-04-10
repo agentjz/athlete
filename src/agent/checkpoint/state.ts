@@ -1,5 +1,10 @@
-import { isContinuationDirective, isInternalMessage } from "../taskState.js";
-import type { SessionCheckpoint, SessionCheckpointPhase, SessionRecord, StoredMessage } from "../../types.js";
+import {
+  buildCheckpointFlow,
+  createToolBatchTransition,
+  getTurnInputTransition,
+  normalizeCheckpointFlow,
+} from "../runtimeTransition.js";
+import type { SessionCheckpoint, SessionRecord, StoredMessage } from "../../types.js";
 import { createCheckpointForObjective, createEmptyCheckpoint, deriveCheckpointFromSession } from "./base.js";
 import {
   buildToolBatch,
@@ -12,7 +17,6 @@ import {
   fingerprintObjective,
   mergeArtifacts,
   normalizeArtifacts,
-  normalizeFlow,
   normalizeText,
   normalizeTimestamp,
   normalizeToolBatch,
@@ -48,7 +52,7 @@ export function normalizeCheckpoint(
     currentStep: status === "completed" ? undefined : normalizeText(checkpoint.currentStep) || undefined,
     nextStep: status === "completed" ? undefined : normalizeText(checkpoint.nextStep) || undefined,
     recentToolBatch: normalizeToolBatch(checkpoint.recentToolBatch),
-    flow: normalizeFlow(checkpoint.flow, status, timestamp),
+    flow: normalizeCheckpointFlow(checkpoint.flow, status, timestamp),
     priorityArtifacts:
       status === "completed"
         ? []
@@ -99,7 +103,7 @@ export function normalizeSessionCheckpoint(session: SessionRecord): SessionRecor
     checkpoint.priorityArtifacts = [];
   }
 
-  checkpoint.flow = normalizeFlow(checkpoint.flow, checkpoint.status, timestamp);
+  checkpoint.flow = normalizeCheckpointFlow(checkpoint.flow, checkpoint.status, timestamp);
   checkpoint.updatedAt = normalizeTimestamp(checkpoint.updatedAt, timestamp);
 
   return {
@@ -114,27 +118,19 @@ export function noteCheckpointTurnInput(
   timestamp = new Date().toISOString(),
 ): SessionRecord {
   const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
-  const phase: SessionCheckpointPhase =
-    isInternalMessage(input)
-      ? "continuation"
-      : isContinuationDirective(input)
-        ? "resume"
-        : "active";
+  const transition = getTurnInputTransition(input, timestamp);
 
   return {
     ...session,
     checkpoint: {
       ...checkpoint,
-      flow: {
-        phase,
-        reason:
-          phase === "continuation"
-            ? "managed continuation"
-            : phase === "resume"
-              ? "session resume"
-              : undefined,
-        updatedAt: timestamp,
-      },
+      flow: buildCheckpointFlow({
+        current: checkpoint.flow,
+        status: checkpoint.status,
+        transition,
+        fallbackPhase: "active",
+        timestamp,
+      }),
       currentStep:
         checkpoint.status === "completed"
           ? undefined
@@ -148,77 +144,6 @@ export function noteCheckpointTurnInput(
   };
 }
 
-export function noteCheckpointRecovery(
-  session: SessionRecord,
-  consecutiveFailures: number,
-  error: unknown,
-  timestamp = new Date().toISOString(),
-): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
-
-  if (checkpoint.status === "completed") {
-    return {
-      ...session,
-      checkpoint,
-    };
-  }
-
-  return {
-    ...session,
-    checkpoint: {
-      ...checkpoint,
-      currentStep: checkpoint.currentStep ?? deriveCurrentStep(session, checkpoint) ?? checkpoint.nextStep,
-      nextStep:
-        checkpoint.nextStep ??
-        deriveNextStep(session, checkpoint) ??
-        "Retry the next unresolved step from the latest checkpoint instead of restarting.",
-      flow: {
-        phase: "recovery",
-        reason: normalizeText((error as { message?: unknown })?.message ?? error) || undefined,
-        recoveryFailures: consecutiveFailures,
-        updatedAt: timestamp,
-      },
-      updatedAt: timestamp,
-    },
-  };
-}
-
-export function noteCheckpointYield(
-  session: SessionRecord,
-  yieldReason: string | undefined,
-  timestamp = new Date().toISOString(),
-): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
-
-  if (checkpoint.status === "completed") {
-    return {
-      ...session,
-      checkpoint,
-    };
-  }
-
-  return {
-    ...session,
-    checkpoint: {
-      ...checkpoint,
-      currentStep:
-        checkpoint.currentStep ??
-        deriveCurrentStep(session, checkpoint) ??
-        "Paused between tool batches",
-      nextStep:
-        checkpoint.nextStep ??
-        deriveNextStep(session, checkpoint) ??
-        "Continue from the latest checkpoint without repeating completed work.",
-      flow: {
-        phase: "continuation",
-        reason: normalizeText(yieldReason) || "yielded between tool batches",
-        updatedAt: timestamp,
-      },
-      updatedAt: timestamp,
-    },
-  };
-}
-
 export function noteCheckpointToolBatch(
   session: SessionRecord,
   input: ToolBatchUpdateInput,
@@ -227,6 +152,10 @@ export function noteCheckpointToolBatch(
   const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
   const recentToolBatch = buildToolBatch(input.toolNames, input.toolMessages, input.changedPaths, timestamp);
   const phase = checkpoint.flow.phase === "recovery" ? "active" : checkpoint.flow.phase;
+  const transition = createToolBatchTransition({
+    toolNames: input.toolNames,
+    changedPaths: input.changedPaths,
+  }, timestamp);
 
   return {
     ...session,
@@ -256,39 +185,13 @@ export function noteCheckpointToolBatch(
               checkpoint.priorityArtifacts,
               derivePendingPathArtifacts(session),
             ),
-      flow: {
-        phase,
-        reason:
-          phase === "active"
-            ? undefined
-            : checkpoint.flow.reason,
-        updatedAt: timestamp,
-      },
-      updatedAt: timestamp,
-    },
-  };
-}
-
-export function noteCheckpointCompleted(
-  session: SessionRecord,
-  timestamp = new Date().toISOString(),
-): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
-
-  return {
-    ...session,
-    checkpoint: {
-      ...checkpoint,
-      status: "completed",
-      completedSteps:
-        checkpoint.completedSteps.length > 0 ? checkpoint.completedSteps : deriveCompletedSteps(session),
-      currentStep: undefined,
-      nextStep: undefined,
-      priorityArtifacts: [],
-      flow: {
-        phase: "active",
-        updatedAt: timestamp,
-      },
+      flow: buildCheckpointFlow({
+        current: checkpoint.flow,
+        status: checkpoint.status,
+        transition,
+        fallbackPhase: phase,
+        timestamp,
+      }),
       updatedAt: timestamp,
     },
   };

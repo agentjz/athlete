@@ -1,10 +1,12 @@
 import { handleCompletedAssistantResponse } from "./finalize.js";
 import { createMessage } from "./messages.js";
+import { createMissingSkillTransition } from "./runtimeTransition.js";
 import { createInternalReminder } from "./taskState.js";
+import { persistCheckpointTransition } from "./turnPersistence.js";
 import { formatMissingRequiredSkillReminder } from "../skills/state.js";
 import type { SkillRuntimeState } from "../types.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "./types.js";
-import type { SessionRecord } from "../types.js";
+import type { RuntimeContinueTransition, SessionRecord } from "../types.js";
 
 interface ResolveToollessTurnParams {
   session: SessionRecord;
@@ -25,6 +27,7 @@ export async function resolveToollessTurn(
       kind: "continue";
       session: SessionRecord;
       validationReminderInjected: boolean;
+      transition: RuntimeContinueTransition;
     }
   | {
       kind: "return";
@@ -33,23 +36,31 @@ export async function resolveToollessTurn(
 > {
   if (params.skillRuntimeState.missingRequiredSkills.length > 0) {
     const missingSkillNames = formatMissingRequiredSkillReminder(params.skillRuntimeState);
-    const session = await params.options.sessionStore.appendMessages(params.session, [
-      createMessage("assistant", params.response.content ?? "", {
-        reasoningContent: params.response.reasoningContent,
-      }),
-      createMessage(
-        "user",
-        createInternalReminder(
-          `Required skill(s) not loaded: ${missingSkillNames}. ` +
-            "Use load_skill for the missing skills before continuing.",
+    const transition = createMissingSkillTransition(
+      params.skillRuntimeState.missingRequiredSkills.map((skill) => skill.name),
+    );
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(params.session, [
+        createMessage("assistant", params.response.content ?? "", {
+          reasoningContent: params.response.reasoningContent,
+        }),
+        createMessage(
+          "user",
+          createInternalReminder(
+            `Required skill(s) not loaded: ${missingSkillNames}. ` +
+              "Use load_skill for the missing skills before continuing.",
+          ),
         ),
-      ),
-    ]);
+      ]),
+      params.options.sessionStore,
+      transition,
+    );
     params.options.callbacks?.onStatus?.("Required skill missing. Asking the model to load it...");
     return {
       kind: "continue",
       session,
       validationReminderInjected: params.validationReminderInjected,
+      transition,
     };
   }
 

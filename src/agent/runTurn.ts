@@ -12,6 +12,7 @@ import { noteRuntimeCompression, noteRuntimeModelRequests, noteRuntimeToolExecut
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
 import { buildSystemPromptLayers } from "./systemPrompt.js";
 import { createInternalReminder } from "./taskState.js";
+import { buildRunTurnResult, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { initializeTurnSession, persistRecoveryTurn, persistToolBatchCheckpoint, persistYieldedTurn } from "./turnPersistence.js";
 import { createStoredToolMessage } from "./toolResultStorage.js";
 import { prioritizeToolDefinitionsForTurn } from "./toolPriority.js";
@@ -59,17 +60,16 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
     for (let iteration = 0; ; iteration += 1) {
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
       if (shouldYieldTurn(options.yieldAfterToolSteps, iteration)) {
-        session = await persistYieldedTurn(session, options.sessionStore, iteration);
+        const transition = createYieldTransition(iteration, options.yieldAfterToolSteps);
+        session = await persistYieldedTurn(session, options.sessionStore, transition);
         options.callbacks?.onStatus?.(`Yielding after ${iteration} tool steps so background work can poll inbox and tasks.`);
-        return {
+        return buildRunTurnResult({
           session,
-          changedPaths: [...changedPaths],
+          changedPaths,
           verificationAttempted: validationAttempted,
           verificationPassed: validationPassed,
-          yielded: true,
-          yieldReason: `tool_steps_${iteration}`,
-          paused: false,
-        };
+          transition,
+        });
       }
       session = await injectInboxMessagesIfNeeded(session, options, identity, projectContext.stateRootDir);
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
@@ -109,17 +109,18 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           throw error;
         }
         consecutiveRequestFailures += 1;
-        session = await persistRecoveryTurn(session, options.sessionStore, consecutiveRequestFailures, error);
         const delayMs = computeRecoveryDelayMs(consecutiveRequestFailures);
+        const transition = createProviderRecoveryTransition({
+          consecutiveFailures: consecutiveRequestFailures,
+          error,
+          configuredModel: options.config.model,
+          requestModel,
+          requestConfig,
+          delayMs,
+        });
+        session = await persistRecoveryTurn(session, options.sessionStore, transition);
         options.callbacks?.onStatus?.(
-          buildRecoveryStatus(
-            error,
-            consecutiveRequestFailures,
-            delayMs,
-            options.config.model,
-            requestModel,
-            requestConfig,
-          ),
+          buildRecoveryStatus(transition),
         );
         await sleep(delayMs, options.abortSignal);
         continue;

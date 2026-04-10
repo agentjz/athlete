@@ -72,8 +72,10 @@ test("handleCompletedAssistantResponse finalizes once verified work is done even
   if (outcome.kind === "return") {
     assert.equal(outcome.result.verificationPassed, true);
     assert.equal(outcome.result.paused, false);
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
     assert.equal((outcome.result.session as any).checkpoint?.status, "completed");
     assert.equal((outcome.result.session as any).checkpoint?.nextStep, undefined);
+    assert.equal((outcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "finalize.completed");
   }
 });
 
@@ -130,6 +132,8 @@ test("handleCompletedAssistantResponse auto-verifies a lightweight validation ma
     assert.equal(outcome.result.verificationAttempted, true);
     assert.equal(outcome.result.verificationPassed, true);
     assert.equal(outcome.result.paused, false);
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
+    assert.equal((outcome.result.transition as any)?.reason?.verificationKind, "auto_readback");
   }
 });
 
@@ -187,6 +191,99 @@ test("handleCompletedAssistantResponse auto-verifies lightweight markdown output
     assert.equal(outcome.result.verificationAttempted, true);
     assert.equal(outcome.result.verificationPassed, true);
     assert.equal(outcome.result.paused, false);
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
+  }
+});
+
+test("handleCompletedAssistantResponse exposes structured verification transitions when finalize is blocked", async () => {
+  const sessionStore = new MemorySessionStore();
+  const baseSession = await sessionStore.create(process.cwd());
+  const pendingPath = path.join(process.cwd(), "src", "agent", "runTurn.ts");
+
+  const requiredSession = await sessionStore.save({
+    ...baseSession,
+    verificationState: {
+      ...(baseSession.verificationState ?? createEmptyVerificationState()),
+      status: "required",
+      attempts: 0,
+      reminderCount: 0,
+      noProgressCount: 0,
+      pendingPaths: [pendingPath],
+    },
+  });
+
+  const continueOutcome = await handleCompletedAssistantResponse({
+    session: requiredSession,
+    response: {
+      content: "Finished the change.",
+      toolCalls: [],
+    },
+    identity: {
+      kind: "lead",
+      name: "lead",
+    },
+    changedPaths: new Set([pendingPath]),
+    hadIncompleteTodosAtStart: false,
+    hasSubstantiveToolActivity: true,
+    verificationState: requiredSession.verificationState,
+    validationReminderInjected: false,
+    options: {
+      input: "Finish the change",
+      cwd: process.cwd(),
+      config: createTestRuntimeConfig(process.cwd()),
+      session: requiredSession,
+      sessionStore,
+    } as RunTurnOptions,
+  });
+
+  assert.equal(continueOutcome.kind, "continue");
+  if (continueOutcome.kind === "continue") {
+    assert.equal(continueOutcome.transition.reason.code, "continue.verification_required");
+    assert.equal((continueOutcome.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "continue.verification_required");
+  }
+
+  const awaitingUserSession = await sessionStore.save({
+    ...baseSession,
+    verificationState: {
+      ...(baseSession.verificationState ?? createEmptyVerificationState()),
+      status: "awaiting_user",
+      attempts: 3,
+      reminderCount: 3,
+      noProgressCount: 2,
+      pendingPaths: [pendingPath],
+      pauseReason: "Verification is paused until the user clarifies the desired check.",
+    },
+  });
+
+  const pausedOutcome = await handleCompletedAssistantResponse({
+    session: awaitingUserSession,
+    response: {
+      content: "Finished the change.",
+      toolCalls: [],
+    },
+    identity: {
+      kind: "lead",
+      name: "lead",
+    },
+    changedPaths: new Set([pendingPath]),
+    hadIncompleteTodosAtStart: false,
+    hasSubstantiveToolActivity: true,
+    verificationState: awaitingUserSession.verificationState,
+    validationReminderInjected: false,
+    options: {
+      input: "Finish the change",
+      cwd: process.cwd(),
+      config: createTestRuntimeConfig(process.cwd()),
+      session: awaitingUserSession,
+      sessionStore,
+    } as RunTurnOptions,
+  });
+
+  assert.equal(pausedOutcome.kind, "return");
+  if (pausedOutcome.kind === "return") {
+    assert.equal(pausedOutcome.result.paused, true);
+    assert.equal(pausedOutcome.result.transition?.reason.code, "pause.verification_awaiting_user");
+    assert.equal((pausedOutcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "pause.verification_awaiting_user");
   }
 });
 

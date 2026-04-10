@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -54,6 +53,7 @@ test("runtime checkpoint persists a structured checkpoint after yield and keeps 
   });
 
   assert.equal(result.yielded, true);
+  assert.equal(result.transition?.reason.code, "yield.tool_step_limit");
 
   const saved = await sessionStore.load(result.session.id);
   const checkpoint = (saved as any).checkpoint;
@@ -64,6 +64,7 @@ test("runtime checkpoint persists a structured checkpoint after yield and keeps 
 
   assert.equal(checkpoint?.objective, "Capture the first checkpoint artifact, then continue from it without restarting.");
   assert.equal(checkpoint?.flow?.phase, "continuation");
+  assert.equal(checkpoint?.flow?.lastTransition?.reason?.code, "yield.tool_step_limit");
   assert.equal(Array.isArray(checkpoint?.completedSteps), true);
   assert.equal(typeof checkpoint?.nextStep, "string");
   assert.equal(checkpoint?.recentToolBatch?.tools?.[0], "emit_large_checkpoint");
@@ -196,60 +197,53 @@ test("runtime checkpoint resets the old checkpoint when the objective changes", 
   assert.deepEqual(normalized.checkpoint?.priorityArtifacts ?? [], []);
 });
 
-test("runtime checkpoint normalizes missing checkpoint fields from older session files", { concurrency: false }, async (t) => {
-  const root = await createTempWorkspace("round2-checkpoint-legacy", t);
-  const sessionsDir = path.join(root, "sessions");
-  await fs.mkdir(sessionsDir, { recursive: true });
-
-  const legacySessionId = "legacy-round2";
+test("runtime checkpoint reload preserves the current structured transition truth", { concurrency: false }, async (t) => {
+  const root = await createTempWorkspace("round2-checkpoint-reload-transition", t);
+  const sessionStore = new SessionStore(path.join(root, "sessions"));
+  const baseSession = await sessionStore.create(root);
   const timestamp = new Date().toISOString();
-  const rawSession = {
-    id: legacySessionId,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    cwd: root,
-    messageCount: 1,
-    messages: [createMessage("user", "Continue the legacy task.")],
-    todoItems: [
-      {
-        id: "todo-1",
-        text: "Resume validation/round2-resume-summary.md",
-        status: "pending",
-      },
-    ],
+  const saved = await sessionStore.save({
+    ...baseSession,
     taskState: {
-      objective: "Continue the legacy task.",
-      activeFiles: [],
+      ...(baseSession.taskState ?? {
+        activeFiles: [],
+        plannedActions: [],
+        completedActions: [],
+        blockers: [],
+        lastUpdatedAt: timestamp,
+      }),
+      objective: "Continue the current task.",
       plannedActions: ["Resume validation/round2-resume-summary.md"],
       completedActions: ["Completed the setup phase"],
-      blockers: [],
       lastUpdatedAt: timestamp,
     },
-    verificationState: {
-      status: "idle",
-      attempts: 0,
-      reminderCount: 0,
-      noProgressCount: 0,
-      maxAttempts: 3,
-      maxNoProgress: 2,
-      maxReminders: 3,
-      pendingPaths: [],
-      updatedAt: timestamp,
-    },
-    checkpoint: {
-      objective: "Continue the legacy task.",
+    checkpoint: createCheckpointFixture("Continue the current task.", {
       completedSteps: ["Completed the setup phase"],
-    },
-  };
-  await fs.writeFile(path.join(sessionsDir, `${legacySessionId}.json`), `${JSON.stringify(rawSession, null, 2)}\n`, "utf8");
+      nextStep: "Resume validation/round2-resume-summary.md",
+      flow: {
+        phase: "continuation",
+        lastTransition: {
+          action: "yield",
+          reason: {
+            code: "yield.tool_step_limit",
+            toolSteps: 5,
+            limit: 5,
+          },
+          timestamp,
+        },
+      },
+      updatedAt: timestamp,
+    }),
+  } as any);
 
-  const sessionStore = new SessionStore(sessionsDir);
-  const loaded = await sessionStore.load(legacySessionId);
+  const loaded = await sessionStore.load(saved.id);
   const checkpoint = (loaded as any).checkpoint;
 
-  assert.equal(checkpoint?.objective, "Continue the legacy task.");
+  assert.equal(checkpoint?.objective, "Continue the current task.");
   assert.equal(checkpoint?.status, "active");
-  assert.equal(checkpoint?.flow?.phase, "active");
+  assert.equal(checkpoint?.flow?.phase, "continuation");
+  assert.equal(checkpoint?.flow?.lastTransition?.reason?.code, "yield.tool_step_limit");
+  assert.equal(checkpoint?.flow?.lastTransition?.reason?.toolSteps, 5);
   assert.equal(checkpoint?.completedSteps?.includes("Completed the setup phase"), true);
   assert.equal(checkpoint?.nextStep, "Resume validation/round2-resume-summary.md");
   assert.ok(Array.isArray(checkpoint?.priorityArtifacts));

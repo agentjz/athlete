@@ -29,6 +29,7 @@ Athlete 当前的记忆重点是：
 - continuation 会复用已有 session，而不是重新发明 todo / verification 状态。
 - compact 只压缩请求上下文，不抹掉任务板、todo、verification 这些真相源。
 - 收口判断可以依赖持久化的 `verificationState.pendingPaths`，不能只看当前 slice 的临时 `changedPaths`。
+- `checkpoint.flow.lastTransition` 会随 session 持久化，保留最近一次关键 runtime 决策的结构化原因。
 
 ## Resume / Reset Contract
 
@@ -38,6 +39,7 @@ Athlete 当前的记忆重点是：
 - 一旦 `reset` 成功，`resume` 不应恢复已经 reset 掉的运行时。
 - 如果 objective 明确变化，checkpoint 进度必须重置，避免旧任务进度污染新任务。
 - externalized tool-result references 和 verification pending paths 仍然是优先的可恢复锚点，但 reset 会主动销毁这一层锚点。
+- runtime transition reason code 也属于 checkpoint 真相源的一部分，resume / continuation 读取它，而不是再造平行恢复提示。
 
 ## 下一阶段要求
 

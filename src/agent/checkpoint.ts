@@ -8,9 +8,13 @@ export {
   createEmptyCheckpoint,
   normalizeCheckpoint,
   normalizeSessionCheckpoint,
-  noteCheckpointCompleted,
-  noteCheckpointRecovery,
   noteCheckpointToolBatch,
   noteCheckpointTurnInput,
-  noteCheckpointYield,
 } from "./checkpoint/state.js";
+
+export {
+  noteCheckpointCompleted,
+  noteCheckpointRecovery,
+  noteCheckpointTransition,
+  noteCheckpointYield,
+} from "./checkpoint/transitions.js";

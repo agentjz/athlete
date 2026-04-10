@@ -1,12 +1,21 @@
 import { noteCheckpointCompleted } from "./checkpoint.js";
 import { canFinishWithPlanningTodos, shouldIgnoreIncompleteTodosForCloseout } from "./closeout.js";
 import { createMessage } from "./messages.js";
+import {
+  buildRunTurnResult,
+  createFinalizeTransition,
+  createIncompleteTodoTransition,
+  createVerificationFailedTransition,
+  createVerificationPauseTransition,
+  createVerificationRequiredTransition,
+} from "./runtimeTransition.js";
 import { createInternalReminder } from "./taskState.js";
 import { hasIncompleteTodos } from "./todos.js";
+import { persistCheckpointTransition } from "./turnPersistence.js";
 import { getAutoVerificationAttempt } from "./verificationSignals.js";
 import { isVerificationAwaitingUser, isVerificationRequired, noteVerificationReminder, recordVerificationAttempt } from "./verificationState.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "./types.js";
-import type { SessionRecord, ToolCallRecord, VerificationState } from "../types.js";
+import type { RuntimeContinueTransition, SessionRecord, ToolCallRecord, VerificationState } from "../types.js";
 
 interface HandleCompletedAssistantResponseParams {
   session: SessionRecord;
@@ -27,6 +36,7 @@ export async function handleCompletedAssistantResponse(
       kind: "continue";
       session: SessionRecord;
       validationReminderInjected: boolean;
+      transition: RuntimeContinueTransition;
     }
   | {
       kind: "return";
@@ -73,18 +83,21 @@ export async function handleCompletedAssistantResponse(
   }
 
   if (verificationAwaitingUser) {
-    const session = await params.options.sessionStore.appendMessages(params.session, [assistantMessage]);
+    const transition = createVerificationPauseTransition(params.verificationState);
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(params.session, [assistantMessage]),
+      params.options.sessionStore,
+      transition,
+    );
     return {
       kind: "return",
-      result: {
+      result: buildRunTurnResult({
         session,
-        changedPaths: [...params.changedPaths],
+        changedPaths: params.changedPaths,
         verificationAttempted: validationAttempted,
         verificationPassed: validationPassed,
-        yielded: false,
-        paused: true,
-        pauseReason: params.verificationState?.pauseReason,
-      },
+        transition,
+      }),
     };
   }
 
@@ -94,20 +107,26 @@ export async function handleCompletedAssistantResponse(
     !planningTodosAllowed &&
     !ignoreIncompleteTodos
   ) {
-    const session = await params.options.sessionStore.appendMessages(params.session, [
-      assistantMessage,
-      createMessage(
-        "user",
-        createInternalReminder(
-          "Your todo list still has incomplete items. Do not finalize yet. Either continue the work, or call todo_write to update the list so it accurately reflects what is done and what remains.",
+    const transition = createIncompleteTodoTransition(countIncompleteTodos(params.session));
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(params.session, [
+        assistantMessage,
+        createMessage(
+          "user",
+          createInternalReminder(
+            "Your todo list still has incomplete items. Do not finalize yet. Either continue the work, or call todo_write to update the list so it accurately reflects what is done and what remains.",
+          ),
         ),
-      ),
-    ]);
+      ]),
+      params.options.sessionStore,
+      transition,
+    );
     params.options.callbacks?.onStatus?.("Todo list still has open items. Asking the model to continue...");
     return {
       kind: "continue",
       session,
       validationReminderInjected: params.validationReminderInjected,
+      transition,
     };
   }
 
@@ -124,66 +143,85 @@ export async function handleCompletedAssistantResponse(
       verificationState,
     });
     if (isVerificationAwaitingUser(verificationState)) {
-      const session = await params.options.sessionStore.appendMessages(baseSession, [assistantMessage]);
+      const transition = createVerificationPauseTransition(verificationState);
+      const session = await persistCheckpointTransition(
+        await params.options.sessionStore.appendMessages(baseSession, [assistantMessage]),
+        params.options.sessionStore,
+        transition,
+      );
       return {
         kind: "return",
-        result: {
+        result: buildRunTurnResult({
           session,
-          changedPaths: [...params.changedPaths],
+          changedPaths: params.changedPaths,
           verificationAttempted: false,
           verificationPassed: false,
-          yielded: false,
-          paused: true,
-          pauseReason: verificationState.pauseReason,
-        },
+          transition,
+        }),
       };
     }
 
-    const session = await params.options.sessionStore.appendMessages(baseSession, [
-      assistantMessage,
-      createMessage("user", createInternalReminder(reminder)),
-    ]);
+    const transition = createVerificationRequiredTransition(verificationState);
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(baseSession, [
+        assistantMessage,
+        createMessage("user", createInternalReminder(reminder)),
+      ]),
+      params.options.sessionStore,
+      transition,
+    );
     params.options.callbacks?.onStatus?.("Verification required before finishing. Asking the model to verify...");
     return {
       kind: "continue",
       session,
       validationReminderInjected: true,
+      transition,
     };
   }
 
   if (requiresVerification && validationAttempted && !validationPassed) {
-    const session = await params.options.sessionStore.appendMessages(params.session, [
-      assistantMessage,
-      createMessage(
-        "user",
-        createInternalReminder(
-          "Verification failed. Fix the issues and rerun verification before finalizing. Do not finish with known failing checks.",
+    const transition = createVerificationFailedTransition(params.verificationState);
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(params.session, [
+        assistantMessage,
+        createMessage(
+          "user",
+          createInternalReminder(
+            "Verification failed. Fix the issues and rerun verification before finalizing. Do not finish with known failing checks.",
+          ),
         ),
-      ),
-    ]);
+      ]),
+      params.options.sessionStore,
+      transition,
+    );
     params.options.callbacks?.onStatus?.("Verification failed. Asking the model to fix and re-verify...");
     return {
       kind: "continue",
       session,
       validationReminderInjected: true,
+      transition,
     };
   }
 
+  const transition = createFinalizeTransition({
+    changedPaths: params.changedPaths,
+    verificationState: params.session.verificationState,
+  });
   const session = await params.options.sessionStore.save(
     noteCheckpointCompleted(
       await params.options.sessionStore.appendMessages(params.session, [assistantMessage]),
+      transition,
     ),
   );
   return {
     kind: "return",
-    result: {
+    result: buildRunTurnResult({
       session,
-      changedPaths: [...params.changedPaths],
+      changedPaths: params.changedPaths,
       verificationAttempted: validationAttempted,
       verificationPassed: validationPassed,
-      yielded: false,
-      paused: false,
-    },
+      transition,
+    }),
   };
 }
 
@@ -205,4 +243,8 @@ export function emitAssistantFinalOutput(response: AssistantResponse, options: R
   if (response.content) {
     options.callbacks?.onAssistantDone?.(response.content);
   }
+}
+
+function countIncompleteTodos(session: Pick<SessionRecord, "todoItems">): number {
+  return (session.todoItems ?? []).filter((item) => item.status !== "completed").length;
 }

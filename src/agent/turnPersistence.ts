@@ -1,6 +1,7 @@
 import {
   noteCheckpointRecovery,
   noteCheckpointToolBatch,
+  noteCheckpointTransition,
   noteCheckpointTurnInput,
   noteCheckpointYield,
 } from "./checkpoint.js";
@@ -8,7 +9,13 @@ import { createMessage } from "./messages.js";
 import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "./runtimeMetrics.js";
 import { clearVerificationPause } from "./verificationState.js";
 import type { SessionStoreLike } from "./sessionStore.js";
-import type { SessionRecord, StoredMessage } from "../types.js";
+import type {
+  RuntimeRecoverTransition,
+  RuntimeTransition,
+  RuntimeYieldTransition,
+  SessionRecord,
+  StoredMessage,
+} from "../types.js";
 
 interface PersistToolBatchInput {
   session: SessionRecord;
@@ -41,18 +48,17 @@ export async function initializeTurnSession(
 export async function persistYieldedTurn(
   session: SessionRecord,
   sessionStore: SessionStoreLike,
-  iteration: number,
+  transition: RuntimeYieldTransition,
 ): Promise<SessionRecord> {
-  return sessionStore.save(noteRuntimeYield(noteCheckpointYield(session, `tool_steps_${iteration}`)));
+  return sessionStore.save(noteRuntimeYield(noteCheckpointYield(session, transition)));
 }
 
 export async function persistRecoveryTurn(
   session: SessionRecord,
   sessionStore: SessionStoreLike,
-  consecutiveFailures: number,
-  error: unknown,
+  transition: RuntimeRecoverTransition,
 ): Promise<SessionRecord> {
-  return sessionStore.save(noteRuntimeRecovery(noteCheckpointRecovery(session, consecutiveFailures, error)));
+  return sessionStore.save(noteRuntimeRecovery(noteCheckpointRecovery(session, transition)));
 }
 
 export async function persistToolBatchCheckpoint(
@@ -65,4 +71,12 @@ export async function persistToolBatchCheckpoint(
       changedPaths: input.changedPaths,
     }),
   );
+}
+
+export async function persistCheckpointTransition(
+  session: SessionRecord,
+  sessionStore: SessionStoreLike,
+  transition: RuntimeTransition,
+): Promise<SessionRecord> {
+  return sessionStore.save(noteCheckpointTransition(session, transition));
 }

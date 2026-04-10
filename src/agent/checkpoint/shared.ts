@@ -4,8 +4,6 @@ import path from "node:path";
 import type {
   SessionCheckpoint,
   SessionCheckpointArtifact,
-  SessionCheckpointFlow,
-  SessionCheckpointPhase,
   SessionCheckpointToolBatch,
 } from "../../types.js";
 
@@ -148,25 +146,6 @@ export function normalizeToolBatch(
   };
 }
 
-export function normalizeFlow(
-  flow: SessionCheckpointFlow | undefined,
-  status: SessionCheckpoint["status"],
-  timestamp: string,
-): SessionCheckpointFlow {
-  const phase = normalizePhase(flow?.phase, status);
-  return {
-    phase,
-    reason: normalizeText(flow?.reason) || undefined,
-    recoveryFailures:
-      phase === "recovery" &&
-      typeof flow?.recoveryFailures === "number" &&
-      Number.isFinite(flow.recoveryFailures)
-        ? Math.max(1, Math.trunc(flow.recoveryFailures))
-        : undefined,
-    updatedAt: normalizeTimestamp(flow?.updatedAt, timestamp),
-  };
-}
-
 export function mergeArtifacts(...groups: SessionCheckpointArtifact[][]): SessionCheckpointArtifact[] {
   return normalizeArtifacts(groups.flat());
 }
@@ -198,13 +177,3 @@ function normalizeArtifact(artifact: SessionCheckpointArtifact | undefined): Ses
   };
 }
 
-function normalizePhase(
-  value: SessionCheckpointPhase | undefined,
-  status: SessionCheckpoint["status"],
-): SessionCheckpointPhase {
-  if (status === "completed") {
-    return "active";
-  }
-
-  return value === "continuation" || value === "resume" || value === "recovery" ? value : "active";
-}

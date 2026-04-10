@@ -12,6 +12,7 @@
 - finalize / closeout gating
 - continuation / compression
 - tool error recovery
+- runtime transition 模型
 
 ## 不该放进来的东西
 
@@ -27,6 +28,8 @@
 - continuation 后仍然读取持久化的 `pendingPaths`，不会因为 slice 切换就忘记“还有哪些输出待验”
 - 当收口条件已满足时，task board closeout 工具会被隐藏，避免 `task_list` / `task_get` / `task_update` 无意义循环
 - 当 todo 已全部完成时，runtime 不再继续鼓励补写 `todo_write`
+- continue / recover / yield / pause / finalize 必须带结构化 reason code，而不是只靠零散字符串
+- 最近一次关键 runtime 决策持久化到既有 checkpoint 真相源，不新增平行 JSON
 
 ## 下一阶段要求
 
