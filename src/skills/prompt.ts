@@ -4,49 +4,80 @@ export function formatSkillPromptBlock(
   discoveredSkills: LoadedSkill[],
   runtimeState: SkillRuntimeState,
 ): string {
-  const lines = [
-    "Loaded skills:",
-    formatSkillLines(runtimeState.loadedSkills, "loaded"),
-    "",
-    "Selected skills for this turn:",
-    formatSkillLines(
-      [...runtimeState.requiredSkills, ...runtimeState.suggestedSkills, ...runtimeState.namedSkills],
-      "selected",
-    ),
-    "",
-    "Required skills still missing:",
-    runtimeState.missingRequiredSkills.length > 0
-      ? runtimeState.missingRequiredSkills.map((skill) => `- ${skill.name}`).join("\n")
-      : "- none",
-    "",
-    "Discovered project skill catalog:",
-    formatSkillLines(discoveredSkills, "catalog"),
-  ];
+  if (discoveredSkills.length === 0) {
+    return "- No project skills discovered.";
+  }
+
+  const lines: string[] = [];
+  const loaded = uniqueSkills(runtimeState.loadedSkills);
+  const selected = uniqueSkills([
+    ...runtimeState.requiredSkills,
+    ...runtimeState.suggestedSkills,
+    ...runtimeState.namedSkills,
+  ]);
+  const missingRequired = uniqueSkills(runtimeState.missingRequiredSkills);
+
+  if (loaded.length > 0) {
+    lines.push(`- Loaded now: ${loaded.map((skill) => skill.name).join(", ")}`);
+  }
+
+  if (selected.length > 0) {
+    lines.push(
+      ...selected
+        .slice(0, 6)
+        .map((skill) => `- Turn match: ${describeTurnSkill(skill, runtimeState)}`),
+    );
+
+    if (selected.length > 6) {
+      lines.push(`- Turn match: +${selected.length - 6} more relevant skill(s)`);
+    }
+  }
+
+  if (missingRequired.length > 0) {
+    lines.push(`- Missing required: ${missingRequired.map((skill) => skill.name).join(", ")}`);
+    lines.push("- Load the missing required skills with load_skill before using that workflow.");
+  }
+
+  if (lines.length === 0) {
+    return "- No skill is loaded or selected for this turn. Relevant project skills can still be loaded on demand.";
+  }
 
   return lines.join("\n");
 }
 
-function formatSkillLines(skills: LoadedSkill[], mode: "loaded" | "selected" | "catalog"): string {
-  if (skills.length === 0) {
-    return "- none";
+function describeTurnSkill(skill: LoadedSkill, runtimeState: SkillRuntimeState): string {
+  const tags: string[] = [];
+  const match = runtimeState.matches.find((entry) => entry.skill.name === skill.name);
+
+  if (runtimeState.requiredSkills.some((entry) => entry.name === skill.name)) {
+    tags.push("required");
+  } else if (runtimeState.suggestedSkills.some((entry) => entry.name === skill.name)) {
+    tags.push("suggested");
   }
 
-  return skills.map((skill) => formatSkillLine(skill, mode)).join("\n");
+  if (runtimeState.namedSkills.some((entry) => entry.name === skill.name)) {
+    tags.push("named");
+  }
+  if (runtimeState.loadedSkills.some((entry) => entry.name === skill.name)) {
+    tags.push("loaded");
+  }
+
+  const reasons = (match?.matchedBy ?? []).filter((reason) => reason !== "default" && reason !== "name");
+  if (reasons.length > 0) {
+    tags.push(`via ${reasons.join("/")}`);
+  }
+
+  return tags.length > 0 ? `${skill.name} [${tags.join("; ")}]` : skill.name;
 }
 
-function formatSkillLine(skill: LoadedSkill, mode: "loaded" | "selected" | "catalog"): string {
-  const scopes = [
-    `load=${skill.loadMode}`,
-    skill.agentKinds.length > 0 ? `agents=${skill.agentKinds.join("/")}` : "",
-    skill.roles.length > 0 ? `roles=${skill.roles.join("/")}` : "",
-    skill.taskTypes.length > 0 ? `tasks=${skill.taskTypes.join("/")}` : "",
-    skill.scenes.length > 0 ? `scenes=${skill.scenes.join("/")}` : "",
-    skill.tools.required.length > 0 ? `requires=${skill.tools.required.join("/")}` : "",
-    skill.tools.incompatible.length > 0 ? `incompatible=${skill.tools.incompatible.join("/")}` : "",
-  ].filter(Boolean);
-  const triggerText =
-    skill.triggers.keywords.length > 0 ? ` triggers=${skill.triggers.keywords.join("/")}` : "";
-  const prefix = mode === "loaded" ? "- [loaded]" : mode === "selected" ? "- [turn]" : "-";
+function uniqueSkills(skills: LoadedSkill[]): LoadedSkill[] {
+  const seen = new Set<string>();
+  return skills.filter((skill) => {
+    if (seen.has(skill.name)) {
+      return false;
+    }
 
-  return `${prefix} ${skill.name}: ${skill.description} (${scopes.join(", ")})${triggerText}`;
+    seen.add(skill.name);
+    return true;
+  });
 }

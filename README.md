@@ -66,6 +66,7 @@ Athlete 想坚持的，不是“让模型显得更聪明”，而是让任务真
 
 - 主体仍然是一个清晰的 agent loop：看上下文，决定下一步，调用工具，把结果接回循环。
 - `tools` 负责动作，`skills` 负责 workflow，`MCP` 负责接外部能力；所有能力统一走 tool registry，不让能力从旁路长出来。
+- 文档相关 workflow skills 当前包括 `mineru-pdf-reading`、`mineru-image-reading`、`mineru-doc-reading`、`mineru-ppt-reading`，分别路由到 `mineru_pdf_read`、`mineru_image_read`、`mineru_doc_read`、`mineru_ppt_read`。
 - `session` 被当成任务现场，而不是普通聊天记录；所以任务状态、todo、验证状态、恢复线索都能落在同一个真相源里。
 - 长任务靠 `checkpoint`、上下文压缩和 continuation 续跑；上下文满了不是直接死掉，而是压缩后继续往前。
 - 大目标可以写进任务板，复杂任务可以拆给 `teammate`，并且用 `worktree` 做目录隔离，避免多人并行时互相踩文件。
@@ -132,6 +133,8 @@ Athlete 想坚持的，不是“让模型显得更聪明”，而是让任务真
 | `athlete weixin logout` | 清理 Weixin 登录态 |
 
 文档读取能力依赖 `MINERU_API_TOKEN`。Telegram 需要 `ATHLETE_TELEGRAM_TOKEN` 和 `ATHLETE_TELEGRAM_ALLOWED_USER_IDS`。Weixin 需要先执行 `athlete weixin login`，再配置 `ATHLETE_WEIXIN_ALLOWED_USER_IDS`。Telegram 和 Weixin 私聊里都支持 `/stop`，用于停止当前任务但不关闭服务。
+
+Weixin 当前只支持 private 私聊，不支持 group 群聊；服务会维护每个会话的 `context_token`，并接住 image、video、file、voice 等私聊附件输入与回传链路。
 
 ### NPM 发布
 

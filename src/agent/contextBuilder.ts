@@ -6,9 +6,10 @@ import {
   shouldIncludeStoredAssistantReasoning,
   toChatMessage,
 } from "./messages.js";
-import { appendPromptMemory, renderPromptLayers } from "./promptSections.js";
+import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "./promptSections.js";
 import { compactToolPayload } from "./toolResultPreview.js";
 import type { PromptLayers } from "./promptSections.js";
+import type { PromptLayerMetrics } from "./promptSections.js";
 import type { RuntimeConfig, StoredMessage } from "../types.js";
 
 const MIN_TAIL_MESSAGES = 8;
@@ -20,6 +21,7 @@ export interface BuiltRequestContext {
   compressed: boolean;
   estimatedChars: number;
   summary?: string;
+  promptMetrics?: PromptLayerMetrics;
 }
 
 export function buildRequestContext(
@@ -45,6 +47,7 @@ export function buildRequestContext(
     let workingTail = compactTailMessages(tailMessages, false);
     let requestMessages = composeChatMessages(summaryPrompt, workingTail, config.model);
     let estimatedChars = estimateChatMessagesChars(requestMessages);
+    let promptMetrics = measureSystemPrompt(summaryPrompt);
 
     if (estimatedChars <= safeMaxChars) {
       return {
@@ -52,12 +55,14 @@ export function buildRequestContext(
         compressed: Boolean(summary),
         estimatedChars,
         summary,
+        promptMetrics,
       };
     }
 
     workingTail = compactTailMessages(tailMessages, true);
     requestMessages = composeChatMessages(summaryPrompt, workingTail, config.model);
     estimatedChars = estimateChatMessagesChars(requestMessages);
+    promptMetrics = measureSystemPrompt(summaryPrompt);
 
     if (estimatedChars <= safeMaxChars) {
       return {
@@ -65,6 +70,7 @@ export function buildRequestContext(
         compressed: true,
         estimatedChars,
         summary,
+        promptMetrics,
       };
     }
 
@@ -88,6 +94,7 @@ export function buildRequestContext(
       compressed: true,
       estimatedChars: estimateChatMessagesChars(fallbackMessages),
       summary: fallbackSummary,
+      promptMetrics: measureSystemPrompt(appendSummary(systemPrompt, fallbackSummary)),
     };
   }
 }
@@ -245,6 +252,10 @@ function appendSummary(systemPrompt: string | PromptLayers, summary: string | un
 
 function renderSystemPrompt(systemPrompt: string | PromptLayers): string {
   return typeof systemPrompt === "string" ? systemPrompt : renderPromptLayers(systemPrompt);
+}
+
+function measureSystemPrompt(systemPrompt: string | PromptLayers): PromptLayerMetrics | undefined {
+  return typeof systemPrompt === "string" ? undefined : measurePromptLayers(systemPrompt);
 }
 
 function oneLine(value: string): string {

@@ -4,6 +4,7 @@ import {
 } from "./promptSections.js";
 
 export type {
+  PromptLayerMetrics,
   PromptLayers,
   PromptRuntimeState,
 } from "./promptSections.js";
@@ -11,6 +12,7 @@ export type {
 export {
   appendPromptMemory,
   buildSystemPromptLayers,
+  measurePromptLayers,
   renderPromptLayers,
 } from "./promptSections.js";
 

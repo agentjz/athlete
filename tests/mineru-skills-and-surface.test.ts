@@ -83,7 +83,7 @@ test("MinerU skills are discoverable and match PDF, image, doc, and presentation
   }
 });
 
-test("system prompt routes supported documents through MinerU-prefixed tools", () => {
+test("system prompt keeps document routing at the principle level instead of hardcoding the full MinerU route table", () => {
   const root = REPO_ROOT;
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
@@ -102,11 +102,10 @@ test("system prompt routes supported documents through MinerU-prefixed tools", (
     ),
   );
 
-  assert.match(prompt, /mineru_doc_read/);
-  assert.match(prompt, /mineru_pdf_read/);
-  assert.match(prompt, /mineru_image_read/);
-  assert.match(prompt, /mineru_ppt_read/);
+  assert.match(prompt, /specialized browser and document tools/i);
+  assert.match(prompt, /file introspection or tool recovery points to a better specialized tool/i);
   assert.doesNotMatch(prompt, /\bread_pdf\b/);
+  assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read/);
   assert.doesNotMatch(prompt, /Skip unsupported binary documents such as \.doc and \.pptx/i);
 });
 

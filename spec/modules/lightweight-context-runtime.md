@@ -9,9 +9,17 @@
 1. system prompt 按两层正式组装：
    - `Static operating layer`
    - `Dynamic runtime layer`
-2. 静态层放稳定规则、模式规则、身份规则、项目说明。
-3. 动态层放 cwd / root / date / taskState / todo / verification / task board / team / worktree / protocol / background / skill runtime。
-4. 压缩后的会话总结不再直接拼回静态层，而是追加为 `Compressed conversation memory`。
+2. 静态层只放高层 operating contract：
+   - identity / role contract
+   - work loop contract
+   - tool-use contract
+   - communication / output contract
+   - external content boundary
+   - project instructions
+3. 动态层放 cwd / root / date / taskState / todo / verification / checkpoint / task board / team / worktree / protocol / background / skill runtime 的紧凑摘要。
+4. 动态层应省略空状态和低价值 `No ...` 噪音，但要保留 checkpoint、verification pending paths、externalized tool refs 这些恢复锚点。
+5. 压缩后的会话总结不再直接拼回静态层，而是追加为 `Compressed conversation memory`。
+6. request context 构建可以派生 prompt layer metrics（如 static / dynamic / memory chars 与 block counts）用于诊断，但它们只是派生观测，不是新的持久化真相源。
 
 ## 大 tool result 外置化
 
@@ -59,5 +67,6 @@
 - continuation, reload/resume, and dynamic prompt rendering must all consume the same checkpoint instead of inventing separate recovery hints.
 - objective changes reset checkpoint progress so old work does not pollute the new task.
 - externalized tool results remain the preferred recoverable context, and checkpoint keeps the references lightweight.
+- verification 文案必须与 runtime 能力一致：targeted verification、lightweight readback、auto-readback 都是合法路径，不把所有改动都描述成必须全量 build/test。
 - fail-first test for this layer: `tests/runtime-checkpoint-resume.test.ts`
 - real API verification entry for this layer: `npm run verify:runtime-checkpoint-api`

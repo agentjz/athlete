@@ -108,6 +108,8 @@ test("runtime context prompt keeps a stable static layer separate from the dynam
 
   assert.equal(firstLayers.staticLayer, secondLayers.staticLayer);
   assert.notEqual(firstLayers.dynamicLayer, secondLayers.dynamicLayer);
+  assert.match(firstLayers.staticLayer, /Identity \/ role contract:/);
+  assert.match(firstLayers.staticLayer, /External content boundary:/);
   assert.equal(firstLayers.staticLayer.includes("Task board says alpha"), false);
   assert.equal(firstLayers.staticLayer.includes("Teammate bravo is active."), false);
   assert.match(firstLayers.dynamicLayer, /Task board says alpha/);

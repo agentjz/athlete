@@ -5,6 +5,8 @@
 这一层开始，Athlete 的 session 会持久化结构化 `runtimeStats`，
 作为正式运行态仪表盘的真相源。
 
+prompt layer metrics 不属于这里的持久化真相源；它们只是在 request 构建阶段即时派生，用于诊断 prompt 体积与分层占比。
+
 它回答的是：
 
 - 这次 session 一共发了多少次 provider request
