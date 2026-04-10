@@ -17,5 +17,6 @@ Use this skill when the user gives you a PDF or asks for content from a scanned 
 
 1. Call `mineru_pdf_read` instead of `read_file`.
 2. Let MinerU produce Markdown artifacts under the project state directory.
-3. Read only the needed subset of the extracted Markdown for downstream reasoning.
-4. Prefer citing extracted structure, headings, and sections over raw binary guesses.
+3. If the PDF is still remote, acquire it first with `download_url` so the document chain can continue locally.
+4. Read only the needed subset of the extracted Markdown for downstream reasoning.
+5. Prefer citing extracted structure, headings, sections, and page evidence over raw binary guesses.

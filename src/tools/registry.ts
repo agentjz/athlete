@@ -19,6 +19,8 @@ import { readDocxTool } from "./documents/readDocxTool.js";
 import { readFileTool } from "./files/readFileTool.js";
 import { readInboxTool } from "./team/readInboxTool.js";
 import { readSpreadsheetTool } from "./documents/readSpreadsheetTool.js";
+import { downloadUrlTool } from "./network/downloadUrlTool.js";
+import { httpProbeTool } from "./network/httpProbeTool.js";
 import { runShellTool } from "./shell/runShellTool.js";
 import { searchFilesTool } from "./files/searchFilesTool.js";
 import { sendMessageTool } from "./team/sendMessageTool.js";
@@ -57,6 +59,7 @@ const READ_ONLY_TOOLS: readonly RegisteredTool[] = [
   mineruPptReadTool,
   readDocxTool,
   readSpreadsheetTool,
+  httpProbeTool,
   searchFilesTool,
   loadSkillTool,
   worktreeListTool,
@@ -92,6 +95,7 @@ const AGENT_TOOLS: readonly RegisteredTool[] = [
   editFileTool,
   applyPatchTool,
   undoLastChangeTool,
+  downloadUrlTool,
   runShellTool,
 ] as const;
 

@@ -3,6 +3,7 @@ import { createMessage } from "../session/messages.js";
 import { createInternalReminder } from "../session/taskState.js";
 import { hasIncompleteTodos } from "../session/todos.js";
 import {
+  createAcceptanceRequiredTransition,
   buildRunTurnResult,
   createFinalizeTransition,
   createIncompleteTodoTransition,
@@ -15,7 +16,7 @@ import { persistCheckpointTransition } from "./persistence.js";
 import { getAutoVerificationAttempt } from "../verification/signals.js";
 import { isVerificationAwaitingUser, isVerificationRequired, noteVerificationReminder, recordVerificationAttempt } from "../verification/state.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "../types.js";
-import type { RuntimeContinueTransition, SessionRecord, ToolCallRecord, VerificationState } from "../../types.js";
+import type { AcceptanceState, RuntimeContinueTransition, SessionRecord, ToolCallRecord, VerificationState } from "../../types.js";
 
 interface HandleCompletedAssistantResponseParams {
   session: SessionRecord;
@@ -25,6 +26,7 @@ interface HandleCompletedAssistantResponseParams {
   hadIncompleteTodosAtStart: boolean;
   hasSubstantiveToolActivity: boolean;
   verificationState?: VerificationState;
+  acceptanceState?: AcceptanceState;
   validationReminderInjected: boolean;
   options: RunTurnOptions;
 }
@@ -63,6 +65,7 @@ export async function handleCompletedAssistantResponse(
     hasSubstantiveToolActivity: params.hasSubstantiveToolActivity,
     verificationState: params.verificationState,
   });
+  const acceptanceState = params.acceptanceState ?? params.session.acceptanceState;
 
   if (requiresVerification && !validationAttempted) {
     const autoVerification = await getAutoVerificationAttempt({
@@ -122,6 +125,32 @@ export async function handleCompletedAssistantResponse(
       transition,
     );
     params.options.callbacks?.onStatus?.("Todo list still has open items. Asking the model to continue...");
+    return {
+      kind: "continue",
+      session,
+      validationReminderInjected: params.validationReminderInjected,
+      transition,
+    };
+  }
+
+  if (acceptanceState?.contract && acceptanceState.status !== "satisfied") {
+    const transition = createAcceptanceRequiredTransition({
+      phase: acceptanceState.currentPhase,
+      pendingChecks: acceptanceState.pendingChecks,
+      stalledPhaseCount: acceptanceState.stalledPhaseCount,
+    });
+    const reminder = acceptanceState.lastIssueSummary
+      ? `${acceptanceState.lastIssueSummary} Do not finalize until the acceptance gate is satisfied.`
+      : "Acceptance gate is still unmet. Do not finalize until every required file and validation check passes.";
+    const session = await persistCheckpointTransition(
+      await params.options.sessionStore.appendMessages(params.session, [
+        assistantMessage,
+        createMessage("user", createInternalReminder(reminder)),
+      ]),
+      params.options.sessionStore,
+      transition,
+    );
+    params.options.callbacks?.onStatus?.("Acceptance gate still has pending checks. Asking the model to continue...");
     return {
       kind: "continue",
       session,

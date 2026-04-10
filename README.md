@@ -86,6 +86,8 @@ Athlete 想坚持的，不是“让模型显得更聪明”，而是让任务真
 | Word 写入 / 编辑 | `write_docx` / `edit_docx` | ✅ |
 | PPT / PPTX 读取 | MinerU `mineru_ppt_read` | ✅ |
 | 表格读取 | `read_spreadsheet`，支持 `xlsx` / `xls` / `csv` / `tsv` / `ods` | ✅ |
+| 远程文件获取 | `download_url`，把公开 URL 落到本地再进入文档/文件链 | ✅ |
+| HTTP 探针 | `http_probe`，验证本地或远程页面 / API 是否真的可达 | ✅ |
 | 本地文件读写 / 补丁 | 内建 tools：`read_file` / `write_file` / `edit_file` / `apply_patch` / `search_files` | ✅ |
 | Shell 与后台任务 | `run_shell` / `background_run` / `background_check` | ✅ |
 | 任务板与协作队友 | `task` / `spawn_teammate` / `read_inbox` / `send_message` | ✅ |

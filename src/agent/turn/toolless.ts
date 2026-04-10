@@ -72,6 +72,7 @@ export async function resolveToollessTurn(
     hadIncompleteTodosAtStart: params.hadIncompleteTodosAtStart,
     hasSubstantiveToolActivity: params.hasSubstantiveToolActivity,
     verificationState: params.session.verificationState,
+    acceptanceState: params.session.acceptanceState,
     validationReminderInjected: params.validationReminderInjected,
     options: params.options,
   });

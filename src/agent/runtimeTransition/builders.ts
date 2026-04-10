@@ -92,6 +92,26 @@ export function createVerificationFailedTransition(
   };
 }
 
+export function createAcceptanceRequiredTransition(
+  input: {
+    phase?: string;
+    pendingChecks?: string[];
+    stalledPhaseCount?: number;
+  },
+  timestamp = new Date().toISOString(),
+): RuntimeContinueTransition {
+  return {
+    action: "continue",
+    reason: {
+      code: "continue.acceptance_required",
+      phase: normalizeText(input.phase) || "active",
+      pendingChecks: takeLastUnique(input.pendingChecks ?? []),
+      stalledPhaseCount: clampWholeNumber(input.stalledPhaseCount, 0, 99, 0) ?? 0,
+    },
+    timestamp,
+  };
+}
+
 export function createProviderRecoveryTransition(
   input: {
     consecutiveFailures: number;

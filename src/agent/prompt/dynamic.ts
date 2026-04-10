@@ -11,6 +11,7 @@ import type { PromptRuntimeState } from "./types.js";
 import type {
   ProjectContext,
   RuntimeConfig,
+  AcceptanceState,
   SessionCheckpoint,
   SkillRuntimeState,
   TaskState,
@@ -25,6 +26,7 @@ interface DynamicPromptInput {
   taskState?: TaskState;
   todoItems?: TodoItem[];
   verificationState?: VerificationState;
+  acceptanceState?: AcceptanceState;
   runtimeState: PromptRuntimeState;
   skillRuntimeState: SkillRuntimeState;
   checkpoint?: SessionCheckpoint;
@@ -44,6 +46,7 @@ export function buildDynamicPromptBlocks(input: DynamicPromptInput): string[] {
     buildRuntimeEnvironmentBlock(input),
     buildTaskExecutionBlock(input.taskState, input.todoItems),
     buildVerificationBlock(input.verificationState),
+    buildAcceptanceBlock(input.acceptanceState),
     buildCheckpointBlock(input.checkpoint),
     isSubagent ? undefined : buildCoordinationBlock(input.runtimeState),
     buildSkillBlock(input.projectContext.skills, input.skillRuntimeState),
@@ -147,6 +150,30 @@ function buildVerificationBlock(state: VerificationState | undefined): string | 
   }
 
   return buildFieldBlock("Verification focus", fields);
+}
+
+function buildAcceptanceBlock(state: AcceptanceState | undefined): string | undefined {
+  if (!state?.contract) {
+    return undefined;
+  }
+
+  const fields: PromptField[] = [
+    { label: "Contract kind", value: state.contract.kind },
+    { label: "Current phase", value: state.currentPhase ?? "active" },
+    { label: "Status", value: state.status },
+  ];
+
+  if (state.pendingChecks.length > 0) {
+    fields.push({ label: "Pending checks", value: formatLimitedList(state.pendingChecks, 6) });
+  }
+  if (state.stalledPhaseCount > 0) {
+    fields.push({ label: "Stalled count", value: String(state.stalledPhaseCount) });
+  }
+  if (state.lastIssueSummary) {
+    fields.push({ label: "Gate summary", value: state.lastIssueSummary });
+  }
+
+  return buildFieldBlock("Acceptance gate", fields);
 }
 
 function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined): string | undefined {

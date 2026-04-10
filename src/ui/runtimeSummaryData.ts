@@ -25,6 +25,7 @@ export async function buildRuntimePromptDiagnostics(input: {
       runtimeState,
       undefined,
       input.session.checkpoint,
+      input.session.acceptanceState,
     );
     const requestContext = buildRequestContext(promptLayers, input.session.messages, input.config);
 

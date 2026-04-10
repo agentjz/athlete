@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { SessionRecord, StoredMessage } from "../../types.js";
+import { deriveAcceptanceState, normalizeAcceptanceState } from "../acceptance.js";
 import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "../checkpoint.js";
 import { createEmptyRuntimeStats, normalizeSessionRuntimeStats } from "../runtimeMetrics.js";
 import { createEmptyTaskState, deriveTaskState, normalizeSessionRecord as normalizeTaskStateSessionRecord } from "./taskState.js";
@@ -143,6 +144,9 @@ function prepareSessionRecord(session: SessionRecord): SessionRecord {
     todoItems: deriveTodoItems(normalizedMessages, session.todoItems ?? []),
     taskState: deriveTaskState(normalizedMessages, session.taskState),
     verificationState: verificationNormalized,
+    acceptanceState: normalizeAcceptanceState(
+      deriveAcceptanceState(normalizedMessages, session.acceptanceState),
+    ),
   };
 
   return normalizeSessionRuntimeStats(normalizeSessionCheckpoint(prepared));
@@ -155,6 +159,9 @@ function normalizeStoredSessionRecord(session: SessionRecord): SessionRecord {
   return {
     ...normalized,
     todoItems: deriveTodoItems(normalized.messages ?? [], normalized.todoItems ?? []),
+    acceptanceState: normalizeAcceptanceState(
+      deriveAcceptanceState(normalized.messages ?? [], normalized.acceptanceState),
+    ),
   };
 }
 

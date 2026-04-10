@@ -239,8 +239,10 @@ function buildToolCallDisplay(
     case "mineru_pdf_read":
     case "mineru_ppt_read":
     case "read_spreadsheet":
+    case "download_url":
+    case "http_probe":
       return {
-        summary: `${name} ${path ?? "(missing path)"}`,
+        summary: `${name} ${path ?? readStringField(args, "url") ?? "(missing path)"}`,
       };
     case "list_files":
       return {

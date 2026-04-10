@@ -9,6 +9,7 @@ export {
 export { normalizeRuntimeTransition } from "./runtimeTransition/normalize.js";
 
 export {
+  createAcceptanceRequiredTransition,
   buildRunTurnResult,
   createFinalizeTransition,
   createIncompleteTodoTransition,

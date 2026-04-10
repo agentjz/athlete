@@ -14,6 +14,7 @@ import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "
 import { createStoredToolMessage } from "./toolResults/storage.js";
 import { filterToolDefinitionsForCloseout, noteSubstantiveToolActivity } from "./turn/closeout.js";
 import { emitAssistantFinalOutput, emitAssistantReasoning, shouldInjectTodoReminder } from "./turn/finalize.js";
+import { refreshAcceptanceStateForTurn } from "./turn/acceptance.js";
 import { ToolLoopGuard } from "./turn/loopGuard.js";
 import { getPlanBlockedResult, readCommandFromArgs } from "./turn/planGate.js";
 import { initializeTurnSession, persistRecoveryTurn, persistToolBatchCheckpoint, persistYieldedTurn } from "./turn/persistence.js";
@@ -74,6 +75,10 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       }
       session = await injectInboxMessagesIfNeeded(session, options, identity, projectContext.stateRootDir);
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
+      session = await refreshAcceptanceStateForTurn(session, {
+        cwd: options.cwd,
+        sessionStore: options.sessionStore,
+      });
       const runtimeState = await loadPromptRuntimeState(projectContext.stateRootDir, identity, options.cwd);
       const skillRuntimeState = buildSkillRuntimeState({
         skills: projectContext.skills,
@@ -84,7 +89,18 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         taskSummary: runtimeState.taskSummary,
         availableToolNames,
       });
-      let promptLayers = buildSystemPromptLayers(options.cwd, options.config, projectContext, session.taskState, session.todoItems, session.verificationState, runtimeState, skillRuntimeState, session.checkpoint);
+      let promptLayers = buildSystemPromptLayers(
+        options.cwd,
+        options.config,
+        projectContext,
+        session.taskState,
+        session.todoItems,
+        session.verificationState,
+        runtimeState,
+        skillRuntimeState,
+        session.checkpoint,
+        session.acceptanceState,
+      );
       promptLayers = extendPromptLayersForTurnState(promptLayers, session.checkpoint, iteration, softToolLimit, consecutiveRequestFailures);
       const requestModel = pickRequestModel(options.config.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);

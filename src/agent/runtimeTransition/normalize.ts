@@ -122,6 +122,17 @@ function normalizeContinueTransition(
         },
         timestamp,
       };
+    case "continue.acceptance_required":
+      return {
+        action: "continue",
+        reason: {
+          code: reason.code,
+          phase: normalizeText(reason.phase) || "active",
+          pendingChecks: takeLastUnique(reason.pendingChecks ?? []),
+          stalledPhaseCount: clampWholeNumber(reason.stalledPhaseCount, 0, 99, 0) ?? 0,
+        },
+        timestamp,
+      };
     default:
       return undefined;
   }

@@ -331,6 +331,11 @@ function describeTransition(transition: RuntimeTransition): RuntimeSummaryExplan
         reasonCode: transition.reason.code,
         summary: `Runtime continued because the last verification failed${transition.reason.lastCommand ? ` (${transition.reason.lastCommand})` : ""}.`,
       };
+    case "continue.acceptance_required":
+      return {
+        reasonCode: transition.reason.code,
+        summary: `Runtime continued because the acceptance gate is still in phase '${transition.reason.phase}' with pending checks: ${formatPaths(transition.reason.pendingChecks)}.`,
+      };
     case "continue.resume_from_checkpoint":
       return {
         reasonCode: transition.reason.code,

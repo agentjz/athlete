@@ -6,6 +6,7 @@ import type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./pro
 import type {
   ProjectContext,
   RuntimeConfig,
+  AcceptanceState,
   SessionCheckpoint,
   SkillRuntimeState,
   TaskState,
@@ -27,6 +28,7 @@ export function buildSystemPromptLayers(
   runtimeState: PromptRuntimeState = {},
   skillRuntimeState?: SkillRuntimeState,
   checkpoint?: SessionCheckpoint,
+  acceptanceState?: AcceptanceState,
 ): PromptLayers {
   const resolvedSkillRuntimeState = skillRuntimeState ?? createEmptySkillRuntimeState();
 
@@ -46,6 +48,7 @@ export function buildSystemPromptLayers(
       runtimeState,
       skillRuntimeState: resolvedSkillRuntimeState,
       checkpoint,
+      acceptanceState,
     }),
   };
 }

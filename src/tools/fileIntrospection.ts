@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { getToolRouteHintForPath } from "./routing.js";
+import { decodeTextBuffer } from "../utils/text.js";
 
 const KNOWN_BINARY_EXTENSIONS = new Set([
   ".epub",
@@ -71,7 +72,8 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
   }
 
   const buffer = await fs.readFile(filePath);
-  if (buffer.includes(0)) {
+  const decoded = decodeTextBuffer(buffer);
+  if (!decoded) {
     return {
       readable: false,
       reason: "Binary file detected",
@@ -81,10 +83,10 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
     };
   }
 
-  const slice = buffer.subarray(0, Math.min(buffer.length, maxBytes));
+  const slice = decoded.text.slice(0, Math.min(decoded.text.length, maxBytes));
   return {
     readable: true,
-    content: slice.toString("utf8"),
+    content: slice,
     size: stat.size,
     extension,
   };

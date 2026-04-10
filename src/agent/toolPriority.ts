@@ -131,6 +131,10 @@ function getToolPriorityRank(
     return 10 + getBrowserStepRank(governance);
   }
 
+  if (name === "download_url") {
+    return 25;
+  }
+
   if (governance?.specialty === "filesystem" && governance.mutation === "read") {
     return 200;
   }

@@ -4,6 +4,7 @@ import path from "node:path";
 import { diffLines } from "diff";
 
 import { truncateText } from "../utils/fs.js";
+import { decodeTextBuffer } from "../utils/text.js";
 import type { RegisteredTool } from "./types.js";
 import type { ToolExecutionMetadata, ToolExecutionResult } from "../types.js";
 
@@ -157,11 +158,12 @@ export async function walkDirectory(
 export async function tryReadTextFile(filePath: string, maxBytes: number): Promise<string | null> {
   try {
     const buffer = await fs.readFile(filePath);
-    if (buffer.includes(0)) {
+    const decoded = decodeTextBuffer(buffer);
+    if (!decoded) {
       return null;
     }
 
-    return truncateText(buffer.toString("utf8"), maxBytes);
+    return truncateText(decoded.text, maxBytes);
   } catch {
     return null;
   }

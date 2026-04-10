@@ -102,6 +102,7 @@ function buildToolUseContract(
     "Prefer specialized browser and document tools over generic file reads or shell fetching when those tools are available.",
     "When file introspection or tool recovery points to a better specialized tool, follow that routing hint instead of forcing read_file or shell detours.",
     "For structured document creation or section-aware updates, use the dedicated document editing tools exposed in this session.",
+    "If an acceptance gate is present in runtime state, treat it as machine-enforced closeout criteria instead of optional guidance.",
     "After changes or mutating commands, run verification appropriate to the risk and artifact type. Targeted tests, builds, readbacks, and lightweight auto-readback are valid when sufficient.",
     "Never finish while known verification failures remain unresolved.",
   ];
