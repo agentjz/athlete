@@ -56,8 +56,14 @@ export function listTaskRecords(db: Database.Database): TaskRecord[] {
 
   const blockedBy = new Map<number, number[]>();
   const blocks = new Map<number, number[]>();
+  const statusById = new Map<number, TaskRecord["status"]>();
+  for (const row of taskRows) {
+    statusById.set(row.id, row.status as TaskRecord["status"]);
+  }
   for (const row of dependencyRows) {
-    blockedBy.set(row.blocked_task_id, [...(blockedBy.get(row.blocked_task_id) ?? []), row.blocker_task_id]);
+    if (statusById.get(row.blocker_task_id) !== "completed") {
+      blockedBy.set(row.blocked_task_id, [...(blockedBy.get(row.blocked_task_id) ?? []), row.blocker_task_id]);
+    }
     blocks.set(row.blocker_task_id, [...(blocks.get(row.blocker_task_id) ?? []), row.blocked_task_id]);
   }
 

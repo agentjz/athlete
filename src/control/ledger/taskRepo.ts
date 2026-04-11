@@ -195,13 +195,6 @@ export class TaskLedgerRepo {
         `).run(id, blockedTaskId);
       }
 
-      if (nextStatus === "completed" && task.status !== "completed") {
-        this.db.prepare(`
-          DELETE FROM task_dependencies
-          WHERE blocker_task_id = ?
-        `).run(id);
-      }
-
       return this.load(id);
     });
 

@@ -1,7 +1,13 @@
 import crypto from "node:crypto";
 
 import type { TaskRecord } from "../tasks/types.js";
-import type { OrchestratorObjective, OrchestratorTaskMeta, OrchestratorTaskSnapshot } from "./types.js";
+import type {
+  OrchestratorAnalysis,
+  OrchestratorExecutorKind,
+  OrchestratorObjective,
+  OrchestratorTaskMeta,
+  OrchestratorTaskSnapshot,
+} from "./types.js";
 
 const ORCHESTRATOR_MARKER = "[athlete-orchestrator]";
 
@@ -41,7 +47,12 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
       return null;
     }
 
-    if (parsed.kind !== "survey" && parsed.kind !== "implementation" && parsed.kind !== "validation") {
+    if (
+      parsed.kind !== "survey" &&
+      parsed.kind !== "implementation" &&
+      parsed.kind !== "validation" &&
+      parsed.kind !== "merge"
+    ) {
       return null;
     }
 
@@ -49,6 +60,7 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
       key: normalizeText(parsed.key),
       kind: parsed.kind,
       objective: normalizeText(parsed.objective),
+      executor: normalizeExecutor(parsed.executor, parsed),
       backgroundCommand: normalizeOptionalText(parsed.backgroundCommand),
       delegatedTo: normalizeOptionalText(parsed.delegatedTo),
       jobId: normalizeOptionalText(parsed.jobId),
@@ -65,6 +77,7 @@ export function writeOrchestratorMetadata(description: string, meta: Orchestrato
       key: normalizeText(meta.key),
       kind: meta.kind,
       objective: normalizeText(meta.objective),
+      executor: normalizeExecutor(meta.executor, meta),
       backgroundCommand: normalizeOptionalText(meta.backgroundCommand),
       delegatedTo: normalizeOptionalText(meta.delegatedTo),
       jobId: normalizeOptionalText(meta.jobId),
@@ -91,4 +104,67 @@ function normalizeText(value: unknown): string {
 function normalizeOptionalText(value: unknown): string | undefined {
   const normalized = normalizeText(value);
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeExecutor(
+  value: unknown,
+  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId">>,
+): OrchestratorExecutorKind {
+  const normalized = normalizeText(value).toLowerCase();
+  if (
+    normalized === "lead" ||
+    normalized === "subagent" ||
+    normalized === "teammate" ||
+    normalized === "background"
+  ) {
+    return normalized;
+  }
+
+  return inferExecutorFromMetadata(meta);
+}
+
+function inferExecutorFromMetadata(
+  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId">>,
+): OrchestratorExecutorKind {
+  if (meta.kind === "merge") {
+    return "lead";
+  }
+
+  if (meta.jobId || meta.backgroundCommand) {
+    return "background";
+  }
+
+  if (meta.delegatedTo) {
+    return "teammate";
+  }
+
+  if (meta.kind === "survey") {
+    return "subagent";
+  }
+
+  return "lead";
+}
+
+export function resolveOrchestratorExecutor(
+  task: Pick<OrchestratorTaskSnapshot, "meta">,
+  analysis?: Pick<OrchestratorAnalysis, "needsInvestigation" | "prefersParallel" | "complexity" | "wantsBackground" | "backgroundCommand" | "wantsSubagent" | "wantsTeammate">,
+): OrchestratorExecutorKind {
+  if (task.meta.executor) {
+    return task.meta.executor;
+  }
+
+  switch (task.meta.kind) {
+    case "merge":
+      return "lead";
+    case "survey":
+      return analysis?.needsInvestigation || analysis?.wantsSubagent ? "subagent" : "lead";
+    case "validation":
+      return analysis?.wantsBackground && analysis.backgroundCommand ? "background" : inferExecutorFromMetadata(task.meta);
+    case "implementation":
+      return analysis?.wantsTeammate || (analysis?.prefersParallel && analysis.complexity === "complex")
+        ? "teammate"
+        : inferExecutorFromMetadata(task.meta);
+    default:
+      return inferExecutorFromMetadata(task.meta);
+  }
 }

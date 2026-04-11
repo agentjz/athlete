@@ -24,7 +24,9 @@ export function claimTask(db: Database.Database, taskId: number, owner: string):
       AND NOT EXISTS (
         SELECT 1
         FROM task_dependencies
+        INNER JOIN tasks AS blockers ON blockers.id = task_dependencies.blocker_task_id
         WHERE blocked_task_id = tasks.id
+          AND blockers.status <> 'completed'
       )
   `).run(normalizedOwner, now, Math.trunc(taskId), normalizedOwner, normalizedOwner);
 

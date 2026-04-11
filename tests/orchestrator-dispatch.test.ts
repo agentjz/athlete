@@ -3,9 +3,10 @@ import test from "node:test";
 
 import { MemorySessionStore } from "../src/agent/session.js";
 import { dispatchOrchestratorAction } from "../src/orchestrator/dispatch.js";
+import { buildOrchestratorObjective } from "../src/orchestrator/metadata.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
-import { prepareLeadTurn } from "../src/orchestrator/prepareLeadTurn.js";
+import { routeOrchestratorAction } from "../src/orchestrator/route.js";
 import { BackgroundJobStore } from "../src/background/store.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
@@ -171,18 +172,54 @@ test("dispatchOrchestratorAction creates real background jobs through Background
   assert.equal(jobs[0]?.command, "node -e \"setTimeout(() => console.log(123), 500)\"");
 });
 
-test("prepareLeadTurn does not silently launch duplicate background jobs after continuation reload", async (t) => {
+test("background routing does not silently launch duplicate jobs after reload", async (t) => {
   const root = await createTempWorkspace("orchestrator-background-repeat", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
+  const analysis = {
+    objective: buildOrchestratorObjective("Run the validation suite in the background: `npm test -- --watch=false`"),
+    complexity: "moderate" as const,
+    needsInvestigation: false,
+    prefersParallel: false,
+    wantsBackground: true,
+    wantsSubagent: false,
+    wantsTeammate: false,
+    backgroundCommand: "npm test -- --watch=false",
+  };
+  await ensureTaskPlan({
+    rootDir: root,
+    cwd: root,
+    analysis,
+    existingTasks: [],
+  });
+  const taskStore = new TaskStore(root);
+  const implementation = (await taskStore.list()).find((task) => task.subject.startsWith("Implement:"));
+  assert.ok(implementation);
+  await taskStore.update(implementation!.id, {
+    status: "completed",
+  });
   let spawnCount = 0;
 
-  const first = await prepareLeadTurn({
-    input: "Run the validation suite in the background: `npm test -- --watch=false`",
+  const firstProgress = await loadOrchestratorProgress({
+    rootDir: root,
+    cwd: root,
+    objective: analysis.objective,
+  });
+  const validationTask = firstProgress.relevantTasks.find((task) => task.record.subject.startsWith("Validate:"));
+  assert.ok(validationTask);
+  await dispatchOrchestratorAction({
+    rootDir: root,
     cwd: root,
     config: createTestRuntimeConfig(root),
     session,
     sessionStore,
+    analysis,
+    decision: {
+      action: "run_in_background",
+      reason: "background validation",
+      task: validationTask!,
+      backgroundCommand: analysis.backgroundCommand,
+    },
     deps: {
       spawnBackgroundProcess: () => {
         spawnCount += 1;
@@ -191,22 +228,24 @@ test("prepareLeadTurn does not silently launch duplicate background jobs after c
     },
   });
 
-  const second = await prepareLeadTurn({
-    input: "continue",
+  const secondProgress = await loadOrchestratorProgress({
+    rootDir: root,
     cwd: root,
-    config: createTestRuntimeConfig(root),
-    session: first.session,
-    sessionStore,
-    deps: {
-      spawnBackgroundProcess: () => {
-        spawnCount += 1;
-        return 9000 + spawnCount;
-      },
+    objective: analysis.objective,
+  });
+  const secondDecision = routeOrchestratorAction({
+    analysis,
+    progress: secondProgress,
+    plan: {
+      objective: analysis.objective,
+      createdTaskIds: [],
+      tasks: secondProgress.relevantTasks,
+      readyTasks: secondProgress.readyTasks,
     },
   });
 
   const jobs = await new BackgroundJobStore(root).list();
   assert.equal(spawnCount, 1);
   assert.equal(jobs.length, 1);
-  assert.notEqual(second.decision.action, "run_in_background");
+  assert.notEqual(secondDecision.action, "run_in_background");
 });

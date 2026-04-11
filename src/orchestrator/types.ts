@@ -9,7 +9,8 @@ import type { TaskRecord } from "../tasks/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";
 
 export type OrchestratorComplexity = "simple" | "moderate" | "complex";
-export type OrchestratorTaskKind = "survey" | "implementation" | "validation";
+export type OrchestratorTaskKind = "survey" | "implementation" | "validation" | "merge";
+export type OrchestratorExecutorKind = "lead" | "subagent" | "teammate" | "background";
 export type OrchestratorAction =
   | "self_execute"
   | "delegate_subagent"
@@ -26,6 +27,7 @@ export interface OrchestratorTaskMeta {
   key: string;
   kind: OrchestratorTaskKind;
   objective: string;
+  executor?: OrchestratorExecutorKind;
   backgroundCommand?: string;
   delegatedTo?: string;
   jobId?: string;

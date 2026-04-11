@@ -14,6 +14,7 @@ const TASK_KIND_ORDER = {
   survey: 0,
   implementation: 1,
   validation: 2,
+  merge: 3,
 } as const;
 
 export async function loadOrchestratorProgress(input: {

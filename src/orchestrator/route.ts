@@ -1,4 +1,5 @@
 import type { TeamMemberRecord } from "../team/types.js";
+import { resolveOrchestratorExecutor } from "./metadata.js";
 import { getOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 import type {
   OrchestratorAnalysis,
@@ -13,15 +14,15 @@ export function routeOrchestratorAction(input: {
   progress: OrchestratorProgressSnapshot;
   plan: OrchestratorTaskPlan;
 }): OrchestratorDecision {
-  const readyTasks = (input.plan.readyTasks.length > 0 ? input.plan.readyTasks : input.progress.readyTasks)
-    .filter((task) => {
-      const lifecycle = getOrchestratorTaskLifecycle(task);
-      return lifecycle.stage === "ready" && lifecycle.runnableBy.kind === "lead";
-    });
+  const readyTasks = (input.plan.tasks.length > 0 ? input.plan.tasks : input.progress.relevantTasks)
+    .filter((task) => getOrchestratorTaskLifecycle(task).stage === "ready");
   const conflictingTask = input.progress.relevantTasks.find((task) => getOrchestratorTaskLifecycle(task).illegal);
-  const surveyTask = readyTasks.find((task) => task.meta.kind === "survey");
-  const implementationTask = readyTasks.find((task) => task.meta.kind === "implementation");
-  const validationTask = readyTasks.find((task) => task.meta.kind === "validation");
+  const mergeTask = readyTasks.find((task) => task.meta.kind === "merge");
+  const surveyTask = readyTasks.find((task) => task.meta.kind === "survey" && resolveOrchestratorExecutor(task, input.analysis) === "subagent");
+  const backgroundTask = readyTasks.find((task) =>
+    resolveOrchestratorExecutor(task, input.analysis) === "background" && !task.meta.jobId);
+  const teammateTask = readyTasks.find((task) => resolveOrchestratorExecutor(task, input.analysis) === "teammate");
+  const leadTask = readyTasks.find((task) => resolveOrchestratorExecutor(task, input.analysis) === "lead");
 
   if (conflictingTask) {
     const lifecycle = getOrchestratorTaskLifecycle(conflictingTask);
@@ -29,6 +30,14 @@ export function routeOrchestratorAction(input: {
       action: "self_execute",
       reason: `Task #${conflictingTask.record.id} has a control-plane conflict (${lifecycle.reasonCode}): ${lifecycle.reason}`,
       task: conflictingTask,
+    };
+  }
+
+  if (mergeTask) {
+    return {
+      action: "self_execute",
+      reason: `Task #${mergeTask.record.id} is the next lead merge step.`,
+      task: mergeTask,
     };
   }
 
@@ -41,43 +50,43 @@ export function routeOrchestratorAction(input: {
     };
   }
 
-  if (input.analysis.wantsBackground && input.analysis.backgroundCommand) {
-    const runningMatch = input.progress.runningBackgroundJobs.find((job) => job.command === input.analysis.backgroundCommand);
-    if (runningMatch && !implementationTask && !validationTask) {
-      return {
-        action: "wait_for_existing_work",
-        reason: `Background job ${runningMatch.id} is still running.`,
-      };
-    }
+  if (backgroundTask) {
+    const backgroundCommand = backgroundTask.meta.backgroundCommand ?? input.analysis.backgroundCommand;
+    if (backgroundCommand) {
+      const runningMatch = input.progress.runningBackgroundJobs.find((job) => job.command === backgroundCommand);
+      if (runningMatch) {
+        return {
+          action: "wait_for_existing_work",
+          reason: `Background job ${runningMatch.id} is still running.`,
+        };
+      }
 
-    const targetTask = [validationTask, implementationTask].find((task) => task && !task.meta.jobId);
-    if (targetTask) {
       return {
         action: "run_in_background",
-        reason: `Task #${targetTask.record.id} should run as background work.`,
-        task: targetTask,
-        backgroundCommand: input.analysis.backgroundCommand,
+        reason: `Task #${backgroundTask.record.id} should run as background work.`,
+        task: backgroundTask,
+        backgroundCommand,
       };
     }
   }
 
-  if (implementationTask && shouldDelegateToTeammate(input.analysis, input.progress, implementationTask)) {
+  if (teammateTask && shouldDelegateToTeammate(input.analysis, input.progress, teammateTask)) {
     return {
       action: "delegate_teammate",
-      reason: `Task #${implementationTask.record.id} can run in parallel.`,
-      task: implementationTask,
-      teammate: selectTeammateTarget(input.progress.idleTeammates, input.progress.teammates, implementationTask),
+      reason: `Task #${teammateTask.record.id} can run on a teammate lane.`,
+      task: teammateTask,
+      teammate: selectTeammateTarget(input.progress.idleTeammates, input.progress.teammates, teammateTask),
     };
   }
 
-  if (!implementationTask && !validationTask && hasRunningDelegatedWork(input.progress)) {
+  if (!leadTask && hasRunningDelegatedWork(input.progress)) {
     return {
       action: "wait_for_existing_work",
       reason: "Delegated work is already in progress and no ready task remains for the lead.",
     };
   }
 
-  const focusTask = implementationTask ?? validationTask ?? readyTasks[0];
+  const focusTask = leadTask ?? readyTasks[0];
   return {
     action: "self_execute",
     reason: focusTask

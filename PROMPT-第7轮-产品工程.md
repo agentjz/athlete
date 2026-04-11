@@ -1,29 +1,60 @@
-# 第 7 轮强约束提示词：产品工程
+# 第 7 轮强约束提示词：产品工程（建立在第 6 轮已完成调度系统之上）
 
 你是 `GPT-5.4 Codex`，正在 `athlete` 仓库中执行“第 7 轮：产品工程”。
 
-这是一个新项目。
-如果旧命令残影、旧输出格式、旧配置残余、旧脏入口会拖累当前更优结构，直接删、直接收口、直接重写。
-不要为了旧错误路径保留长期兼容。
+## 第 6 轮已完成前提
 
-这一轮不是加新能力大礼包。
-这一轮的唯一目标，是把当前系统从“研究仓库气质”打磨成“产品气质”。
+以下内容视为已完成并且是当前主干事实：
+
+1. SQLite 控制面账本已经是正式真相源，账本文件是 `.athlete/control-plane.sqlite`。
+2. `lead / subagent / teammate / background` 已经有正式调度规则，且 `split / dispatch / wait / merge` 已经落地。
+3. 复杂 objective 已能落成机器可恢复任务图，必要时会生成正式 `merge` 节点。
+4. readiness、ownership、handoff legality、worktree legality 已由正式真相源推导。
+5. reload / continue / reconcile 后，调度现场可以恢复。
+6. 第 6 轮相关文档、失败测试、实现、验证已经完成并通过 `npm.cmd run check` 与 `npm.cmd test`。
+
+本轮禁止回退到第 6 轮之前的状态。
+
+如果你发现第 6 轮还有零星缺口，只允许做最小修补，不允许：
+
+- 重新引入 JSON 真相源
+- 重新引入双写
+- 重新把协调逻辑塞回 prompt
+- 把本轮重新做成“再来一轮调度工程”
+
+## 这轮到底要做什么
+
+这一轮不是加新业务能力大礼包。
+
+这一轮要做的是：把当前系统从“骨架已经成立的工程仓库”继续打磨成“能让用户一上手就觉得像产品”的 CLI 工程。
+
+重点不是新功能数量。
+重点是：启动、配置、错误、恢复、运行透明度、轻命令体验。
 
 ## 本轮唯一目标
 
-把 Athlete 的 **启动、恢复、报错、配置处理、运行透明度** 做硬。
-
-这一轮不追求新业务能力。
-这一轮追求的是：用户一上手就觉得它像产品，而不是像一个功能很多但脆的工程仓库。
+把 Athlete 的 **CLI 启动链、配置治理、错误呈现、运行透明度、产品级文本链路** 做硬，让系统在“用户操作感受”上明显升级。
 
 ## 本轮完成后必须成立
 
-1. CLI 有明确 fast path，至少把版本、帮助、轻命令入口做顺。
-2. 启动链更清楚，重模块不应无脑全量提早加载。
-3. 错误提示更可操作，不是只有技术报错。
-4. 配置具备明确 schema version 与处理策略；旧错误配置不要求长期兼容。
-5. 运行透明度增强，用户能看懂系统在等什么、慢在哪、做了什么。
-6. 文档、失败测试、实现、验证必须全部完成。
+1. CLI 有明确 fast path，轻命令不会无脑走完整重路径。
+2. 启动链按职责拆清楚，`src/cli.ts` 不再继续长胖。
+3. 配置有明确 schema version 和处理策略；错误旧配置不要求长期兼容。
+4. 关键错误对用户是可操作的，不是只吐技术异常。
+5. runtime summary / doctor / one-shot closeout / 本地命令输出更稳定、更可读、更像产品。
+6. Windows 环境下的编码、路径、命令入口体验被认真考虑。
+7. 文档、失败测试、实现、验证必须全部完成。
+
+## 当前已知主问题
+
+以下问题视为本轮优先处理对象：
+
+1. `src/cli.ts` 入口仍偏重，轻命令与重初始化路径耦合过多。
+2. 顶层 import 过早拉起重模块，轻命令 fast path 不够硬。
+3. 配置虽然能读写，但“版本、迁移、错误旧配置处理策略”不够明确。
+4. `doctor`、CLI 报错、启动报错仍有技术味过重、用户可操作性不足的问题。
+5. runtime summary / turn display / visible events / 本地命令输出还可以更产品化、更稳定。
+6. 旧命令残影、旧输出碎片、旧配置偶然兼容的思路仍可能污染主路径。
 
 ## 开工前必须先读
 
@@ -46,13 +77,25 @@
 1. `src/cli.ts`
 2. `src/cli/support.ts`
 3. `src/config/store.ts`
-4. `src/ui/`
-5. `src/agent/runtimeMetrics/`
-6. `src/agent/runtimeTransition/`
-7. `src/chat/`
-8. `src/telegram/`
-9. `src/weixin/`
-10. 现有 CLI、doctor、runtime summary、visible events、turn display 相关测试
+4. `src/config/init.ts`
+5. `src/interaction/localCommands.ts`
+6. `src/ui/runtimeSummary.ts`
+7. `src/ui/runtimeSummaryData.ts`
+8. `src/chat/visibleEvents.ts`
+9. `src/agent/runtimeMetrics/`
+10. `src/agent/runtimeTransition/`
+11. `src/telegram/cli.ts`
+12. `src/weixin/cli.ts`
+
+### 当前相关测试
+
+1. `tests/one-shot-cli-result-contract.test.ts`
+2. `tests/interaction-shell.test.ts`
+3. `tests/runtime-observability.test.ts`
+4. `tests/text-chain-encoding.test.ts`
+5. `tests/telegram-cli.test.ts`
+6. `tests/weixin-cli.test.ts`
+7. 其余和 CLI / runtime summary / visible events / turn display / config 相关测试
 
 ### 参考目录
 
@@ -78,9 +121,9 @@
 ## 固定执行顺序
 
 1. 先阅读文档与参考。
-2. 先更新 `spec/` 与 README 中对产品行为的定义。
+2. 先更新 `spec/` 与 `README.md` 中对产品行为的定义。
 3. 先补失败测试。
-4. 再优化 CLI 启动、配置处理、错误提示、运行透明度。
+4. 再优化 CLI 启动链、配置处理、错误提示、运行透明度。
 5. 再清理旧残余入口与输出。
 6. 再跑完整验证。
 7. 最后检查文档和行为是否一致。
@@ -91,41 +134,71 @@
 
 1. `README.md`
 2. `spec/testing/测试策略.md`
-3. 新增一个专门描述 CLI 启动链与产品工程约束的文档或 ADR
-4. 如有必要，更新配置系统相关文档
+3. `spec/modules/config-system.md` 或等价配置文档
+4. 新增一个专门描述 CLI 启动链与产品工程约束的文档或 ADR
 
 文档里必须明确：
 
 1. 哪些 CLI 命令应该走 fast path。
-2. 配置文件是否有 schema version。
-3. 旧错误配置如何处理，是一次性清理、一次性重建，还是低成本一次性升级。
-4. 运行摘要应该告诉用户什么。
-5. 出错时哪些信息必须直接告诉用户。
-6. 哪些旧命令残影、旧输出残余不再保留。
+2. 哪些命令必须走完整 runtime 初始化。
+3. 配置文件是否有 schema version，版本不匹配时如何处理。
+4. 旧错误配置如何处理，是一次性清理、一次性重建，还是低成本一次性升级。
+5. runtime summary 应该告诉用户什么，哪些信号绝不能丢。
+6. 出错时哪些信息必须直接告诉用户，哪些只适合调试信息。
+7. 哪些旧命令残影、旧输出残余、旧兼容假象不再保留。
 
 ## 失败测试必须先覆盖
 
 至少覆盖这些场景：
 
 1. `--version` 或等价版本命令真实存在且可快速执行。
-2. 帮助输出与 CLI 行为稳定。
-3. 配置 schema 版本变化时会有明确处理路径，不会静默坏掉。
-4. 关键错误会以用户可读方式呈现。
-5. runtime summary 能反映真实的 request / tool / recovery / wait 状态。
-6. 启动链重构后，现有 one-shot、resume、doctor、telegram、weixin 入口行为不被破坏。
-7. 文本链路仍然稳定可读，不出现编码退化或输出碎裂。
-8. 旧残余命令路径或输出碎片不会继续污染主路径。
+2. `--help` / 帮助输出与 CLI 行为稳定，不因重初始化污染。
+3. 轻命令 fast path 不要求 API key，也不会意外拉起重 runtime。
+4. 配置 schema version 变化时有明确处理路径，不会静默坏掉。
+5. 关键错误会以用户可读方式呈现，并区分“用户可修复 / 环境问题 / 内部错误”。
+6. runtime summary 能反映真实的 request / tool / recovery / wait / verification 状态。
+7. 启动链重构后，现有 one-shot、resume、doctor、telegram、weixin 入口行为不被破坏。
+8. 文本链路仍然稳定可读，不出现编码退化、输出碎裂、Windows 乱码。
+9. 旧残余命令路径或输出碎片不会继续污染主路径。
 
 ## 实现阶段硬要求
 
 1. 给 CLI 增加明确 fast path，不要让轻命令无脑走完整重路径。
-2. 把启动链按职责拆清楚；入口分发、配置解析、重模块初始化不要继续耦在一起。
-3. 配置增加明确版本与处理机制；不能靠“老文件碰巧还能读”，也不要为了错误旧配置背长期兼容层。
-4. 错误提示要区分：用户可修复错误、环境错误、内部错误。
-5. runtime summary / doctor / closeout 输出必须更像产品，不像调试碎片。
-6. 不要为了美观牺牲真实状态。
-7. Windows 使用体验要考虑进来，尤其命令入口、编码、常见执行陷阱。
-8. 如旧命令别名、旧输出残影、旧配置残余阻碍当前更优结构，允许直接删除或收口。
+2. 把启动链按职责拆清楚：
+   - 入口分发
+   - CLI 参数解析
+   - 运行时配置解析
+   - 重模块初始化
+   - 命令执行
+3. 如有必要，把 `src/cli.ts` 继续拆薄；不要再让它承担所有命令细节。
+4. 配置增加明确版本与处理机制；不能靠“老文件碰巧还能读”，也不要为了错误旧配置背长期兼容层。
+5. 错误提示要区分：
+   - 用户可修复错误
+   - 环境 / 网络 / provider 错误
+   - 内部错误
+6. `doctor`、runtime summary、one-shot closeout、local commands 输出必须更像产品，不像调试碎片。
+7. 不要为了美观牺牲真实状态。
+8. Windows 使用体验要考虑进来，尤其命令入口、编码、常见执行陷阱。
+9. 如旧命令别名、旧输出残影、旧配置残余阻碍当前更优结构，允许直接删除或收口。
+
+## 本轮建议优先收口的具体点
+
+这些不是可选点，而是优先级很高的真实产品工程抓手：
+
+1. `athlete --version`
+   - 要么直接走 commander / package 级 fast path
+   - 要么至少不依赖完整 runtime 初始化
+2. `athlete --help`
+   - 输出稳定
+   - 不混入运行时异常
+3. `athlete doctor`
+   - 缺 key、网络问题、provider 问题、配置错误要分开提示
+   - 不要只吐底层异常
+4. `config show / get / set / path`
+   - 输出格式和错误提示要稳定
+   - 版本处理要明确
+5. `/runtime` 和 closeout
+   - 要能告诉用户当前在等什么、慢在哪、最近做了什么、是否在恢复
 
 ## 本轮明确禁止
 
@@ -135,6 +208,7 @@
 4. 禁止吞错误、模糊错误、把真实失败说成成功。
 5. 禁止把运行透明度做成口号，不落到可读输出。
 6. 禁止为了旧错误路径长期保留脏兼容分支。
+7. 禁止把第 7 轮混成“再来一轮大重构核心架构”。
 
 ## 验收标准
 

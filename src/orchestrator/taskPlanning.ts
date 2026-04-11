@@ -1,9 +1,16 @@
 import { TaskStore } from "../tasks/store.js";
 import { readOrchestratorTask, writeOrchestratorMetadata } from "./metadata.js";
-import type { OrchestratorAnalysis, OrchestratorTaskKind, OrchestratorTaskPlan, OrchestratorTaskSnapshot } from "./types.js";
+import type {
+  OrchestratorAnalysis,
+  OrchestratorExecutorKind,
+  OrchestratorTaskKind,
+  OrchestratorTaskPlan,
+  OrchestratorTaskSnapshot,
+} from "./types.js";
 
 interface TaskSpec {
   kind: OrchestratorTaskKind;
+  executor: OrchestratorExecutorKind;
   blockedBy?: OrchestratorTaskKind;
 }
 
@@ -38,6 +45,7 @@ export async function ensureTaskPlan(input: {
             key: input.analysis.objective.key,
             kind: spec.kind,
             objective: input.analysis.objective.text,
+            executor: spec.executor,
             backgroundCommand: spec.kind === "validation" ? input.analysis.backgroundCommand : undefined,
           },
         ),
@@ -51,11 +59,15 @@ export async function ensureTaskPlan(input: {
       continue;
     }
 
-    if (spec.kind === "validation" && input.analysis.backgroundCommand && current.meta.backgroundCommand !== input.analysis.backgroundCommand) {
+    if (
+      (spec.kind === "validation" && input.analysis.backgroundCommand && current.meta.backgroundCommand !== input.analysis.backgroundCommand) ||
+      current.meta.executor !== spec.executor
+    ) {
       const saved = await store.save({
         ...current.record,
         description: writeOrchestratorMetadata(current.record.description, {
           ...current.meta,
+          executor: spec.executor,
           backgroundCommand: input.analysis.backgroundCommand,
         }),
       });
@@ -73,7 +85,13 @@ export async function ensureTaskPlan(input: {
 
     const task = existingByKind.get(spec.kind);
     const blocker = existingByKind.get(spec.blockedBy);
-    if (!task || !blocker || task.record.blockedBy.includes(blocker.record.id)) {
+    if (
+      !task ||
+      !blocker ||
+      blocker.record.status === "completed" ||
+      task.record.blockedBy.includes(blocker.record.id) ||
+      blocker.record.blocks.includes(task.record.id)
+    ) {
       continue;
     }
 
@@ -102,17 +120,39 @@ function buildTaskSpecs(analysis: OrchestratorAnalysis): TaskSpec[] {
 
   const specs: TaskSpec[] = [];
   if (analysis.needsInvestigation || analysis.wantsSubagent) {
-    specs.push({ kind: "survey" });
+    specs.push({
+      kind: "survey",
+      executor: "subagent",
+    });
   }
 
+  const implementationExecutor: OrchestratorExecutorKind =
+    analysis.wantsTeammate || (analysis.prefersParallel && analysis.complexity === "complex")
+      ? "teammate"
+      : "lead";
   specs.push({
     kind: "implementation",
+    executor: implementationExecutor,
     blockedBy: specs.some((spec) => spec.kind === "survey") ? "survey" : undefined,
   });
+
+  const validationExecutor: OrchestratorExecutorKind =
+    analysis.wantsBackground && analysis.backgroundCommand
+      ? "background"
+      : "lead";
   specs.push({
     kind: "validation",
+    executor: validationExecutor,
     blockedBy: "implementation",
   });
+
+  if (implementationExecutor !== "lead" || validationExecutor !== "lead") {
+    specs.push({
+      kind: "merge",
+      executor: "lead",
+      blockedBy: "validation",
+    });
+  }
   return specs;
 }
 
@@ -122,7 +162,9 @@ function buildTaskSubject(kind: OrchestratorTaskKind, objective: string): string
       ? "Survey"
       : kind === "implementation"
         ? "Implement"
-        : "Validate";
+        : kind === "validation"
+          ? "Validate"
+          : "Merge";
   return `${label}: ${truncate(objective, 120)}`;
 }
 
@@ -130,6 +172,8 @@ function buildTaskDescription(kind: OrchestratorTaskKind, objective: string): st
   switch (kind) {
     case "survey":
       return `Gather the minimum concrete facts needed before implementation.\nObjective: ${objective}`;
+    case "merge":
+      return `Merge delegated child-task results back onto the lead path before continuing.\nObjective: ${objective}`;
     case "validation":
       return `Run the smallest useful validation pass after implementation.\nObjective: ${objective}`;
     default:
@@ -142,6 +186,7 @@ function compareTasks(left: OrchestratorTaskSnapshot, right: OrchestratorTaskSna
     survey: 0,
     implementation: 1,
     validation: 2,
+    merge: 3,
   } as const;
   const leftOrder = order[left.meta.kind] ?? 99;
   const rightOrder = order[right.meta.kind] ?? 99;

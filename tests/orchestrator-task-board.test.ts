@@ -34,14 +34,17 @@ test("ensureTaskPlan writes a minimal persistent task graph for complex lead wor
   const survey = tasks.find((task) => task.subject.startsWith("Survey:"));
   const implementation = tasks.find((task) => task.subject.startsWith("Implement:"));
   const validation = tasks.find((task) => task.subject.startsWith("Validate:"));
+  const merge = tasks.find((task) => task.subject.startsWith("Merge:"));
 
-  assert.equal(plan.createdTaskIds.length, 3);
-  assert.equal(tasks.length, 3);
+  assert.equal(plan.createdTaskIds.length, 4);
+  assert.equal(tasks.length, 4);
   assert.ok(survey);
   assert.ok(implementation);
   assert.ok(validation);
+  assert.ok(merge);
   assert.deepEqual(implementation?.blockedBy, [survey?.id]);
   assert.deepEqual(validation?.blockedBy, [implementation?.id]);
+  assert.deepEqual(merge?.blockedBy, [validation?.id]);
   assert.match(String(survey?.description ?? ""), /athlete-orchestrator/i);
 });
 
