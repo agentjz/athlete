@@ -1,21 +1,24 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { execa } from "execa";
-
-import { ensureProjectStateDirectories, getProjectStatePaths } from "../project/statePaths.js";
-import { TaskStore } from "../tasks/store.js";
-import type { TaskRecord } from "../tasks/types.js";
-import type { WorktreeEventRecord, WorktreeIndexRecord, WorktreeRecord, WorktreeStatus } from "./types.js";
+import { withProjectLedger } from "../control/ledger/open.js";
+import { TaskLedgerRepo } from "../control/ledger/taskRepo.js";
+import { WorktreeLedgerRepo, normalizeWorktreeName, normalizeWorktreeRecord } from "../control/ledger/worktreeRepo.js";
+import { ensureProjectStateDirectories } from "../project/statePaths.js";
+import type { WorktreeEventRecord, WorktreeRecord, WorktreeStatus } from "./types.js";
+import { branchExists, ensureGitRepository, runGitCommand } from "./git.js";
+import { appendWorktreeEvent, formatWorktreeMarker, readWorktreeError, readWorktreeEvents } from "./events.js";
+import { pathExists } from "./fs.js";
+import { bindTaskToWorktree, reserveAvailableWorktreeName, resolveTaskCwdFromLedger } from "./ledger.js";
 
 export class WorktreeStore {
   constructor(private readonly rootDir: string) {}
 
   async create(name: string, taskId?: number): Promise<WorktreeRecord> {
-    await this.ensureGitRepo();
+    await ensureGitRepository(this.rootDir);
     await this.reconcile();
 
-    const normalizedName = normalizeName(name);
+    const normalizedName = normalizeWorktreeName(name);
     if (!normalizedName) {
       throw new Error("Worktree name is required.");
     }
@@ -23,13 +26,13 @@ export class WorktreeStore {
     const existing = await this.find(normalizedName);
     if (existing && existing.status !== "removed") {
       if (typeof taskId === "number") {
-        await this.bindTask(existing.name, taskId);
+        await bindTaskToWorktree(this.rootDir, existing.name, taskId);
       }
       return (await this.find(normalizedName)) ?? existing;
     }
 
     const paths = await ensureProjectStateDirectories(this.rootDir);
-    const record: WorktreeRecord = normalizeWorktree({
+    const record = normalizeWorktreeRecord({
       name: normalizedName,
       path: path.join(paths.worktreesDir, normalizedName),
       branch: existing?.branch || `wt/${normalizedName}`,
@@ -52,16 +55,21 @@ export class WorktreeStore {
     });
 
     try {
-      const branchExists = await this.branchExists(record.branch);
-      await this.runGit(
-        branchExists
+      const exists = await branchExists(this.rootDir, record.branch);
+      await runGitCommand(
+        this.rootDir,
+        exists
           ? ["worktree", "add", record.path, record.branch]
           : ["worktree", "add", "-b", record.branch, record.path, "HEAD"],
       );
-      await this.upsertRecord(record);
-      if (typeof taskId === "number") {
-        await this.bindTask(record.name, taskId);
-      }
+      await withProjectLedger(this.rootDir, ({ db }) => {
+        const worktrees = new WorktreeLedgerRepo(db);
+        const tasks = new TaskLedgerRepo(db);
+        worktrees.upsert(record);
+        if (typeof taskId === "number") {
+          tasks.bindWorktree(taskId, record.name);
+        }
+      });
       const next = await this.get(record.name);
       await this.emit({
         event: "worktree.create.after",
@@ -86,51 +94,38 @@ export class WorktreeStore {
           path: record.path,
           branch: record.branch,
         },
-        error: readError(error),
+        error: readWorktreeError(error),
       });
       throw error;
     }
   }
 
   async ensureForTask(taskId: number, preferredName?: string): Promise<WorktreeRecord> {
-    const taskStore = new TaskStore(this.rootDir);
-    const task = await taskStore.load(taskId);
+    const task = await withProjectLedger(this.rootDir, ({ db }) => new TaskLedgerRepo(db).load(taskId));
     if (task.worktree) {
       const bound = await this.find(task.worktree);
       if (bound && bound.status !== "removed") {
         return bound;
       }
-
-      await taskStore.unbindWorktree(taskId);
+      await withProjectLedger(this.rootDir, ({ db }) => new TaskLedgerRepo(db).unbindWorktree(taskId));
     }
 
-    const baseName = normalizeName(preferredName || task.subject || `task-${taskId}`);
-    const name = await this.reserveAvailableName(baseName || `task-${taskId}`);
+    const baseName = normalizeWorktreeName(preferredName || task.subject || `task-${taskId}`);
+    const name = await reserveAvailableWorktreeName(this.rootDir, baseName || `task-${taskId}`);
     return this.create(name, taskId);
   }
 
   async get(name: string): Promise<WorktreeRecord> {
-    const existing = await this.find(name);
-    if (!existing) {
-      throw new Error(`Unknown worktree: ${name}`);
-    }
-    return existing;
+    return withProjectLedger(this.rootDir, ({ db }) => new WorktreeLedgerRepo(db).get(name));
   }
 
   async find(name: string): Promise<WorktreeRecord | undefined> {
-    const normalizedName = normalizeName(name);
-    if (!normalizedName) {
-      return undefined;
-    }
-    const index = await this.loadIndex();
-    return index.items.find((item) => item.name === normalizedName);
+    return withProjectLedger(this.rootDir, ({ db }) => new WorktreeLedgerRepo(db).find(name));
   }
 
   async list(): Promise<WorktreeRecord[]> {
     await this.reconcile();
-    return (await this.loadIndex()).items
-      .slice()
-      .sort((left, right) => left.name.localeCompare(right.name));
+    return withProjectLedger(this.rootDir, ({ db }) => new WorktreeLedgerRepo(db).list());
   }
 
   async findByPath(cwd: string): Promise<WorktreeRecord | undefined> {
@@ -140,7 +135,6 @@ export class WorktreeStore {
       if (worktree.status === "removed") {
         return false;
       }
-
       const relative = path.relative(worktree.path, resolvedCwd);
       return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
     });
@@ -148,11 +142,12 @@ export class WorktreeStore {
 
   async keep(name: string): Promise<WorktreeRecord> {
     const worktree = await this.get(name);
-    const next = await this.upsertRecord({
-      ...worktree,
-      status: "kept",
-      updatedAt: new Date().toISOString(),
-    });
+    const next = await withProjectLedger(this.rootDir, ({ db }) =>
+      new WorktreeLedgerRepo(db).upsert({
+        ...worktree,
+        status: "kept",
+        updatedAt: new Date().toISOString(),
+      }));
     await this.emit({
       event: "worktree.keep",
       ts: Date.now(),
@@ -167,14 +162,8 @@ export class WorktreeStore {
     return next;
   }
 
-  async remove(
-    name: string,
-    options: {
-      force?: boolean;
-      completeTask?: boolean;
-    } = {},
-  ): Promise<WorktreeRecord> {
-    await this.ensureGitRepo();
+  async remove(name: string, options: { force?: boolean; completeTask?: boolean } = {}): Promise<WorktreeRecord> {
+    await ensureGitRepository(this.rootDir);
     const worktree = await this.get(name);
     await this.emit({
       event: "worktree.remove.before",
@@ -194,32 +183,30 @@ export class WorktreeStore {
         args.push("--force");
       }
       args.push(worktree.path);
-      await this.runGit(args);
-      await this.runGit(["worktree", "prune"]).catch(() => null);
+      await runGitCommand(this.rootDir, args);
+      await runGitCommand(this.rootDir, ["worktree", "prune"]).catch(() => null);
 
-      if (typeof worktree.taskId === "number") {
-        const taskStore = new TaskStore(this.rootDir);
-        if (options.completeTask) {
-          await taskStore.update(worktree.taskId, { status: "completed" });
+      const next = await withProjectLedger(this.rootDir, ({ db }) => {
+        const worktrees = new WorktreeLedgerRepo(db);
+        const tasks = new TaskLedgerRepo(db);
+        if (typeof worktree.taskId === "number") {
+          if (options.completeTask) {
+            tasks.update(worktree.taskId, { status: "completed" });
+          }
+          tasks.unbindWorktree(worktree.taskId);
         }
-        await taskStore.unbindWorktree(worktree.taskId);
-      }
-
-      const next = await this.upsertRecord({
-        ...worktree,
-        status: "removed",
-        updatedAt: new Date().toISOString(),
+        return worktrees.upsert({
+          ...worktree,
+          status: "removed",
+          updatedAt: new Date().toISOString(),
+        });
       });
       await this.emit({
         event: "worktree.remove.after",
         ts: Date.now(),
-        task:
-          typeof worktree.taskId === "number"
-            ? {
-                id: worktree.taskId,
-                status: options.completeTask ? "completed" : undefined,
-              }
-            : undefined,
+        task: typeof worktree.taskId === "number"
+          ? { id: worktree.taskId, status: options.completeTask ? "completed" : undefined }
+          : undefined,
         worktree: {
           name: next.name,
           status: next.status,
@@ -239,7 +226,7 @@ export class WorktreeStore {
           path: worktree.path,
           branch: worktree.branch,
         },
-        error: readError(error),
+        error: readWorktreeError(error),
       });
       throw error;
     }
@@ -253,7 +240,7 @@ export class WorktreeStore {
 
     return worktrees
       .map((worktree) => {
-        const marker = formatMarker(worktree.status);
+        const marker = formatWorktreeMarker(worktree.status);
         const task = typeof worktree.taskId === "number" ? ` task=${worktree.taskId}` : "";
         return `${marker} ${worktree.name}${task} branch=${worktree.branch}`;
       })
@@ -261,224 +248,49 @@ export class WorktreeStore {
   }
 
   async readEvents(limit = 20): Promise<WorktreeEventRecord[]> {
-    const paths = await ensureProjectStateDirectories(this.rootDir);
-    try {
-      const raw = await fs.readFile(paths.worktreeEventsFile, "utf8");
-      return raw
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as WorktreeEventRecord)
-        .slice(-Math.max(1, Math.trunc(limit)));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return [];
-      }
-      throw error;
-    }
+    return readWorktreeEvents(this.rootDir, limit);
   }
 
   async reconcile(): Promise<void> {
-    const index = await this.loadIndex();
-    const nextItems: WorktreeRecord[] = [];
+    const worktrees = await withProjectLedger(this.rootDir, ({ db }) => new WorktreeLedgerRepo(db).list());
+    const nextStatuses = await Promise.all(worktrees.map(async (record) => ({
+      record,
+      exists: await pathExists(record.path),
+    })));
 
-    for (const record of index.items) {
-      const exists = await pathExists(record.path);
-      const nextStatus: WorktreeStatus =
-        record.status === "removed"
-          ? "removed"
-          : exists
-            ? record.status
-            : "removed";
-      nextItems.push({
-        ...record,
-        status: nextStatus,
-      });
-    }
-
-    const taskStore = new TaskStore(this.rootDir);
-    const tasks = await taskStore.list();
-    for (const task of tasks) {
-      if (!task.worktree) {
-        continue;
+    await withProjectLedger(this.rootDir, ({ db }) => {
+      const worktreeRepo = new WorktreeLedgerRepo(db);
+      const taskRepo = new TaskLedgerRepo(db);
+      for (const { record, exists } of nextStatuses) {
+        const nextStatus: WorktreeStatus =
+          record.status === "removed"
+            ? "removed"
+            : exists
+              ? record.status
+              : "removed";
+        worktreeRepo.upsert({
+          ...record,
+          status: nextStatus,
+        });
       }
 
-      const bound = nextItems.find((item) => item.name === task.worktree && item.status !== "removed");
-      if (!bound) {
-        await taskStore.unbindWorktree(task.id);
+      for (const task of taskRepo.list()) {
+        if (!task.worktree) {
+          continue;
+        }
+        const bound = worktreeRepo.find(task.worktree);
+        if (!bound || bound.status === "removed") {
+          taskRepo.unbindWorktree(task.id);
+        }
       }
-    }
-
-    await this.saveIndex({ items: nextItems });
+    });
   }
 
   async resolveTaskCwd(taskId: number): Promise<string> {
-    const task = await new TaskStore(this.rootDir).load(taskId);
-    if (!task.worktree) {
-      return this.rootDir;
-    }
-
-    const worktree = await this.find(task.worktree);
-    if (!worktree || worktree.status === "removed") {
-      return this.rootDir;
-    }
-
-    return worktree.path;
-  }
-
-  private async bindTask(worktreeName: string, taskId: number): Promise<void> {
-    const worktree = await this.get(worktreeName);
-    await new TaskStore(this.rootDir).bindWorktree(taskId, worktree.name);
-    await this.upsertRecord({
-      ...worktree,
-      taskId,
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
-  private async reserveAvailableName(baseName: string): Promise<string> {
-    const normalizedBase = normalizeName(baseName) || "task";
-    const existing = new Set((await this.loadIndex()).items.map((item) => item.name));
-    if (!existing.has(normalizedBase)) {
-      return normalizedBase;
-    }
-
-    for (let suffix = 2; suffix < 10_000; suffix += 1) {
-      const candidate = `${normalizedBase}-${suffix}`;
-      if (!existing.has(candidate)) {
-        return candidate;
-      }
-    }
-
-    throw new Error(`Unable to reserve a worktree name from '${baseName}'.`);
-  }
-
-  private async loadIndex(): Promise<WorktreeIndexRecord> {
-    const paths = await ensureProjectStateDirectories(this.rootDir);
-    try {
-      const raw = await fs.readFile(paths.worktreeIndexFile, "utf8");
-      return normalizeIndex(JSON.parse(raw) as WorktreeIndexRecord);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        const empty = normalizeIndex({ items: [] });
-        await this.saveIndex(empty);
-        return empty;
-      }
-      throw error;
-    }
-  }
-
-  private async saveIndex(index: WorktreeIndexRecord): Promise<void> {
-    const paths = await ensureProjectStateDirectories(this.rootDir);
-    const normalized = normalizeIndex(index);
-    await fs.writeFile(paths.worktreeIndexFile, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
-  }
-
-  private async upsertRecord(record: WorktreeRecord): Promise<WorktreeRecord> {
-    const index = await this.loadIndex();
-    const normalized = normalizeWorktree(record);
-    const nextItems = index.items.some((item) => item.name === normalized.name)
-      ? index.items.map((item) => (item.name === normalized.name ? normalized : item))
-      : [...index.items, normalized];
-    await this.saveIndex({ items: nextItems });
-    return normalized;
+    return resolveTaskCwdFromLedger(this.rootDir, taskId);
   }
 
   private async emit(event: WorktreeEventRecord): Promise<void> {
-    const paths = await ensureProjectStateDirectories(this.rootDir);
-    await fs.appendFile(paths.worktreeEventsFile, `${JSON.stringify(event)}\n`, "utf8");
-  }
-
-  private async ensureGitRepo(): Promise<void> {
-    try {
-      await this.runGit(["rev-parse", "--show-toplevel"]);
-    } catch {
-      throw new Error("Worktree support requires a git repository.");
-    }
-  }
-
-  private async branchExists(branch: string): Promise<boolean> {
-    try {
-      await this.runGit(["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async runGit(args: string[]): Promise<void> {
-    await execa("git", ["-C", this.rootDir, ...args], {
-      reject: true,
-      timeout: 120_000,
-      all: true,
-      windowsHide: true,
-    });
-  }
-}
-
-function normalizeIndex(index: WorktreeIndexRecord): WorktreeIndexRecord {
-  return {
-    items: Array.isArray(index.items)
-      ? index.items.map((item) => normalizeWorktree(item)).sort((left, right) => left.name.localeCompare(right.name))
-      : [],
-  };
-}
-
-function normalizeWorktree(record: WorktreeRecord): WorktreeRecord {
-  const now = new Date().toISOString();
-  return {
-    name: normalizeName(record.name),
-    path: path.resolve(String(record.path ?? "")),
-    branch: String(record.branch ?? "").trim() || `wt/${normalizeName(record.name) || "task"}`,
-    status: normalizeStatus(record.status),
-    taskId: typeof record.taskId === "number" && Number.isFinite(record.taskId) ? Math.trunc(record.taskId) : undefined,
-    createdAt: typeof record.createdAt === "string" && record.createdAt ? record.createdAt : now,
-    updatedAt: typeof record.updatedAt === "string" && record.updatedAt ? record.updatedAt : now,
-  };
-}
-
-function normalizeStatus(value: string): WorktreeStatus {
-  switch (value) {
-    case "kept":
-    case "removed":
-      return value;
-    default:
-      return "active";
-  }
-}
-
-function normalizeName(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-}
-
-function formatMarker(status: WorktreeStatus): string {
-  switch (status) {
-    case "kept":
-      return "[k]";
-    case "removed":
-      return "[x]";
-    default:
-      return "[>]";
-  }
-}
-
-function readError(error: unknown): string {
-  return String((error as { all?: unknown; stderr?: unknown; message?: unknown }).all ??
-    (error as { stderr?: unknown }).stderr ??
-    (error as { message?: unknown }).message ??
-    error);
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await fs.access(targetPath);
-    return true;
-  } catch {
-    return false;
+    await appendWorktreeEvent(this.rootDir, event);
   }
 }

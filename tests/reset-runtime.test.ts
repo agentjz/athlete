@@ -108,6 +108,7 @@ test("reset clears project runtime state but preserves env files and unrelated s
 
   assert.equal(await pathExists(path.join(projectStateDir, ".env")), true);
   assert.equal(await pathExists(path.join(projectStateDir, ".env.example")), true);
+  assert.equal(await pathExists(path.join(projectStateDir, "control-plane.sqlite")), false);
   assert.equal(await pathExists(path.join(projectStateDir, "tasks")), false);
   assert.equal(await pathExists(path.join(projectStateDir, "team")), false);
   assert.equal(await pathExists(path.join(projectStateDir, "tool-results")), false);

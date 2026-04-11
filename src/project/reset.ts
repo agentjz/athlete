@@ -2,9 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { ChangeRecord, RuntimeConfig, SessionRecord } from "../types.js";
+import { BackgroundJobStore } from "../background/store.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
+import { TeamStore } from "../team/store.js";
 import { terminateKnownProcesses } from "../utils/processControl.js";
 import { getProjectStatePaths } from "./statePaths.js";
+import { isSameOrDescendant, waitForRemovedPaths } from "./resetSupport.js";
 import { WorktreeStore } from "../worktrees/store.js";
 
 const PRESERVED_ATHLETE_ENTRIES = new Set([".env", ".env.example"]);
@@ -33,8 +36,8 @@ export async function resetProjectRuntime(input: ResetProjectRuntimeInput): Prom
 
   const [worktrees, teamMembers, backgroundJobs] = await Promise.all([
     readTrackedWorktrees(roots.stateRootDir),
-    readTeamMembers(statePaths.teamConfigFile),
-    readBackgroundJobs(statePaths.backgroundDir),
+    new TeamStore(roots.stateRootDir).listMembers().catch(() => []),
+    new BackgroundJobStore(roots.stateRootDir).list().catch(() => []),
   ]);
 
   const terminatedPids = await terminateKnownProcesses([
@@ -48,14 +51,14 @@ export async function resetProjectRuntime(input: ResetProjectRuntimeInput): Prom
     stateRootDir: roots.stateRootDir,
     currentSessionId: input.currentSessionId,
   });
-  await waitForRemovedSessionFiles(input.config.paths.sessionsDir, removedSessionIds);
+  await waitForRemovedPaths(removedSessionIds.map((sessionId) => path.join(input.config.paths.sessionsDir, `${sessionId}.json`)));
   const removedChangeIds = await removeProjectChanges({
     changesDir: input.config.paths.changesDir,
     stateRootDir: roots.stateRootDir,
     removedSessionIds,
   });
   const { removedEntries, preservedEntries } = await clearProjectAthleteDirectory(athleteDir);
-  await waitForRemovedStateEntries(athleteDir, removedEntries);
+  await waitForRemovedPaths(removedEntries.map((entry) => path.join(athleteDir, entry)));
 
   return {
     rootDir: roots.rootDir,
@@ -70,65 +73,12 @@ export async function resetProjectRuntime(input: ResetProjectRuntimeInput): Prom
 }
 
 async function readTrackedWorktrees(rootDir: string): Promise<Array<{ name: string; path: string; status?: string }>> {
-  const indexPath = getProjectStatePaths(rootDir).worktreeIndexFile;
-  try {
-    const raw = await fs.readFile(indexPath, "utf8");
-    const parsed = JSON.parse(raw) as { items?: Array<{ name?: unknown; path?: unknown; status?: unknown }> };
-    return Array.isArray(parsed.items)
-      ? parsed.items
-          .map((item) => ({
-            name: String(item?.name ?? "").trim(),
-            path: String(item?.path ?? "").trim(),
-            status: typeof item?.status === "string" ? item.status : undefined,
-          }))
-          .filter((item) => item.name && item.path)
-      : [];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function readTeamMembers(teamConfigFile: string): Promise<Array<{ pid?: number }>> {
-  try {
-    const raw = await fs.readFile(teamConfigFile, "utf8");
-    const parsed = JSON.parse(raw) as { members?: Array<{ pid?: unknown }> };
-    return Array.isArray(parsed.members)
-      ? parsed.members.map((member) => ({
-          pid: typeof member?.pid === "number" && Number.isFinite(member.pid) ? Math.trunc(member.pid) : undefined,
-        }))
-      : [];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function readBackgroundJobs(backgroundDir: string): Promise<Array<{ pid?: number }>> {
-  try {
-    const entries = await fs.readdir(backgroundDir, { withFileTypes: true });
-    const records = await Promise.all(
-      entries
-        .filter((entry) => entry.isFile() && /^job_[a-z0-9]+\.json$/i.test(entry.name))
-        .map(async (entry) => {
-          const raw = await fs.readFile(path.join(backgroundDir, entry.name), "utf8");
-          const parsed = JSON.parse(raw) as { pid?: unknown };
-          return {
-            pid: typeof parsed.pid === "number" && Number.isFinite(parsed.pid) ? Math.trunc(parsed.pid) : undefined,
-          };
-        }),
-    );
-    return records;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
+  const records = await new WorktreeStore(rootDir).list().catch(() => []);
+  return records.map((record) => ({
+    name: record.name,
+    path: record.path,
+    status: record.status,
+  }));
 }
 
 async function removeTrackedWorktrees(
@@ -163,7 +113,6 @@ async function removeProjectSessions(input: {
   currentSessionId?: string;
 }): Promise<string[]> {
   const removedIds: string[] = [];
-  const stateRootDir = await canonicalizePathForComparison(input.stateRootDir);
 
   try {
     const entries = await fs.readdir(input.sessionsDir, { withFileTypes: true });
@@ -180,7 +129,7 @@ async function removeProjectSessions(input: {
       if (!removeById) {
         const raw = await fs.readFile(absolutePath, "utf8");
         const parsed = JSON.parse(raw) as Pick<SessionRecord, "cwd">;
-        removeByPath = await isSameOrDescendant(String(parsed.cwd ?? ""), stateRootDir);
+        removeByPath = await isSameOrDescendant(String(parsed.cwd ?? ""), input.stateRootDir);
       }
 
       if (!removeById && !removeByPath) {
@@ -205,7 +154,6 @@ async function removeProjectChanges(input: {
   removedSessionIds: string[];
 }): Promise<string[]> {
   const removedIds: string[] = [];
-  const stateRootDir = await canonicalizePathForComparison(input.stateRootDir);
   const removedSessionIds = new Set(input.removedSessionIds);
 
   try {
@@ -221,7 +169,7 @@ async function removeProjectChanges(input: {
       const parsed = JSON.parse(raw) as Pick<ChangeRecord, "cwd" | "sessionId">;
       const remove =
         (typeof parsed.sessionId === "string" && removedSessionIds.has(parsed.sessionId)) ||
-        (await isSameOrDescendant(String(parsed.cwd ?? ""), stateRootDir));
+        (await isSameOrDescendant(String(parsed.cwd ?? ""), input.stateRootDir));
       if (!remove) {
         continue;
       }
@@ -270,90 +218,3 @@ async function clearProjectAthleteDirectory(athleteDir: string): Promise<{
   };
 }
 
-async function waitForRemovedStateEntries(
-  athleteDir: string,
-  removedEntries: string[],
-  attempts = 20,
-  delayMs = 50,
-): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const remaining = await Promise.all(
-      removedEntries.map(async (entry) => ({
-        entry,
-        exists: await pathExists(path.join(athleteDir, entry)),
-      })),
-    );
-
-    if (remaining.every((item) => item.exists === false)) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-}
-
-async function waitForRemovedSessionFiles(
-  sessionsDir: string,
-  removedSessionIds: string[],
-  attempts = 20,
-  delayMs = 50,
-): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const remaining = await Promise.all(
-      removedSessionIds.map(async (sessionId) => ({
-        sessionId,
-        exists: await pathExists(path.join(sessionsDir, `${sessionId}.json`)),
-      })),
-    );
-
-    if (remaining.every((item) => item.exists === false)) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await fs.access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function isSameOrDescendant(targetPath: string, possibleAncestor: string): Promise<boolean> {
-  if (!targetPath.trim() || !possibleAncestor.trim()) {
-    return false;
-  }
-
-  const resolvedTarget = await canonicalizePathForComparison(targetPath);
-  const resolvedAncestor = await canonicalizePathForComparison(possibleAncestor);
-  const relative = path.relative(resolvedAncestor, resolvedTarget);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-async function canonicalizePathForComparison(targetPath: string): Promise<string> {
-  let candidate = path.resolve(targetPath);
-  const tail: string[] = [];
-
-  while (true) {
-    try {
-      const real = await fs.realpath(candidate);
-      return tail.length > 0 ? path.join(real, ...tail.reverse()) : real;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        return tail.length > 0 ? path.join(candidate, ...tail.reverse()) : candidate;
-      }
-    }
-
-    const parent = path.dirname(candidate);
-    if (parent === candidate) {
-      return tail.length > 0 ? path.join(candidate, ...tail.reverse()) : candidate;
-    }
-
-    tail.push(path.basename(candidate));
-    candidate = parent;
-  }
-}
