@@ -1,25 +1,18 @@
-import path from "node:path";
-
-import { AgentTurnError, getErrorMessage } from "../agent/errors.js";
-import { runManagedAgentTurn } from "../agent/turn.js";
-import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RunTurnResult } from "../agent/types.js";
-import { createRuntimeToolRegistry } from "../tools/runtimeRegistry.js";
+import { runBoundHostTurn } from "../host/boundTurn.js";
+import { ensureBoundSession, persistBoundSession } from "../host/session.js";
+import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import { isAbortError } from "../utils/abort.js";
-import type {
-  TelegramAttachmentStoreLike,
-} from "./attachmentStore.js";
+import type { TelegramAttachmentStoreLike } from "./attachmentStore.js";
+import type { TelegramBotApiClient } from "./botApiClient.js";
 import { buildFileTurnInput, buildTextTurnInput, downloadTelegramAttachment } from "./inboundFiles.js";
-import type { TelegramLogger } from "./logger.js";
 import { handleTelegramLocalCommand } from "./localCommands.js";
+import type { TelegramLogger } from "./logger.js";
 import { TelegramOutputPort } from "./outputPort.js";
 import type { TelegramSessionBinding, TelegramSessionMapStoreLike } from "./sessionMapStore.js";
 import { createTelegramSendFileTool } from "./sendFileTool.js";
 import { TelegramTurnDisplay } from "./turnDisplay.js";
 import { createLoggedTelegramCallbacks } from "./turnLogging.js";
-import type { TelegramBotApiClient } from "./botApiClient.js";
 import type { TelegramPrivateFileMessage, TelegramPrivateMessage } from "./types.js";
 
 export interface TelegramActiveTurn {
@@ -44,20 +37,19 @@ export async function runTelegramTurn(options: {
   };
   logger: TelegramLogger;
   message: TelegramPrivateMessage | TelegramPrivateFileMessage;
-  runTurn?: (input: ManagedTurnOptions) => Promise<RunTurnResult>;
+  runTurn?: HostManagedTurnRunner;
   enqueueReply: (chatId: number, text: string) => Promise<void>;
   markQueuedTurnStarted: (peerKey: string) => void;
   consumePendingStop: (peerKey: string) => boolean;
   onActiveTurnStart: (peerKey: string, activeTurn: TelegramActiveTurn) => void;
   onActiveTurnEnd: (peerKey: string) => void;
 }): Promise<void> {
-  let binding = await getOrCreateBinding(options.message, options);
-  let session = await loadBoundSession(binding, options);
   const output = new TelegramOutputPort({
     chatId: options.message.chatId,
     messageChunkChars: options.config.telegram.messageChunkChars,
     enqueueReply: async (chatId, text) => options.enqueueReply(chatId, text),
   });
+  let { binding, session } = await ensureTelegramBoundSession(options);
   options.logger.info("session ready", {
     peerKey: options.message.peerKey,
     userId: options.message.userId,
@@ -71,7 +63,7 @@ export async function runTelegramTurn(options: {
         options.message.text,
         {
           cwd: options.cwd,
-          session: session,
+          session,
           config: options.config,
         },
         output,
@@ -100,112 +92,102 @@ export async function runTelegramTurn(options: {
       enqueueVisibleMessage: async (target, text) => options.enqueueReply(target.chatId, text),
       typingIntervalMs: options.config.telegram.typingIntervalMs,
     });
-    const controller = new AbortController();
-    const shouldAbortOnStart = options.consumePendingStop(options.message.peerKey);
-    options.onActiveTurnStart(options.message.peerKey, {
-      controller,
-      chatId: options.message.chatId,
-      userId: options.message.userId,
-      sessionId: session.id,
-      waitForVisibleMessages: async () => display.waitForDurableVisible(),
-    });
-    options.markQueuedTurnStarted(options.message.peerKey);
-
-    const turnInput = await buildTurnInput(options.message, session.id, options);
     const callbacks = createLoggedTelegramCallbacks(display, options.logger, {
       peerKey: options.message.peerKey,
       userId: options.message.userId,
       chatId: options.message.chatId,
       sessionId: session.id,
     });
-    const toolRegistry = await createRuntimeToolRegistry(options.config, {
-      includeTools: [
-        createTelegramSendFileTool({
-          chatId: options.message.chatId,
-          deliveryQueue: options.deliveryQueue as never,
-          logger: options.logger,
-        }),
-      ],
+    const extraTools = [
+      createTelegramSendFileTool({
+        chatId: options.message.chatId,
+        deliveryQueue: options.deliveryQueue as never,
+        logger: options.logger,
+      }),
+    ];
+    options.logger.info("starting turn", {
+      peerKey: options.message.peerKey,
+      userId: options.message.userId,
+      chatId: options.message.chatId,
+      sessionId: session.id,
+      inputKind: options.message.kind === "private_file_message" ? "file" : "text",
+      fileName: options.message.kind === "private_file_message" ? options.message.fileName : undefined,
     });
 
-    try {
-      if (shouldAbortOnStart) {
-        queueMicrotask(() => {
-          if (!controller.signal.aborted) {
-            controller.abort();
-          }
-        });
-      }
-      options.logger.info("starting turn", {
-        peerKey: options.message.peerKey,
-        userId: options.message.userId,
-        chatId: options.message.chatId,
-        sessionId: session.id,
-        inputKind: options.message.kind === "private_file_message" ? "file" : "text",
-        fileName: options.message.kind === "private_file_message" ? options.message.fileName : undefined,
-      });
-      const result = await (options.runTurn ?? runManagedAgentTurn)({
-        input: turnInput,
+    session = await runBoundHostTurn<TelegramActiveTurn>(
+      {
+        buildInput: () => buildTurnInput(options.message, session.id, options),
         cwd: options.cwd,
         config: options.config,
         session,
         sessionStore: options.sessionStore,
-        abortSignal: controller.signal,
+        output,
+        display,
         callbacks,
-        toolRegistry,
-        identity: {
-          kind: "lead",
-          name: "lead",
+        extraTools,
+        shouldAbortOnStart: () => options.consumePendingStop(options.message.peerKey),
+        markQueuedTurnStarted: () => options.markQueuedTurnStarted(options.message.peerKey),
+        createActiveTurn: (controller, sessionId) => ({
+          controller,
+          chatId: options.message.chatId,
+          userId: options.message.userId,
+          sessionId,
+          waitForVisibleMessages: async () => display.waitForDurableVisible(),
+        }),
+        onActiveTurnStart: (activeTurn) => {
+          options.onActiveTurnStart(options.message.peerKey, activeTurn);
         },
-      });
-      session = result.session;
-      if (result.paused && result.pauseReason) {
-        output.warn(result.pauseReason);
-        display.noteTerminalState();
-      }
-      options.logger.info("turn completed", {
-        peerKey: options.message.peerKey,
-        userId: options.message.userId,
-        chatId: options.message.chatId,
-        sessionId: session.id,
-        detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
-      });
-    } catch (error) {
-      if (error instanceof AgentTurnError) {
-        session = error.session;
-      }
-
-      if (isAbortError(error)) {
-        display.noteTerminalState();
-        output.warn("Turn interrupted. You can keep chatting.");
-        options.logger.info("turn stopped", {
-          peerKey: options.message.peerKey,
-          userId: options.message.userId,
-          chatId: options.message.chatId,
-          sessionId: session.id,
-        });
-      } else {
-        display.noteTerminalState();
-        output.error(getErrorMessage(error));
-        output.info("The request failed, but the session is still alive. You can keep chatting.");
-        options.logger.error("turn failed", {
-          peerKey: options.message.peerKey,
-          userId: options.message.userId,
-          chatId: options.message.chatId,
-          sessionId: session.id,
-          detail: getErrorMessage(error),
-        });
-      }
-    } finally {
-      options.onActiveTurnEnd(options.message.peerKey);
-      await display.flush();
-      display.dispose();
-      await toolRegistry.close?.().catch(() => undefined);
-    }
+        onActiveTurnEnd: () => {
+          options.onActiveTurnEnd(options.message.peerKey);
+        },
+        onCompleted: (result, nextSession) => {
+          options.logger.info("turn completed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            chatId: options.message.chatId,
+            sessionId: nextSession.id,
+            detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
+          });
+        },
+        onPaused: (result, nextSession) => {
+          options.logger.info("turn completed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            chatId: options.message.chatId,
+            sessionId: nextSession.id,
+            detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
+          });
+        },
+        onAborted: (nextSession) => {
+          options.logger.info("turn stopped", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            chatId: options.message.chatId,
+            sessionId: nextSession.id,
+          });
+        },
+        onFailed: (errorMessage, nextSession) => {
+          options.logger.error("turn failed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            chatId: options.message.chatId,
+            sessionId: nextSession.id,
+            detail: errorMessage,
+          });
+        },
+      },
+      {
+        runTurn: options.runTurn,
+      },
+    );
   } finally {
     options.markQueuedTurnStarted(options.message.peerKey);
-    binding = touchBinding(binding, session.id);
-    await options.sessionMapStore.set(binding);
+    binding = await persistBoundSession({
+      binding,
+      sessionId: session.id,
+      touchBinding,
+      saveBinding: async (nextBinding) => options.sessionMapStore.set(nextBinding),
+    });
     await output.flush();
   }
 }
@@ -239,50 +221,36 @@ async function buildTurnInput(
   return buildTextTurnInput(message.text, recentAttachments, options.cwd);
 }
 
-async function getOrCreateBinding(
-  message: TelegramPrivateMessage | TelegramPrivateFileMessage,
-  options: {
-    cwd: string;
-    sessionStore: SessionStoreLike & { load(id: string): Promise<SessionRecord> };
-    sessionMapStore: TelegramSessionMapStoreLike;
-  },
-): Promise<TelegramSessionBinding> {
-  const existing = await options.sessionMapStore.get(message.peerKey);
-  if (existing) {
-    return touchBinding(existing, existing.sessionId);
-  }
-
-  const session = await options.sessionStore.save(await options.sessionStore.create(options.cwd));
-  const now = new Date().toISOString();
-  const binding: TelegramSessionBinding = {
-    peerKey: message.peerKey,
-    userId: message.userId,
-    chatId: message.chatId,
-    sessionId: session.id,
-    cwd: options.cwd,
-    createdAt: now,
-    updatedAt: now,
+async function ensureTelegramBoundSession(options: {
+  cwd: string;
+  message: TelegramPrivateMessage | TelegramPrivateFileMessage;
+  sessionStore: SessionStoreLike & {
+    load(id: string): Promise<SessionRecord>;
   };
-  await options.sessionMapStore.set(binding);
-  return binding;
-}
-
-async function loadBoundSession(
-  binding: TelegramSessionBinding,
-  options: {
-    cwd: string;
-    sessionStore: SessionStoreLike & { load(id: string): Promise<SessionRecord> };
-    sessionMapStore: TelegramSessionMapStoreLike;
-  },
-): Promise<SessionRecord> {
-  try {
-    return await options.sessionStore.load(binding.sessionId);
-  } catch {
-    const session = await options.sessionStore.save(await options.sessionStore.create(options.cwd));
-    const nextBinding = touchBinding(binding, session.id);
-    await options.sessionMapStore.set(nextBinding);
-    return session;
-  }
+  sessionMapStore: TelegramSessionMapStoreLike;
+}): Promise<{
+  binding: TelegramSessionBinding;
+  session: SessionRecord;
+}> {
+  return ensureBoundSession({
+    cwd: options.cwd,
+    sessionStore: options.sessionStore,
+    loadBinding: async () => options.sessionMapStore.get(options.message.peerKey),
+    createBinding: (session) => {
+      const now = new Date().toISOString();
+      return {
+        peerKey: options.message.peerKey,
+        userId: options.message.userId,
+        chatId: options.message.chatId,
+        sessionId: session.id,
+        cwd: options.cwd,
+        createdAt: now,
+        updatedAt: now,
+      };
+    },
+    touchBinding,
+    saveBinding: async (binding) => options.sessionMapStore.set(binding),
+  });
 }
 
 function touchBinding(binding: TelegramSessionBinding, sessionId: string): TelegramSessionBinding {

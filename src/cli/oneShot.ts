@@ -1,6 +1,5 @@
-import { AgentTurnError } from "../agent/errors.js";
 import type { SessionStore } from "../agent/session.js";
-import { runManagedAgentTurn } from "../agent/turn.js";
+import { runHostTurn } from "../host/turn.js";
 import type {
   AcceptanceState,
   RuntimeConfig,
@@ -52,37 +51,31 @@ export async function runOneShotPrompt(
     toolErrorLabel: "failed, model will try another path",
   });
 
-  try {
-    const result = await runManagedAgentTurn({
-      input: prompt,
-      cwd,
-      config,
-      session,
-      sessionStore,
-      callbacks: streamRenderer.callbacks,
-      identity: {
-        kind: "lead",
-        name: "lead",
-      },
-    });
-    if (result.paused && result.pauseReason) {
-      ui.warn(result.pauseReason);
-    }
-    return {
-      session: result.session,
-      closeout: buildOneShotCloseoutReport(result.session, result.transition ?? null),
-    };
-  } catch (error) {
-    streamRenderer.flush();
-    if (error instanceof AgentTurnError) {
-      return {
-        session: error.session,
-        closeout: buildOneShotCloseoutReport(error.session, null, error.message),
-      };
-    }
+  const outcome = await runHostTurn({
+    input: prompt,
+    cwd,
+    config,
+    session,
+    sessionStore,
+    callbacks: streamRenderer.callbacks,
+  });
 
-    throw error;
+  if (outcome.status === "failed" || outcome.status === "aborted") {
+    streamRenderer.flush();
   }
+
+  if (outcome.status === "paused" && outcome.pauseReason) {
+    ui.warn(outcome.pauseReason);
+  }
+
+  return {
+    session: outcome.session,
+    closeout: buildOneShotCloseoutReport(
+      outcome.session,
+      outcome.result?.transition ?? null,
+      outcome.status === "failed" || outcome.status === "aborted" ? outcome.errorMessage : undefined,
+    ),
+  };
 }
 
 export function buildOneShotCloseoutReport(

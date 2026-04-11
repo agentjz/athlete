@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 
 import type { CliProgramDependencies } from "../dependencies.js";
+import { createHostSession, loadLatestSession } from "../../host/session.js";
 import type { CliOverrides, RuntimeConfig, SessionRecord } from "../../types.js";
 import { writeStdoutLine } from "../../utils/stdio.js";
 import { ui } from "../../utils/console.js";
@@ -24,7 +25,7 @@ export function registerSessionCommands(
       const prompt = promptParts.join(" ").trim();
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const sessionStore = await createSessionStore(runtime.paths.sessionsDir);
-      const session = await sessionStore.create(runtime.cwd);
+      const session = await createHostSession(sessionStore, runtime.cwd);
 
       if (!prompt) {
         await startInteractive(options.dependencies, {
@@ -54,7 +55,7 @@ export function registerSessionCommands(
       const prompt = promptParts.join(" ").trim();
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const sessionStore = await createSessionStore(runtime.paths.sessionsDir);
-      const session = await sessionStore.create(runtime.cwd);
+      const session = await createHostSession(sessionStore, runtime.cwd);
       const result = await runOneShot(options.dependencies, {
         prompt,
         cwd: runtime.cwd,
@@ -72,7 +73,7 @@ export function registerSessionCommands(
     .action(async (sessionId: string | undefined) => {
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const sessionStore = await createSessionStore(runtime.paths.sessionsDir);
-      const session = sessionId ? await sessionStore.load(sessionId) : await sessionStore.loadLatest();
+      const session = sessionId ? await sessionStore.load(sessionId) : await loadLatestSession(sessionStore);
 
       if (!session) {
         throw new Error("No saved sessions found.");

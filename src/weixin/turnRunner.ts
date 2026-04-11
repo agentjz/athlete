@@ -1,11 +1,8 @@
-import { AgentTurnError, getErrorMessage } from "../agent/errors.js";
-import { runManagedAgentTurn } from "../agent/turn.js";
-import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RunTurnResult } from "../agent/types.js";
-import { createRuntimeToolRegistry } from "../tools/runtimeRegistry.js";
+import { runBoundHostTurn } from "../host/boundTurn.js";
+import { ensureBoundSession, persistBoundSession } from "../host/session.js";
+import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import { isAbortError } from "../utils/abort.js";
 import type { WeixinAttachmentStoreLike } from "./attachmentStore.js";
 import { WEIXIN_TYPING_STATUS, type WeixinClientLike } from "./client.js";
 import type { WeixinDeliveryQueue } from "./deliveryQueue.js";
@@ -40,20 +37,19 @@ export async function runWeixinTurn(options: {
   deliveryQueue: WeixinDeliveryQueue;
   logger: WeixinLogger;
   message: WeixinPrivateMessage;
-  runTurn?: (input: ManagedTurnOptions) => Promise<RunTurnResult>;
+  runTurn?: HostManagedTurnRunner;
   enqueueReply: (userId: string, text: string) => Promise<void>;
   markQueuedTurnStarted: (peerKey: string) => void;
   consumePendingStop: (peerKey: string) => boolean;
   onActiveTurnStart: (peerKey: string, activeTurn: WeixinActiveTurn) => void;
   onActiveTurnEnd: (peerKey: string) => void;
 }): Promise<void> {
-  let binding = await getOrCreateBinding(options.message, options);
-  let session = await loadBoundSession(binding, options);
   const output = new WeixinOutputPort({
     userId: options.message.userId,
     messageChunkChars: options.config.weixin.messageChunkChars,
     enqueueReply: async (userId, text) => options.enqueueReply(userId, text),
   });
+  let { binding, session } = await ensureWeixinBoundSession(options);
   options.logger.info("session ready", {
     peerKey: options.message.peerKey,
     userId: options.message.userId,
@@ -107,108 +103,96 @@ export async function runWeixinTurn(options: {
       enqueueVisibleMessage: async (target, text) => options.enqueueReply(target.userId, text),
       typingIntervalMs: options.config.weixin.typingIntervalMs,
     });
-    const controller = new AbortController();
-    const shouldAbortOnStart = options.consumePendingStop(options.message.peerKey);
-    options.onActiveTurnStart(options.message.peerKey, {
-      controller,
-      userId: options.message.userId,
-      sessionId: session.id,
-      waitForVisibleMessages: async () => display.waitForDurableVisible(),
-    });
-    options.markQueuedTurnStarted(options.message.peerKey);
-
-    const turnInput = await buildTurnInput(options.message, session.id, options);
     const callbacks = createLoggedWeixinCallbacks(display, options.logger, {
       peerKey: options.message.peerKey,
       userId: options.message.userId,
       sessionId: session.id,
     });
-    const toolRegistry = await createRuntimeToolRegistry(options.config, {
-      includeTools: [
-        createWeixinSendFileTool({
-          peerKey: options.message.peerKey,
-          userId: options.message.userId,
-          deliveryQueue: options.deliveryQueue,
-          logger: options.logger,
-        }),
-      ],
-    });
-
-    try {
-      if (shouldAbortOnStart) {
-        queueMicrotask(() => {
-          if (!controller.signal.aborted) {
-            controller.abort();
-          }
-        });
-      }
-
-      options.logger.info("starting turn", {
+    const extraTools = [
+      createWeixinSendFileTool({
         peerKey: options.message.peerKey,
         userId: options.message.userId,
-        sessionId: session.id,
-        inputKind: options.message.kind === "private_text_message" ? "text" : options.message.mediaKind,
-        fileName: options.message.kind === "private_file_message" ? options.message.fileName : undefined,
-      });
-      const result = await (options.runTurn ?? runManagedAgentTurn)({
-        input: turnInput,
+        deliveryQueue: options.deliveryQueue,
+        logger: options.logger,
+      }),
+    ];
+    options.logger.info("starting turn", {
+      peerKey: options.message.peerKey,
+      userId: options.message.userId,
+      sessionId: session.id,
+      inputKind: options.message.kind === "private_text_message" ? "text" : options.message.mediaKind,
+      fileName: options.message.kind === "private_file_message" ? options.message.fileName : undefined,
+    });
+
+    session = await runBoundHostTurn<WeixinActiveTurn>(
+      {
+        buildInput: () => buildTurnInput(options.message, session.id, options),
         cwd: options.cwd,
         config: options.config,
         session,
         sessionStore: options.sessionStore,
-        abortSignal: controller.signal,
+        output,
+        display,
         callbacks,
-        toolRegistry,
-        identity: {
-          kind: "lead",
-          name: "lead",
+        extraTools,
+        shouldAbortOnStart: () => options.consumePendingStop(options.message.peerKey),
+        markQueuedTurnStarted: () => options.markQueuedTurnStarted(options.message.peerKey),
+        createActiveTurn: (controller, sessionId) => ({
+          controller,
+          userId: options.message.userId,
+          sessionId,
+          waitForVisibleMessages: async () => display.waitForDurableVisible(),
+        }),
+        onActiveTurnStart: (activeTurn) => {
+          options.onActiveTurnStart(options.message.peerKey, activeTurn);
         },
-      });
-      session = result.session;
-      if (result.paused && result.pauseReason) {
-        output.warn(result.pauseReason);
-        display.noteTerminalState();
-      }
-      options.logger.info("turn completed", {
-        peerKey: options.message.peerKey,
-        userId: options.message.userId,
-        sessionId: session.id,
-        detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
-      });
-    } catch (error) {
-      if (error instanceof AgentTurnError) {
-        session = error.session;
-      }
-
-      if (isAbortError(error)) {
-        display.noteTerminalState();
-        output.warn("Turn interrupted. You can keep chatting.");
-        options.logger.info("turn stopped", {
-          peerKey: options.message.peerKey,
-          userId: options.message.userId,
-          sessionId: session.id,
-        });
-      } else {
-        display.noteTerminalState();
-        output.error(getErrorMessage(error));
-        output.info("The request failed, but the session is still alive. You can keep chatting.");
-        options.logger.error("turn failed", {
-          peerKey: options.message.peerKey,
-          userId: options.message.userId,
-          sessionId: session.id,
-          detail: getErrorMessage(error),
-        });
-      }
-    } finally {
-      options.onActiveTurnEnd(options.message.peerKey);
-      await display.flush();
-      display.dispose();
-      await toolRegistry.close?.().catch(() => undefined);
-    }
+        onActiveTurnEnd: () => {
+          options.onActiveTurnEnd(options.message.peerKey);
+        },
+        onCompleted: (result, nextSession) => {
+          options.logger.info("turn completed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            sessionId: nextSession.id,
+            detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
+          });
+        },
+        onPaused: (result, nextSession) => {
+          options.logger.info("turn completed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            sessionId: nextSession.id,
+            detail: result.changedPaths.length > 0 ? `changed=${result.changedPaths.length}` : "changed=0",
+          });
+        },
+        onAborted: (nextSession) => {
+          options.logger.info("turn stopped", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            sessionId: nextSession.id,
+          });
+        },
+        onFailed: (errorMessage, nextSession) => {
+          options.logger.error("turn failed", {
+            peerKey: options.message.peerKey,
+            userId: options.message.userId,
+            sessionId: nextSession.id,
+            detail: errorMessage,
+          });
+        },
+      },
+      {
+        runTurn: options.runTurn,
+      },
+    );
   } finally {
     options.markQueuedTurnStarted(options.message.peerKey);
-    binding = touchBinding(binding, session.id);
-    await options.sessionMapStore.set(binding);
+    binding = await persistBoundSession({
+      binding,
+      sessionId: session.id,
+      touchBinding,
+      saveBinding: async (nextBinding) => options.sessionMapStore.set(nextBinding),
+    });
     await output.flush();
   }
 }
@@ -242,49 +226,33 @@ async function buildTurnInput(
   return buildWeixinMediaTurnInput(message, attachment, recentAttachments, options.cwd);
 }
 
-async function getOrCreateBinding(
-  message: WeixinPrivateMessage,
-  options: {
-    cwd: string;
-    sessionStore: SessionStoreLike & { load(id: string): Promise<SessionRecord> };
-    sessionMapStore: WeixinSessionMapStoreLike;
-  },
-): Promise<WeixinSessionBinding> {
-  const existing = await options.sessionMapStore.get(message.peerKey);
-  if (existing) {
-    return touchBinding(existing, existing.sessionId);
-  }
-
-  const session = await options.sessionStore.save(await options.sessionStore.create(options.cwd));
-  const now = new Date().toISOString();
-  const binding: WeixinSessionBinding = {
-    peerKey: message.peerKey,
-    userId: message.userId,
-    sessionId: session.id,
+async function ensureWeixinBoundSession(options: {
+  cwd: string;
+  message: WeixinPrivateMessage;
+  sessionStore: SessionStoreLike & { load(id: string): Promise<SessionRecord> };
+  sessionMapStore: WeixinSessionMapStoreLike;
+}): Promise<{
+  binding: WeixinSessionBinding;
+  session: SessionRecord;
+}> {
+  return ensureBoundSession({
     cwd: options.cwd,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await options.sessionMapStore.set(binding);
-  return binding;
-}
-
-async function loadBoundSession(
-  binding: WeixinSessionBinding,
-  options: {
-    cwd: string;
-    sessionStore: SessionStoreLike & { load(id: string): Promise<SessionRecord> };
-    sessionMapStore: WeixinSessionMapStoreLike;
-  },
-): Promise<SessionRecord> {
-  try {
-    return await options.sessionStore.load(binding.sessionId);
-  } catch {
-    const session = await options.sessionStore.save(await options.sessionStore.create(options.cwd));
-    const nextBinding = touchBinding(binding, session.id);
-    await options.sessionMapStore.set(nextBinding);
-    return session;
-  }
+    sessionStore: options.sessionStore,
+    loadBinding: async () => options.sessionMapStore.get(options.message.peerKey),
+    createBinding: (session) => {
+      const now = new Date().toISOString();
+      return {
+        peerKey: options.message.peerKey,
+        userId: options.message.userId,
+        sessionId: session.id,
+        cwd: options.cwd,
+        createdAt: now,
+        updatedAt: now,
+      };
+    },
+    touchBinding,
+    saveBinding: async (binding) => options.sessionMapStore.set(binding),
+  });
 }
 
 function touchBinding(binding: WeixinSessionBinding, sessionId: string): WeixinSessionBinding {

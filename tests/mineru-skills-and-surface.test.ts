@@ -205,7 +205,10 @@ test("stream renderer shows MinerU document tool calls with file paths", async (
 test("README, spec, skills docs, and package scripts describe the MinerU document chain", async () => {
   const readme = await fsPromises.readFile(path.join(REPO_ROOT, "README.md"), "utf8");
   const skillsReadme = await fsPromises.readFile(path.join(REPO_ROOT, "skills", "README.md"), "utf8");
-  const spec = await fsPromises.readFile(path.join(REPO_ROOT, "spec", "modules", "扩展机制.md"), "utf8");
+  const spec = await fsPromises.readFile(
+    path.join(REPO_ROOT, "spec", "技术实现", "关键模块", "扩展机制.md"),
+    "utf8",
+  );
   const packageJson = JSON.parse(await fsPromises.readFile(path.join(REPO_ROOT, "package.json"), "utf8")) as {
     scripts?: Record<string, string>;
   };

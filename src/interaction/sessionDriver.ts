@@ -1,10 +1,8 @@
-import { AgentTurnError, getErrorMessage } from "../agent/errors.js";
-import { runManagedAgentTurn } from "../agent/turn.js";
-import type { ManagedTurnOptions } from "../agent/turn.js";
+import { getErrorMessage } from "../agent/errors.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RunTurnResult } from "../agent/types.js";
+import { runHostTurn } from "../host/turn.js";
+import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import { isAbortError } from "../utils/abort.js";
 import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";
 import { handleLocalCommand, type LocalCommandResult } from "./localCommands.js";
 import type { InteractionShell } from "./shell.js";
@@ -16,7 +14,7 @@ export interface InteractiveSessionDriverOptions {
   sessionStore: SessionStoreLike;
   shell: InteractionShell;
   exitGuard?: InteractiveExitGuard;
-  runTurn?: (options: ManagedTurnOptions) => Promise<RunTurnResult>;
+  runTurn?: HostManagedTurnRunner;
   localCommandHandler?: typeof handleLocalCommand;
 }
 
@@ -186,7 +184,7 @@ export class InteractiveSessionDriver {
     });
 
     try {
-      const result = await (this.options.runTurn ?? runManagedAgentTurn)({
+      const outcome = await runHostTurn({
         input,
         cwd: this.options.cwd,
         config: this.options.config,
@@ -194,29 +192,31 @@ export class InteractiveSessionDriver {
         sessionStore: this.options.sessionStore,
         abortSignal: controller.signal,
         callbacks: turnDisplay.callbacks,
-        identity: {
-          kind: "lead",
-          name: "lead",
-        },
+      }, {
+        runTurn: this.options.runTurn,
       });
 
-      this.session = result.session;
-      if (result.paused && result.pauseReason) {
-        this.options.shell.output.warn(result.pauseReason);
+      this.session = outcome.session;
+      if (outcome.status === "paused" && outcome.pauseReason) {
+        this.options.shell.output.warn(outcome.pauseReason);
+        return;
+      }
+
+      if (outcome.status === "aborted") {
+        turnDisplay.flush();
+        this.options.shell.output.warn(outcome.errorMessage ?? "Turn interrupted. You can keep chatting.");
+        return;
+      }
+
+      if (outcome.status === "failed") {
+        turnDisplay.flush();
+        this.options.shell.output.error(outcome.errorMessage ?? "The request failed.");
+        this.options.shell.output.info("The request failed, but the session is still alive. You can keep chatting.");
       }
     } catch (error) {
       turnDisplay.flush();
-
-      if (error instanceof AgentTurnError) {
-        this.session = error.session;
-      }
-
-      if (isAbortError(error)) {
-        this.options.shell.output.warn("Turn interrupted. You can keep chatting.");
-      } else {
-        this.options.shell.output.error(getErrorMessage(error));
-        this.options.shell.output.info("The request failed, but the session is still alive. You can keep chatting.");
-      }
+      this.options.shell.output.error(getErrorMessage(error));
+      this.options.shell.output.info("The request failed, but the session is still alive. You can keep chatting.");
     } finally {
       turnDisplay.dispose();
       this.turnInFlight = false;

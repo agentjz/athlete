@@ -18,11 +18,11 @@ test("README documents Weixin login serve logout setup, context_token behavior, 
 
 test("spec and implementation mapping document the Weixin private-chat channel and src/weixin modules", async () => {
   const moduleDoc = await fs.readFile(
-    path.join(process.cwd(), "spec", "modules", "weixin-private-chat.md"),
+    path.join(process.cwd(), "spec", "技术实现", "关键模块", "微信私聊.md"),
     "utf8",
   );
   const mapping = await fs.readFile(
-    path.join(process.cwd(), "spec", "implementation", "目录结构到代码文件映射表.md"),
+    path.join(process.cwd(), "spec", "技术实现", "代码地图", "目录到代码映射.md"),
     "utf8",
   );
 

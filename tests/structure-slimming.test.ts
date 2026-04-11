@@ -51,6 +51,11 @@ test("critical runtime files stay within the line-count budget after agent kerne
     ["src/orchestrator/route.ts", 180],
     ["src/orchestrator/dispatch.ts", 300],
     ["src/orchestrator/taskLifecycle.ts", 300],
+    ["src/host/types.ts", 120],
+    ["src/host/session.ts", 140],
+    ["src/host/toolRegistry.ts", 60],
+    ["src/host/turn.ts", 120],
+    ["src/host/boundTurn.ts", 160],
     ["src/tools/runtimeRegistry.ts", 120],
     ["src/tools/registry.ts", 160],
     ["src/mcp/playwright/config.ts", 220],
@@ -66,6 +71,8 @@ test("critical runtime files stay within the line-count budget after agent kerne
     ["src/ui/localCommands.ts", 40],
     ["src/ui/persistentInput.ts", 40],
     ["src/ui/runtimeSummary.ts", 120],
+    ["src/telegram/turnRunner.ts", 280],
+    ["src/weixin/turnRunner.ts", 280],
   ];
 
   for (const [relativePath, maxLines] of checks) {

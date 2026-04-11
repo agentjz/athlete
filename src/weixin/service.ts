@@ -1,9 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RunTurnResult } from "../agent/types.js";
+import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { PerPeerCommandQueue } from "./commandQueue.js";
 import { FileWeixinAttachmentStore, type WeixinAttachmentStoreLike } from "./attachmentStore.js";
@@ -33,7 +32,7 @@ export interface WeixinServiceOptions {
   deliveryQueue: WeixinDeliveryQueue;
   attachmentStore?: WeixinAttachmentStoreLike;
   commandQueue?: PerPeerCommandQueue;
-  runTurn?: (options: ManagedTurnOptions) => Promise<RunTurnResult>;
+  runTurn?: HostManagedTurnRunner;
   pollingSource?: WeixinPollingSourceLike;
   logger?: WeixinLogger;
   sleep?: (ms: number) => Promise<void>;
