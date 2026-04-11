@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { deriveAcceptanceState, normalizeAcceptanceState, shouldForceAcceptanceRouteChange } from "./contract.js";
+import { collectAcceptanceSignals } from "./signals.js";
 import { detectTextCorruption, normalizeTextForStorage } from "../../utils/text.js";
 import type {
   AcceptanceContract,
@@ -40,12 +41,13 @@ export async function evaluateAcceptanceState(input: {
 
   const fileChecks = await evaluateFileChecks(previous.contract, input.cwd);
   const commandChecks = evaluateCommandChecks(previous.contract, input.session.messages);
-  const httpChecks = evaluateHttpChecks(previous.contract, input.session.messages);
+  const signals = collectAcceptanceSignals(input.session.messages);
+  const httpChecks = evaluateHttpChecks(previous.contract, signals);
   const completedChecks = [...fileChecks.completedChecks, ...commandChecks.completedChecks, ...httpChecks.completedChecks];
   const pendingChecks = [...fileChecks.pendingChecks, ...commandChecks.pendingChecks, ...httpChecks.pendingChecks];
   const phase = determineAcceptancePhase({
     contract: previous.contract,
-    hasSuccessfulDocumentRead: hasSuccessfulTool(input.session.messages, /^mineru_(pdf|doc|image|ppt)_read$/),
+    hasSuccessfulDocumentRead: signals.some((signal) => signal.kind === "document_read_completed"),
     fileChecks,
     pendingChecks,
   });
@@ -285,7 +287,10 @@ function evaluateCommandChecks(contract: AcceptanceContract, messages: StoredMes
   };
 }
 
-function evaluateHttpChecks(contract: AcceptanceContract, messages: StoredMessage[]): {
+function evaluateHttpChecks(
+  contract: AcceptanceContract,
+  signals: ReturnType<typeof collectAcceptanceSignals>,
+): {
   completedChecks: string[];
   pendingChecks: string[];
 } {
@@ -293,10 +298,7 @@ function evaluateHttpChecks(contract: AcceptanceContract, messages: StoredMessag
   const pendingChecks: string[] = [];
 
   for (const check of contract.httpChecks) {
-    if (
-      hasSuccessfulHttpProbe(messages, check.url, check.status, check.bodyContains ?? []) ||
-      hasSuccessfulBrowserPageCheck(messages, check.url, check.bodyContains ?? [])
-    ) {
+    if (hasVerifiedEndpoint(signals, check.url, check.status, check.bodyContains ?? [])) {
       completedChecks.push(`http:${check.id}`);
     } else {
       pendingChecks.push(`http:${check.id}`);
@@ -307,36 +309,6 @@ function evaluateHttpChecks(contract: AcceptanceContract, messages: StoredMessag
     completedChecks,
     pendingChecks,
   };
-}
-
-function hasSuccessfulBrowserPageCheck(messages: StoredMessage[], url: string, bodyContains: string[]): boolean {
-  const browserVisited = messages.some((message) => {
-    if (
-      message.role !== "tool" ||
-      !message.content ||
-      !message.name ||
-      !message.name.startsWith("mcp_playwright_browser_")
-    ) {
-      return false;
-    }
-
-    return message.content.includes(`Page URL: ${url}`);
-  });
-
-  if (!browserVisited) {
-    return false;
-  }
-
-  if (url.endsWith("/")) {
-    return true;
-  }
-
-  const toolCorpus = messages
-    .filter((message) => message.role === "tool" && typeof message.content === "string")
-    .map((message) => message.content ?? "")
-    .join("\n");
-
-  return bodyContains.every((needle) => toolCorpus.includes(needle));
 }
 
 function hasSuccessfulCommand(messages: StoredMessage[], commandContains: string): boolean {
@@ -366,43 +338,6 @@ function hasSuccessfulCommand(messages: StoredMessage[], commandContains: string
   });
 }
 
-function hasSuccessfulHttpProbe(messages: StoredMessage[], url: string, status: number | undefined, bodyContains: string[]): boolean {
-  return messages.some((message) => {
-    if (message.role !== "tool" || message.name !== "http_probe" || !message.content) {
-      return false;
-    }
-
-    const payload = tryParseRecord(message.content);
-    if (!payload) {
-      return false;
-    }
-
-    const candidateUrl = String(payload.url ?? "");
-    const candidateStatus = typeof payload.status === "number" ? payload.status : undefined;
-    const body = String(payload.body ?? "");
-
-    if (candidateUrl !== url) {
-      return false;
-    }
-    if (typeof status === "number" && candidateStatus !== status) {
-      return false;
-    }
-
-    return bodyContains.every((needle) => body.includes(needle));
-  });
-}
-
-function hasSuccessfulTool(messages: StoredMessage[], pattern: RegExp): boolean {
-  return messages.some((message) => {
-    if (message.role !== "tool" || typeof message.name !== "string" || !pattern.test(message.name) || !message.content) {
-      return false;
-    }
-
-    const payload = tryParseRecord(message.content);
-    return payload?.ok === true || payload?.readable === true;
-  });
-}
-
 function tryParseRecord(content: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(content) as unknown;
@@ -410,6 +345,36 @@ function tryParseRecord(content: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function hasVerifiedEndpoint(
+  signals: ReturnType<typeof collectAcceptanceSignals>,
+  url: string,
+  status: number | undefined,
+  bodyContains: string[],
+): boolean {
+  return signals.some((signal) => {
+    if (signal.kind === "http_endpoint_verified") {
+      if (signal.url !== url) {
+        return false;
+      }
+      if (typeof status === "number" && signal.status !== status) {
+        return false;
+      }
+
+      return bodyContains.every((needle) => String(signal.body ?? "").includes(needle));
+    }
+
+    if (signal.kind === "web_page_verified") {
+      if (signal.url !== url) {
+        return false;
+      }
+
+      return bodyContains.every((needle) => String(signal.pageText ?? "").includes(needle));
+    }
+
+    return false;
+  });
 }
 
 function buildAcceptanceSummary(

@@ -27,27 +27,27 @@ export function getWorkflowToolGateResult(
   if (!browserState.hasBrowserActivity) {
     return buildBlockedWorkflowResult(
       "BROWSER_WORKFLOW_REQUIRED",
-      "Use Playwright browser tools before local file inspection or shell-based web fetching.",
-      "Start with mcp_playwright_browser_navigate, then inspect the page with mcp_playwright_browser_snapshot.",
-      "mcp_playwright_browser_navigate",
+      "Use browser capability steps before local file inspection or shell-based web fetching.",
+      "Start with a browser navigate step, then inspect the page with a browser snapshot step.",
+      "browser.navigate",
     );
   }
 
   if (!browserState.hasSnapshot && (toolName !== "run_shell" || commandLooksLikeWebFetch(rawArgs))) {
     return buildBlockedWorkflowResult(
       "BROWSER_SNAPSHOT_REQUIRED",
-      "Capture the current page state with Playwright before detouring into local files or shell web fetching.",
-      "Call mcp_playwright_browser_snapshot next so the agent reads the live page before falling back.",
-      "mcp_playwright_browser_snapshot",
+      "Capture the current page state with a browser snapshot step before detouring into local files or shell web fetching.",
+      "Call a browser snapshot step next so the agent reads the live page before falling back.",
+      "browser.snapshot",
     );
   }
 
   if ((toolName === "run_shell" || toolName === "background_run") && commandLooksLikeWebFetch(rawArgs)) {
     return buildBlockedWorkflowResult(
       "SHELL_WEB_FALLBACK_BLOCKED",
-      "Shell-based web fetching is fallback-only when Playwright browser tools are available.",
-      "Keep using mcp_playwright_browser_* tools unless the browser path failed and you clearly explain the fallback.",
-      "mcp_playwright_browser_snapshot",
+      "Shell-based web fetching is fallback-only when browser capability tools are available.",
+      "Keep using browser capability steps unless the browser path failed and you clearly explain the fallback.",
+      "browser.snapshot",
     );
   }
 
@@ -120,7 +120,7 @@ function buildBlockedWorkflowResult(
   code: string,
   error: string,
   hint: string,
-  suggestedTool: string,
+  suggestedCapability: string,
 ): ToolExecutionResult {
   return {
     ok: false,
@@ -130,7 +130,7 @@ function buildBlockedWorkflowResult(
         code,
         error,
         hint,
-        suggestedTool,
+        suggestedCapability,
       },
       null,
       2,

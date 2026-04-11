@@ -2,6 +2,7 @@ import { ToolExecutionError } from "./errors.js";
 import type {
   RegisteredTool,
   ToolGovernance,
+  ToolGovernanceBrowserStep,
   ToolRegistryBlockedTool,
   ToolRegistryEntry,
 } from "./types.js";
@@ -11,7 +12,12 @@ const WEB_WORKFLOWS = ["web-research", "browser-automation"] as const;
 
 const BUILTIN_CATALOG = new Map<string, ToolGovernance>([
   ...defineMany(["list_files", "read_file", "search_files"], readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  ...defineMany(["mineru_pdf_read", "mineru_image_read", "mineru_doc_read", "mineru_ppt_read", "read_docx", "read_spreadsheet"], readTool("document", { concurrencySafe: true })),
+  ["mineru_pdf_read", documentReadTool("pdf")],
+  ["mineru_image_read", documentReadTool("image")],
+  ["mineru_doc_read", documentReadTool("doc")],
+  ["mineru_ppt_read", documentReadTool("ppt")],
+  ["read_docx", documentReadTool("doc")],
+  ["read_spreadsheet", documentReadTool("spreadsheet")],
   ...defineMany(["task_list", "task_get"], readTool("task", { concurrencySafe: true })),
   ...defineMany(["list_teammates", "read_inbox"], readTool("team", { concurrencySafe: true })),
   ...defineMany(["worktree_list", "worktree_get", "worktree_events"], readTool("worktree", { concurrencySafe: true })),
@@ -165,6 +171,12 @@ export function getBrowserStepRank(governance: Pick<ToolGovernance, "browserStep
   }
 }
 
+export function isDocumentReadGovernedTool(
+  governance: Pick<ToolGovernance, "specialty" | "mutation">,
+): boolean {
+  return governance.specialty === "document" && governance.mutation === "read";
+}
+
 function inferToolGovernance(
   name: string,
   origin?: RegisteredTool["origin"],
@@ -174,8 +186,9 @@ function inferToolGovernance(
     return cloneGovernance(builtin);
   }
 
-  if (/^mcp_playwright_browser_/i.test(name)) {
-    return cloneGovernance(playwrightBrowserTool(name));
+  const browserStep = parseBrowserStepFromName(name);
+  if (browserStep) {
+    return cloneGovernance(browserCapabilityTool(browserStep));
   }
 
   if (name.startsWith("mcp_") && origin?.readOnlyHint === true) {
@@ -198,6 +211,7 @@ function normalizeToolGovernance(name: string, partial: Partial<ToolGovernance>)
     preferredWorkflows: [...(partial.preferredWorkflows ?? [])],
     fallbackOnlyInWorkflows: [...(partial.fallbackOnlyInWorkflows ?? [])],
     browserStep: partial.browserStep,
+    documentKind: partial.documentKind,
   };
 
   if (governance.mutation === "read" && governance.destructive) {
@@ -273,25 +287,44 @@ function buildGovernance(
     preferredWorkflows: [...(overrides.preferredWorkflows ?? [])],
     fallbackOnlyInWorkflows: [...(overrides.fallbackOnlyInWorkflows ?? [])],
     browserStep: overrides.browserStep,
+    documentKind: overrides.documentKind,
   };
 }
 
-function playwrightBrowserTool(name: string): ToolGovernance {
-  const browserStep = name.endsWith("_browser_navigate")
-    ? "navigate"
-    : name.endsWith("_browser_snapshot")
-      ? "snapshot"
-      : name.endsWith("_browser_take_screenshot")
-        ? "take_screenshot"
-        : name.endsWith("_browser_click")
-          ? "click"
-          : name.endsWith("_browser_type")
-            ? "type"
-            : "other";
-
+function browserCapabilityTool(browserStep: ToolGovernanceBrowserStep): ToolGovernance {
   return buildGovernance("browser", browserStep === "click" || browserStep === "type" ? "state" : "read", browserStep === "click" || browserStep === "type" ? "medium" : "low", {
     source: "mcp",
     browserStep,
     preferredWorkflows: WEB_WORKFLOWS,
+  });
+}
+
+function parseBrowserStepFromName(name: string): ToolGovernanceBrowserStep | null {
+  const normalized = name.trim().toLowerCase();
+  if (normalized.includes("browser_navigate")) {
+    return "navigate";
+  }
+  if (normalized.includes("browser_snapshot")) {
+    return "snapshot";
+  }
+  if (normalized.includes("browser_take_screenshot")) {
+    return "take_screenshot";
+  }
+  if (normalized.includes("browser_click")) {
+    return "click";
+  }
+  if (normalized.includes("browser_type")) {
+    return "type";
+  }
+
+  return null;
+}
+
+function documentReadTool(
+  documentKind: NonNullable<ToolGovernance["documentKind"]>,
+): ToolGovernance {
+  return readTool("document", {
+    concurrencySafe: true,
+    documentKind,
   });
 }

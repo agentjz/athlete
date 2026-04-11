@@ -1,11 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import process from "node:process";
-
-import { execa } from "execa";
 
 import type { ChangeRecord, RuntimeConfig, SessionRecord } from "../types.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
+import { terminateKnownProcesses } from "../utils/processControl.js";
 import { getProjectStatePaths } from "./statePaths.js";
 import { WorktreeStore } from "../worktrees/store.js";
 
@@ -131,60 +129,6 @@ async function readBackgroundJobs(backgroundDir: string): Promise<Array<{ pid?: 
     }
     throw error;
   }
-}
-
-async function terminateKnownProcesses(pids: Array<number | undefined>): Promise<number[]> {
-  const uniquePids = [...new Set(
-    pids
-      .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0)
-      .map((value) => Math.trunc(value)),
-  )];
-  const terminated: number[] = [];
-
-  for (const pid of uniquePids) {
-    const killed = await terminateProcessTree(pid);
-    if (killed || !isProcessAlive(pid)) {
-      terminated.push(pid);
-    }
-  }
-
-  return terminated;
-}
-
-async function terminateProcessTree(pid: number): Promise<boolean> {
-  if (!isProcessAlive(pid)) {
-    return false;
-  }
-
-  if (process.platform === "win32") {
-    await execa("taskkill", ["/PID", String(pid), "/T", "/F"], {
-      reject: false,
-      timeout: 10_000,
-      windowsHide: true,
-    }).catch(() => null);
-    await waitForProcessExit(pid, 40, 50);
-    return !isProcessAlive(pid);
-  }
-
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch {
-    return false;
-  }
-
-  await waitForProcessExit(pid, 20, 50);
-  if (!isProcessAlive(pid)) {
-    return true;
-  }
-
-  try {
-    process.kill(pid, "SIGKILL");
-  } catch {
-    return false;
-  }
-
-  await waitForProcessExit(pid, 20, 50);
-  return !isProcessAlive(pid);
 }
 
 async function removeTrackedWorktrees(
@@ -363,29 +307,6 @@ async function waitForRemovedSessionFiles(
     );
 
     if (remaining.every((item) => item.exists === false)) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-}
-
-function isProcessAlive(pid: number): boolean {
-  if (!Number.isFinite(pid) || pid <= 0) {
-    return false;
-  }
-
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function waitForProcessExit(pid: number, attempts: number, delayMs: number): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (!isProcessAlive(pid)) {
       return;
     }
 

@@ -60,7 +60,9 @@ Tool registry 负责向模型公开动作集合，并统一管理本地工具与
 
 ## Playwright MCP 当前事实
 
-当前 Playwright 浏览器工具通过 runtime registry 暴露为：
+当前 Playwright adapter 通过 runtime registry 暴露一组 `mcp_playwright_browser_*` 工具；这是 adapter surface，不是上层 machine rule。
+
+当前 adapter 层常见名字包括：
 
 - `mcp_playwright_browser_navigate`
 - `mcp_playwright_browser_snapshot`
@@ -72,8 +74,8 @@ Tool registry 负责向模型公开动作集合，并统一管理本地工具与
 当前优先级策略：
 
 - runtime registry 先用治理 metadata 做 fail-closed 过滤，再按机器排序暴露工具
-- Playwright 浏览器工具会通过治理 metadata 稳定排到本地文件工具和 shell 工具前面
-- request 级 tool priority 会消费同一套 metadata，在 web research / browser automation 场景继续把浏览器工具前置
+- 浏览器工具会通过治理 metadata 稳定排到本地文件工具和 shell 工具前面
+- request 级 tool priority 会消费同一套 metadata，在 web research / browser automation 场景继续把浏览器 capability 工具前置
 - `run_shell` 与本地文件 detour 在 browser workflow 下只作为 fallback
 
 ## 当前治理模型
@@ -88,9 +90,41 @@ Tool registry 负责向模型公开动作集合，并统一管理本地工具与
 - 是否只读 / 会不会修改状态
 - 是否高风险 / destructive
 - 是否要求 change signal / verification signal
-- 是否 browser-first
+- 是否属于 browser capability
+- browser step 是 `navigate / snapshot / take_screenshot / click / type / other`
+- 是否属于 document-reading capability
+- document kind 是 `doc / image / pdf / ppt / spreadsheet`
 - 是否在特定 workflow 下只能 fallback
 - 是否并发安全
+
+## 当前上层约束
+
+上层 machine rule 当前必须遵守：
+
+1. workflow guard 只认 browser capability / browser step，不认具体 Playwright 工具名。
+2. tool priority 只认治理 metadata，不认具体 Playwright 工具名。
+3. document routing hint 只认 `document.read` / `spreadsheet.read` capability，不把 `mineru_*` 名字继续上推。
+4. acceptance / phase / verification 只认统一 signal，不认 adapter 工具名。
+
+## 当前代码落点
+
+- `src/tools/governance.ts`
+  - browser capability、browser step、document kind、fail-closed metadata
+- `src/tools/order.ts`
+  - 暴露排序
+- `src/agent/toolPriority.ts`
+  - request 级 tool priority，消费统一 metadata
+- `src/skills/workflowGuards.ts`
+  - 只输出 `suggestedCapability`
+- `src/tools/routing.ts`
+  - `document.read` / `spreadsheet.read` capability hint
+- `src/mcp/toolAdapter.ts`
+  - adapter 层把 MCP 工具接入 registry，保留 origin 信息
+
+## 对齐说明
+
+- adapter 层仍可以保留 `mcp_playwright_browser_*`、`mineru_*` 这类生态名词
+- 但 registry 暴露给上层的真相必须是 capability metadata，而不是生态字符串
 
 ## 当前约束
 

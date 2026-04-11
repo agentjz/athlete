@@ -28,6 +28,12 @@ export type ToolGovernanceBrowserStep =
   | "click"
   | "type"
   | "other";
+export type ToolGovernanceDocumentKind =
+  | "doc"
+  | "image"
+  | "pdf"
+  | "ppt"
+  | "spreadsheet";
 
 export interface ToolGovernance {
   source: ToolGovernanceSource;
@@ -41,6 +47,7 @@ export interface ToolGovernance {
   preferredWorkflows: readonly string[];
   fallbackOnlyInWorkflows: readonly string[];
   browserStep?: ToolGovernanceBrowserStep;
+  documentKind?: ToolGovernanceDocumentKind;
 }
 
 export interface ToolOrigin {

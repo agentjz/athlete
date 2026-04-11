@@ -17,6 +17,7 @@
 - 驱动交互 session loop
 - 处理普通输入和 multiline 分支
 - 处理本地命令路由
+- 在 `quit / q / exit` 时检查当前项目仍在运行的后台进程，并做退出确认
 - 管理 turn in-flight 状态与 abort controller 生命周期
 - 接线 `runManagedAgentTurn`
 - 维护当前 session 的内存态，并在 turn 完成后接收最新 session
@@ -39,6 +40,25 @@
 5. UI 可以读取并展示真相源，但不能绕过真相源另造状态。
 6. 交互 session loop 不能直接绑死 `readline`、`process.stdin/stdout`、`chalk` 这类 CLI 细节。
 7. shell 只能提供输入、输出和 turn 展示适配，不能自己发明 task / protocol / runtime 真相。
+
+## Quit Boundary
+
+- `quit / q / exit` 不是“无条件立刻退出”。
+- 共享交互层会先检查当前项目仍在运行的后台进程：
+  - `background job`
+  - `teammate worker`
+- 如果没有运行中的后台进程：
+  - 直接退出会话
+- 如果有运行中的后台进程：
+  - 先把它们列出来
+  - 只允许两个结果：
+    - 确认退出：杀掉全部后台进程，再退出
+    - 取消退出：保持当前 CLI 和后台进程继续运行
+- kill 失败时必须 fail-closed：
+  - 不退出
+  - 明确告诉用户哪些 PID 还活着
+
+这个规则属于共享交互控制层，不属于单个 shell 外壳。
 ## 当前本地命令入口
 
 - `/session`
@@ -92,6 +112,7 @@
 - `src/shell/cli/output.ts`: `chalk` + stdio 输出适配
 - `src/shell/cli/turnDisplay.ts`: spinner + stream renderer 适配
 - `src/interaction/localCommands.ts`: 共享本地命令语义
+- `src/interaction/exitGuard.ts`: 退出前后台进程检查与 kill-or-continue 语义
 
 ## 当前展示边界
 
@@ -104,6 +125,12 @@
 - runtime summary
 
 但它不负责发明这些状态。
+
+交互终端当前还负责把退出确认展示清楚：
+
+- 哪些后台进程仍在运行
+- 用户当前是在“继续运行”还是“kill 后退出”的分支
+- kill 失败时哪些 PID 仍未退出
 
 ## 未来方向
 

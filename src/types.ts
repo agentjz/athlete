@@ -23,7 +23,7 @@ export interface AppPaths {
 }
 
 export interface AppConfig {
-  provider: "deepseek";
+  provider: string;
   baseUrl: string;
   model: string;
   mode: AgentMode;

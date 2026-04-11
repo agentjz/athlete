@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { getToolRouteHintForPath } from "./routing.js";
 import { decodeTextBuffer } from "../utils/text.js";
+import type { ToolGovernanceDocumentKind } from "./types.js";
 
 const KNOWN_BINARY_EXTENSIONS = new Set([
   ".epub",
@@ -28,16 +29,11 @@ export interface InspectedFile {
   action?:
     | "skip_file_content"
     | "use_read_spreadsheet"
-    | "use_mineru_doc_read"
-    | "use_mineru_image_read"
-    | "use_mineru_pdf_read"
-    | "use_mineru_ppt_read";
-  suggestedTool?:
-    | "read_spreadsheet"
-    | "mineru_doc_read"
-    | "mineru_image_read"
-    | "mineru_pdf_read"
-    | "mineru_ppt_read";
+    | "use_document_read";
+  suggestedCapability?:
+    | "spreadsheet.read"
+    | "document.read";
+  documentKind?: ToolGovernanceDocumentKind;
   routeCode?: string;
   suggestedPath?: string;
   size: number;
@@ -54,7 +50,8 @@ export async function inspectTextFile(filePath: string, maxBytes: number): Promi
       readable: false,
       reason: `${route.reason}: ${extension}`,
       action: route.action,
-      suggestedTool: route.suggestedTool,
+      suggestedCapability: route.suggestedCapability,
+      documentKind: route.documentKind,
       routeCode: route.code,
       size: stat.size,
       extension,

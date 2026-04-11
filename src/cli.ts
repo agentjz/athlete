@@ -13,6 +13,7 @@ import {
   extractCliOverrides,
   resolveCliRuntime,
   runOneShotPrompt,
+  type OneShotPromptRunResult,
   truncateCliValue,
 } from "./cli/support.js";
 import { initializeProjectFiles } from "./config/init.js";
@@ -23,7 +24,7 @@ import {
   registerTelegramCommands,
 } from "./telegram/cli.js";
 import { acquireTelegramProcessLock } from "./telegram/processLock.js";
-import type { AppConfig, RuntimeConfig } from "./types.js";
+import type { AppConfig, RuntimeConfig, SessionRecord } from "./types.js";
 import { startInteractiveChat } from "./ui/interactive.js";
 import { ui } from "./utils/console.js";
 import { installStdioGuards, writeStdoutLine } from "./utils/stdio.js";
@@ -44,6 +45,13 @@ export interface CliProgramDependencies {
     run(signal?: AbortSignal): Promise<void>;
     stop?(): void;
   }>;
+  runOneShot?: (options: {
+    prompt: string;
+    cwd: string;
+    config: RuntimeConfig;
+    session: SessionRecord;
+    sessionStore: SessionStore;
+  }) => Promise<OneShotPromptRunResult>;
   acquireProcessLock?: typeof acquireTelegramProcessLock;
   loginWeixin?: typeof loginConfiguredWeixin;
   createWeixinService?: (options: {
@@ -64,6 +72,13 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
   const createTelegramService = dependencies.createTelegramService ?? createConfiguredTelegramService;
   const createWeixinService = dependencies.createWeixinService ?? createConfiguredWeixinService;
   const resolveRuntimeForCommand = dependencies.resolveRuntime ?? resolveCliRuntime;
+  const runOneShot = dependencies.runOneShot ?? (async (options: {
+    prompt: string;
+    cwd: string;
+    config: RuntimeConfig;
+    session: SessionRecord;
+    sessionStore: SessionStore;
+  }) => runOneShotPrompt(options.prompt, options.cwd, options.config, options.session, options.sessionStore));
 
   program
     .name("athlete")
@@ -99,8 +114,14 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
         return;
       }
 
-      const nextSession = await runOneShotPrompt(prompt, runtime.cwd, runtime.config, session, sessionStore);
-      ui.dim(`session: ${nextSession.id}`);
+      const result = await runOneShot({
+        prompt,
+        cwd: runtime.cwd,
+        config: runtime.config,
+        session,
+        sessionStore,
+      });
+      writeStdoutLine(JSON.stringify(result.closeout));
     });
 
   program
@@ -112,9 +133,14 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
       const runtime = await resolveRuntimeForCommand(extractCliOverrides(program.opts()));
       const sessionStore = new SessionStore(runtime.paths.sessionsDir);
       const session = await sessionStore.create(runtime.cwd);
-      const nextSession = await runOneShotPrompt(prompt, runtime.cwd, runtime.config, session, sessionStore);
-
-      ui.dim(`session: ${nextSession.id}`);
+      const result = await runOneShot({
+        prompt,
+        cwd: runtime.cwd,
+        config: runtime.config,
+        session,
+        sessionStore,
+      });
+      writeStdoutLine(JSON.stringify(result.closeout));
     });
 
   program

@@ -88,7 +88,7 @@ function shouldPrioritizeBrowserTools(
   definitions: FunctionToolDefinition[],
   options: ToolPriorityOptions,
 ): boolean {
-  return hasPlaywrightBrowserTool(definitions) && matchesWebIntent(options);
+  return hasBrowserCapabilityTool(definitions) && matchesWebIntent(options);
 }
 
 function shouldPrioritizeBrowserEntries(
@@ -98,7 +98,7 @@ function shouldPrioritizeBrowserEntries(
   return entries.some((entry) => isBrowserGovernedTool(entry.governance)) && matchesWebIntent(options);
 }
 
-function hasPlaywrightBrowserTool(definitions: FunctionToolDefinition[]): boolean {
+function hasBrowserCapabilityTool(definitions: FunctionToolDefinition[]): boolean {
   return definitions.some((tool) => {
     const governance = getToolGovernanceForName(tool.function.name);
     return governance ? isBrowserGovernedTool(governance) : false;

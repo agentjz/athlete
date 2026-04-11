@@ -168,6 +168,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
 
   const merged = normalizeConfig({
     ...fileConfig,
+    provider: process.env.ATHLETE_PROVIDER ?? fileConfig.provider,
     model: process.env.ATHLETE_MODEL ?? overrides.model ?? fileConfig.model,
     baseUrl: process.env.ATHLETE_BASE_URL ?? fileConfig.baseUrl,
     mode:
@@ -239,7 +240,7 @@ function normalizeConfig(
       : ["."];
 
   return {
-    provider: "deepseek",
+    provider: String(config.provider ?? DEFAULT_CONFIG.provider).trim() || DEFAULT_CONFIG.provider,
     baseUrl: config.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     model: config.model?.trim() || DEFAULT_CONFIG.model,
     mode: parseAgentMode(config.mode) ?? DEFAULT_CONFIG.mode,

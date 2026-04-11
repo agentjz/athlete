@@ -109,24 +109,24 @@ test("system prompt keeps document routing at the principle level instead of har
   assert.doesNotMatch(prompt, /Skip unsupported binary documents such as \.doc and \.pptx/i);
 });
 
-test("executeToolCallWithRecovery returns MinerU-specific hints for supported document failures", async () => {
+test("executeToolCallWithRecovery returns document capability hints for supported document failures", async () => {
   const config = createTestRuntimeConfig(REPO_ROOT);
   const cases = [
     {
       message: "The target is a PDF document (.pdf).",
-      expectedHint: /mineru_pdf_read/,
+      expectedHint: /document-read capability/i,
     },
     {
       message: "The target is a PNG image (.png).",
-      expectedHint: /mineru_image_read/,
+      expectedHint: /document-read capability/i,
     },
     {
       message: "The target is a DOCX document (.docx).",
-      expectedHint: /mineru_doc_read/,
+      expectedHint: /document-read capability/i,
     },
     {
       message: "The target is a PPTX deck (.pptx).",
-      expectedHint: /mineru_ppt_read/,
+      expectedHint: /document-read capability/i,
     },
   ] as const;
 

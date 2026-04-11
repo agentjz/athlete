@@ -102,7 +102,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         session.acceptanceState,
       );
       promptLayers = extendPromptLayersForTurnState(promptLayers, session.checkpoint, iteration, softToolLimit, consecutiveRequestFailures);
-      const requestModel = pickRequestModel(options.config.model, consecutiveRequestFailures);
+      const requestModel = pickRequestModel(options.config.provider, options.config.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
       const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
       const prioritizedToolDefinitions = toolRegistry.entries
@@ -129,7 +129,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       const modelRequestMetrics: ModelRequestMetric[] = [];
       options.callbacks?.onModelWaitStart?.();
       try {
-        response = await fetchAssistantResponse(client, requestContext.messages, requestModel, turnToolDefinitions, options.callbacks, options.abortSignal, (metric) => modelRequestMetrics.push(metric));
+        response = await fetchAssistantResponse(client, requestContext.messages, { provider: options.config.provider, model: requestModel }, turnToolDefinitions, options.callbacks, options.abortSignal, (metric) => modelRequestMetrics.push(metric));
         session = noteRuntimeModelRequests(session, modelRequestMetrics);
         consecutiveRequestFailures = 0;
       } catch (error) {
@@ -148,9 +148,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           delayMs,
         });
         session = await persistRecoveryTurn(session, options.sessionStore, transition);
-        options.callbacks?.onStatus?.(
-          buildRecoveryStatus(transition),
-        );
+        options.callbacks?.onStatus?.(buildRecoveryStatus(transition));
         await sleep(delayMs, options.abortSignal);
         continue;
       } finally {
@@ -181,12 +179,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       if (response.content && !response.streamedAssistantContent) {
         options.callbacks?.onAssistantStage?.(response.content);
       }
-      session = await options.sessionStore.appendMessages(session, [
-        createMessage("assistant", response.content, {
-          reasoningContent: response.reasoningContent,
-          toolCalls: response.toolCalls,
-        }),
-      ]);
+      session = await options.sessionStore.appendMessages(session, [createMessage("assistant", response.content, { reasoningContent: response.reasoningContent, toolCalls: response.toolCalls })]);
       const batchToolMessages: StoredMessage[] = [];
       const batchChangedPaths = new Set<string>();
       let usedTodoWrite = false;
@@ -287,8 +280,6 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
     const persistedSession = await options.sessionStore.save(session).catch(() => session);
     throw new AgentTurnError(getErrorMessage(error), persistedSession, { cause: error });
   } finally {
-    if (ownsToolRegistry) {
-      await toolRegistry.close?.().catch(() => undefined);
-    }
+    if (ownsToolRegistry) await toolRegistry.close?.().catch(() => undefined);
   }
 }

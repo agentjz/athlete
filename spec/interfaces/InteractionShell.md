@@ -25,6 +25,7 @@
 - 读取普通输入
 - 读取 multiline 输入
 - 绑定 interrupt 事件
+- 为共享 driver 提供退出确认时所需的普通输入
 
 不负责：
 
@@ -54,6 +55,13 @@
 #### `InteractionShell`
 
 负责把上面三部分组装给共享 driver 使用。
+
+共享 driver 可以基于这套输入/输出契约实现：
+
+- 普通命令输入
+- multiline 输入
+- interrupt
+- quit 前二次确认
 
 ## 当前 CLI 实现
 

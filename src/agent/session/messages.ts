@@ -1,5 +1,6 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
+import { resolveProviderCapabilities } from "../provider.js";
 import type { ExternalizedToolResultReference, StoredMessage, ToolCallRecord } from "../../types.js";
 
 export function buildChatMessages(
@@ -146,7 +147,7 @@ export function expandStartToToolBoundary<T extends { role: string; tool_calls?:
 }
 
 export function modelUsesReasoningContent(model: string): boolean {
-  return model === "deepseek-reasoner" || model === "deepseek-chat";
+  return resolveProviderCapabilities({ model }).supportsReasoningContent;
 }
 
 export function isAssistantMessageInLatestTurn<T extends { role: string }>(

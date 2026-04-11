@@ -30,7 +30,7 @@ test("workflow guard blocks shell web fetching before Playwright browser navigat
 
   assert.ok(blocked);
   assert.match(blocked?.output ?? "", /BROWSER_WORKFLOW_REQUIRED/);
-  assert.match(blocked?.output ?? "", /mcp_playwright_browser_navigate/);
+  assert.match(blocked?.output ?? "", /browser\.navigate/);
 });
 
 test("workflow guard blocks shell web fetching until a Playwright snapshot is captured", () => {
@@ -48,7 +48,7 @@ test("workflow guard blocks shell web fetching until a Playwright snapshot is ca
 
   assert.ok(blocked);
   assert.match(blocked?.output ?? "", /BROWSER_SNAPSHOT_REQUIRED/);
-  assert.match(blocked?.output ?? "", /mcp_playwright_browser_snapshot/);
+  assert.match(blocked?.output ?? "", /browser\.snapshot/);
 });
 
 test("workflow guard allows file writing after Playwright navigation and snapshot", () => {

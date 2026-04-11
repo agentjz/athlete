@@ -51,7 +51,6 @@ export async function handleLocalCommand(
   }
 
   if (isExplicitExitCommand(normalized)) {
-    output.info("Session saved.");
     return "quit";
   }
 

@@ -541,7 +541,7 @@ function formatSheetsPreview(value: unknown): string | undefined {
 }
 
 function formatFallbackObjectPreview(value: Record<string, unknown>, cwd?: string): string | undefined {
-  const keys = ["reason", "error", "hint", "action", "suggestedPath", "suggestedTool"];
+  const keys = ["reason", "error", "hint", "action", "suggestedCapability", "documentKind", "suggestedPath", "suggestedTool"];
   const fragments = keys
     .map((key) => {
       const field = value[key];

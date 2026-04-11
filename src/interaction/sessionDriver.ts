@@ -5,6 +5,7 @@ import type { SessionStoreLike } from "../agent/session.js";
 import type { RunTurnResult } from "../agent/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { isAbortError } from "../utils/abort.js";
+import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";
 import { handleLocalCommand, type LocalCommandResult } from "./localCommands.js";
 import type { InteractionShell } from "./shell.js";
 
@@ -14,6 +15,7 @@ export interface InteractiveSessionDriverOptions {
   session: SessionRecord;
   sessionStore: SessionStoreLike;
   shell: InteractionShell;
+  exitGuard?: InteractiveExitGuard;
   runTurn?: (options: ManagedTurnOptions) => Promise<RunTurnResult>;
   localCommandHandler?: typeof handleLocalCommand;
 }
@@ -75,11 +77,59 @@ export class InteractiveSessionDriver {
 
     if (localCommandResult === "continue") {
       await this.runTurn(input);
+    } else if (localCommandResult === "quit") {
+      return this.handleQuitRequest();
     } else if (localCommandResult === "multiline") {
       await this.handleMultilineInput();
     }
 
     return localCommandResult;
+  }
+
+  private async handleQuitRequest(): Promise<LocalCommandResult> {
+    const exitGuard = this.options.exitGuard ?? defaultInteractiveExitGuard;
+
+    let runningProcesses: InteractiveExitProcess[];
+    try {
+      runningProcesses = await exitGuard.collectRunningProcesses(this.options.cwd);
+    } catch (error) {
+      this.options.shell.output.error(`Failed to inspect running background processes: ${getErrorMessage(error)}`);
+      return "handled";
+    }
+
+    if (runningProcesses.length === 0) {
+      this.options.shell.output.info("Session saved.");
+      return "quit";
+    }
+
+    this.options.shell.output.warn("Running background processes detected. Exiting now will kill them all.");
+    this.options.shell.output.plain(runningProcesses.map((process) => process.summary).join("\n"));
+
+    const confirmation = await this.options.shell.input.readInput(
+      "Kill all running background processes and exit? [y/N] ",
+    );
+
+    if (confirmation.kind !== "submit" || !isYes(confirmation.value)) {
+      this.options.shell.output.info("Exit cancelled. Background processes will keep running.");
+      return "handled";
+    }
+
+    try {
+      const result = await exitGuard.terminateProcesses(runningProcesses);
+      if (result.failedPids.length > 0) {
+        this.options.shell.output.error(
+          `Could not stop all background processes. Still running: ${result.failedPids.join(", ")}. Exit cancelled.`,
+        );
+        return "handled";
+      }
+
+      this.options.shell.output.warn(`Stopped ${result.terminatedPids.length} background process(es).`);
+      this.options.shell.output.info("Session saved.");
+      return "quit";
+    } catch (error) {
+      this.options.shell.output.error(`Failed to stop background processes: ${getErrorMessage(error)}`);
+      return "handled";
+    }
   }
 
   private async handleMultilineInput(): Promise<void> {
@@ -173,4 +223,9 @@ export class InteractiveSessionDriver {
       this.turnAbortController = null;
     }
   }
+}
+
+function isYes(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "y" || normalized === "yes";
 }

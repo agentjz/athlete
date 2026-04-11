@@ -1,4 +1,5 @@
 import { isRetryableApiError } from "./turn/recovery.js";
+import { selectProviderRequestModel } from "./provider.js";
 import { sleepWithSignal, throwIfAborted } from "../utils/abort.js";
 import type { RuntimeConfig, RuntimeRecoverTransition } from "../types.js";
 
@@ -34,12 +35,16 @@ export function isRecoverableTurnError(error: unknown): boolean {
   );
 }
 
-export function pickRequestModel(configuredModel: string, consecutiveFailures: number): string {
-  if (configuredModel === "deepseek-reasoner" && consecutiveFailures >= 6) {
-    return "deepseek-chat";
-  }
-
-  return configuredModel;
+export function pickRequestModel(
+  provider: string,
+  configuredModel: string,
+  consecutiveFailures: number,
+): string {
+  return selectProviderRequestModel({
+    provider,
+    configuredModel,
+    consecutiveFailures,
+  });
 }
 
 export function buildRecoveryRequestConfig(

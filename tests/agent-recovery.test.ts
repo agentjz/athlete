@@ -71,7 +71,10 @@ test("fetchAssistantResponse falls back to deepseek-chat when the primary model 
   const response = await fetchAssistantResponse(
     client as any,
     [{ role: "user", content: "Inspect README.md" }],
-    "deepseek-reasoner",
+    {
+      provider: "deepseek",
+      model: "deepseek-reasoner",
+    },
     tools,
     undefined,
   );
@@ -125,7 +128,10 @@ test("fetchAssistantResponse marks assistant text as streamed when content arriv
   const response = await fetchAssistantResponse(
     client as any,
     [{ role: "user", content: "Say hello." }],
-    "deepseek-reasoner",
+    {
+      provider: "deepseek",
+      model: "deepseek-reasoner",
+    },
     undefined,
     undefined,
   );

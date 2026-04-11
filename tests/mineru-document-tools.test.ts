@@ -20,11 +20,11 @@ const IMAGE_PNG_BASE64 =
 test("inspectTextFile routes supported documents toward dedicated MinerU tools", async (t) => {
   const root = await createTempWorkspace("mineru-introspection", t);
   const cases = [
-    { name: "sample.pdf", action: "use_mineru_pdf_read", suggestedTool: "mineru_pdf_read" },
-    { name: "sample.png", action: "use_mineru_image_read", suggestedTool: "mineru_image_read" },
-    { name: "sample.doc", action: "use_mineru_doc_read", suggestedTool: "mineru_doc_read" },
-    { name: "sample.docx", action: "use_mineru_doc_read", suggestedTool: "mineru_doc_read" },
-    { name: "sample.pptx", action: "use_mineru_ppt_read", suggestedTool: "mineru_ppt_read" },
+    { name: "sample.pdf", action: "use_document_read", documentKind: "pdf" },
+    { name: "sample.png", action: "use_document_read", documentKind: "image" },
+    { name: "sample.doc", action: "use_document_read", documentKind: "doc" },
+    { name: "sample.docx", action: "use_document_read", documentKind: "doc" },
+    { name: "sample.pptx", action: "use_document_read", documentKind: "ppt" },
   ] as const;
 
   for (const item of cases) {
@@ -34,7 +34,8 @@ test("inspectTextFile routes supported documents toward dedicated MinerU tools",
     const inspected = await inspectTextFile(filePath, 1024);
     assert.equal(inspected.readable, false);
     assert.equal(inspected.action, item.action);
-    assert.equal(inspected.suggestedTool, item.suggestedTool);
+    assert.equal(inspected.suggestedCapability, "document.read");
+    assert.equal(inspected.documentKind, item.documentKind);
   }
 });
 

@@ -17,31 +17,48 @@ import {
 import type { ModelRequestMetric, ProviderUsageSnapshot } from "./runtimeMetrics.js";
 import { createAbortError, isAbortError, throwIfAborted } from "../utils/abort.js";
 import type { AssistantResponse, AgentCallbacks } from "./types.js";
+import { buildProviderRequestBody, resolveProviderCapabilities } from "./provider.js";
 import type { FunctionToolDefinition } from "../tools/index.js";
 
 export async function fetchAssistantResponse(
   client: OpenAI,
   messages: ChatCompletionMessageParam[],
-  model: string,
+  request: {
+    provider: string;
+    model: string;
+  },
   tools: FunctionToolDefinition[] | undefined,
   callbacks: AgentCallbacks | undefined,
   abortSignal?: AbortSignal,
   onRequestMetric?: (metric: ModelRequestMetric) => void,
 ): Promise<AssistantResponse> {
+  const capabilities = resolveProviderCapabilities(request);
   try {
-    return await tryFetch(client, messages, model, tools, callbacks, false, abortSignal, onRequestMetric);
+    return await tryFetch(client, messages, request, tools, callbacks, false, abortSignal, onRequestMetric);
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
     }
 
-    if (model === "deepseek-reasoner" && tools?.length && isToolCompatibilityError(error)) {
-      return tryFetch(client, messages, "deepseek-chat", tools, callbacks, true, abortSignal, onRequestMetric);
+    if (tools?.length && isToolCompatibilityError(error) && capabilities.toolCompatibilityFallbackModel) {
+      return tryFetch(
+        client,
+        messages,
+        {
+          ...request,
+          model: capabilities.toolCompatibilityFallbackModel,
+        },
+        tools,
+        callbacks,
+        false,
+        abortSignal,
+        onRequestMetric,
+      );
     }
 
     if (isContextLengthError(error)) {
       const compactedMessages = shrinkMessagesForContextLimit(messages);
-      return tryFetch(client, compactedMessages, model, tools, callbacks, false, abortSignal, onRequestMetric);
+      return tryFetch(client, compactedMessages, request, tools, callbacks, false, abortSignal, onRequestMetric);
     }
 
     if (!isContentPolicyError(error)) {
@@ -49,23 +66,26 @@ export async function fetchAssistantResponse(
     }
 
     const sanitizedMessages = sanitizeMessagesForContentPolicy(messages);
-    return tryFetch(client, sanitizedMessages, model, tools, callbacks, false, abortSignal, onRequestMetric);
+    return tryFetch(client, sanitizedMessages, request, tools, callbacks, false, abortSignal, onRequestMetric);
   }
 }
 
 async function tryFetch(
   client: OpenAI,
   messages: ChatCompletionMessageParam[],
-  model: string,
+  request: {
+    provider: string;
+    model: string;
+  },
   tools: FunctionToolDefinition[] | undefined,
   callbacks: AgentCallbacks | undefined,
-  forceThinking: boolean,
+  forceReasoning: boolean,
   abortSignal?: AbortSignal,
   onRequestMetric?: (metric: ModelRequestMetric) => void,
 ): Promise<AssistantResponse> {
   try {
     return normalizeAssistantResponse(await withApiRetries(
-      () => fetchAssistantResponseStreaming(client, messages, model, tools, callbacks, forceThinking, abortSignal, onRequestMetric),
+      () => fetchAssistantResponseStreaming(client, messages, request, tools, callbacks, forceReasoning, abortSignal, onRequestMetric),
       abortSignal,
     ));
   } catch (error) {
@@ -74,7 +94,7 @@ async function tryFetch(
     }
 
     return normalizeAssistantResponse(await withApiRetries(
-      () => fetchAssistantResponseNonStreaming(client, messages, model, tools, forceThinking, abortSignal, onRequestMetric),
+      () => fetchAssistantResponseNonStreaming(client, messages, request, tools, forceReasoning, abortSignal, onRequestMetric),
       abortSignal,
     ));
   }
@@ -83,10 +103,13 @@ async function tryFetch(
 async function fetchAssistantResponseStreaming(
   client: OpenAI,
   messages: ChatCompletionMessageParam[],
-  model: string,
+  request: {
+    provider: string;
+    model: string;
+  },
   tools: FunctionToolDefinition[] | undefined,
   callbacks: AgentCallbacks | undefined,
-  forceThinking: boolean,
+  forceReasoning: boolean,
   abortSignal?: AbortSignal,
   onRequestMetric?: (metric: ModelRequestMetric) => void,
 ): Promise<AssistantResponse> {
@@ -96,7 +119,14 @@ async function fetchAssistantResponseStreaming(
   try {
     const stream = await client.chat.completions.create(
       {
-        ...buildRequestBody(model, messages, tools, true, forceThinking),
+        ...buildProviderRequestBody({
+          provider: request.provider,
+          model: request.model,
+          messages,
+          tools,
+          stream: true,
+          forceReasoning,
+        }),
         signal: abortSignal,
       } as never,
     );
@@ -201,9 +231,12 @@ async function fetchAssistantResponseStreaming(
 async function fetchAssistantResponseNonStreaming(
   client: OpenAI,
   messages: ChatCompletionMessageParam[],
-  model: string,
+  request: {
+    provider: string;
+    model: string;
+  },
   tools?: FunctionToolDefinition[],
-  forceThinking = false,
+  forceReasoning = false,
   abortSignal?: AbortSignal,
   onRequestMetric?: (metric: ModelRequestMetric) => void,
 ): Promise<AssistantResponse> {
@@ -213,7 +246,14 @@ async function fetchAssistantResponseNonStreaming(
   try {
     const completion = await client.chat.completions.create(
       {
-        ...buildRequestBody(model, messages, tools, false, forceThinking),
+        ...buildProviderRequestBody({
+          provider: request.provider,
+          model: request.model,
+          messages,
+          tools,
+          stream: false,
+          forceReasoning,
+        }),
         signal: abortSignal,
       } as never,
     );
@@ -247,28 +287,6 @@ async function fetchAssistantResponseNonStreaming(
       usage,
     });
   }
-}
-
-function buildRequestBody(
-  model: string,
-  messages: ChatCompletionMessageParam[],
-  tools: FunctionToolDefinition[] | undefined,
-  stream: boolean,
-  forceThinking: boolean,
-): Record<string, unknown> {
-  const body: Record<string, unknown> = {
-    model,
-    messages,
-    tools,
-    tool_choice: tools?.length ? "auto" : undefined,
-    stream,
-  };
-
-  if (forceThinking || model === "deepseek-chat") {
-    body.thinking = { type: "enabled" };
-  }
-
-  return body;
 }
 
 function abortStream(stream: { controller?: AbortController } | undefined): void {
