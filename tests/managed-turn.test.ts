@@ -9,6 +9,7 @@ import { createCheckpointFixture } from "./helpers.js";
 
 function createConfig(): RuntimeConfig {
   return {
+    schemaVersion: 1,
     provider: "deepseek",
     apiKey: "test-key",
     mineru: {

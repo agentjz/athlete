@@ -3,21 +3,32 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { getErrorMessage } from "../agent/errors.js";
-import { SessionStore } from "../agent/session.js";
 import type { CliOverrides, RuntimeConfig } from "../types.js";
-import { FetchTelegramBotApiClient } from "./botApiClient.js";
-import { TelegramDeliveryQueue } from "./deliveryQueue.js";
-import { createConsoleTelegramLogger } from "./logger.js";
-import { FileTelegramOffsetStore } from "./offsetStore.js";
-import { acquireTelegramProcessLock } from "./processLock.js";
-import { applyTelegramProxyEnvironment } from "./proxy.js";
-import { FileTelegramSessionMapStore } from "./sessionMapStore.js";
-import { TelegramService } from "./service.js";
 
 export async function createTelegramService(options: {
   cwd: string;
   config: RuntimeConfig;
-}): Promise<TelegramService> {
+}) {
+  const [
+    { SessionStore },
+    { FetchTelegramBotApiClient },
+    { TelegramDeliveryQueue },
+    { createConsoleTelegramLogger },
+    { FileTelegramOffsetStore },
+    { applyTelegramProxyEnvironment },
+    { FileTelegramSessionMapStore },
+    { TelegramService },
+  ] = await Promise.all([
+    import("../agent/session.js"),
+    import("./botApiClient.js"),
+    import("./deliveryQueue.js"),
+    import("./logger.js"),
+    import("./offsetStore.js"),
+    import("./proxy.js"),
+    import("./sessionMapStore.js"),
+    import("./service.js"),
+  ]);
+
   const logger = createConsoleTelegramLogger();
   applyTelegramProxyEnvironment(options.config.telegram.proxyUrl);
   const bot = new FetchTelegramBotApiClient({
@@ -73,7 +84,10 @@ export function registerTelegramCommands(
       run(signal?: AbortSignal): Promise<void>;
       stop?(): void;
     }>;
-    acquireProcessLock?: typeof acquireTelegramProcessLock;
+    acquireProcessLock?: (options: { stateDir: string }) => Promise<{
+      pidFilePath: string;
+      release(): Promise<void>;
+    }>;
   },
 ): void {
   const telegramCommand = program.command("telegram").description("Serve Telegram private-chat control.");
@@ -91,10 +105,13 @@ export function registerTelegramCommands(
         throw new Error("Telegram whitelist is empty. Set ATHLETE_TELEGRAM_ALLOWED_USER_IDS or config.telegram.allowedUserIds.");
       }
 
-      const lock = await (dependencies.acquireProcessLock ?? acquireTelegramProcessLock)({
+      const acquireProcessLock =
+        dependencies.acquireProcessLock ?? (await import("./processLock.js")).acquireTelegramProcessLock;
+      const serviceFactory = dependencies.createTelegramService ?? createTelegramService;
+      const lock = await acquireProcessLock({
         stateDir: runtime.config.telegram.stateDir,
       });
-      const service = await (dependencies.createTelegramService ?? createTelegramService)({
+      const service = await serviceFactory({
         cwd: runtime.cwd,
         config: runtime.config,
       });

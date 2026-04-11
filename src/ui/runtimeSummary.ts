@@ -1,6 +1,6 @@
 import { buildSessionRuntimeSummary } from "../agent/runtimeMetrics.js";
-import type { SessionRecord } from "../types.js";
 import type { RuntimePromptDiagnostics, SessionRuntimeSummary } from "../agent/runtimeMetrics.js";
+import type { SessionRecord } from "../types.js";
 import {
   formatBytes,
   formatDuration,
@@ -20,30 +20,27 @@ export function formatSessionRuntimeSummary(
 ): string {
   const summary = buildSessionRuntimeSummary(session, options);
   const lines = [
-    "Durable truth:",
+    "Current runtime:",
     `- Health: ${formatHealth(summary.health.status, summary.health.reasons)}`,
-    `- Checkpoint: status=${summary.durableTruth.checkpoint.status} phase=${summary.durableTruth.checkpoint.phase}`,
-    `- Last transition: ${summary.durableTruth.checkpoint.lastTransition?.reason.code ?? "none"}`,
+    `- Waiting on: ${formatWaitingOn(summary)}`,
+    `- Recent activity: ${formatRecentActivity(summary)}`,
     `- Verification: ${formatVerification(summary)}`,
     `- Model requests: ${summary.modelRequests}`,
     `- Model wait total: ${formatDuration(summary.modelWaitDurationMsTotal)}`,
     `- Usage: ${formatUsage(summary)}`,
     `- Tool calls: ${summary.toolCalls}`,
     `- Tool duration total: ${formatDuration(summary.toolDurationMsTotal)}`,
-    `- Events: yields=${summary.yields} continuations=${summary.continuations} recoveries=${summary.recoveries} compressions=${summary.compressions}`,
+    `- Recovery events: ${summary.recoveries}`,
     `- Externalized results: ${summary.externalizedResults.count} (${formatBytes(summary.externalizedResults.byteLengthTotal)})`,
     "",
-    "Derived diagnostics:",
-    `- Why continue: ${summary.derivedDiagnostics.controlFlow.whyContinue.summary}`,
-    `- Why recovery: ${summary.derivedDiagnostics.controlFlow.whyRecovery.summary}`,
-    `- Why compression: ${summary.derivedDiagnostics.controlFlow.whyCompression.summary}`,
-    `- Why slow: ${formatSlowFactors(summary)}`,
+    "Diagnostics:",
     `- Slowest step: ${summary.slowestStep.label} (${formatDuration(summary.slowestStep.durationMsTotal)})`,
+    `- Why slow: ${formatSlowFactors(summary)}`,
+    `- Prompt hotspot: ${formatPromptHotspot(summary)}`,
   ];
 
   if (summary.derivedDiagnostics.prompt) {
     lines.push(`- Prompt layers: ${formatPromptLayers(summary)}`);
-    lines.push(`- Prompt hotspot: ${formatPromptHotspot(summary)}`);
   }
 
   if (summary.derivedDiagnostics.performance.flakyTools.length > 0) {
@@ -63,4 +60,60 @@ export function formatSessionRuntimeSummary(
   }
 
   return lines.join("\n");
+}
+
+function formatWaitingOn(summary: SessionRuntimeSummary): string {
+  const transition = summary.durableTruth.checkpoint.lastTransition;
+  if (transition?.action === "pause" && transition.reason.code === "pause.verification_awaiting_user") {
+    return `verification (waiting for user on ${formatPathList(transition.reason.pendingPaths)})`;
+  }
+
+  if (summary.durableTruth.checkpoint.phase === "recovery" || transition?.action === "recover") {
+    return "provider recovery";
+  }
+
+  if (summary.durableTruth.verification.status === "required") {
+    return `verification (${formatPathList(summary.durableTruth.verification.pendingPaths)})`;
+  }
+
+  if (transition?.action === "yield") {
+    return "managed continuation";
+  }
+
+  if (summary.modelRequests === 0 && summary.toolCalls === 0) {
+    return "first request";
+  }
+
+  return "next turn decision";
+}
+
+function formatRecentActivity(summary: SessionRuntimeSummary): string {
+  const transition = summary.durableTruth.checkpoint.lastTransition;
+  if (transition?.action === "pause") {
+    return "Verification paused and is waiting for explicit user input.";
+  }
+
+  if (transition?.action === "recover") {
+    return summary.derivedDiagnostics.controlFlow.whyRecovery.summary;
+  }
+
+  if (transition?.action === "continue" || transition?.action === "yield") {
+    return summary.derivedDiagnostics.controlFlow.whyContinue.summary;
+  }
+
+  if (transition?.action === "finalize") {
+    return "Runtime reached finalize and closed the current turn.";
+  }
+
+  return "Runtime has not recorded a structured transition yet.";
+}
+
+function formatPathList(paths: string[]): string {
+  const items = paths.filter(Boolean).slice(0, 2);
+  if (items.length === 0) {
+    return "current task outputs";
+  }
+
+  const extra = paths.length - items.length;
+  return extra > 0 ? `${items.join(", ")} (+${extra} more)` : items.join(", ");
 }

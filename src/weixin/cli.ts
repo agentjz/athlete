@@ -3,24 +3,17 @@ import fs from "node:fs/promises";
 import type { Command } from "commander";
 
 import { getErrorMessage } from "../agent/errors.js";
-import { SessionStore } from "../agent/session.js";
 import type { CliOverrides, RuntimeConfig } from "../types.js";
-import { FileWeixinAttachmentStore } from "./attachmentStore.js";
-import { OpenILinkWeixinClient } from "./client.js";
-import { FileWeixinContextTokenStore } from "./contextTokenStore.js";
-import { FileWeixinCredentialStore } from "./credentialsStore.js";
-import { WeixinDeliveryQueue } from "./deliveryQueue.js";
-import { createConsoleWeixinLogger } from "./logger.js";
-import { WeixinPollingSource } from "./polling.js";
-import { acquireWeixinProcessLock } from "./processLock.js";
-import { FileWeixinSessionMapStore } from "./sessionMapStore.js";
-import { WeixinService } from "./service.js";
-import { FileWeixinSyncBufStore } from "./syncBufStore.js";
 
 export async function loginWeixin(options: {
   cwd: string;
   config: RuntimeConfig;
 }): Promise<void> {
+  const [{ OpenILinkWeixinClient }, { FileWeixinCredentialStore }, { FileWeixinSyncBufStore }] = await Promise.all([
+    import("./client.js"),
+    import("./credentialsStore.js"),
+    import("./syncBufStore.js"),
+  ]);
   const runtime = options.config.weixin;
   const client = new OpenILinkWeixinClient({
     baseUrl: runtime.baseUrl,
@@ -55,6 +48,10 @@ export async function logoutWeixin(options: {
   cwd: string;
   config: RuntimeConfig;
 }): Promise<void> {
+  const [{ FileWeixinCredentialStore }, { FileWeixinSyncBufStore }] = await Promise.all([
+    import("./credentialsStore.js"),
+    import("./syncBufStore.js"),
+  ]);
   const runtime = options.config.weixin;
   await new FileWeixinCredentialStore(runtime.credentialsFile).clear();
   await new FileWeixinSyncBufStore(runtime.syncBufFile).clear();
@@ -67,7 +64,31 @@ export async function logoutWeixin(options: {
 export async function createWeixinService(options: {
   cwd: string;
   config: RuntimeConfig;
-}): Promise<WeixinService> {
+}) {
+  const [
+    { SessionStore },
+    { FileWeixinAttachmentStore },
+    { OpenILinkWeixinClient },
+    { FileWeixinContextTokenStore },
+    { WeixinDeliveryQueue },
+    { createConsoleWeixinLogger },
+    { WeixinPollingSource },
+    { FileWeixinSessionMapStore },
+    { WeixinService },
+    { FileWeixinSyncBufStore },
+  ] = await Promise.all([
+    import("../agent/session.js"),
+    import("./attachmentStore.js"),
+    import("./client.js"),
+    import("./contextTokenStore.js"),
+    import("./deliveryQueue.js"),
+    import("./logger.js"),
+    import("./polling.js"),
+    import("./sessionMapStore.js"),
+    import("./service.js"),
+    import("./syncBufStore.js"),
+  ]);
+
   const logger = createConsoleWeixinLogger();
   const credentials = options.config.weixin.credentials;
   if (!credentials?.token) {
@@ -147,7 +168,10 @@ export function registerWeixinCommands(
       stop?(): void;
     }>;
     logoutWeixin?: typeof logoutWeixin;
-    acquireProcessLock?: typeof acquireWeixinProcessLock;
+    acquireProcessLock?: (options: { stateDir: string }) => Promise<{
+      pidFilePath: string;
+      release(): Promise<void>;
+    }>;
   },
 ): void {
   const weixinCommand = program.command("weixin").description("Serve Weixin private-chat control.");
@@ -176,10 +200,13 @@ export function registerWeixinCommands(
         throw new Error("Weixin whitelist is empty. Set ATHLETE_WEIXIN_ALLOWED_USER_IDS or config.weixin.allowedUserIds.");
       }
 
-      const lock = await (dependencies.acquireProcessLock ?? acquireWeixinProcessLock)({
+      const acquireProcessLock =
+        dependencies.acquireProcessLock ?? (await import("./processLock.js")).acquireWeixinProcessLock;
+      const serviceFactory = dependencies.createWeixinService ?? createWeixinService;
+      const lock = await acquireProcessLock({
         stateDir: runtime.config.weixin.stateDir,
       });
-      const service = await (dependencies.createWeixinService ?? createWeixinService)({
+      const service = await serviceFactory({
         cwd: runtime.cwd,
         config: runtime.config,
       });

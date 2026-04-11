@@ -269,7 +269,7 @@ test("runtime observability summary separates durable truth from derived diagnos
   assert.equal(summary.derivedDiagnostics.performance.flakyTools[0]?.name, "run_shell");
 });
 
-test("runtime observability local command prints a readable session summary with stable usage-unavailable wording", async () => {
+test("runtime observability local command prints a product-style summary that explains wait state and recent activity", async () => {
   const output = await captureStdout(async () => {
     const result = await handleLocalCommand("/runtime", {
       cwd: process.cwd(),
@@ -368,17 +368,17 @@ test("runtime observability local command prints a readable session summary with
     assert.equal(result, "handled");
   });
 
-  assert.match(output, /durable truth/i);
-  assert.match(output, /derived diagnostics/i);
+  assert.match(output, /current runtime/i);
+  assert.match(output, /waiting on: verification/i);
+  assert.match(output, /recent activity:/i);
   assert.match(output, /model requests/i);
   assert.match(output, /tool calls/i);
   assert.match(output, /usage: unavailable/i);
-  assert.match(output, /why continue/i);
   assert.match(output, /verification required/i);
-  assert.match(output, /why compression/i);
-  assert.match(output, /why slow/i);
   assert.match(output, /prompt hotspot/i);
   assert.match(output, /externalized results/i);
+  assert.doesNotMatch(output, /durable truth/i);
+  assert.doesNotMatch(output, /derived diagnostics/i);
 });
 
 interface FakeResponse {

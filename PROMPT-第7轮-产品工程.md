@@ -1,5 +1,29 @@
 # 第 7 轮强约束提示词：产品工程（建立在第 6 轮已完成调度系统之上）
 
+## 状态：已完成
+
+完成日期：`2026-04-11`
+
+这一轮已经完成并通过验证，当前主干以这里的结果为准：
+
+1. CLI 启动链已经拆薄，`src/cli.ts` 退回为薄入口，命令装配落在 `src/cli/program.ts` 与 `src/cli/commands/`。
+2. `athlete --version`、`athlete version`、`athlete config path` 已具备正式 fast path，不再依赖完整 runtime 初始化。
+3. 配置系统已经引入 `schemaVersion=1`，并明确了：
+   - 缺文件走默认配置
+   - 旧版无版本字段配置允许一次性升级
+   - JSON 损坏或版本不匹配直接 fail-closed
+4. `doctor`、CLI 顶层报错、`/runtime` 已完成一轮产品化收口：
+   - 错误区分用户可修复 / 环境网络 / provider
+   - runtime summary 改成“当前在等什么、最近做了什么、哪里最慢”的稳定文本
+5. 产品工程约束文档已经落地：
+   - `spec/modules/cli-product-surface.md`
+   - `spec/modules/config-system.md`
+   - `spec/testing/测试策略.md`
+   - `README.md`
+6. 失败测试、实现、验证均已完成，`npm.cmd run check` 与 `npm.cmd test` 已通过。
+
+本文件以下内容保留为第 7 轮原始约束提示词，供后续回看历史上下文，不再作为待办状态。
+
 你是 `GPT-5.4 Codex`，正在 `athlete` 仓库中执行“第 7 轮：产品工程”。
 
 ## 第 6 轮已完成前提

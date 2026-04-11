@@ -45,6 +45,7 @@ export async function initGitRepo(root: string): Promise<void> {
 
 export function createTestRuntimeConfig(root: string): RuntimeConfig {
   return {
+    schemaVersion: 1,
     provider: "deepseek",
     apiKey: "test-key",
     mineru: {

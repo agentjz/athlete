@@ -138,6 +138,47 @@ Athlete 想坚持的，不是“让模型显得更聪明”，而是让任务真
 
 Weixin 当前只支持 private 私聊，不支持 group 群聊；服务会维护每个会话的 `context_token`，并接住 image、video、file、voice 等私聊附件输入与回传链路。
 
+## CLI 产品行为
+
+Athlete 当前把 CLI 分成三条启动链，而不是所有命令都先把完整 runtime 拉起来：
+
+- fast path：`athlete --version`、`athlete version`、`athlete --help`、`athlete help`、`athlete config path`
+- lightweight path：`athlete init`、`athlete config show|get|set|path`、`athlete sessions`、`athlete changes`、`athlete undo`、`athlete diff`、`athlete doctor`
+- full runtime path：`athlete`、`athlete run ...`、`athlete resume ...`、`athlete telegram serve`、`athlete weixin serve`、`athlete __worker__ ...`
+
+fast path 和 lightweight path 都不会启动 agent turn，也不会因为缺 API key 就把 `--help`、`--version`、`config path` 这类轻命令打坏。
+
+### 配置版本
+
+全局配置文件是用户配置目录下的 `config.json`，当前要求带 `schemaVersion`。
+
+- 缺文件：按默认配置启动
+- 旧版无版本字段配置：允许一次性升级到当前 schema，再写回正式版本
+- JSON 损坏或显式旧/新版本不匹配：直接报错并告诉用户配置文件路径与修复动作，不做长期脏兼容
+
+项目级 `.athlete/.env` 继续是 repo 本地 provider / channel / MinerU 配置入口，但不会替代全局 `config.json` 的 schema 管理。
+
+### 错误与透明度
+
+CLI 出错时会优先告诉用户这些信息：
+
+- 这是用户可修复错误、环境 / 网络问题，还是内部错误
+- 当前受影响的命令与配置文件路径
+- 下一步应该改什么，而不是只吐 SDK 或底层异常
+
+`/runtime` 和 one-shot closeout 当前至少会稳定给出：
+
+- 当前是否在等待模型、工具、恢复还是验证
+- 最近一次 runtime transition 是什么
+- request / tool / recovery / wait / verification 的真实状态
+- 哪个环节最慢、最近做了什么、还有什么没收口
+
+### Windows 使用提示
+
+- 源码环境优先用 `npm.cmd` 和 `node dist\\cli.js`
+- CLI 文本输出固定走 UTF-8 写入，不依赖系统默认代码页碰运气
+- `athlete config path` 可以在配置损坏时直接拿到修复入口
+
 ### NPM 发布
 
 | 命令 | 含义 |
