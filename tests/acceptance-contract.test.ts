@@ -229,6 +229,99 @@ test("acceptance evaluation allows finalize only after required files, evidence 
   }
 });
 
+test("acceptance evaluation treats successful browser page evidence as a valid page-level verification fallback", async (t) => {
+  const root = await createTempWorkspace("acceptance-browser-fallback", t);
+  await fs.mkdir(path.join(root, "backend"), { recursive: true });
+  await fs.mkdir(path.join(root, "frontend"), { recursive: true });
+
+  await fs.writeFile(
+    path.join(root, "backend", "news.json"),
+    JSON.stringify(
+      [
+        {
+          title: "Patch notes",
+          date: "2026-04-10",
+          source_name: "Arrowhead",
+          source_type: "official",
+          link: "https://example.com/official",
+          summary: "Official update",
+          category: "official",
+          evidence_excerpt: "Official excerpt",
+          fetched_at: "2026-04-10T10:00:00.000Z",
+        },
+        {
+          title: "News recap",
+          date: "2026-04-10",
+          source_name: "IGN",
+          source_type: "news",
+          link: "https://example.com/news",
+          summary: "News update",
+          category: "news",
+          evidence_excerpt: "News excerpt",
+          fetched_at: "2026-04-10T10:05:00.000Z",
+        },
+      ],
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  await fs.writeFile(path.join(root, "backend", "server.js"), "export const news = [];\n", "utf8");
+  await fs.writeFile(path.join(root, "frontend", "index.html"), "<div>news Helldivers 2<script src=\"app.js\"></script></div>\n", "utf8");
+  await fs.writeFile(path.join(root, "frontend", "app.js"), "fetch('/api/news');\n", "utf8");
+  await fs.writeFile(path.join(root, "RUN.md"), "node backend/server.js\n", "utf8");
+  await fs.writeFile(path.join(root, "RESULT.md"), "official news evidence\n", "utf8");
+
+  const sessionStore = new MemorySessionStore();
+  const baseSession = await sessionStore.create(root);
+  const session = await sessionStore.save({
+    ...baseSession,
+    messages: [
+      createMessage("user", createResearchPrompt()),
+      createToolMessage(
+        "call-api",
+        JSON.stringify(
+          {
+            ok: true,
+            url: "http://127.0.0.1:4010/api/news",
+            status: 200,
+            body: '[{"source_name":"Arrowhead","evidence_excerpt":"Official excerpt"}]',
+          },
+          null,
+          2,
+        ),
+        "http_probe",
+      ),
+      createToolMessage(
+        "call-page",
+        "### Page\n- Page URL: http://127.0.0.1:4010/\n- Page Title: Helldivers 2 实时公开信息研究系统",
+        "mcp_playwright_browser_navigate",
+      ),
+      createToolMessage(
+        "call-html",
+        JSON.stringify(
+          {
+            path: path.join(root, "frontend", "index.html"),
+            readable: true,
+            content: "Helldivers 2\napp.js",
+          },
+          null,
+          2,
+        ),
+        "read_file",
+      ),
+    ],
+  });
+
+  const evaluation = await evaluateAcceptanceState({
+    session,
+    cwd: root,
+  });
+
+  assert.equal(evaluation.satisfied, true);
+  assert.equal(evaluation.state.currentPhase, "complete");
+});
+
 test("acceptance route-change guard trips after repeated no-progress evaluations in the same phase", () => {
   const stalled = {
     status: "active",
@@ -241,4 +334,3 @@ test("acceptance route-change guard trips after repeated no-progress evaluations
 
   assert.equal(shouldForceAcceptanceRouteChange(stalled as never), true);
 });
-

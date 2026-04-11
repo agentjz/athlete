@@ -293,7 +293,10 @@ function evaluateHttpChecks(contract: AcceptanceContract, messages: StoredMessag
   const pendingChecks: string[] = [];
 
   for (const check of contract.httpChecks) {
-    if (hasSuccessfulHttpProbe(messages, check.url, check.status, check.bodyContains ?? [])) {
+    if (
+      hasSuccessfulHttpProbe(messages, check.url, check.status, check.bodyContains ?? []) ||
+      hasSuccessfulBrowserPageCheck(messages, check.url, check.bodyContains ?? [])
+    ) {
       completedChecks.push(`http:${check.id}`);
     } else {
       pendingChecks.push(`http:${check.id}`);
@@ -304,6 +307,36 @@ function evaluateHttpChecks(contract: AcceptanceContract, messages: StoredMessag
     completedChecks,
     pendingChecks,
   };
+}
+
+function hasSuccessfulBrowserPageCheck(messages: StoredMessage[], url: string, bodyContains: string[]): boolean {
+  const browserVisited = messages.some((message) => {
+    if (
+      message.role !== "tool" ||
+      !message.content ||
+      !message.name ||
+      !message.name.startsWith("mcp_playwright_browser_")
+    ) {
+      return false;
+    }
+
+    return message.content.includes(`Page URL: ${url}`);
+  });
+
+  if (!browserVisited) {
+    return false;
+  }
+
+  if (url.endsWith("/")) {
+    return true;
+  }
+
+  const toolCorpus = messages
+    .filter((message) => message.role === "tool" && typeof message.content === "string")
+    .map((message) => message.content ?? "")
+    .join("\n");
+
+  return bodyContains.every((needle) => toolCorpus.includes(needle));
 }
 
 function hasSuccessfulCommand(messages: StoredMessage[], commandContains: string): boolean {
