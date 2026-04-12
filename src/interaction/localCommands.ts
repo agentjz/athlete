@@ -1,5 +1,6 @@
 import { formatTodoBlock } from "../agent/session.js";
 import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
+import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { loadProjectContext } from "../context/projectContext.js";
 import { resetProjectRuntime } from "../project/reset.js";
 import { TaskStore } from "../tasks/store.js";
@@ -126,6 +127,7 @@ export async function handleLocalCommand(
   ) {
     const projectContext = await loadProjectContext(context.cwd);
     const rootDir = projectContext.stateRootDir;
+    await reconcileActiveExecutions(rootDir).catch(() => null);
 
     if (TASKS_COMMANDS.has(normalized)) {
       await reconcileTeamState(rootDir).catch(() => null);

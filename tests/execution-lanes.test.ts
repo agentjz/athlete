@@ -5,6 +5,9 @@ import test from "node:test";
 
 import type { RunTurnOptions, RunTurnResult } from "../src/agent/types.js";
 import { MessageBus } from "../src/team/messageBus.js";
+import { reconcileActiveExecutions } from "../src/execution/reconcile.js";
+import { reconcileTeamState } from "../src/team/reconcile.js";
+import { TeamStore } from "../src/team/store.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { initGitRepo, createTempWorkspace, createTestRuntimeConfig } from "./helpers.js";
 import { closeExecution } from "../src/execution/closeout.js";
@@ -202,6 +205,97 @@ test("all detached execution lanes hand off completion through one inbox contrac
   assert.ok(inbox.every((message) => message.type === "execution_closeout"));
   assert.ok(inbox.every((message) => typeof message.executionId === "string" && message.executionId.length > 0));
   assert.ok(inbox.every((message) => message.executionStatus === "completed"));
+});
+
+test("reconcileTeamState closes stale teammate executions instead of waiting forever on dead workers", async (t) => {
+  const root = await createTempWorkspace("execution-stale-teammate", t);
+  const taskStore = new TaskStore(root);
+  const teamStore = new TeamStore(root);
+  const executionStore = new ExecutionStore(root);
+  const deadPid = 999_999;
+
+  const task = await taskStore.create("implementation task", "", { assignee: "alpha" });
+  await taskStore.claim(task.id, "alpha");
+  await teamStore.upsertMember("alpha", "implementer", "working", {
+    pid: deadPid,
+    sessionId: "session-alpha",
+  });
+
+  const execution = await executionStore.create({
+    lane: "agent",
+    profile: "teammate",
+    launch: "worker",
+    requestedBy: "lead",
+    actorName: "alpha",
+    actorRole: "implementer",
+    taskId: task.id,
+    cwd: root,
+    prompt: "Implement the task.",
+  });
+  await executionStore.start(execution.id, {
+    pid: deadPid,
+    sessionId: "session-alpha",
+  });
+
+  const result = await reconcileTeamState(root);
+  const reloadedMember = await teamStore.findMember("alpha");
+  const reloadedTask = await taskStore.load(task.id);
+  const reloadedExecution = await executionStore.load(execution.id);
+
+  assert.equal(result.staleMembers.length, 1);
+  assert.equal(result.closedExecutions.length, 1);
+  assert.equal(result.releasedTasks.length, 1);
+  assert.equal(reloadedMember?.status, "shutdown");
+  assert.equal(reloadedTask.owner, "");
+  assert.equal(reloadedTask.status, "pending");
+  assert.equal(reloadedExecution.status, "failed");
+  assert.match(String(reloadedExecution.output ?? ""), /exited unexpectedly/i);
+});
+
+test("reconcileActiveExecutions fails queued worker executions that never reached a live pid", async (t) => {
+  const root = await createTempWorkspace("execution-stale-queued-worker", t);
+  const store = new ExecutionStore(root);
+  const execution = await store.create({
+    lane: "agent",
+    profile: "teammate",
+    launch: "worker",
+    requestedBy: "lead",
+    actorName: "alpha",
+    actorRole: "implementer",
+    cwd: root,
+    prompt: "Implement the task.",
+  });
+
+  const result = await reconcileActiveExecutions(root);
+  const reloaded = await store.load(execution.id);
+
+  assert.equal(result.reconciledExecutions.length, 1);
+  assert.equal(reloaded.status, "failed");
+  assert.match(String(reloaded.output ?? ""), /never reached a live worker/i);
+});
+
+test("reconcileActiveExecutions fails inline executions left running after the host process exits", async (t) => {
+  const root = await createTempWorkspace("execution-stale-inline", t);
+  const store = new ExecutionStore(root);
+  const execution = await store.create({
+    lane: "agent",
+    profile: "subagent",
+    launch: "inline",
+    requestedBy: "lead",
+    actorName: "survey-1",
+    cwd: root,
+    prompt: "Survey the codebase.",
+  });
+  await store.start(execution.id, {
+    sessionId: "subagent-session",
+  });
+
+  const result = await reconcileActiveExecutions(root);
+  const reloaded = await store.load(execution.id);
+
+  assert.equal(result.reconciledExecutions.length, 1);
+  assert.equal(reloaded.status, "failed");
+  assert.match(String(reloaded.output ?? ""), /host process exited/i);
 });
 
 test("runExecutionWorker fails closed on corrupt persisted sessions instead of inventing a replacement session", async (t) => {

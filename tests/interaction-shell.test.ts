@@ -5,6 +5,7 @@ import { MemorySessionStore } from "../src/agent/session.js";
 import type { InteractiveExitGuard, InteractiveExitProcess } from "../src/interaction/exitGuard.js";
 import { InteractiveSessionDriver } from "../src/interaction/sessionDriver.js";
 import type { InteractionShell } from "../src/interaction/shell.js";
+import { createReadlineInputPort } from "../src/shell/cli/readlineInput.js";
 import { startInteractiveChat, type StartInteractiveChatDependencies } from "../src/ui/interactive.js";
 import { createAbortError } from "../src/utils/abort.js";
 import { createTestRuntimeConfig } from "./helpers.js";
@@ -439,6 +440,26 @@ test("interrupts abort the in-flight turn through the shared shell boundary", as
     shell.outputs.some((entry) => entry.level === "interrupt" && entry.text.includes("Interrupted the current turn")),
     true,
   );
+});
+
+test("readline input keeps a process-level SIGINT bridge while interactive listeners are bound", () => {
+  const port = createReadlineInputPort();
+  const beforeListeners = process.listeners("SIGINT");
+  let interruptCount = 0;
+
+  const release = port.bindInterrupt(() => {
+    interruptCount += 1;
+  });
+
+  const afterListeners = process.listeners("SIGINT");
+  const sigintBridge = afterListeners.find((listener) => !beforeListeners.includes(listener));
+
+  assert.equal(typeof sigintBridge, "function");
+  sigintBridge?.("SIGINT");
+  assert.equal(interruptCount, 1);
+
+  release();
+  assert.equal(process.listeners("SIGINT").includes(sigintBridge as (...args: any[]) => void), false);
 });
 
 test("startInteractiveChat delegates session control to the shared driver", async () => {

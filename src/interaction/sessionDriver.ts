@@ -1,6 +1,10 @@
 import { getErrorMessage } from "../agent/errors.js";
 import type { SessionStoreLike } from "../agent/session.js";
+import { loadProjectContext } from "../context/projectContext.js";
+import { reconcileBackgroundJobs } from "../execution/background.js";
+import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { runHostTurn } from "../host/turn.js";
+import { reconcileTeamState } from "../team/reconcile.js";
 import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";
@@ -29,6 +33,7 @@ export class InteractiveSessionDriver {
   }
 
   async run(): Promise<SessionRecord> {
+    await this.reconcileInteractiveRuntime();
     const releaseInterrupt = this.options.shell.input.bindInterrupt(() => {
       this.handleInterrupt();
     });
@@ -53,6 +58,18 @@ export class InteractiveSessionDriver {
       }
     } finally {
       releaseInterrupt();
+    }
+  }
+
+  private async reconcileInteractiveRuntime(): Promise<void> {
+    try {
+      const projectContext = await loadProjectContext(this.options.cwd);
+      const rootDir = projectContext.stateRootDir;
+      await reconcileActiveExecutions(rootDir);
+      await reconcileTeamState(rootDir);
+      await reconcileBackgroundJobs(rootDir);
+    } catch (error) {
+      this.options.shell.output.warn(`Runtime recovery skipped: ${getErrorMessage(error)}`);
     }
   }
 

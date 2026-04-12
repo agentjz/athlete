@@ -1,4 +1,5 @@
 import readline from "node:readline";
+import process from "node:process";
 
 import type { ShellInputPort } from "../../interaction/shell.js";
 
@@ -127,10 +128,35 @@ export async function readMultilineInput(onInterrupt: () => void, promptLabel = 
 
 export function createReadlineInputPort(): ShellInputPort {
   const listeners = new Set<() => void>();
+  let releaseProcessInterrupt: (() => void) | null = null;
   const notifyInterrupt = (): void => {
     for (const listener of listeners) {
       listener();
     }
+  };
+
+  const ensureProcessInterruptBinding = (): void => {
+    if (releaseProcessInterrupt) {
+      return;
+    }
+
+    const handler = (): void => {
+      notifyInterrupt();
+    };
+
+    process.on("SIGINT", handler);
+    releaseProcessInterrupt = () => {
+      process.off("SIGINT", handler);
+      releaseProcessInterrupt = null;
+    };
+  };
+
+  const maybeReleaseProcessInterruptBinding = (): void => {
+    if (listeners.size > 0) {
+      return;
+    }
+
+    releaseProcessInterrupt?.();
   };
 
   return {
@@ -148,8 +174,10 @@ export function createReadlineInputPort(): ShellInputPort {
     },
     bindInterrupt(handler) {
       listeners.add(handler);
+      ensureProcessInterruptBinding();
       return () => {
         listeners.delete(handler);
+        maybeReleaseProcessInterruptBinding();
       };
     },
   };

@@ -1,4 +1,5 @@
 import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
+import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { ExecutionStore } from "../execution/store.js";
 import { CoordinationPolicyStore } from "../team/policyStore.js";
 import { ProtocolRequestStore } from "../team/requestStore.js";
@@ -22,6 +23,7 @@ export async function loadOrchestratorProgress(input: {
   cwd: string;
   objective: OrchestratorObjective;
 }): Promise<OrchestratorProgressSnapshot> {
+  await reconcileActiveExecutions(input.rootDir);
   await reconcileTeamState(input.rootDir);
   await reconcileBackgroundJobs(input.rootDir);
 
