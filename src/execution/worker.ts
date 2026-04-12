@@ -3,6 +3,7 @@ import process from "node:process";
 import { runManagedAgentTurn } from "../agent/turn.js";
 import { runAgentTurn } from "../agent/runTurn.js";
 import { SessionStore } from "../agent/session.js";
+import { isSessionNotFoundError } from "../agent/session/errors.js";
 import { getSubagentProfile, resolveSubagentMode } from "../subagent/profiles.js";
 import { TeamStore } from "../team/store.js";
 import { createToolRegistry } from "../tools/index.js";
@@ -161,8 +162,10 @@ async function loadAgentSession(
   if (existingSessionId) {
     try {
       return await sessionStore.load(existingSessionId);
-    } catch {
-      // Fall through to a fresh session if the persisted one is gone.
+    } catch (error) {
+      if (!isSessionNotFoundError(error)) {
+        throw error;
+      }
     }
   }
 

@@ -128,6 +128,7 @@ test("background child completion promotes a merge task into the lead-ready queu
       jobId: job.id,
     }),
   });
+  await backgroundStore.setPid(job.id, 3001);
   await backgroundStore.complete(job.id, {
     status: "completed",
     exitCode: 0,
@@ -190,6 +191,7 @@ test("routing after reload returns the lead to the merge step after delegated ba
       jobId: job.id,
     }),
   });
+  await backgroundStore.setPid(job.id, 3002);
   await backgroundStore.complete(job.id, {
     status: "completed",
     exitCode: 0,

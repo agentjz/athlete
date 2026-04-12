@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
+import { withProjectLedger } from "../src/control/ledger/open.js";
+import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { BackgroundJobStore } from "../src/execution/background.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
 import { CoordinationPolicyStore } from "../src/team/policyStore.js";
@@ -104,6 +106,9 @@ test("control-plane stores bootstrap a sqlite ledger and reload persisted state 
     requestedBy: "lead",
     timeoutMs: 20_000,
   });
+  await backgroundStore.setPid(completedJob.id, 2001);
+  await backgroundStore.setPid(failedJob.id, 2002);
+  await backgroundStore.setPid(timedOutJob.id, 2003);
   await backgroundStore.complete(completedJob.id, {
     status: "completed",
     exitCode: 0,
@@ -247,6 +252,46 @@ test("orchestrator ignores legacy JSON shadows and cleanup does not disturb ledg
   for (const relativePath of LEGACY_TRUTH_SOURCE_PATHS) {
     assert.equal(await pathExists(path.join(root, relativePath)), false, `${relativePath} should be cleaned`);
   }
+});
+
+test("loadOrchestratorProgress fails closed when the control-plane teammate ledger is corrupt", async (t) => {
+  const root = await createTempWorkspace("ledger-corrupt-team-members", t);
+  const analysis = {
+    objective: {
+      key: "objective-corrupt-team-members",
+      text: "Implement the feature in parallel with a teammate.",
+    },
+    complexity: "complex" as const,
+    needsInvestigation: false,
+    prefersParallel: true,
+    wantsBackground: false,
+    wantsSubagent: false,
+    wantsTeammate: true,
+    backgroundCommand: undefined,
+  };
+
+  await ensureTaskPlan({
+    rootDir: root,
+    cwd: root,
+    analysis,
+    existingTasks: [],
+  });
+  await new TeamStore(root).upsertMember("worker-1", "implementer", "idle", {
+    sessionId: "session-worker-1",
+    pid: 1111,
+  });
+  await withProjectLedger(root, ({ db }) => {
+    db.exec("DROP TABLE team_members");
+  });
+
+  await assert.rejects(
+    () => loadOrchestratorProgress({
+      rootDir: root,
+      cwd: root,
+      objective: analysis.objective,
+    }),
+    /team_members/i,
+  );
 });
 
 async function writeLegacyTruthSourceShadows(root: string): Promise<void> {

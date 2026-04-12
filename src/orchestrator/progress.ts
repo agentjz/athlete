@@ -22,28 +22,24 @@ export async function loadOrchestratorProgress(input: {
   cwd: string;
   objective: OrchestratorObjective;
 }): Promise<OrchestratorProgressSnapshot> {
-  await reconcileTeamState(input.rootDir).catch(() => null);
-  await reconcileBackgroundJobs(input.rootDir).catch(() => null);
+  await reconcileTeamState(input.rootDir);
+  await reconcileBackgroundJobs(input.rootDir);
 
   const taskStore = new TaskStore(input.rootDir);
   const backgroundStore = new BackgroundJobStore(input.rootDir);
   const [tasks, teammates, relevantBackgroundJobs, executions, worktrees, protocolRequests, policy] = await Promise.all([
     taskStore.list(),
-    new TeamStore(input.rootDir).listMembers().catch(() => []),
+    new TeamStore(input.rootDir).listMembers(),
     backgroundStore.listRelevant({
       cwd: input.cwd,
       requestedBy: "lead",
-    }).catch(() => []),
+    }),
     new ExecutionStore(input.rootDir).listRelevant({
       requestedBy: "lead",
-    }).catch(() => []),
-    new WorktreeStore(input.rootDir).list().catch(() => []),
-    new ProtocolRequestStore(input.rootDir).list().catch(() => []),
-    new CoordinationPolicyStore(input.rootDir).load().catch(() => ({
-      allowPlanDecisions: false,
-      allowShutdownRequests: false,
-      updatedAt: new Date().toISOString(),
-    })),
+    }),
+    new WorktreeStore(input.rootDir).list(),
+    new ProtocolRequestStore(input.rootDir).list(),
+    new CoordinationPolicyStore(input.rootDir).load(),
   ]);
 
   await syncSuccessfulBackgroundTasks(taskStore, tasks, relevantBackgroundJobs);
@@ -106,7 +102,7 @@ async function syncSuccessfulBackgroundTasks(
     await taskStore.update(task.id, {
       status: "completed",
       owner: task.owner || "lead",
-    }).catch(() => null);
+    });
   }
 }
 

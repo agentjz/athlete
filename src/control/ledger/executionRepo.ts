@@ -11,6 +11,7 @@ import type {
   ExecutionStatus,
   ExecutionWorktreePolicy,
 } from "../../execution/types.js";
+import { applyExecutionClose, applyExecutionStart, assertExecutionSaveAllowed } from "./executionLifecycle.js";
 import { currentTimestamp, normalizeText } from "./shared.js";
 
 export class ExecutionLedgerRepo {
@@ -117,7 +118,45 @@ export class ExecutionLedgerRepo {
   }
 
   load(executionId: string): ExecutionRecord {
-    const row = this.db.prepare(`
+    const row = this.loadRow(executionId);
+    if (!row) {
+      throw new Error(`Execution ${executionId} not found.`);
+    }
+
+    return mapExecutionRow(row);
+  }
+
+  save(record: ExecutionRecord): ExecutionRecord {
+    const normalized = normalizeExecution(record);
+    const currentRow = this.loadRow(normalized.id);
+    if (!currentRow) {
+      throw new Error(`Execution ${normalized.id} not found.`);
+    }
+
+    assertExecutionSaveAllowed(mapExecutionRow(currentRow), normalized);
+    return this.persist(normalized);
+  }
+
+  start(
+    executionId: string,
+    input: {
+      pid?: number;
+      sessionId?: string;
+      cwd?: string;
+      worktreeName?: string;
+    } = {},
+  ): ExecutionRecord {
+    const current = this.load(executionId);
+    return this.persist(applyExecutionStart(current, input));
+  }
+
+  close(executionId: string, input: ExecutionCloseInput): ExecutionRecord {
+    const current = this.load(executionId);
+    return this.persist(applyExecutionClose(current, input));
+  }
+
+  list(): ExecutionRecord[] {
+    const rows = this.db.prepare(`
       SELECT
         id,
         lane,
@@ -147,16 +186,12 @@ export class ExecutionLedgerRepo {
         updated_at,
         finished_at
       FROM executions
-      WHERE id = ?
-    `).get(normalizeExecutionId(executionId)) as ExecutionRow | undefined;
-    if (!row) {
-      throw new Error(`Execution ${executionId} not found.`);
-    }
-
-    return mapExecutionRow(row);
+      ORDER BY created_at DESC
+    `).all() as ExecutionRow[];
+    return rows.map((row) => mapExecutionRow(row));
   }
 
-  save(record: ExecutionRecord): ExecutionRecord {
+  private persist(record: ExecutionRecord): ExecutionRecord {
     const normalized = normalizeExecution(record);
     this.db.prepare(`
       INSERT INTO executions (
@@ -248,50 +283,8 @@ export class ExecutionLedgerRepo {
     return this.load(normalized.id);
   }
 
-  start(
-    executionId: string,
-    input: {
-      pid?: number;
-      sessionId?: string;
-      cwd?: string;
-      worktreeName?: string;
-    } = {},
-  ): ExecutionRecord {
-    const current = this.load(executionId);
-    return this.save({
-      ...current,
-      status: "running",
-      pid: typeof input.pid === "number" && Number.isFinite(input.pid) ? Math.trunc(input.pid) : current.pid,
-      sessionId: typeof input.sessionId === "string" && input.sessionId ? input.sessionId : current.sessionId,
-      cwd: normalizeText(input.cwd) || current.cwd,
-      worktreeName: typeof input.worktreeName === "string" && input.worktreeName
-        ? input.worktreeName
-        : current.worktreeName,
-      updatedAt: currentTimestamp(),
-    });
-  }
-
-  close(executionId: string, input: ExecutionCloseInput): ExecutionRecord {
-    const current = this.load(executionId);
-    const now = currentTimestamp();
-    return this.save({
-      ...current,
-      status: normalizeStatus(input.status),
-      summary: normalizeText(input.summary),
-      resultText: typeof input.resultText === "string" && input.resultText ? input.resultText : current.resultText,
-      output: typeof input.output === "string" && input.output ? input.output : current.output,
-      exitCode: typeof input.exitCode === "number" && Number.isFinite(input.exitCode)
-        ? Math.trunc(input.exitCode)
-        : current.exitCode,
-      pauseReason: typeof input.pauseReason === "string" && input.pauseReason ? input.pauseReason : undefined,
-      statusDetail: typeof input.statusDetail === "string" && input.statusDetail ? input.statusDetail : current.statusDetail,
-      updatedAt: now,
-      finishedAt: now,
-    });
-  }
-
-  list(): ExecutionRecord[] {
-    const rows = this.db.prepare(`
+  private loadRow(executionId: string): ExecutionRow | undefined {
+    return this.db.prepare(`
       SELECT
         id,
         lane,
@@ -321,9 +314,8 @@ export class ExecutionLedgerRepo {
         updated_at,
         finished_at
       FROM executions
-      ORDER BY created_at DESC
-    `).all() as ExecutionRow[];
-    return rows.map((row) => mapExecutionRow(row));
+      WHERE id = ?
+    `).get(normalizeExecutionId(executionId)) as ExecutionRow | undefined;
   }
 }
 
@@ -425,30 +417,46 @@ function normalizeExecution(record: ExecutionRecord): ExecutionRecord {
 }
 
 function normalizeLane(value: string): ExecutionLane {
-  return value === "command" ? "command" : "agent";
+  if (value === "agent" || value === "command") {
+    return value;
+  }
+
+  throw new Error(`Invalid execution lane '${String(value)}'.`);
 }
 
 function normalizeProfile(value: string): ExecutionProfile {
   switch (value) {
+    case "subagent":
+      return "subagent";
     case "background":
       return "background";
     case "teammate":
       return "teammate";
     default:
-      return "subagent";
+      throw new Error(`Invalid execution profile '${String(value)}'.`);
   }
 }
 
 function normalizeLaunch(value: string): ExecutionLaunchMode {
-  return value === "worker" ? "worker" : "inline";
+  if (value === "inline" || value === "worker") {
+    return value;
+  }
+
+  throw new Error(`Invalid execution launch mode '${String(value)}'.`);
 }
 
 function normalizeWorktreePolicy(value: string | undefined): ExecutionWorktreePolicy {
-  return value === "task" ? "task" : "none";
+  if (value === undefined || value === "none" || value === "task") {
+    return value ?? "none";
+  }
+
+  throw new Error(`Invalid execution worktree policy '${String(value)}'.`);
 }
 
 function normalizeStatus(value: string): ExecutionStatus {
   switch (value) {
+    case "queued":
+      return "queued";
     case "running":
     case "paused":
     case "completed":
@@ -456,7 +464,7 @@ function normalizeStatus(value: string): ExecutionStatus {
     case "aborted":
       return value;
     default:
-      return "queued";
+      throw new Error(`Invalid execution status '${String(value)}'.`);
   }
 }
 
