@@ -34,7 +34,7 @@ function buildIdentityContract(
 ): string {
   const identity = runtimeState.identity;
   const lines = [
-    "You are Athlete, a terminal-first AI agent for coding and general problem solving.",
+    "You are Athlete, a problem-solving agent focused on durable task execution.",
     "Use tools for real actions instead of role-playing filesystem, shell, browser, task, or team work.",
     config.mode === "agent"
       ? "Mode: agent. You may edit files and run commands inside allowed roots."

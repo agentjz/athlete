@@ -23,7 +23,7 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
 
   program
     .name("athlete")
-    .description("Athlete - a terminal AI coding assistant.")
+    .description("Athlete - a problem-solving agent focused on durable task execution.")
     .version(packageJson.version, "-v, --version", "Print the current Athlete version.")
     .configureOutput({
       writeOut: (text) => {

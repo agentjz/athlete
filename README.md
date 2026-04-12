@@ -1,17 +1,17 @@
 # Athlete
 
 <p align="center">
-  <strong>一个把 LLM 变成可持续执行系统的 Agent Harness</strong>
+  <strong>一个专注于解决问题与持续推进任务的智能体</strong>
 </p>
 
 <p align="center">
-  <img alt="terminal first" src="https://img.shields.io/badge/terminal-first-2ea44f?style=for-the-badge">
+  <img alt="problem solving agent" src="https://img.shields.io/badge/problem--solving-agent-2ea44f?style=for-the-badge">
   <img alt="durable runtime" src="https://img.shields.io/badge/durable-runtime-1f6feb?style=for-the-badge">
   <img alt="checkpoint persisted" src="https://img.shields.io/badge/checkpoint-persisted-8250df?style=for-the-badge">
   <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-f59e0b?style=for-the-badge">
 </p>
 
-一个终端优先的 Agent Harness。
+一个专注于解决问题的智能体。
 
 一个单纯的 LLM，往往擅长回答问题；一个加上 harness 的 LLM，才开始真正接住任务。它不只是“说下一句”，而是能在复杂任务里持续往前跑，知道什么时候该读文件、什么时候该调用工具、什么时候该拆任务、什么时候该把状态记下来，出了错以后还能接着做。✨
 
