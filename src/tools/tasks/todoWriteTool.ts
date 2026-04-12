@@ -1,4 +1,4 @@
-import { formatTodoBlock, normalizeTodoItems } from "../../agent/session.js";
+import { formatTodoBlock, normalizeTodoItems } from "../../agent/session/todos.js";
 import { TaskStore } from "../../tasks/store.js";
 import { WorktreeStore } from "../../worktrees/store.js";
 import { okResult, parseArgs } from "../shared.js";

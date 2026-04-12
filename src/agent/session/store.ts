@@ -3,12 +3,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { SessionRecord, StoredMessage } from "../../types.js";
-import { deriveAcceptanceState, normalizeAcceptanceState } from "../acceptance.js";
-import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "../checkpoint.js";
-import { createEmptyRuntimeStats, normalizeSessionRuntimeStats } from "../runtimeMetrics.js";
-import { createEmptyTaskState, deriveTaskState, normalizeSessionRecord as normalizeTaskStateSessionRecord } from "./taskState.js";
-import { deriveTodoItems } from "./todos.js";
-import { createEmptyVerificationState, normalizeSessionVerificationState } from "../verification/state.js";
+import { createEmptyCheckpoint } from "../checkpoint.js";
+import { createEmptyRuntimeStats } from "../runtimeMetrics.js";
+import { createEmptyTaskState } from "./taskState.js";
+import { createEmptyVerificationState } from "../verification/state.js";
+import { createSessionNotFoundError } from "./errors.js";
+import { parseSessionSnapshot, prepareSessionRecordForSave, serializeSessionSnapshot } from "./snapshot.js";
 
 export interface SessionStoreLike {
   create(cwd: string): Promise<SessionRecord>;
@@ -27,15 +27,20 @@ export class SessionStore implements SessionStoreLike {
   }
 
   async save(session: SessionRecord): Promise<SessionRecord> {
-    const updated = prepareSessionRecord(session);
+    const updated = prepareSessionRecordForSave(session);
     await fs.mkdir(this.sessionsDir, { recursive: true });
-    await fs.writeFile(this.getPath(updated.id), `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+    await fs.writeFile(this.getPath(updated.id), serializeSessionSnapshot(updated), "utf8");
     return updated;
   }
 
   async load(id: string): Promise<SessionRecord> {
-    const raw = await fs.readFile(this.getPath(id), "utf8");
-    return normalizeStoredSessionRecord(JSON.parse(raw) as SessionRecord);
+    const sessionPath = this.getPath(id);
+    const raw = await this.readSnapshotFile(id, sessionPath);
+    const parsed = parseSessionSnapshot(raw, sessionPath);
+    if (parsed.shouldRewrite) {
+      await fs.writeFile(sessionPath, serializeSessionSnapshot(parsed.session), "utf8");
+    }
+    return parsed.session;
   }
 
   async loadLatest(): Promise<SessionRecord | null> {
@@ -51,8 +56,9 @@ export class SessionStore implements SessionStoreLike {
       entries
         .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
         .map(async (entry) => {
-          const raw = await fs.readFile(path.join(this.sessionsDir, entry.name), "utf8");
-          return normalizeStoredSessionRecord(JSON.parse(raw) as SessionRecord);
+          const sessionPath = path.join(this.sessionsDir, entry.name);
+          const raw = await fs.readFile(sessionPath, "utf8");
+          return parseSessionSnapshot(raw, sessionPath).session;
         }),
     );
 
@@ -62,15 +68,26 @@ export class SessionStore implements SessionStoreLike {
   }
 
   async appendMessages(session: SessionRecord, messages: StoredMessage[]): Promise<SessionRecord> {
-    const next = prepareSessionRecord({
+    const next = {
       ...session,
       messages: [...session.messages, ...messages],
-    });
+    };
     return this.save(next);
   }
 
   private getPath(id: string): string {
     return path.join(this.sessionsDir, `${id}.json`);
+  }
+
+  private async readSnapshotFile(id: string, sessionPath: string): Promise<string> {
+    try {
+      return await fs.readFile(sessionPath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw createSessionNotFoundError(id, sessionPath, error);
+      }
+      throw error;
+    }
   }
 }
 
@@ -82,7 +99,7 @@ export class MemorySessionStore implements SessionStoreLike {
   }
 
   async save(session: SessionRecord): Promise<SessionRecord> {
-    const prepared = prepareSessionRecord(session);
+    const prepared = prepareSessionRecordForSave(session);
     this.sessions.set(prepared.id, prepared);
     return prepared;
   }
@@ -90,7 +107,7 @@ export class MemorySessionStore implements SessionStoreLike {
   async load(id: string): Promise<SessionRecord> {
     const session = this.sessions.get(id);
     if (!session) {
-      throw new Error(`Unknown session: ${id}`);
+      throw createSessionNotFoundError(id, `memory:${id}`);
     }
 
     return session;
@@ -117,7 +134,7 @@ export class MemorySessionStore implements SessionStoreLike {
 
 export async function createSessionRecord(cwd: string): Promise<SessionRecord> {
   const timestamp = new Date().toISOString();
-  return prepareSessionRecord({
+  return prepareSessionRecordForSave({
     id: createSessionId(),
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -132,51 +149,8 @@ export async function createSessionRecord(cwd: string): Promise<SessionRecord> {
   });
 }
 
-function prepareSessionRecord(session: SessionRecord): SessionRecord {
-  const normalizedMessages = Array.isArray(session.messages) ? session.messages : [];
-  const verificationNormalized = normalizeSessionVerificationState(session).verificationState;
-  const prepared = {
-    ...session,
-    updatedAt: new Date().toISOString(),
-    title: session.title ?? deriveSessionTitle(normalizedMessages),
-    messageCount: normalizedMessages.length,
-    messages: normalizedMessages,
-    todoItems: deriveTodoItems(normalizedMessages, session.todoItems ?? []),
-    taskState: deriveTaskState(normalizedMessages, session.taskState),
-    verificationState: verificationNormalized,
-    acceptanceState: normalizeAcceptanceState(
-      deriveAcceptanceState(normalizedMessages, session.acceptanceState),
-    ),
-  };
-
-  return normalizeSessionRuntimeStats(normalizeSessionCheckpoint(prepared));
-}
-
-function normalizeStoredSessionRecord(session: SessionRecord): SessionRecord {
-  const normalized = normalizeSessionRuntimeStats(normalizeSessionCheckpoint(
-    normalizeSessionVerificationState(normalizeTaskStateSessionRecord(session)),
-  ));
-  return {
-    ...normalized,
-    todoItems: deriveTodoItems(normalized.messages ?? [], normalized.todoItems ?? []),
-    acceptanceState: normalizeAcceptanceState(
-      deriveAcceptanceState(normalized.messages ?? [], normalized.acceptanceState),
-    ),
-  };
-}
-
 function createSessionId(): string {
   const date = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
   const random = crypto.randomUUID().slice(0, 8);
   return `${date}-${random}`;
-}
-
-function deriveSessionTitle(messages: StoredMessage[]): string | undefined {
-  const firstUserMessage = messages.find((message) => message.role === "user" && message.content);
-  if (!firstUserMessage?.content) {
-    return undefined;
-  }
-
-  const normalized = firstUserMessage.content.replace(/\s+/g, " ").trim();
-  return normalized.slice(0, 80);
 }

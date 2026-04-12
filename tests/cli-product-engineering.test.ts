@@ -105,6 +105,26 @@ test("unsupported config schema version fails closed with an actionable message"
   });
 });
 
+test("config keeps dotenv loading and runtime env resolution behind one formal entry", async () => {
+  const configFiles = await listFiles(path.join(process.cwd(), "src", "config"));
+  const allSourceFiles = await listFiles(path.join(process.cwd(), "src"));
+
+  const dotenvImporters = await findFilesContaining(allSourceFiles, /import dotenv from "dotenv"/);
+  const dotenvLoaders = await findFilesContaining(allSourceFiles, /from "\.\/env\.js"/);
+
+  assert.deepEqual(dotenvImporters.map((file) => path.relative(process.cwd(), file)), [
+    path.join("src", "config", "env.ts"),
+  ]);
+  assert.deepEqual(dotenvLoaders.map((file) => path.relative(process.cwd(), file)), [
+    path.join("src", "config", "runtime.ts"),
+  ]);
+
+  const storeSource = await fs.readFile(path.join(process.cwd(), "src", "config", "store.ts"), "utf8");
+  assert.match(storeSource, /from "\.\/fileStore\.js"/);
+  assert.match(storeSource, /from "\.\/runtime\.js"/);
+  assert.equal(configFiles.some((file) => file.endsWith(path.join("src", "config", "store.ts"))), true);
+});
+
 test("CLI error rendering classifies network failures instead of only echoing the raw exception", () => {
   const message = getErrorMessage(
     Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:443"), {
@@ -177,4 +197,30 @@ async function withTempAppDirs(run: () => Promise<void>): Promise<void> {
 
     await fs.rm(root, { recursive: true, force: true });
   }
+}
+
+async function listFiles(root: string): Promise<string[]> {
+  const entries = await fs.readdir(root, { withFileTypes: true });
+  const files = await Promise.all(entries.map(async (entry) => {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return listFiles(fullPath);
+    }
+    return [fullPath];
+  }));
+  return files.flat();
+}
+
+async function findFilesContaining(files: string[], pattern: RegExp): Promise<string[]> {
+  const matches: string[] = [];
+  for (const filePath of files) {
+    if (!filePath.endsWith(".ts")) {
+      continue;
+    }
+    const source = await fs.readFile(filePath, "utf8");
+    if (pattern.test(source)) {
+      matches.push(filePath);
+    }
+  }
+  return matches.sort();
 }

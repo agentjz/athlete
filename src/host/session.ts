@@ -1,4 +1,5 @@
 import type { SessionStoreLike } from "../agent/session.js";
+import { isSessionNotFoundError } from "../agent/session/errors.js";
 import type { SessionRecord } from "../types.js";
 import type {
   EnsureBoundSessionOptions,
@@ -32,7 +33,11 @@ export async function loadSessionOrCreate(
 ): Promise<SessionRecord> {
   try {
     return await options.sessionStore.load(options.sessionId);
-  } catch {
+  } catch (error) {
+    if (!isSessionNotFoundError(error)) {
+      throw error;
+    }
+
     const session = await createPersistedSession(options.sessionStore, options.cwd);
     await options.onRecreated?.(session);
     return session;

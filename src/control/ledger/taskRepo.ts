@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-import { normalizeTodoItems } from "../../agent/session.js";
+import { normalizeTodoItems } from "../../agent/session/todos.js";
 import type { TodoItem } from "../../types.js";
 import type { TaskRecord, TaskStatus } from "../../tasks/types.js";
 import { currentTimestamp, normalizeText, stringifyJson } from "./shared.js";
