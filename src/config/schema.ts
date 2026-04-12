@@ -17,7 +17,6 @@ const DEFAULT_CONFIG: AppConfig = {
   baseUrl: "https://api.deepseek.com",
   model: "deepseek-reasoner",
   mode: "agent",
-  allowedRoots: ["."],
   yieldAfterToolSteps: 12,
   contextWindowMessages: 30,
   maxContextChars: 48_000,
@@ -66,18 +65,12 @@ export function normalizeConfig(
     stateRootDir?: string;
   } = {},
 ): AppConfig {
-  const allowedRoots =
-    Array.isArray(config.allowedRoots) && config.allowedRoots.length > 0
-      ? [...new Set(config.allowedRoots.map((value) => String(value).trim()).filter(Boolean))]
-      : ["."];
-
   return {
     schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
     provider: String(config.provider ?? DEFAULT_CONFIG.provider).trim() || DEFAULT_CONFIG.provider,
     baseUrl: config.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     model: config.model?.trim() || DEFAULT_CONFIG.model,
     mode: parseAgentMode(config.mode) ?? DEFAULT_CONFIG.mode,
-    allowedRoots,
     yieldAfterToolSteps: clampNumber(
       config.yieldAfterToolSteps,
       0,

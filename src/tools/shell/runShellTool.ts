@@ -1,5 +1,5 @@
 import { ToolExecutionError } from "../errors.js";
-import { assertPathAllowed } from "../../utils/fs.js";
+import { resolveUserPath } from "../../utils/fs.js";
 import { classifyCommand } from "../../utils/commandPolicy.js";
 import { runCommandWithPolicy } from "../../utils/commandRunner.js";
 import { clampNumber, okResult, parseArgs, readString } from "../shared.js";
@@ -37,7 +37,7 @@ export const runShellTool: RegisteredTool = {
     const command = readString(args.command, "command");
     const shellCwd = typeof args.cwd === "string" ? args.cwd : context.cwd;
     const timeoutMs = clampNumber(args.timeout_ms, 1_000, 600_000, 120_000);
-    const resolvedCwd = assertPathAllowed(shellCwd, context.cwd, context.config);
+    const resolvedCwd = resolveUserPath(shellCwd, context.cwd);
     const classification = classifyCommand(command);
     const stallTimeoutMs = clampNumber(
       context.config.commandStallTimeoutMs,

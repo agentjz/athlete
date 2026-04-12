@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { readDocxDocument } from "../../documents/docx/index.js";
-import { assertPathAllowed, truncateText } from "../../utils/fs.js";
+import { resolveUserPath, truncateText } from "../../utils/fs.js";
 import { replaceExtension } from "../docxShared.js";
 import { ToolExecutionError } from "../errors.js";
 import { findPathSuggestions } from "../pathSuggestions.js";
@@ -30,7 +30,7 @@ export const readDocxTool: RegisteredTool = {
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
     const targetPath = readString(args.path, "path");
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const extension = path.extname(resolved).toLowerCase();
 
     if (extension === ".doc" || extension === ".docm") {

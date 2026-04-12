@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { assertPathAllowed, truncateText } from "../../utils/fs.js";
+import { resolveUserPath, truncateText } from "../../utils/fs.js";
 import { recordToolChange } from "../changeTracking.js";
 import { buildDiffPreview, countOccurrences, okResult, parseArgs, readBoolean, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -42,7 +42,7 @@ export const editFileTool: RegisteredTool = {
     const oldString = readString(args.old_string, "old_string");
     const newString = readString(args.new_string, "new_string");
     const replaceAll = readBoolean(args.replace_all, false);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const before = await fs.readFile(resolved, "utf8");
     const occurrences = countOccurrences(before, oldString);
 

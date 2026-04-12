@@ -358,7 +358,6 @@ test("runtime observability local command prints a product-style summary that ex
         model: "deepseek-reasoner",
         mode: "agent",
         baseUrl: "https://api.deepseek.com",
-        allowedRoots: [process.cwd()],
         contextWindowMessages: 16,
         maxContextChars: 8_500,
         contextSummaryChars: 1_200,

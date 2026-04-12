@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { TelegramDeliveryQueue } from "./deliveryQueue.js";
 import type { TelegramLogger } from "./logger.js";
-import { assertPathAllowed } from "../utils/fs.js";
+import { resolveUserPath } from "../utils/fs.js";
 import { okResult, parseArgs, readString } from "../tools/shared.js";
 import type { RegisteredTool } from "../tools/types.js";
 
@@ -58,7 +58,7 @@ export function createTelegramSendFileTool(options: {
     async execute(rawArgs, context) {
       const args = parseArgs(rawArgs);
       const targetPath = readString(args.path, "path");
-      const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+      const resolved = resolveUserPath(targetPath, context.cwd);
       const stats = await fs.stat(resolved);
 
       if (!stats.isFile()) {

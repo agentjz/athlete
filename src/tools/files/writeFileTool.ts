@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { assertPathAllowed, ensureParentDirectory, fileExists, truncateText } from "../../utils/fs.js";
+import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { recordToolChange } from "../changeTracking.js";
 import { buildDiffPreview, okResult, parseArgs, readBoolean, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -37,7 +37,7 @@ export const writeFileTool: RegisteredTool = {
     const targetPath = readString(args.path, "path");
     const content = readString(args.content, "content");
     const createDirectories = readBoolean(args.create_directories, true);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const existed = await fileExists(resolved);
     const before = existed ? await fs.readFile(resolved, "utf8") : "";
     const preview = buildDiffPreview(before, content);

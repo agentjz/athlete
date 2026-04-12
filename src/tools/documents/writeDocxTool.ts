@@ -7,7 +7,7 @@ import {
   readDocxDocument,
   renderDocxSourcePreview,
 } from "../../documents/docx/index.js";
-import { assertPathAllowed, ensureParentDirectory, fileExists, truncateText } from "../../utils/fs.js";
+import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { recordToolChange } from "../changeTracking.js";
 import { readDocxSourceFormat, readTemplateVariables, replaceExtension } from "../docxShared.js";
 import { ToolExecutionError } from "../errors.js";
@@ -68,7 +68,7 @@ export const writeDocxTool: RegisteredTool = {
     const titleTemplate = typeof args.title === "string" ? args.title.trim() : undefined;
     const descriptionTemplate = typeof args.description === "string" ? args.description.trim() : undefined;
     const createDirectories = readBoolean(args.create_directories, true);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const extension = path.extname(resolved).toLowerCase();
 
     if (extension === ".doc" || extension === ".docm") {

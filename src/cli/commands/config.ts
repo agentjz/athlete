@@ -37,7 +37,7 @@ export function registerConfigCommands(
             model: runtime.config.model,
             mode: runtime.config.mode,
             baseUrl: runtime.config.baseUrl,
-            allowedRoots: runtime.config.allowedRoots,
+            pathAccess: "unrestricted",
             apiKey: runtime.config.apiKey ? "set" : "missing",
             telegram: {
               ...runtime.config.telegram,

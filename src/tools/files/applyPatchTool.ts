@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { assertPathAllowed, ensureParentDirectory, fileExists, truncateText } from "../../utils/fs.js";
+import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { recordToolChange } from "../changeTracking.js";
 import { buildDiffPreview, normalizeDiffPath, okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -64,7 +64,7 @@ export const applyPatchTool: RegisteredTool = {
         throw new Error("Patch target path is missing.");
       }
 
-      const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+      const resolved = resolveUserPath(targetPath, context.cwd);
       const exists = await fileExists(resolved);
       const before = exists ? await fs.readFile(resolved, "utf8") : "";
       const source = oldPath === null ? "" : before;

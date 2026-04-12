@@ -12,7 +12,7 @@ import {
   renderDocxBlocksToMarkdown,
 } from "../../documents/docx/index.js";
 import type { DocxBlock } from "../../documents/docx/index.js";
-import { assertPathAllowed, ensureParentDirectory, fileExists, truncateText } from "../../utils/fs.js";
+import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { recordToolChange } from "../changeTracking.js";
 import {
   readDocxSourceFormat,
@@ -109,7 +109,7 @@ export const editDocxTool: RegisteredTool = {
     const variables = readTemplateVariables(args.variables);
     const createIfMissing = readBoolean(args.create_if_missing, false);
     const createDirectories = readBoolean(args.create_directories, true);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const extension = path.extname(resolved).toLowerCase();
 
     if (extension === ".doc" || extension === ".docm") {

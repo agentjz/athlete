@@ -72,10 +72,6 @@ function buildToolRecoveryHint(toolName: string, rawArgs: string, message: strin
     return `The target is not a readable text file. Skip raw content reading and reason from metadata, filenames, or other text files instead.`;
   }
 
-  if (lower.includes("path not allowed")) {
-    return "The target path is outside allowedRoots. Try a path inside the current project or ask the user to widen access.";
-  }
-
   if (lower.includes("unknown tool")) {
     return `The ${toolName} tool is unavailable in the current mode. Use the tools exposed now, or switch to agent mode if you need editing or shell access.`;
   }

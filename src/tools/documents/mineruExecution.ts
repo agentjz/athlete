@@ -10,7 +10,7 @@ import {
 } from "../../integrations/mineru/constants.js";
 import { MineruClient } from "../../integrations/mineru/client.js";
 import { probeMineruPageCount } from "../../integrations/mineru/pageCount.js";
-import { assertPathAllowed, ensureParentDirectory, truncateText } from "../../utils/fs.js";
+import { ensureParentDirectory, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { ToolExecutionError } from "../errors.js";
 import { findPathSuggestions } from "../pathSuggestions.js";
 import { okResult, parseArgs, readBoolean, readString } from "../shared.js";
@@ -42,7 +42,7 @@ export async function prepareMineruReadRequest(
 ): Promise<PreparedMineruReadRequest> {
   const args = parseArgs(rawArgs);
   const targetPath = readString(args.path, "path");
-  const resolvedPath = assertPathAllowed(targetPath, context.cwd, context.config);
+  const resolvedPath = resolveUserPath(targetPath, context.cwd);
   const extension = path.extname(resolvedPath).toLowerCase();
 
   if (!options.supportedExtensions.includes(extension)) {

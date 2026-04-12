@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 
 import fg from "fast-glob";
 
-import { assertPathAllowed } from "../../utils/fs.js";
+import { resolveUserPath } from "../../utils/fs.js";
 import { isPathIgnored } from "../../utils/ignore.js";
 import { buildSearchPattern, clampNumber, okResult, parseArgs, readBoolean, readString, tryReadTextFile } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -49,7 +49,7 @@ export const searchFilesTool: RegisteredTool = {
     const glob = typeof args.glob === "string" ? args.glob : "**/*";
     const caseSensitive = readBoolean(args.case_sensitive, false);
     const maxResults = clampNumber(args.max_results, 1, 1_000, context.config.maxSearchResults);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const stats = await fs.stat(resolved);
 
     const regex = buildSearchPattern(pattern, caseSensitive);

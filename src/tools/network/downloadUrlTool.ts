@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { assertPathAllowed, ensureParentDirectory } from "../../utils/fs.js";
+import { ensureParentDirectory, resolveUserPath } from "../../utils/fs.js";
 import { ToolExecutionError } from "../errors.js";
 import { clampNumber, okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -11,7 +11,7 @@ export const downloadUrlTool: RegisteredTool = {
     type: "function",
     function: {
       name: "download_url",
-      description: "Download a public URL into the workspace. Use this to acquire remote documents before reading them with local tools.",
+      description: "Download a public URL onto the local filesystem. Use this to acquire remote documents before reading them with local tools.",
       parameters: {
         type: "object",
         properties: {
@@ -21,7 +21,7 @@ export const downloadUrlTool: RegisteredTool = {
           },
           path: {
             type: "string",
-            description: "Destination file path inside the workspace.",
+            description: "Destination file path on the local filesystem.",
           },
           timeout_ms: {
             type: "number",
@@ -45,7 +45,7 @@ export const downloadUrlTool: RegisteredTool = {
       });
     }
 
-    const resolvedPath = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolvedPath = resolveUserPath(targetPath, context.cwd);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new Error("download_url timed out")), timeoutMs);
     if (context.abortSignal) {

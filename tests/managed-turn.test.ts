@@ -25,7 +25,6 @@ function createConfig(): RuntimeConfig {
     baseUrl: "https://api.deepseek.com",
     model: "deepseek-reasoner",
     mode: "agent",
-    allowedRoots: ["."],
     yieldAfterToolSteps: 5,
     contextWindowMessages: 30,
     maxContextChars: 48_000,

@@ -60,7 +60,7 @@ function buildRuntimeEnvironmentBlock(input: DynamicPromptInput): string | undef
     { label: "Current working directory", value: input.cwd },
     { label: "Project root", value: input.projectContext.rootDir },
     { label: "Project state root", value: input.projectContext.stateRootDir },
-    { label: "Allowed roots", value: input.config.allowedRoots.join(", ") },
+    { label: "Path access", value: "Unrestricted local filesystem access" },
     { label: "Mode", value: input.config.mode },
     { label: "Model", value: input.config.model },
     { label: "Date", value: new Date().toISOString() },

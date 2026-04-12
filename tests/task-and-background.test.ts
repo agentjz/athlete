@@ -62,6 +62,8 @@ test("BackgroundJobStore filters jobs by cwd and requester", async (t) => {
     requestedBy: "alpha",
     timeoutMs: 10_000,
   });
+  await store.setPid(job1.id, 2001);
+  await store.setPid(job2.id, 2002);
   await store.complete(job1.id, { status: "completed", exitCode: 0, output: "ok" });
   await store.complete(job2.id, { status: "failed", exitCode: 1, output: "boom" });
 

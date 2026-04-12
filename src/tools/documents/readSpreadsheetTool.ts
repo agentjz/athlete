@@ -3,7 +3,7 @@ import path from "node:path";
 
 import * as XLSX from "xlsx";
 
-import { assertPathAllowed } from "../../utils/fs.js";
+import { resolveUserPath } from "../../utils/fs.js";
 import { ToolExecutionError } from "../errors.js";
 import { findPathSuggestions } from "../pathSuggestions.js";
 import { SPREADSHEET_EXTENSIONS } from "../routing.js";
@@ -54,7 +54,7 @@ export const readSpreadsheetTool: RegisteredTool = {
           : "";
     const maxRows = clampNumber(args.max_rows, 1, 200, context.config.maxSpreadsheetPreviewRows);
     const maxColumns = clampNumber(args.max_columns, 1, 100, context.config.maxSpreadsheetPreviewColumns);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
 
     let stat: Awaited<ReturnType<typeof fs.stat>>;
     try {

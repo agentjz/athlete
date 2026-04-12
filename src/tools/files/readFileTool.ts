@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { assertPathAllowed, formatFileWithLineNumbers, truncateText } from "../../utils/fs.js";
+import { formatFileWithLineNumbers, resolveUserPath, truncateText } from "../../utils/fs.js";
 import { ToolExecutionError } from "../errors.js";
 import { inspectTextFile } from "../fileIntrospection.js";
 import { buildToolResultArtifactReadPayload, isToolResultArtifactPath } from "./toolResultArtifact.js";
@@ -13,7 +13,7 @@ export const readFileTool: RegisteredTool = {
     type: "function",
     function: {
       name: "read_file",
-      description: "Read a local text file from the workspace. Returns numbered lines to make edits easier, and is not for webpage content.",
+      description: "Read a local text file from the local filesystem. Returns numbered lines to make edits easier, and is not for webpage content.",
       parameters: {
         type: "object",
         properties: {
@@ -40,7 +40,7 @@ export const readFileTool: RegisteredTool = {
     const targetPath = readString(args.path, "path");
     const startLine = readOptionalNumber(args.start_line);
     const endLine = readOptionalNumber(args.end_line);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     let inspected;
 
     try {

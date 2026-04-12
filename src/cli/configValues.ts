@@ -8,7 +8,6 @@ export const APP_CONFIG_KEYS = [
   "baseUrl",
   "model",
   "mode",
-  "allowedRoots",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
@@ -34,7 +33,6 @@ const MUTABLE_CONFIG_KEYS = new Set<keyof AppConfig>([
   "baseUrl",
   "model",
   "mode",
-  "allowedRoots",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
@@ -66,17 +64,6 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
   switch (key) {
     case "schemaVersion":
       throw new Error("schemaVersion is managed by Athlete and cannot be set manually.");
-    case "allowedRoots": {
-      const parsed = tryParseJson(rawValue);
-      if (Array.isArray(parsed)) {
-        return parsed.map((item) => String(item)) as AppConfig[keyof AppConfig];
-      }
-
-      return rawValue
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean) as AppConfig[keyof AppConfig];
-    }
     case "showReasoning":
       return (rawValue === "true" || rawValue === "1") as AppConfig[keyof AppConfig];
     case "contextWindowMessages":

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { assertPathAllowed } from "../../utils/fs.js";
+import { resolveUserPath } from "../../utils/fs.js";
 import { isPathIgnored } from "../../utils/ignore.js";
 import { clampNumber, okResult, parseArgs, readBoolean, readString, walkDirectory } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -10,7 +10,7 @@ export const listFilesTool: RegisteredTool = {
     type: "function",
     function: {
       name: "list_files",
-      description: "List local files or directories in the workspace. Use this to explore a folder before reading or editing local files, not for webpages.",
+      description: "List local files or directories on the local filesystem. Use this to explore a folder before reading or editing local files, not for webpages.",
       parameters: {
         type: "object",
         properties: {
@@ -37,7 +37,7 @@ export const listFilesTool: RegisteredTool = {
     const targetPath = readString(args.path, "path");
     const recursive = readBoolean(args.recursive, false);
     const maxEntries = clampNumber(args.max_entries, 1, 1_000, 200);
-    const resolved = assertPathAllowed(targetPath, context.cwd, context.config);
+    const resolved = resolveUserPath(targetPath, context.cwd);
     const stats = await fs.stat(resolved);
 
     if (stats.isFile()) {

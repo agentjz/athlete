@@ -28,7 +28,6 @@ export interface AppConfig {
   baseUrl: string;
   model: string;
   mode: AgentMode;
-  allowedRoots: string[];
   yieldAfterToolSteps: number;
   contextWindowMessages: number;
   maxContextChars: number;
