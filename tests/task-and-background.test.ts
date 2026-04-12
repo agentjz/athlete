@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { BackgroundJobStore } from "../src/background/store.js";
+import { BackgroundJobStore } from "../src/execution/background.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { createTempWorkspace } from "./helpers.js";
 

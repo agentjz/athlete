@@ -1,9 +1,8 @@
 import path from "node:path";
-import { spawn } from "node:child_process";
 
 import type { RuntimeConfig } from "../types.js";
 
-export interface SpawnTeammateProcessOptions {
+export interface BuildTeammateWorkerEnvOptions {
   rootDir: string;
   config: RuntimeConfig;
   name: string;
@@ -11,49 +10,7 @@ export interface SpawnTeammateProcessOptions {
   prompt: string;
 }
 
-export function spawnTeammateProcess(options: SpawnTeammateProcessOptions): number {
-  const cliEntry = path.resolve(process.argv[1] ?? "");
-  if (!cliEntry) {
-    throw new Error("Unable to locate CLI entrypoint for teammate worker.");
-  }
-
-  const child = spawn(
-    process.execPath,
-    [
-      cliEntry,
-      "-C",
-      options.rootDir,
-      "--mode",
-      options.config.mode,
-      "--model",
-      options.config.model,
-      "__worker__",
-      "teammate",
-      "--name",
-      options.name,
-      "--role",
-      options.role,
-      "--prompt",
-      options.prompt,
-    ],
-    {
-      cwd: options.rootDir,
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      env: buildTeammateWorkerEnv(options),
-    },
-  );
-
-  child.unref();
-  if (!child.pid) {
-    throw new Error("Failed to spawn teammate worker process.");
-  }
-
-  return child.pid;
-}
-
-export function buildTeammateWorkerEnv(options: SpawnTeammateProcessOptions): NodeJS.ProcessEnv {
+export function buildTeammateWorkerEnv(options: BuildTeammateWorkerEnvOptions): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     ATHLETE_API_KEY: options.config.apiKey,

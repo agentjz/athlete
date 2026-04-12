@@ -1,5 +1,4 @@
-import { BackgroundJobStore } from "../../background/store.js";
-import { reconcileBackgroundJobs } from "../../background/reconcile.js";
+import { BackgroundJobStore, reconcileBackgroundJobs } from "../../execution/background.js";
 import { classifyCommand } from "../../utils/commandPolicy.js";
 import { okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";

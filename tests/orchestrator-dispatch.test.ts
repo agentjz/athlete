@@ -7,7 +7,7 @@ import { buildOrchestratorObjective } from "../src/orchestrator/metadata.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
 import { routeOrchestratorAction } from "../src/orchestrator/route.js";
-import { BackgroundJobStore } from "../src/background/store.js";
+import { BackgroundJobStore } from "../src/execution/background.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "./helpers.js";
@@ -53,6 +53,7 @@ test("dispatchOrchestratorAction completes delegated subagent tasks and records 
     },
     deps: {
       runSubagentTask: async () => ({
+        executionId: "exec-subagent-1",
         content: "Found the narrow integration point.",
       }),
     },
@@ -111,7 +112,7 @@ test("dispatchOrchestratorAction reserves teammate work on the task board and st
       },
     },
     deps: {
-      spawnTeammateProcess: () => 4321,
+      spawnExecutionWorker: () => 4321,
     },
   });
 
@@ -162,7 +163,7 @@ test("dispatchOrchestratorAction creates real background jobs through Background
       backgroundCommand: "node -e setTimeout(() => console.log(123), 500)",
     },
     deps: {
-      spawnBackgroundProcess: () => 9876,
+      spawnExecutionWorker: () => 9876,
     },
   });
 
@@ -221,7 +222,7 @@ test("background routing does not silently launch duplicate jobs after reload", 
       backgroundCommand: analysis.backgroundCommand,
     },
     deps: {
-      spawnBackgroundProcess: () => {
+      spawnExecutionWorker: () => {
         spawnCount += 1;
         return 9000 + spawnCount;
       },

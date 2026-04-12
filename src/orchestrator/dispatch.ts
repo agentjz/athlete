@@ -1,11 +1,10 @@
 import { createMessage } from "../agent/session.js";
 import { createEmptyTaskState, createInternalReminder } from "../agent/session.js";
-import { BackgroundJobStore } from "../background/store.js";
-import { spawnBackgroundProcess as defaultSpawnBackgroundProcess } from "../background/spawn.js";
+import { BackgroundJobStore } from "../execution/background.js";
+import { spawnExecutionWorker as defaultSpawnExecutionWorker } from "../execution/launch.js";
+import { ExecutionStore } from "../execution/store.js";
 import { runSubagentTask as defaultRunSubagentTask } from "../subagent/run.js";
-import { MessageBus } from "../team/messageBus.js";
 import { TeamStore } from "../team/store.js";
-import { spawnTeammateProcess as defaultSpawnTeammateProcess } from "../team/spawn.js";
 import { TaskStore } from "../tasks/store.js";
 import { createToolRegistry } from "../tools/index.js";
 import { WorktreeStore } from "../worktrees/store.js";
@@ -40,10 +39,10 @@ export async function dispatchOrchestratorAction(input: {
         ...options,
         createToolRegistry,
       })),
-    spawnTeammateProcess: input.deps?.spawnTeammateProcess ?? defaultSpawnTeammateProcess,
-    spawnBackgroundProcess: input.deps?.spawnBackgroundProcess ?? defaultSpawnBackgroundProcess,
+    spawnExecutionWorker: input.deps?.spawnExecutionWorker ?? defaultSpawnExecutionWorker,
   };
   const taskStore = new TaskStore(input.rootDir);
+  const executionStore = new ExecutionStore(input.rootDir);
   let session = await input.sessionStore.save({
     ...input.session,
     taskState: {
@@ -69,15 +68,21 @@ export async function dispatchOrchestratorAction(input: {
         cwd: input.cwd,
         config: input.config,
         callbacks: input.callbacks,
+        taskId: task.record.id,
+        requestedBy: "lead",
+        worktreePolicy: input.decision.subagentType === "code" ? "task" : "none",
       });
       await taskStore.update(task.record.id, {
         status: "completed",
         owner: "lead",
       });
+      await patchTaskMetadata(taskStore, task.record.id, {
+        executionId: result.executionId,
+      });
       session = await appendOrchestratorNote(
         session,
         input.sessionStore,
-        `Orchestrator delegated Task #${task.record.id} to a subagent and completed it.\n<subagent-result>${result.content}</subagent-result>`,
+        `Orchestrator delegated Task #${task.record.id} onto execution '${result.executionId}' and completed it.\n<subagent-result>${result.content}</subagent-result>`,
       );
       break;
     }
@@ -89,38 +94,47 @@ export async function dispatchOrchestratorAction(input: {
         return { session, decision: input.decision };
       }
       assertTaskReadyFor("delegate_teammate", task, "lead");
-      if (task.meta.jobId) {
-        throw new Error(`Task #${task.record.id} already has background handoff '${task.meta.jobId}'.`);
+      if (task.meta.executionId) {
+        throw new Error(`Task #${task.record.id} already has execution '${task.meta.executionId}'.`);
       }
 
       await taskStore.assign(task.record.id, teammate.name);
-      await patchTaskMetadata(taskStore, task.record.id, {
-        delegatedTo: teammate.name,
-      });
       const teamStore = new TeamStore(input.rootDir);
       const existing = await teamStore.findMember(teammate.name);
       const prompt = buildTeammatePrompt(input.analysis, task.record.id, task.record.subject);
-      if (!existing || existing.status === "shutdown" || typeof existing.pid !== "number") {
-        const pid = deps.spawnTeammateProcess({
-          rootDir: input.rootDir,
-          config: input.config,
-          name: teammate.name,
-          role: teammate.role,
-          prompt,
-        });
-        await teamStore.upsertMember(teammate.name, teammate.role, "working", {
-          pid,
-          sessionId: existing?.sessionId,
-        });
-      }
-
-      await new MessageBus(input.rootDir)
-        .send("lead", teammate.name, prompt, "message")
-        .catch(() => null);
+      const execution = await executionStore.create({
+        lane: "agent",
+        profile: "teammate",
+        launch: "worker",
+        requestedBy: "lead",
+        actorName: teammate.name,
+        actorRole: teammate.role,
+        taskId: task.record.id,
+        cwd: input.cwd,
+        prompt,
+        worktreePolicy: "task",
+      });
+      const pid = deps.spawnExecutionWorker({
+        rootDir: input.rootDir,
+        config: input.config,
+        executionId: execution.id,
+        actorName: teammate.name,
+      });
+      await executionStore.start(execution.id, {
+        pid,
+      });
+      await patchTaskMetadata(taskStore, task.record.id, {
+        delegatedTo: teammate.name,
+        executionId: execution.id,
+      });
+      await teamStore.upsertMember(teammate.name, teammate.role, "working", {
+        pid,
+        sessionId: existing?.sessionId,
+      });
       session = await appendOrchestratorNote(
         session,
         input.sessionStore,
-        `Orchestrator assigned Task #${task.record.id} to teammate '${teammate.name}'.`,
+        `Orchestrator launched teammate execution '${execution.id}' for Task #${task.record.id} on '${teammate.name}'.`,
       );
       break;
     }
@@ -132,8 +146,8 @@ export async function dispatchOrchestratorAction(input: {
       }
       if (input.decision.task) {
         assertTaskReadyFor("run_in_background", input.decision.task, "lead");
-        if (input.decision.task.meta.jobId) {
-          throw new Error(`Task #${input.decision.task.record.id} already points to background job '${input.decision.task.meta.jobId}'.`);
+        if (input.decision.task.meta.executionId) {
+          throw new Error(`Task #${input.decision.task.record.id} already points to execution '${input.decision.task.meta.executionId}'.`);
         }
       }
 
@@ -148,9 +162,11 @@ export async function dispatchOrchestratorAction(input: {
         timeoutMs: 120_000,
         stallTimeoutMs: input.config.commandStallTimeoutMs,
       });
-      const pid = deps.spawnBackgroundProcess({
+      const pid = deps.spawnExecutionWorker({
         rootDir: input.rootDir,
-        jobId: job.id,
+        config: input.config,
+        executionId: job.id,
+        actorName: `bg-${job.id}`,
       });
       await store.setPid(job.id, pid);
       if (input.decision.task) {
@@ -158,12 +174,13 @@ export async function dispatchOrchestratorAction(input: {
         await patchTaskMetadata(taskStore, input.decision.task.record.id, {
           backgroundCommand: command,
           jobId: job.id,
+          executionId: job.id,
         });
       }
       session = await appendOrchestratorNote(
         session,
         input.sessionStore,
-        `Orchestrator started background job ${job.id} for '${command}'.`,
+        `Orchestrator launched background execution '${job.id}' for '${command}'.`,
       );
       break;
     }
@@ -222,6 +239,7 @@ async function patchTaskMetadata(
     backgroundCommand?: string;
     delegatedTo?: string;
     jobId?: string;
+    executionId?: string;
   },
 ): Promise<void> {
   const task = await taskStore.load(taskId);

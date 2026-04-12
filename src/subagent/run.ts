@@ -1,6 +1,10 @@
 import { runAgentTurn } from "../agent/runTurn.js";
-import { MemorySessionStore } from "../agent/session.js";
+import { SessionStore } from "../agent/session.js";
 import type { AgentCallbacks, RunTurnResult } from "../agent/types.js";
+import { loadProjectContext } from "../context/projectContext.js";
+import { closeExecution } from "../execution/closeout.js";
+import { ExecutionStore } from "../execution/store.js";
+import { prepareExecutionTaskContext } from "../execution/taskBinding.js";
 import type { ToolRegistryFactory } from "../tools/types.js";
 import type { RuntimeConfig, StoredMessage, ToolExecutionMetadata } from "../types.js";
 import { SubagentProgressReporter } from "./progress.js";
@@ -14,9 +18,13 @@ export interface RunSubagentTaskOptions {
   config: RuntimeConfig;
   createToolRegistry: ToolRegistryFactory;
   callbacks?: AgentCallbacks;
+  taskId?: number;
+  requestedBy?: string;
+  worktreePolicy?: "none" | "task";
 }
 
 export interface RunSubagentTaskResult {
+  executionId: string;
   content: string;
   metadata?: ToolExecutionMetadata;
 }
@@ -30,8 +38,31 @@ export async function runSubagentTask(
     ...options.config,
     mode,
   };
-  const sessionStore = new MemorySessionStore();
-  const session = await sessionStore.create(options.cwd);
+  const projectContext = await loadProjectContext(options.cwd);
+  const executionStore = new ExecutionStore(projectContext.stateRootDir);
+  const execution = await executionStore.create({
+    lane: "agent",
+    profile: "subagent",
+    launch: "inline",
+    requestedBy: options.requestedBy ?? "lead",
+    actorName: buildSubagentName(profile.type, options.description),
+    actorRole: profile.type,
+    taskId: options.taskId,
+    cwd: options.cwd,
+    prompt: buildSubagentAssignment(options.description, options.prompt, profile),
+    worktreePolicy: options.worktreePolicy ?? "none",
+  });
+  const prepared = await prepareExecutionTaskContext({
+    rootDir: projectContext.stateRootDir,
+    execution,
+  });
+  const sessionStore = new SessionStore(options.config.paths.sessionsDir);
+  const session = await sessionStore.save(await sessionStore.create(prepared.cwd));
+  await executionStore.start(execution.id, {
+    sessionId: session.id,
+    cwd: prepared.cwd,
+    worktreeName: prepared.worktree?.name,
+  });
   const toolRegistry = options.createToolRegistry(mode, {
     onlyNames: profile.toolNames,
     excludeNames: ["task"],
@@ -41,8 +72,8 @@ export async function runSubagentTask(
 
   try {
     const result = await runAgentTurn({
-      input: buildSubagentAssignment(options.description, options.prompt, profile),
-      cwd: options.cwd,
+      input: buildSubagentInput(execution.prompt || options.prompt, prepared.worktree),
+      cwd: prepared.cwd,
       config: subagentConfig,
       session,
       sessionStore,
@@ -50,21 +81,56 @@ export async function runSubagentTask(
       callbacks: reporter.createCallbacks(),
       identity: {
         kind: "subagent",
-        name: buildSubagentName(profile.type, options.description),
+        name: execution.actorName,
         role: profile.type,
       },
     });
 
     reporter.finish();
+    await closeExecution({
+      rootDir: projectContext.stateRootDir,
+      executionId: execution.id,
+      status: "completed",
+      summary: "subagent execution completed",
+      resultText: readLatestAssistantText(result.session.messages),
+      notifyRequester: false,
+    });
 
     return {
+      executionId: execution.id,
       content: readLatestAssistantText(result.session.messages),
       metadata: buildSubagentMetadata(result, profile.type),
     };
   } catch (error) {
     reporter.fail(error);
+    await closeExecution({
+      rootDir: projectContext.stateRootDir,
+      executionId: execution.id,
+      status: "failed",
+      summary: "subagent execution failed",
+      output: String((error as { message?: unknown }).message ?? error),
+      notifyRequester: false,
+    }).catch(() => null);
     throw error;
   }
+}
+
+function buildSubagentInput(
+  assignment: string,
+  worktree?: {
+    name: string;
+    path: string;
+    branch: string;
+  },
+): string {
+  if (!worktree) {
+    return assignment;
+  }
+
+  return [
+    assignment,
+    `<worktree name="${worktree.name}" path="${worktree.path}" branch="${worktree.branch}" />`,
+  ].join("\n\n");
 }
 
 function buildSubagentMetadata(

@@ -1,6 +1,7 @@
 import type { SessionStoreLike } from "../agent/session.js";
+import type { BackgroundJobRecord } from "../execution/background.js";
+import type { ExecutionRecord } from "../execution/types.js";
 import type { AgentCallbacks } from "../agent/types.js";
-import type { BackgroundJobRecord } from "../background/types.js";
 import type { RunSubagentTaskResult } from "../subagent/run.js";
 import type { CoordinationPolicyRecord, ProtocolRequestRecord, TeamMemberRecord } from "../team/types.js";
 import type { ToolRegistryFactory } from "../tools/types.js";
@@ -31,6 +32,7 @@ export interface OrchestratorTaskMeta {
   backgroundCommand?: string;
   delegatedTo?: string;
   jobId?: string;
+  executionId?: string;
 }
 
 export type OrchestratorActorKind = "lead" | "teammate" | "background" | "subagent" | "none";
@@ -86,6 +88,8 @@ export interface OrchestratorProgressSnapshot {
   readyTasks: OrchestratorTaskSnapshot[];
   relevantBackgroundJobs: BackgroundJobRecord[];
   runningBackgroundJobs: BackgroundJobRecord[];
+  executions: ExecutionRecord[];
+  activeExecutions: ExecutionRecord[];
   teammates: TeamMemberRecord[];
   idleTeammates: TeamMemberRecord[];
   workingTeammates: TeamMemberRecord[];
@@ -124,16 +128,11 @@ export interface OrchestratorDecision {
 
 export interface OrchestratorDispatchDependencies {
   runSubagentTask?: (input: OrchestratorSubagentInput) => Promise<RunSubagentTaskResult>;
-  spawnTeammateProcess?: (input: {
+  spawnExecutionWorker?: (input: {
     rootDir: string;
     config: RuntimeConfig;
-    name: string;
-    role: string;
-    prompt: string;
-  }) => number;
-  spawnBackgroundProcess?: (input: {
-    rootDir: string;
-    jobId: string;
+    executionId: string;
+    actorName?: string;
   }) => number;
 }
 
@@ -145,6 +144,9 @@ export interface OrchestratorSubagentInput {
   config: RuntimeConfig;
   callbacks?: AgentCallbacks;
   createToolRegistry?: ToolRegistryFactory;
+  taskId?: number;
+  requestedBy?: string;
+  worktreePolicy?: "none" | "task";
 }
 
 export interface PreparedLeadTurn {

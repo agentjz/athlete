@@ -64,6 +64,7 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
       backgroundCommand: normalizeOptionalText(parsed.backgroundCommand),
       delegatedTo: normalizeOptionalText(parsed.delegatedTo),
       jobId: normalizeOptionalText(parsed.jobId),
+      executionId: normalizeOptionalText(parsed.executionId),
     };
   } catch {
     return null;
@@ -81,6 +82,7 @@ export function writeOrchestratorMetadata(description: string, meta: Orchestrato
       backgroundCommand: normalizeOptionalText(meta.backgroundCommand),
       delegatedTo: normalizeOptionalText(meta.delegatedTo),
       jobId: normalizeOptionalText(meta.jobId),
+      executionId: normalizeOptionalText(meta.executionId),
     },
     null,
     2,
@@ -108,7 +110,7 @@ function normalizeOptionalText(value: unknown): string | undefined {
 
 function normalizeExecutor(
   value: unknown,
-  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId">>,
+  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId" | "executionId">>,
 ): OrchestratorExecutorKind {
   const normalized = normalizeText(value).toLowerCase();
   if (
@@ -124,7 +126,7 @@ function normalizeExecutor(
 }
 
 function inferExecutorFromMetadata(
-  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId">>,
+  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId" | "executionId">>,
 ): OrchestratorExecutorKind {
   if (meta.kind === "merge") {
     return "lead";

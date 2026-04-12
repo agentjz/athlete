@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 
 import { currentTimestamp } from "./shared.js";
 
-const LEDGER_SCHEMA_VERSION = 1;
+const LEDGER_SCHEMA_VERSION = 2;
 
 export function applyLedgerMigrations(db: Database.Database): void {
   const userVersion = readUserVersion(db);
@@ -14,8 +14,57 @@ export function applyLedgerMigrations(db: Database.Database): void {
     createBaseSchema(db);
   }
 
+  if (userVersion < 2) {
+    createExecutionSchema(db);
+  }
+
   db.pragma(`user_version = ${LEDGER_SCHEMA_VERSION}`);
   ensureLedgerMetaRow(db, "schema_version", String(LEDGER_SCHEMA_VERSION));
+}
+
+function createExecutionSchema(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS executions (
+      id TEXT PRIMARY KEY,
+      lane TEXT NOT NULL CHECK (lane IN ('agent', 'command')),
+      profile TEXT NOT NULL CHECK (profile IN ('subagent', 'teammate', 'background')),
+      launch_mode TEXT NOT NULL CHECK (launch_mode IN ('inline', 'worker')),
+      requested_by TEXT NOT NULL,
+      actor_name TEXT NOT NULL,
+      actor_role TEXT,
+      task_id INTEGER,
+      cwd TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'paused', 'completed', 'failed', 'aborted')),
+      worktree_policy TEXT NOT NULL CHECK (worktree_policy IN ('none', 'task')),
+      worktree_name TEXT,
+      session_id TEXT,
+      pid INTEGER,
+      prompt TEXT,
+      command TEXT,
+      timeout_ms INTEGER,
+      stall_timeout_ms INTEGER,
+      summary TEXT,
+      result_text TEXT,
+      output TEXT,
+      exit_code INTEGER,
+      pause_reason TEXT,
+      status_detail TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      finished_at TEXT,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
+      FOREIGN KEY (worktree_name) REFERENCES worktrees(name) DEFERRABLE INITIALLY DEFERRED
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_executions_status
+      ON executions(status, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_executions_task
+      ON executions(task_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_executions_actor
+      ON executions(actor_name, created_at DESC);
+  `);
 }
 
 function readUserVersion(db: Database.Database): number {
@@ -107,22 +156,6 @@ function createBaseSchema(db: Database.Database): void {
       decision_responded_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS background_jobs (
-      id TEXT PRIMARY KEY,
-      command TEXT NOT NULL,
-      cwd TEXT NOT NULL,
-      requested_by TEXT NOT NULL,
-      status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed', 'timed_out')),
-      timeout_ms INTEGER NOT NULL,
-      stall_timeout_ms INTEGER,
-      pid INTEGER,
-      exit_code INTEGER,
-      output TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      finished_at TEXT
     );
   `);
 

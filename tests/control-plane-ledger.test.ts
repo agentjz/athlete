@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { BackgroundJobStore } from "../src/background/store.js";
+import { BackgroundJobStore } from "../src/execution/background.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
 import { CoordinationPolicyStore } from "../src/team/policyStore.js";
 import { ProtocolRequestStore } from "../src/team/requestStore.js";

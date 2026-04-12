@@ -1,5 +1,5 @@
-import { spawnBackgroundProcess } from "../../background/spawn.js";
-import { BackgroundJobStore } from "../../background/store.js";
+import { spawnExecutionWorker } from "../../execution/launch.js";
+import { BackgroundJobStore } from "../../execution/background.js";
 import { assertPathAllowed } from "../../utils/fs.js";
 import { clampNumber, okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -46,9 +46,11 @@ export const backgroundRunTool: RegisteredTool = {
       timeoutMs,
       stallTimeoutMs,
     });
-    const pid = spawnBackgroundProcess({
+    const pid = spawnExecutionWorker({
       rootDir: context.projectContext.stateRootDir,
-      jobId: job.id,
+      config: context.config,
+      executionId: job.id,
+      actorName: `bg-${job.id}`,
     });
     const nextJob = await store.setPid(job.id, pid);
 
@@ -57,6 +59,7 @@ export const backgroundRunTool: RegisteredTool = {
         {
           ok: true,
           job: nextJob,
+          execution_id: job.id,
           preview: await store.summarize({
             cwd: resolvedCwd,
             requestedBy: context.identity.name,

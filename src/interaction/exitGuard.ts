@@ -1,5 +1,4 @@
-import { reconcileBackgroundJobs } from "../background/reconcile.js";
-import { BackgroundJobStore } from "../background/store.js";
+import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
 import { loadProjectContext } from "../context/projectContext.js";
 import { reconcileTeamState } from "../team/reconcile.js";
 import { TeamStore } from "../team/store.js";

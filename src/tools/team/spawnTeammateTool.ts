@@ -1,4 +1,5 @@
-import { spawnTeammateProcess } from "../../team/spawn.js";
+import { spawnExecutionWorker } from "../../execution/launch.js";
+import { ExecutionStore } from "../../execution/store.js";
 import { reconcileTeamState } from "../../team/reconcile.js";
 import { TeamStore } from "../../team/store.js";
 import { TaskStore } from "../../tasks/store.js";
@@ -63,13 +64,26 @@ export const spawnTeammateTool: RegisteredTool = {
     }
 
     let pid: number;
+    let executionId = "";
     try {
-      pid = spawnTeammateProcess({
+      const execution = await new ExecutionStore(context.projectContext.stateRootDir).create({
+        lane: "agent",
+        profile: "teammate",
+        launch: "worker",
+        requestedBy: context.identity.name,
+        actorName: name,
+        actorRole: role,
+        taskId: reservedTaskId,
+        cwd: context.cwd,
+        prompt,
+        worktreePolicy: reservedTaskId ? "task" : "none",
+      });
+      executionId = execution.id;
+      pid = spawnExecutionWorker({
         rootDir: context.projectContext.stateRootDir,
         config: context.config,
-        name,
-        role,
-        prompt,
+        executionId,
+        actorName: name,
       });
     } catch (error) {
       if (taskId) {
@@ -90,6 +104,7 @@ export const spawnTeammateTool: RegisteredTool = {
         {
           ok: true,
           member,
+          executionId,
           reservedTaskId,
           preview: `Spawned '${name}' (${role}) pid=${pid}${reservedTaskId ? ` task=${reservedTaskId}` : ""}`,
         },

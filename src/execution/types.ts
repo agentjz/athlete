@@ -1,0 +1,58 @@
+export type ExecutionLane = "agent" | "command";
+
+export type ExecutionProfile = "subagent" | "teammate" | "background";
+
+export type ExecutionLaunchMode = "inline" | "worker";
+
+export type ExecutionWorktreePolicy = "none" | "task";
+
+export type ExecutionStatus = "queued" | "running" | "paused" | "completed" | "failed" | "aborted";
+
+export type ExecutionCloseStatus = Exclude<ExecutionStatus, "queued" | "running">;
+
+export interface ExecutionRecord {
+  id: string;
+  lane: ExecutionLane;
+  profile: ExecutionProfile;
+  launch: ExecutionLaunchMode;
+  requestedBy: string;
+  actorName: string;
+  actorRole?: string;
+  taskId?: number;
+  cwd: string;
+  status: ExecutionStatus;
+  worktreePolicy: ExecutionWorktreePolicy;
+  worktreeName?: string;
+  sessionId?: string;
+  pid?: number;
+  prompt?: string;
+  command?: string;
+  timeoutMs?: number;
+  stallTimeoutMs?: number;
+  summary?: string;
+  resultText?: string;
+  output?: string;
+  exitCode?: number;
+  pauseReason?: string;
+  statusDetail?: string;
+  createdAt: string;
+  updatedAt: string;
+  finishedAt?: string;
+}
+
+export interface ExecutionStartInput {
+  pid?: number;
+  sessionId?: string;
+  cwd?: string;
+  worktreeName?: string;
+}
+
+export interface ExecutionCloseInput {
+  status: ExecutionCloseStatus;
+  summary: string;
+  resultText?: string;
+  output?: string;
+  exitCode?: number;
+  pauseReason?: string;
+  statusDetail?: string;
+}

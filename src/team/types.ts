@@ -52,7 +52,7 @@ export interface CoordinationPolicyRecord {
 export type TeamMessageType =
   | "message"
   | "broadcast"
-  | "background_result"
+  | "execution_closeout"
   | "protocol_request"
   | "protocol_response";
 
@@ -68,7 +68,9 @@ export interface TeamMessageRecord {
   subject?: string;
   approve?: boolean;
   feedback?: string;
-  jobId?: string;
-  jobStatus?: string;
   exitCode?: number;
+  executionId?: string;
+  executionStatus?: string;
+  executionProfile?: string;
+  taskId?: number;
 }

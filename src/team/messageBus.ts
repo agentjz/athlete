@@ -8,14 +8,14 @@ import type { TeamMessageRecord, TeamMessageType } from "./types.js";
 const VALID_MESSAGE_TYPES: TeamMessageType[] = [
   "message",
   "broadcast",
-  "background_result",
+  "execution_closeout",
   "protocol_request",
   "protocol_response",
 ];
 const REQUIRED_FIELDS_BY_TYPE: Record<TeamMessageType, readonly (keyof TeamMessageRecord)[]> = {
   message: [],
   broadcast: [],
-  background_result: ["jobId", "jobStatus"],
+  execution_closeout: ["executionId", "executionStatus", "executionProfile"],
   protocol_request: ["protocolKind", "requestId"],
   protocol_response: ["protocolKind", "requestId", "approve"],
 };
@@ -53,9 +53,11 @@ export class MessageBus {
       subject: typeof extra.subject === "string" ? extra.subject : undefined,
       approve: typeof extra.approve === "boolean" ? extra.approve : undefined,
       feedback: typeof extra.feedback === "string" ? extra.feedback : undefined,
-      jobId: typeof extra.jobId === "string" ? extra.jobId : undefined,
-      jobStatus: typeof extra.jobStatus === "string" ? extra.jobStatus : undefined,
       exitCode: typeof extra.exitCode === "number" && Number.isFinite(extra.exitCode) ? Math.trunc(extra.exitCode) : undefined,
+      executionId: typeof extra.executionId === "string" ? extra.executionId : undefined,
+      executionStatus: typeof extra.executionStatus === "string" ? extra.executionStatus : undefined,
+      executionProfile: typeof extra.executionProfile === "string" ? extra.executionProfile : undefined,
+      taskId: typeof extra.taskId === "number" && Number.isFinite(extra.taskId) ? Math.trunc(extra.taskId) : undefined,
     };
     const validation = validateTeamMessage(message);
     if (!validation.ok) {
@@ -200,14 +202,20 @@ function validateTeamMessage(
   if (message.feedback !== undefined && typeof message.feedback !== "string") {
     return { ok: false, error: "Invalid feedback." };
   }
-  if (message.jobId !== undefined && (typeof message.jobId !== "string" || !message.jobId.trim())) {
-    return { ok: false, error: "Invalid jobId." };
-  }
-  if (message.jobStatus !== undefined && (typeof message.jobStatus !== "string" || !message.jobStatus.trim())) {
-    return { ok: false, error: "Invalid jobStatus." };
-  }
   if (message.exitCode !== undefined && (!Number.isFinite(message.exitCode) || !Number.isInteger(message.exitCode))) {
     return { ok: false, error: "Invalid exitCode." };
+  }
+  if (message.executionId !== undefined && (typeof message.executionId !== "string" || !message.executionId.trim())) {
+    return { ok: false, error: "Invalid executionId." };
+  }
+  if (message.executionStatus !== undefined && (typeof message.executionStatus !== "string" || !message.executionStatus.trim())) {
+    return { ok: false, error: "Invalid executionStatus." };
+  }
+  if (message.executionProfile !== undefined && (typeof message.executionProfile !== "string" || !message.executionProfile.trim())) {
+    return { ok: false, error: "Invalid executionProfile." };
+  }
+  if (message.taskId !== undefined && (!Number.isFinite(message.taskId) || !Number.isInteger(message.taskId))) {
+    return { ok: false, error: "Invalid taskId." };
   }
 
   return { ok: true, message };

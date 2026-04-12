@@ -56,7 +56,7 @@ export function routeOrchestratorAction(input: {
   }
 
   const backgroundReconcileTask = readyTasks.find((task) =>
-    task.meta.executor === "background" && leadMayAct(task) && Boolean(task.meta.jobId));
+    task.meta.executor === "background" && leadMayAct(task) && Boolean(task.meta.executionId || task.meta.jobId));
   if (backgroundReconcileTask) {
     return {
       action: "self_execute",
@@ -66,7 +66,7 @@ export function routeOrchestratorAction(input: {
   }
 
   const backgroundTask = readyTasks.find((task) =>
-    task.meta.executor === "background" && leadMayAct(task) && !task.meta.jobId);
+    task.meta.executor === "background" && leadMayAct(task) && !task.meta.executionId && !task.meta.jobId);
   if (backgroundTask) {
     if (!backgroundTask.meta.backgroundCommand) {
       return {
@@ -140,12 +140,17 @@ function collectDelegatedWaitState(progress: OrchestratorProgressSnapshot): Orch
   const teammateNames = new Set<string>();
   const backgroundJobIds = new Set<string>();
 
-  for (const teammate of progress.workingTeammates) {
-    teammateNames.add(teammate.name);
-  }
-
-  for (const job of progress.runningBackgroundJobs) {
-    backgroundJobIds.add(job.id);
+  for (const execution of progress.activeExecutions) {
+    if (typeof execution.taskId === "number") {
+      taskIds.add(execution.taskId);
+    }
+    if (execution.profile === "teammate") {
+      teammateNames.add(execution.actorName);
+      continue;
+    }
+    if (execution.profile === "background") {
+      backgroundJobIds.add(execution.id);
+    }
   }
 
   for (const task of progress.relevantTasks) {

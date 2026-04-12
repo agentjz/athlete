@@ -1,5 +1,5 @@
-import { reconcileBackgroundJobs } from "../background/reconcile.js";
-import { BackgroundJobStore } from "../background/store.js";
+import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
+import { ExecutionStore } from "../execution/store.js";
 import { CoordinationPolicyStore } from "../team/policyStore.js";
 import { ProtocolRequestStore } from "../team/requestStore.js";
 import { reconcileTeamState } from "../team/reconcile.js";
@@ -27,11 +27,14 @@ export async function loadOrchestratorProgress(input: {
 
   const taskStore = new TaskStore(input.rootDir);
   const backgroundStore = new BackgroundJobStore(input.rootDir);
-  const [tasks, teammates, relevantBackgroundJobs, worktrees, protocolRequests, policy] = await Promise.all([
+  const [tasks, teammates, relevantBackgroundJobs, executions, worktrees, protocolRequests, policy] = await Promise.all([
     taskStore.list(),
     new TeamStore(input.rootDir).listMembers().catch(() => []),
     backgroundStore.listRelevant({
       cwd: input.cwd,
+      requestedBy: "lead",
+    }).catch(() => []),
+    new ExecutionStore(input.rootDir).listRelevant({
       requestedBy: "lead",
     }).catch(() => []),
     new WorktreeStore(input.rootDir).list().catch(() => []),
@@ -54,6 +57,7 @@ export async function loadOrchestratorProgress(input: {
       lifecycle: deriveOrchestratorTaskLifecycle({
         task,
         teammates,
+        executions,
         backgroundJobs: relevantBackgroundJobs,
         worktrees,
       }),
@@ -71,6 +75,8 @@ export async function loadOrchestratorProgress(input: {
     readyTasks,
     relevantBackgroundJobs,
     runningBackgroundJobs: relevantBackgroundJobs.filter((job) => job.status === "running"),
+    executions,
+    activeExecutions: executions.filter((execution) => execution.status === "queued" || execution.status === "running"),
     teammates,
     idleTeammates: teammates.filter((member) => member.status === "idle"),
     workingTeammates: teammates.filter((member) => member.status === "working"),

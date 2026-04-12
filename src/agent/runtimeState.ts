@@ -10,8 +10,7 @@ import { ProtocolRequestStore } from "../team/requestStore.js";
 import { reconcileTeamState } from "../team/reconcile.js";
 import { TeamStore } from "../team/store.js";
 import { TaskStore } from "../tasks/store.js";
-import { BackgroundJobStore } from "../background/store.js";
-import { reconcileBackgroundJobs } from "../background/reconcile.js";
+import { BackgroundJobStore, reconcileBackgroundJobs } from "../execution/background.js";
 import { WorktreeStore } from "../worktrees/store.js";
 
 export function shouldYieldTurn(yieldAfterToolSteps: number | undefined, iteration: number): boolean {

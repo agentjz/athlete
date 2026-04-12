@@ -7,6 +7,8 @@ import type { TestContext } from "node:test";
 import type { RuntimeConfig } from "../src/types.js";
 import { getDefaultPlaywrightMcpConfig } from "../src/mcp/playwright/config.js";
 
+process.env.ATHLETE_TEST_WORKER_MODE = "stub";
+
 export async function createTempWorkspace(prefix: string, t: TestContext): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), `athlete-test-${prefix}-`));
   t.after(async () => {

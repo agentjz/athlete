@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BackgroundJobStore } from "../src/background/store.js";
+import { BackgroundJobStore } from "../src/execution/background.js";
 import { readOrchestratorMetadata } from "../src/orchestrator/metadata.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
 import { routeOrchestratorAction } from "../src/orchestrator/route.js";

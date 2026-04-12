@@ -15,6 +15,13 @@ export function teammateActor(name: string): OrchestratorActorTarget {
   };
 }
 
+export function subagentActor(name: string): OrchestratorActorTarget {
+  return {
+    kind: "subagent",
+    name,
+  };
+}
+
 export function buildTaskLifecycle(input: {
   stage: OrchestratorTaskLifecycle["stage"];
   runnableBy?: OrchestratorActorTarget;

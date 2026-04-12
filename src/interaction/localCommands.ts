@@ -1,6 +1,5 @@
 import { formatTodoBlock } from "../agent/session.js";
-import { reconcileBackgroundJobs } from "../background/reconcile.js";
-import { BackgroundJobStore } from "../background/store.js";
+import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
 import { loadProjectContext } from "../context/projectContext.js";
 import { resetProjectRuntime } from "../project/reset.js";
 import { TaskStore } from "../tasks/store.js";

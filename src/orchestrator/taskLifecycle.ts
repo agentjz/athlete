@@ -1,4 +1,5 @@
-import type { BackgroundJobRecord } from "../background/types.js";
+import type { BackgroundJobRecord } from "../execution/background.js";
+import type { ExecutionRecord } from "../execution/types.js";
 import type { TeamMemberRecord } from "../team/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";
 import type { OrchestratorTaskLifecycle, OrchestratorTaskSnapshot } from "./types.js";
@@ -7,12 +8,14 @@ import {
   buildTaskLifecycle,
   leadActor,
   normalizeActorName,
+  subagentActor,
   teammateActor,
 } from "./taskLifecycleShared.js";
 
 export function deriveOrchestratorTaskLifecycle(input: {
   task: OrchestratorTaskSnapshot;
   teammates: TeamMemberRecord[];
+  executions: ExecutionRecord[];
   backgroundJobs: BackgroundJobRecord[];
   worktrees: WorktreeRecord[];
 }): OrchestratorTaskLifecycle {
@@ -24,6 +27,9 @@ export function deriveOrchestratorTaskLifecycle(input: {
     ? input.worktrees.find((item) => item.name === task.record.worktree)
     : undefined;
   const missingBoundWorktree = Boolean(task.record.worktree) && (!worktree || worktree.status === "removed");
+  const execution = task.meta.executionId
+    ? input.executions.find((record) => record.id === task.meta.executionId)
+    : undefined;
 
   if (task.record.status === "completed") {
     return buildTaskLifecycle({
@@ -55,6 +61,41 @@ export function deriveOrchestratorTaskLifecycle(input: {
       reason: `Task #${task.record.id} is still bound to removed worktree '${task.record.worktree}'.`,
       illegal: true,
       handoff: buildTaskHandoff(task),
+      worktree,
+    });
+  }
+
+  if (task.meta.executionId) {
+    if (!execution) {
+      return buildTaskLifecycle({
+        stage: "blocked",
+        owner: leadActor(),
+        reasonCode: "blocked.missing_execution",
+        reason: `Task #${task.record.id} points to missing execution '${task.meta.executionId}'.`,
+        illegal: true,
+        handoff: buildTaskHandoff(task, false),
+        worktree,
+      });
+    }
+
+    if (execution.status === "queued" || execution.status === "running") {
+      return buildTaskLifecycle({
+        stage: "active",
+        owner: executionOwner(execution),
+        reasonCode: `active.execution_${execution.profile}`,
+        reason: `Execution '${execution.id}' is actively running for Task #${task.record.id}.`,
+        handoff: executionHandoff(execution),
+        worktree,
+      });
+    }
+
+    return buildTaskLifecycle({
+      stage: "ready",
+      runnableBy: leadActor(),
+      owner: leadActor(),
+      reasonCode: `ready.execution_${execution.status}`,
+      reason: `Execution '${execution.id}' closed with status '${execution.status}', so the lead must sign off Task #${task.record.id}.`,
+      handoff: executionHandoff(execution),
       worktree,
     });
   }
@@ -288,7 +329,49 @@ export function getOrchestratorTaskLifecycle(task: OrchestratorTaskSnapshot): Or
   return task.lifecycle ?? deriveOrchestratorTaskLifecycle({
     task,
     teammates: [],
+    executions: [],
     backgroundJobs: [],
     worktrees: [],
   });
+}
+
+function executionOwner(execution: ExecutionRecord) {
+  switch (execution.profile) {
+    case "background":
+      return { kind: "background" as const, name: execution.id };
+    case "teammate":
+      return teammateActor(execution.actorName);
+    case "subagent":
+      return subagentActor(execution.actorName);
+    default:
+      return leadActor();
+  }
+}
+
+function executionHandoff(execution: ExecutionRecord): OrchestratorTaskLifecycle["handoff"] {
+  switch (execution.profile) {
+    case "background":
+      return {
+        kind: "background",
+        jobId: execution.id,
+        legal: true,
+      };
+    case "teammate":
+      return {
+        kind: "teammate",
+        target: execution.actorName,
+        legal: true,
+      };
+    case "subagent":
+      return {
+        kind: "subagent",
+        target: execution.actorName,
+        legal: true,
+      };
+    default:
+      return {
+        kind: "none",
+        legal: true,
+      };
+  }
 }

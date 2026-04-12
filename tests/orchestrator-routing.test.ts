@@ -70,6 +70,8 @@ function createProgress(overrides: Partial<OrchestratorProgressSnapshot> = {}): 
     readyTasks: [],
     runningBackgroundJobs: [],
     relevantBackgroundJobs: [],
+    executions: [],
+    activeExecutions: [],
     idleTeammates: [],
     workingTeammates: [],
     teammates: [],
@@ -191,13 +193,18 @@ test("routeOrchestratorAction waits when delegated work is already running and n
       prefersParallel: true,
     }),
     progress: createProgress({
-      runningBackgroundJobs: [
+      activeExecutions: [
         {
-          id: "job1",
-          command: "npm test",
-          cwd: process.cwd(),
+          id: "exec-bg-1",
+          lane: "command",
+          profile: "background",
+          launch: "worker",
           requestedBy: "lead",
+          actorName: "bg-job1",
+          cwd: process.cwd(),
           status: "running",
+          worktreePolicy: "none",
+          command: "npm test",
           timeoutMs: 30_000,
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-01-01T00:00:00.000Z",

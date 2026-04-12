@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { ChangeRecord, RuntimeConfig, SessionRecord } from "../types.js";
-import { BackgroundJobStore } from "../background/store.js";
+import { BackgroundJobStore } from "../execution/background.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
 import { TeamStore } from "../team/store.js";
 import { terminateKnownProcesses } from "../utils/processControl.js";

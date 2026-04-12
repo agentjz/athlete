@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../src/agent/turn.js";
 import { MemorySessionStore } from "../src/agent/session.js";
-import { BackgroundJobStore } from "../src/background/store.js";
+import { BackgroundJobStore } from "../src/execution/background.js";
 import { buildOrchestratorObjective, readOrchestratorMetadata, writeOrchestratorMetadata } from "../src/orchestrator/metadata.js";
 import { TeamStore } from "../src/team/store.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
