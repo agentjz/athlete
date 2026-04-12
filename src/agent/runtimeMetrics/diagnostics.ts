@@ -356,6 +356,11 @@ function describeTransition(transition: RuntimeTransition): RuntimeSummaryExplan
         reasonCode: transition.reason.code,
         summary: `Runtime paused because verification is awaiting user input for ${formatPaths(transition.reason.pendingPaths)}.`,
       };
+    case "pause.orchestrator_waiting_for_delegated_work":
+      return {
+        reasonCode: transition.reason.code,
+        summary: `Runtime paused because delegated work is still active${formatDelegatedWaitSuffix(transition.reason)}.`,
+      };
     case "finalize.completed":
       return {
         reasonCode: transition.reason.code,
@@ -376,6 +381,25 @@ function formatPaths(paths: string[]): string {
 
   const extra = paths.length - items.length;
   return extra > 0 ? `${items.join(", ")} (+${extra} more)` : items.join(", ");
+}
+
+function formatDelegatedWaitSuffix(reason: {
+  taskIds: number[];
+  teammateNames: string[];
+  backgroundJobIds: string[];
+}): string {
+  const parts: string[] = [];
+  if (reason.taskIds.length > 0) {
+    parts.push(` on Task #${reason.taskIds.join(", #")}`);
+  }
+  if (reason.teammateNames.length > 0) {
+    parts.push(` with teammate ${reason.teammateNames.join(", ")}`);
+  }
+  if (reason.backgroundJobIds.length > 0) {
+    parts.push(` with background job ${reason.backgroundJobIds.join(", ")}`);
+  }
+
+  return parts.length > 0 ? parts.join("") : "";
 }
 
 function formatHotspot(hotspot: PromptBlockMetric | undefined): string {

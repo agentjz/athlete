@@ -214,6 +214,14 @@ export interface RuntimePauseVerificationAwaitingUserReason {
   noProgressCount: number;
 }
 
+export interface RuntimePauseOrchestratorWaitingReason {
+  code: "pause.orchestrator_waiting_for_delegated_work";
+  taskIds: number[];
+  teammateNames: string[];
+  backgroundJobIds: string[];
+  pauseReason: string;
+}
+
 export interface RuntimeFinalizeCompletedReason {
   code: "finalize.completed";
   changedPaths: string[];
@@ -234,7 +242,9 @@ export type RuntimeRecoverReason = RuntimeRecoverProviderRequestReason;
 
 export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason;
 
-export type RuntimePauseReason = RuntimePauseVerificationAwaitingUserReason;
+export type RuntimePauseReason =
+  | RuntimePauseVerificationAwaitingUserReason
+  | RuntimePauseOrchestratorWaitingReason;
 
 export type RuntimeFinalizeReason = RuntimeFinalizeCompletedReason;
 

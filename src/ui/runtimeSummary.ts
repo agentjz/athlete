@@ -68,6 +68,10 @@ function formatWaitingOn(summary: SessionRuntimeSummary): string {
     return `verification (waiting for user on ${formatPathList(transition.reason.pendingPaths)})`;
   }
 
+  if (transition?.action === "pause" && transition.reason.code === "pause.orchestrator_waiting_for_delegated_work") {
+    return "delegated work completion";
+  }
+
   if (summary.durableTruth.checkpoint.phase === "recovery" || transition?.action === "recover") {
     return "provider recovery";
   }
@@ -89,6 +93,10 @@ function formatWaitingOn(summary: SessionRuntimeSummary): string {
 
 function formatRecentActivity(summary: SessionRuntimeSummary): string {
   const transition = summary.durableTruth.checkpoint.lastTransition;
+  if (transition?.action === "pause" && transition.reason.code === "pause.orchestrator_waiting_for_delegated_work") {
+    return transition.reason.pauseReason;
+  }
+
   if (transition?.action === "pause") {
     return "Verification paused and is waiting for explicit user input.";
   }

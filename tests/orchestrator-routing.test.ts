@@ -47,6 +47,15 @@ function createTask(kind: OrchestratorTaskKind, overrides: Partial<OrchestratorT
       key: "objective-1",
       kind,
       objective: "Refactor the CLI workflow and keep tests green.",
+      executor:
+        kind === "survey"
+          ? "subagent"
+          : kind === "validation"
+            ? "background"
+            : kind === "implementation"
+              ? "teammate"
+              : "lead",
+      backgroundCommand: kind === "validation" ? "npm test -- --watch=false" : undefined,
     },
     ...overrides,
   };
@@ -196,6 +205,88 @@ test("routeOrchestratorAction waits when delegated work is already running and n
       ],
     }),
     plan: createPlan(),
+  });
+
+  assert.equal(decision.action, "wait_for_existing_work");
+});
+
+test("routeOrchestratorAction waits for teammate-reserved work instead of redispatching it", () => {
+  const reservedTask = createTask("implementation", {
+    record: {
+      id: 7,
+      subject: "implementation task",
+      description: "",
+      status: "pending",
+      blockedBy: [],
+      blocks: [],
+      checklist: [],
+      assignee: "alpha",
+      owner: "",
+      worktree: "",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+    meta: {
+      key: "objective-1",
+      kind: "implementation",
+      objective: "Refactor the CLI workflow and keep tests green.",
+      executor: "teammate",
+    },
+    lifecycle: {
+      stage: "ready",
+      runnableBy: {
+        kind: "teammate",
+        name: "alpha",
+      },
+      owner: {
+        kind: "teammate",
+        name: "alpha",
+      },
+      handoff: {
+        kind: "teammate",
+        target: "alpha",
+        legal: true,
+      },
+      worktree: {
+        status: "not_required",
+      },
+      reasonCode: "ready.teammate_reserved",
+      reason: "Task #7 is reserved for teammate 'alpha'.",
+      illegal: false,
+    },
+  });
+
+  const decision = routeOrchestratorAction({
+    analysis: createAnalysis({
+      complexity: "complex",
+      prefersParallel: true,
+      wantsTeammate: true,
+    }),
+    progress: createProgress({
+      relevantTasks: [reservedTask],
+      tasks: [reservedTask.record],
+      teammates: [
+        {
+          name: "alpha",
+          role: "implementer",
+          status: "working",
+          pid: 4242,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      workingTeammates: [
+        {
+          name: "alpha",
+          role: "implementer",
+          status: "working",
+          pid: 4242,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    }),
+    plan: createPlan([reservedTask]),
   });
 
   assert.equal(decision.action, "wait_for_existing_work");

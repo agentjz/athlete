@@ -106,11 +106,18 @@ export interface OrchestratorTeammateTarget {
   role: string;
 }
 
+export interface OrchestratorWaitState {
+  taskIds: number[];
+  teammateNames: string[];
+  backgroundJobIds: string[];
+}
+
 export interface OrchestratorDecision {
   action: OrchestratorAction;
   reason: string;
   task?: OrchestratorTaskSnapshot;
   teammate?: OrchestratorTeammateTarget;
+  wait?: OrchestratorWaitState;
   backgroundCommand?: string;
   subagentType?: "explore" | "plan" | "code";
 }

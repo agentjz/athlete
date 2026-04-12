@@ -27,6 +27,7 @@ export function spawnBackgroundProcess(options: SpawnBackgroundProcessOptions): 
       cwd: options.rootDir,
       detached: true,
       stdio: "ignore",
+      windowsHide: true,
       env: process.env,
     },
   );

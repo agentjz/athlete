@@ -186,24 +186,45 @@ function normalizePauseTransition(
   reason: RuntimePauseTransition["reason"],
   timestamp: string,
 ): RuntimePauseTransition | undefined {
-  if (reason.code !== "pause.verification_awaiting_user") {
-    return undefined;
+  if (reason.code === "pause.verification_awaiting_user") {
+    return {
+      action: "pause",
+      reason: {
+        code: reason.code,
+        pendingPaths: takeLastUnique(reason.pendingPaths ?? []),
+        pauseReason:
+          truncate(normalizeText(reason.pauseReason) || "Verification is awaiting user clarification.") ||
+          "Verification is awaiting user clarification.",
+        attempts: clampWholeNumber(reason.attempts, 0, 50, 0) ?? 0,
+        reminderCount: clampWholeNumber(reason.reminderCount, 0, 50, 0) ?? 0,
+        noProgressCount: clampWholeNumber(reason.noProgressCount, 0, 50, 0) ?? 0,
+      },
+      timestamp,
+    };
   }
 
-  return {
-    action: "pause",
-    reason: {
-      code: reason.code,
-      pendingPaths: takeLastUnique(reason.pendingPaths ?? []),
-      pauseReason:
-        truncate(normalizeText(reason.pauseReason) || "Verification is awaiting user clarification.") ||
-        "Verification is awaiting user clarification.",
-      attempts: clampWholeNumber(reason.attempts, 0, 50, 0) ?? 0,
-      reminderCount: clampWholeNumber(reason.reminderCount, 0, 50, 0) ?? 0,
-      noProgressCount: clampWholeNumber(reason.noProgressCount, 0, 50, 0) ?? 0,
-    },
-    timestamp,
-  };
+  if (reason.code === "pause.orchestrator_waiting_for_delegated_work") {
+    return {
+      action: "pause",
+      reason: {
+        code: reason.code,
+        taskIds: takeLastUnique((reason.taskIds ?? []).map((taskId) => String(Math.trunc(taskId))))
+          .map((taskId) => Number(taskId))
+          .filter((taskId) => Number.isFinite(taskId) && taskId > 0),
+        teammateNames: takeLastUnique(reason.teammateNames ?? []),
+        backgroundJobIds: takeLastUnique(reason.backgroundJobIds ?? []),
+        pauseReason:
+          truncate(
+            normalizeText(reason.pauseReason) ||
+              "Delegated work is still running, so the lead is waiting for the next machine-state change.",
+          ) ||
+          "Delegated work is still running, so the lead is waiting for the next machine-state change.",
+      },
+      timestamp,
+    };
+  }
+
+  return undefined;
 }
 
 function normalizeFinalizeTransition(

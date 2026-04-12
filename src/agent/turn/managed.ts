@@ -1,6 +1,6 @@
 import { buildCheckpointContinuationInput } from "../checkpoint.js";
 import { runAgentTurn } from "../runTurn.js";
-import { prepareLeadTurn } from "../../orchestrator/prepareLeadTurn.js";
+import { runLeadOrchestrationLoop } from "../../orchestrator/leadLoop.js";
 import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "../types.js";
 
 export interface ManagedTurnYieldContext {
@@ -28,7 +28,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
 
   for (let sliceIndex = 0; ; sliceIndex += 1) {
     if ((options.identity?.kind ?? "lead") === "lead") {
-      const prepared = await prepareLeadTurn({
+      const orchestrated = await runLeadOrchestrationLoop({
         input: nextInput,
         cwd: options.cwd,
         config: options.config,
@@ -36,7 +36,12 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         sessionStore: options.sessionStore,
         callbacks: options.callbacks,
       });
-      session = prepared.session;
+      if (orchestrated.kind === "return") {
+        return orchestrated.result;
+      }
+
+      nextInput = orchestrated.input;
+      session = orchestrated.session;
     }
 
     const result = await runSlice({

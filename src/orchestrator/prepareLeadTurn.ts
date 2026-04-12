@@ -34,7 +34,6 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
     readyTasks: progress.readyTasks,
   };
   const decision = routeOrchestratorAction({
-    analysis,
     progress,
     plan,
   });

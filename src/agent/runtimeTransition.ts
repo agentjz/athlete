@@ -14,6 +14,7 @@ export {
   createFinalizeTransition,
   createIncompleteTodoTransition,
   createMissingSkillTransition,
+  createOrchestratorWaitTransition,
   createProviderRecoveryTransition,
   createToolBatchTransition,
   createVerificationFailedTransition,

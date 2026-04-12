@@ -40,6 +40,7 @@ export function spawnTeammateProcess(options: SpawnTeammateProcessOptions): numb
       cwd: options.rootDir,
       detached: true,
       stdio: "ignore",
+      windowsHide: true,
       env: buildTeammateWorkerEnv(options),
     },
   );
