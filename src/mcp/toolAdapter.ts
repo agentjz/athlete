@@ -1,5 +1,6 @@
 import { parseArgs } from "../tools/shared.js";
 import type { RegisteredTool } from "../tools/types.js";
+import { browserCapabilityTool, parseBrowserStepFromName, readTool } from "../tools/governancePresets.js";
 import type { McpDiscoveredTool } from "./types.js";
 
 const MAX_MCP_TOOL_NAME = 64;
@@ -31,6 +32,7 @@ export function adaptDiscoveredMcpTools(tools: readonly McpDiscoveredTool[]): Re
       toolName: tool.name,
       readOnlyHint: tool.readOnly,
     },
+    governance: inferMcpToolGovernance(tool),
   }));
 }
 
@@ -72,4 +74,17 @@ function normalizeSchema(input: Record<string, unknown>): Record<string, unknown
   }
 
   return schema;
+}
+
+function inferMcpToolGovernance(tool: McpDiscoveredTool): RegisteredTool["governance"] | undefined {
+  const browserStep = parseBrowserStepFromName(tool.name);
+  if (browserStep) {
+    return browserCapabilityTool(browserStep);
+  }
+
+  if (tool.readOnly) {
+    return readTool("external", { source: "mcp", risk: "low" });
+  }
+
+  return undefined;
 }

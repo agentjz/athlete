@@ -6,7 +6,8 @@ import type { AgentMode, ProjectContext, RuntimeConfig, ToolExecutionResult } fr
 
 export type FunctionToolDefinition = Extract<ChatCompletionTool, { type: "function" }>;
 
-export type ToolGovernanceSource = "builtin" | "mcp";
+export type ToolOriginKind = "builtin" | "mcp" | "host";
+export type ToolGovernanceSource = ToolOriginKind;
 export type ToolGovernanceSpecialty =
   | "background"
   | "browser"
@@ -51,7 +52,8 @@ export interface ToolGovernance {
 }
 
 export interface ToolOrigin {
-  kind: "builtin" | "mcp";
+  kind: ToolOriginKind;
+  sourceId?: string;
   serverName?: string;
   toolName?: string;
   readOnlyHint?: boolean;
@@ -78,6 +80,12 @@ export interface ToolRegistryBlockedTool {
   origin?: ToolOrigin;
 }
 
+export interface ToolRegistrySource {
+  kind: ToolOriginKind;
+  id: string;
+  tools: readonly RegisteredTool[];
+}
+
 export interface ToolRegistry {
   definitions: FunctionToolDefinition[];
   entries?: ToolRegistryEntry[];
@@ -89,7 +97,7 @@ export interface ToolRegistry {
 export interface ToolRegistryOptions {
   onlyNames?: readonly string[];
   excludeNames?: readonly string[];
-  includeTools?: readonly RegisteredTool[];
+  sources?: readonly ToolRegistrySource[];
 }
 
 export type ToolRegistryFactory = (mode: AgentMode, options?: ToolRegistryOptions) => ToolRegistry;

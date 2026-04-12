@@ -10,6 +10,7 @@ import { getDefaultPlaywrightMcpConfig } from "../src/mcp/playwright/config.js";
 import { normalizePlaywrightToolInput } from "../src/mcp/playwright/invoke.js";
 import { adaptDiscoveredMcpTools, formatMcpToolName } from "../src/mcp/toolAdapter.js";
 import { buildTeammateWorkerEnv } from "../src/team/spawn.js";
+import { createToolSource } from "../src/tools/registry.js";
 import { createRuntimeToolRegistry } from "../src/tools/runtimeRegistry.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "./helpers.js";
 
@@ -352,8 +353,7 @@ test("runtime registry wires Playwright MCP tools through the core registry with
     },
     {},
     {
-      collectMcpTools: async () =>
-        adaptDiscoveredMcpTools([
+      collectMcpSources: async () => [createToolSource("mcp", "mcp:playwright", adaptDiscoveredMcpTools([
           {
             serverName: "playwright",
             name: "browser_navigate",
@@ -372,7 +372,7 @@ test("runtime registry wires Playwright MCP tools through the core registry with
               };
             },
           },
-        ]),
+        ]))],
       close: async () => {
         closeCalls += 1;
       },
@@ -411,8 +411,7 @@ test("agent-visible runtime tool definitions include Playwright MCP browser tool
     },
     {},
     {
-      collectMcpTools: async () =>
-        adaptDiscoveredMcpTools([
+      collectMcpSources: async () => [createToolSource("mcp", "mcp:playwright", adaptDiscoveredMcpTools([
           {
             serverName: "playwright",
             name: "browser_navigate",
@@ -430,7 +429,7 @@ test("agent-visible runtime tool definitions include Playwright MCP browser tool
               };
             },
           },
-        ]),
+        ]))],
       close: async () => undefined,
     },
   );
@@ -456,8 +455,7 @@ test("runtime registry surfaces Playwright browser tools ahead of file and shell
     },
     {},
     {
-      collectMcpTools: async () =>
-        adaptDiscoveredMcpTools([
+      collectMcpSources: async () => [createToolSource("mcp", "mcp:playwright", adaptDiscoveredMcpTools([
           {
             serverName: "playwright",
             name: "browser_navigate",
@@ -490,7 +488,7 @@ test("runtime registry surfaces Playwright browser tools ahead of file and shell
               };
             },
           },
-        ]),
+        ]))],
       close: async () => undefined,
     },
   );

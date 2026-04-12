@@ -1,12 +1,12 @@
 import { McpClientManager } from "../mcp/clientManager.js";
-import { collectMcpRegisteredTools } from "../mcp/registryIntegration.js";
+import { collectMcpToolSources } from "../mcp/registryIntegration.js";
 import type { RuntimeConfig } from "../types.js";
 import { createToolRegistry } from "./registry.js";
-import type { RegisteredTool, ToolRegistry, ToolRegistryOptions } from "./types.js";
+import type { ToolRegistry, ToolRegistryOptions, ToolRegistrySource } from "./types.js";
 
 export interface RuntimeToolRegistryDependencies {
   manager?: McpClientManager;
-  collectMcpTools?: (config: RuntimeConfig["mcp"]) => Promise<RegisteredTool[]>;
+  collectMcpSources?: (config: RuntimeConfig["mcp"]) => Promise<ToolRegistrySource[]>;
   close?: () => Promise<void>;
 }
 
@@ -16,13 +16,13 @@ export async function createRuntimeToolRegistry(
   dependencies: RuntimeToolRegistryDependencies = {},
 ): Promise<ToolRegistry> {
   const manager = dependencies.manager ?? new McpClientManager(config.mcp);
-  const collectMcpTools =
-    dependencies.collectMcpTools ??
-    ((mcpConfig: RuntimeConfig["mcp"]) => collectMcpRegisteredTools(mcpConfig, manager));
-  const mcpTools = await collectMcpTools(config.mcp);
+  const collectMcpSources =
+    dependencies.collectMcpSources ??
+    ((mcpConfig: RuntimeConfig["mcp"]) => collectMcpToolSources(mcpConfig, manager));
+  const mcpSources = await collectMcpSources(config.mcp);
   const registry = createToolRegistry(config.mode, {
     ...options,
-    includeTools: [...(options.includeTools ?? []), ...mcpTools],
+    sources: [...(options.sources ?? []), ...mcpSources],
   });
 
   return {

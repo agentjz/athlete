@@ -1,106 +1,22 @@
-import { applyPatchTool } from "./files/applyPatchTool.js";
-import { backgroundCheckTool } from "./background/backgroundCheckTool.js";
-import { backgroundRunTool } from "./background/backgroundRunTool.js";
-import { broadcastTool } from "./team/broadcastTool.js";
-import { claimTaskTool } from "./tasks/claimTaskTool.js";
-import { coordinationPolicyTool } from "./team/coordinationPolicyTool.js";
-import { editDocxTool } from "./documents/editDocxTool.js";
-import { editFileTool } from "./files/editFileTool.js";
-import { idleTool } from "./team/idleTool.js";
-import { listFilesTool } from "./files/listFilesTool.js";
-import { listTeammatesTool } from "./team/listTeammatesTool.js";
-import { loadSkillTool } from "./skills/loadSkillTool.js";
-import { mineruDocReadTool } from "./documents/mineruDocReadTool.js";
-import { mineruImageReadTool } from "./documents/mineruImageReadTool.js";
-import { mineruPdfReadTool } from "./documents/mineruPdfReadTool.js";
-import { mineruPptReadTool } from "./documents/mineruPptReadTool.js";
-import { planApprovalTool } from "./team/planApprovalTool.js";
-import { readDocxTool } from "./documents/readDocxTool.js";
-import { readFileTool } from "./files/readFileTool.js";
-import { readInboxTool } from "./team/readInboxTool.js";
-import { readSpreadsheetTool } from "./documents/readSpreadsheetTool.js";
-import { downloadUrlTool } from "./network/downloadUrlTool.js";
-import { httpProbeTool } from "./network/httpProbeTool.js";
-import { runShellTool } from "./shell/runShellTool.js";
-import { searchFilesTool } from "./files/searchFilesTool.js";
-import { sendMessageTool } from "./team/sendMessageTool.js";
-import { shutdownRequestTool } from "./team/shutdownRequestTool.js";
-import { shutdownResponseTool } from "./team/shutdownResponseTool.js";
-import { spawnTeammateTool } from "./team/spawnTeammateTool.js";
-import { taskTool } from "./tasks/taskTool.js";
-import { todoWriteTool } from "./tasks/todoWriteTool.js";
-import { taskCreateTool } from "./tasks/taskCreateTool.js";
-import { taskGetTool } from "./tasks/taskGetTool.js";
-import { taskListTool } from "./tasks/taskListTool.js";
-import { taskUpdateTool } from "./tasks/taskUpdateTool.js";
-import { undoLastChangeTool } from "./files/undoLastChangeTool.js";
-import { worktreeCreateTool } from "./worktrees/worktreeCreateTool.js";
-import { worktreeEventsTool } from "./worktrees/worktreeEventsTool.js";
-import { worktreeGetTool } from "./worktrees/worktreeGetTool.js";
-import { worktreeKeepTool } from "./worktrees/worktreeKeepTool.js";
-import { worktreeListTool } from "./worktrees/worktreeListTool.js";
-import { worktreeRemoveTool } from "./worktrees/worktreeRemoveTool.js";
-import { register } from "./shared.js";
-import type { RegisteredTool, ToolRegistry, ToolRegistryOptions } from "./types.js";
 import type { AgentMode } from "../types.js";
-import { writeDocxTool } from "./documents/writeDocxTool.js";
-import { writeFileTool } from "./files/writeFileTool.js";
-import { sortToolRegistryEntriesForExposure } from "./order.js";
+import { getBuiltinToolsForMode } from "./builtinCatalog.js";
 import { resolveToolRegistryEntries, validateToolExecutionResult } from "./governance.js";
+import { sortToolRegistryEntriesForExposure } from "./order.js";
+import { register } from "./shared.js";
+import { createToolSource } from "./sources.js";
+import type {
+  RegisteredTool,
+  ToolRegistry,
+  ToolRegistryOptions,
+  ToolRegistrySource,
+} from "./types.js";
 
-const READ_ONLY_TOOLS: readonly RegisteredTool[] = [
-  todoWriteTool,
-  taskTool,
-  listFilesTool,
-  readFileTool,
-  mineruPdfReadTool,
-  mineruImageReadTool,
-  mineruDocReadTool,
-  mineruPptReadTool,
-  readDocxTool,
-  readSpreadsheetTool,
-  httpProbeTool,
-  searchFilesTool,
-  loadSkillTool,
-  worktreeListTool,
-  worktreeGetTool,
-  worktreeEventsTool,
-] as const;
-
-const AGENT_TOOLS: readonly RegisteredTool[] = [
-  ...READ_ONLY_TOOLS,
-  taskCreateTool,
-  coordinationPolicyTool,
-  taskGetTool,
-  taskListTool,
-  taskUpdateTool,
-  claimTaskTool,
-  worktreeCreateTool,
-  worktreeKeepTool,
-  worktreeRemoveTool,
-  backgroundRunTool,
-  backgroundCheckTool,
-  spawnTeammateTool,
-  listTeammatesTool,
-  sendMessageTool,
-  readInboxTool,
-  broadcastTool,
-  shutdownRequestTool,
-  shutdownResponseTool,
-  planApprovalTool,
-  idleTool,
-  writeFileTool,
-  writeDocxTool,
-  editDocxTool,
-  editFileTool,
-  applyPatchTool,
-  undoLastChangeTool,
-  downloadUrlTool,
-  runShellTool,
-] as const;
+export { createToolSource } from "./sources.js";
 
 export function createToolRegistry(mode: AgentMode, options: ToolRegistryOptions = {}): ToolRegistry {
-  const { entries: rawEntries, blocked } = resolveToolRegistryEntries(selectTools(mode, options));
+  const selectedTools = collectSelectedTools(mode, options);
+  assertNoDuplicateToolNames(selectedTools);
+  const { entries: rawEntries, blocked } = resolveToolRegistryEntries(selectedTools.map((entry) => entry.tool));
   const resolved = sortToolRegistryEntriesForExposure(rawEntries);
   const tools = new Map<string, RegisteredTool>();
   const entries = new Map<string, (typeof resolved)[number]>();
@@ -130,17 +46,70 @@ export function createToolRegistry(mode: AgentMode, options: ToolRegistryOptions
   };
 }
 
-function selectTools(mode: AgentMode, options: ToolRegistryOptions): RegisteredTool[] {
-  const availableTools = mode === "agent" ? AGENT_TOOLS : READ_ONLY_TOOLS;
+function collectSelectedTools(
+  mode: AgentMode,
+  options: ToolRegistryOptions,
+): Array<{
+  source: ToolRegistrySource;
+  tool: RegisteredTool;
+}> {
+  const builtinSource = createToolSource("builtin", "builtin:catalog", getBuiltinToolsForMode(mode));
+  const allSources = [builtinSource, ...(options.sources ?? [])];
   const onlyNames = options.onlyNames ? new Set(options.onlyNames) : null;
   const excludeNames = new Set(options.excludeNames ?? []);
 
-  return [...availableTools, ...(options.includeTools ?? [])].filter((tool) => {
-    const name = tool.definition.function.name;
-    if (onlyNames && !onlyNames.has(name)) {
-      return false;
+  return allSources.flatMap((source) =>
+    source.tools
+      .map((tool) => ({
+        source,
+        tool: applySourceDefaults(source, tool),
+      }))
+      .filter(({ tool }) => {
+        const name = tool.definition.function.name;
+        if (onlyNames && !onlyNames.has(name)) {
+          return false;
+        }
+
+        return !excludeNames.has(name);
+      }),
+  );
+}
+
+function applySourceDefaults(source: ToolRegistrySource, tool: RegisteredTool): RegisteredTool {
+  return {
+    ...tool,
+    governance: tool.governance
+      ? {
+          ...tool.governance,
+          source: tool.governance.source ?? source.kind,
+        }
+      : undefined,
+    origin: {
+      kind: tool.origin?.kind ?? source.kind,
+      sourceId: tool.origin?.sourceId ?? source.id,
+      serverName: tool.origin?.serverName,
+      toolName: tool.origin?.toolName,
+      readOnlyHint: tool.origin?.readOnlyHint,
+    },
+  };
+}
+
+function assertNoDuplicateToolNames(
+  tools: Array<{
+    source: ToolRegistrySource;
+    tool: RegisteredTool;
+  }>,
+): void {
+  const seen = new Map<string, string>();
+
+  for (const entry of tools) {
+    const name = entry.tool.definition.function.name;
+    const sourceLabel = `${entry.source.kind}:${entry.source.id}`;
+    const existing = seen.get(name);
+    if (existing) {
+      throw new Error(`Duplicate tool registration detected for ${name}: ${existing} and ${sourceLabel}.`);
     }
 
-    return !excludeNames.has(name);
-  });
+    seen.set(name, sourceLabel);
+  }
 }

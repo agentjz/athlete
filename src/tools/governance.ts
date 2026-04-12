@@ -1,46 +1,13 @@
 import { ToolExecutionError } from "./errors.js";
+import { getBuiltinToolGovernance } from "./builtinCatalog.js";
+import { browserCapabilityTool, parseBrowserStepFromName } from "./governancePresets.js";
 import type {
   RegisteredTool,
   ToolGovernance,
-  ToolGovernanceBrowserStep,
   ToolRegistryBlockedTool,
   ToolRegistryEntry,
 } from "./types.js";
 import type { ToolExecutionResult } from "../types.js";
-
-const WEB_WORKFLOWS = ["web-research", "browser-automation"] as const;
-
-const BUILTIN_CATALOG = new Map<string, ToolGovernance>([
-  ...defineMany(["list_files", "read_file", "search_files"], readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  ["mineru_pdf_read", documentReadTool("pdf")],
-  ["mineru_image_read", documentReadTool("image")],
-  ["mineru_doc_read", documentReadTool("doc")],
-  ["mineru_ppt_read", documentReadTool("ppt")],
-  ["read_docx", documentReadTool("doc")],
-  ["read_spreadsheet", documentReadTool("spreadsheet")],
-  ...defineMany(["task_list", "task_get"], readTool("task", { concurrencySafe: true })),
-  ...defineMany(["list_teammates", "read_inbox"], readTool("team", { concurrencySafe: true })),
-  ...defineMany(["worktree_list", "worktree_get", "worktree_events"], readTool("worktree", { concurrencySafe: true })),
-  ...defineMany(["background_check"], readTool("background", { concurrencySafe: true })),
-  ["http_probe", readTool("external", { concurrencySafe: true, verificationSignal: "optional" })],
-  ...defineMany(["todo_write", "load_skill", "claim_task", "task_create", "task_update", "idle"], stateTool("task")),
-  ...defineMany(["coordination_policy", "plan_approval"], stateTool("team", { risk: "medium" })),
-  ...defineMany(["broadcast", "send_message"], stateTool("messaging", { risk: "medium" })),
-  ...defineMany(["worktree_create", "worktree_keep"], stateTool("worktree", { risk: "medium" })),
-  ...defineMany(["write_file", "edit_file", "apply_patch"], writeTool("filesystem", { changeSignal: "required" })),
-  ...defineMany(["write_docx", "edit_docx"], writeTool("document", { changeSignal: "required" })),
-  ["undo_last_change", writeTool("filesystem", { risk: "high", destructive: true, changeSignal: "required" })],
-  ["task", stateTool("task", { risk: "medium", changeSignal: "optional", verificationSignal: "optional" })],
-  ["download_url", writeTool("external", { changeSignal: "required" })],
-  ["run_shell", writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", fallbackOnlyInWorkflows: WEB_WORKFLOWS })],
-  ["background_run", writeTool("background", { risk: "high", changeSignal: "none", fallbackOnlyInWorkflows: WEB_WORKFLOWS })],
-  ["spawn_teammate", stateTool("team", { risk: "high" })],
-  ["shutdown_request", stateTool("team", { risk: "high", destructive: true })],
-  ["shutdown_response", stateTool("team", { risk: "high" })],
-  ["worktree_remove", stateTool("worktree", { risk: "high", destructive: true })],
-  ["telegram_send_file", stateTool("messaging", { risk: "medium" })],
-  ["weixin_send_file", stateTool("messaging", { risk: "medium" })],
-]);
 
 export function resolveToolRegistryEntries(
   tools: readonly RegisteredTool[],
@@ -78,16 +45,13 @@ export function resolveToolGovernance(
   blocked: ToolRegistryBlockedTool;
 } {
   const name = tool.definition.function.name;
-  const inferred = inferToolGovernance(name, tool.origin);
-  const partial = tool.governance ? { ...inferred, ...tool.governance } : inferred;
-
-  if (!partial) {
-    if (name.startsWith("mcp_")) {
+  if (!tool.governance) {
+    if (tool.origin?.kind === "mcp") {
       return {
         blocked: {
           name,
           reason: "Blocked by tool governance: MCP tool is missing safe governance metadata and no trusted readOnly hint was provided.",
-          origin: tool.origin ?? { kind: "mcp" },
+          origin: tool.origin,
         },
       };
     }
@@ -96,12 +60,18 @@ export function resolveToolGovernance(
   }
 
   return {
-    governance: normalizeToolGovernance(name, partial),
+    governance: normalizeToolGovernance(name, tool.governance),
   };
 }
 
 export function getToolGovernanceForName(name: string): ToolGovernance | null {
-  return inferToolGovernance(name, name.startsWith("mcp_") ? { kind: "mcp" } : undefined);
+  const builtin = getBuiltinToolGovernance(name);
+  if (builtin) {
+    return builtin;
+  }
+
+  const browserStep = parseBrowserStepFromName(name);
+  return browserStep ? browserCapabilityTool(browserStep) : null;
 }
 
 export function validateToolExecutionResult(
@@ -177,27 +147,6 @@ export function isDocumentReadGovernedTool(
   return governance.specialty === "document" && governance.mutation === "read";
 }
 
-function inferToolGovernance(
-  name: string,
-  origin?: RegisteredTool["origin"],
-): ToolGovernance | null {
-  const builtin = BUILTIN_CATALOG.get(name);
-  if (builtin) {
-    return cloneGovernance(builtin);
-  }
-
-  const browserStep = parseBrowserStepFromName(name);
-  if (browserStep) {
-    return cloneGovernance(browserCapabilityTool(browserStep));
-  }
-
-  if (name.startsWith("mcp_") && origin?.readOnlyHint === true) {
-    return readTool("external", { source: "mcp", risk: "low" });
-  }
-
-  return null;
-}
-
 function normalizeToolGovernance(name: string, partial: Partial<ToolGovernance>): ToolGovernance {
   const governance: ToolGovernance = {
     source: partial.source ?? (name.startsWith("mcp_") ? "mcp" : "builtin"),
@@ -231,100 +180,4 @@ function requireField<T>(name: string, value: T | undefined, field: string): T {
   }
 
   return value;
-}
-
-function cloneGovernance(governance: ToolGovernance): ToolGovernance {
-  return {
-    ...governance,
-    preferredWorkflows: [...governance.preferredWorkflows],
-    fallbackOnlyInWorkflows: [...governance.fallbackOnlyInWorkflows],
-  };
-}
-
-function defineMany(
-  names: readonly string[],
-  governance: ToolGovernance,
-): Array<[string, ToolGovernance]> {
-  return names.map((name) => [name, cloneGovernance(governance)]);
-}
-
-function readTool(
-  specialty: ToolGovernance["specialty"],
-  overrides: Partial<ToolGovernance> = {},
-): ToolGovernance {
-  return buildGovernance(specialty, "read", "low", overrides);
-}
-
-function stateTool(
-  specialty: ToolGovernance["specialty"],
-  overrides: Partial<ToolGovernance> = {},
-): ToolGovernance {
-  return buildGovernance(specialty, "state", "low", overrides);
-}
-
-function writeTool(
-  specialty: ToolGovernance["specialty"],
-  overrides: Partial<ToolGovernance> = {},
-): ToolGovernance {
-  return buildGovernance(specialty, "write", "medium", overrides);
-}
-
-function buildGovernance(
-  specialty: ToolGovernance["specialty"],
-  mutation: ToolGovernance["mutation"],
-  risk: ToolGovernance["risk"],
-  overrides: Partial<ToolGovernance>,
-): ToolGovernance {
-  return {
-    source: overrides.source ?? "builtin",
-    specialty,
-    mutation,
-    risk: overrides.risk ?? risk,
-    destructive: overrides.destructive ?? false,
-    concurrencySafe: overrides.concurrencySafe ?? false,
-    changeSignal: overrides.changeSignal ?? "none",
-    verificationSignal: overrides.verificationSignal ?? "none",
-    preferredWorkflows: [...(overrides.preferredWorkflows ?? [])],
-    fallbackOnlyInWorkflows: [...(overrides.fallbackOnlyInWorkflows ?? [])],
-    browserStep: overrides.browserStep,
-    documentKind: overrides.documentKind,
-  };
-}
-
-function browserCapabilityTool(browserStep: ToolGovernanceBrowserStep): ToolGovernance {
-  return buildGovernance("browser", browserStep === "click" || browserStep === "type" ? "state" : "read", browserStep === "click" || browserStep === "type" ? "medium" : "low", {
-    source: "mcp",
-    browserStep,
-    preferredWorkflows: WEB_WORKFLOWS,
-  });
-}
-
-function parseBrowserStepFromName(name: string): ToolGovernanceBrowserStep | null {
-  const normalized = name.trim().toLowerCase();
-  if (normalized.includes("browser_navigate")) {
-    return "navigate";
-  }
-  if (normalized.includes("browser_snapshot")) {
-    return "snapshot";
-  }
-  if (normalized.includes("browser_take_screenshot")) {
-    return "take_screenshot";
-  }
-  if (normalized.includes("browser_click")) {
-    return "click";
-  }
-  if (normalized.includes("browser_type")) {
-    return "type";
-  }
-
-  return null;
-}
-
-function documentReadTool(
-  documentKind: NonNullable<ToolGovernance["documentKind"]>,
-): ToolGovernance {
-  return readTool("document", {
-    concurrencySafe: true,
-    documentKind,
-  });
 }

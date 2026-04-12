@@ -1,5 +1,6 @@
 export { createToolRegistry } from "./registry.js";
 export { createRuntimeToolRegistry } from "./runtimeRegistry.js";
+export { createToolSource } from "./registry.js";
 export type {
   FunctionToolDefinition,
   RegisteredTool,
@@ -7,4 +8,5 @@ export type {
   ToolRegistry,
   ToolRegistryFactory,
   ToolRegistryOptions,
+  ToolRegistrySource,
 } from "./types.js";

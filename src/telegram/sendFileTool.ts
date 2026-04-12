@@ -43,6 +43,18 @@ export function createTelegramSendFileTool(options: {
         },
       },
     },
+    governance: {
+      source: "host",
+      specialty: "messaging",
+      mutation: "state",
+      risk: "medium",
+      destructive: false,
+      concurrencySafe: false,
+      changeSignal: "none",
+      verificationSignal: "none",
+      preferredWorkflows: [],
+      fallbackOnlyInWorkflows: [],
+    },
     async execute(rawArgs, context) {
       const args = parseArgs(rawArgs);
       const targetPath = readString(args.path, "path");

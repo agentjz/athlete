@@ -4,10 +4,10 @@ import test from "node:test";
 import { McpClientManager } from "../src/mcp/clientManager.js";
 import { normalizeMcpConfig } from "../src/mcp/config.js";
 import { createPlaceholderMcpClient } from "../src/mcp/discovery.js";
-import { collectMcpRegisteredTools } from "../src/mcp/registryIntegration.js";
+import { collectMcpToolSources } from "../src/mcp/registryIntegration.js";
 import { adaptDiscoveredMcpTools, formatMcpToolName } from "../src/mcp/toolAdapter.js";
 import type { McpClient, McpDiscoveredTool } from "../src/mcp/types.js";
-import { createToolRegistry } from "../src/tools/registry.js";
+import { createToolRegistry, createToolSource } from "../src/tools/registry.js";
 import { makeToolContext } from "./helpers.js";
 
 test("McpClientManager can still expose placeholder discovery snapshots when an explicit placeholder client factory is used", async () => {
@@ -56,7 +56,7 @@ test("MCP tool adapter produces RegisteredTool objects compatible with the tool 
   ]);
 
   const registry = createToolRegistry("agent", {
-    includeTools: tools,
+    sources: [createToolSource("mcp", "mcp:demo", tools)],
   });
   const toolName = formatMcpToolName("demo", "echo");
 
@@ -67,7 +67,7 @@ test("MCP tool adapter produces RegisteredTool objects compatible with the tool 
   assert.equal(result.output, "echo:hi");
 });
 
-test("registry integration can turn discovered MCP tools into includeTools without bypassing the core registry", async () => {
+test("registry integration can turn discovered MCP tools into formal sources without bypassing the core registry", async () => {
   const discoveredTool: McpDiscoveredTool = {
     serverName: "planner",
     name: "summarize",
@@ -116,9 +116,9 @@ test("registry integration can turn discovered MCP tools into includeTools witho
     },
   }));
 
-  const registered = await collectMcpRegisteredTools(config, manager);
+  const sources = await collectMcpToolSources(config, manager);
   const registry = createToolRegistry("agent", {
-    includeTools: registered,
+    sources,
   });
 
   const result = await registry.execute(

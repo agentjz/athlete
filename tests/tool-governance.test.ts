@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { adaptDiscoveredMcpTools, formatMcpToolName } from "../src/mcp/toolAdapter.js";
-import { createToolRegistry } from "../src/tools/registry.js";
+import { createToolRegistry, createToolSource } from "../src/tools/registry.js";
 import { createRuntimeToolRegistry } from "../src/tools/runtimeRegistry.js";
 import type { RegisteredTool } from "../src/tools/types.js";
 import { createTestRuntimeConfig, makeToolContext } from "./helpers.js";
@@ -53,7 +53,7 @@ test("registry fails closed when an included tool omits governance metadata", ()
   assert.throws(
     () => createToolRegistry("agent", {
       onlyNames: ["unsafe_append"],
-      includeTools: [unsafeTool],
+      sources: [createToolSource("host", "tests.unsafe", [unsafeTool])],
     }),
     /tool governance/i,
   );
@@ -77,7 +77,7 @@ test("runtime registry governs MCP tools and blocks ambiguous tools that are mis
     },
     {},
     {
-      collectMcpTools: async () => adaptDiscoveredMcpTools([
+      collectMcpSources: async () => [createToolSource("mcp", "mcp:planner", adaptDiscoveredMcpTools([
         {
           serverName: "planner",
           name: "summarize",
@@ -114,7 +114,7 @@ test("runtime registry governs MCP tools and blocks ambiguous tools that are mis
             };
           },
         },
-      ]),
+      ]))],
       close: async () => undefined,
     },
   );
@@ -161,7 +161,7 @@ test("tool execution fails closed when a governed write tool omits required chan
 
   const registry = createToolRegistry("agent", {
     onlyNames: ["governed_write"],
-    includeTools: [governedWriteTool],
+    sources: [createToolSource("host", "tests.write", [governedWriteTool])],
   });
 
   await assert.rejects(
