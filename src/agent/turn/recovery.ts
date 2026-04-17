@@ -1,7 +1,6 @@
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-
 import { expandStartToToolBoundary, findLatestUserIndex } from "../session/messages.js";
 import { compactToolPayloadForTransport } from "../toolResults/preview.js";
+import type { ProviderMessage } from "../provider/contract.js";
 import { isAbortError, sleepWithSignal } from "../../utils/abort.js";
 
 const API_MAX_RETRIES = 3;
@@ -92,8 +91,8 @@ export function isToolCompatibilityError(error: unknown): boolean {
 }
 
 export function sanitizeMessagesForContentPolicy(
-  messages: ChatCompletionMessageParam[],
-): ChatCompletionMessageParam[] {
+  messages: ProviderMessage[],
+): ProviderMessage[] {
   return messages.map((message, index) => {
     if (index === 0 && message.role === "system") {
       const content = typeof message.content === "string" ? message.content : "";
@@ -117,8 +116,8 @@ export function sanitizeMessagesForContentPolicy(
 }
 
 export function shrinkMessagesForContextLimit(
-  messages: ChatCompletionMessageParam[],
-): ChatCompletionMessageParam[] {
+  messages: ProviderMessage[],
+): ProviderMessage[] {
   const systemMessage = messages[0];
   const rest = messages.slice(1);
   const latestUserIndex = findLatestUserIndex(rest);
@@ -144,10 +143,10 @@ export function shrinkMessagesForContextLimit(
       }
 
       if (globalIndex <= latestUserIndex) {
-        delete cloned.reasoning_content;
+        delete cloned.reasoningContent;
       }
 
-      return cloned as unknown as ChatCompletionMessageParam;
+      return cloned as unknown as ProviderMessage;
     }
 
     if ((message.role === "user" || message.role === "system") && typeof message.content === "string") {

@@ -3,10 +3,10 @@ import test from "node:test";
 
 import type { FunctionToolDefinition } from "../src/tools/index.js";
 import {
-  buildProviderRequestBody,
   resolveProviderCapabilities,
   selectProviderRequestModel,
 } from "../src/agent/provider.js";
+import { buildProviderRequestBody } from "../src/agent/provider/chatRequestBody.js";
 
 function createTool(): FunctionToolDefinition {
   return {
@@ -31,12 +31,21 @@ test("provider capabilities own tool fallback and recovery model selection outsi
     provider: "deepseek",
     model: "deepseek-reasoner",
   });
+  const gpt54 = resolveProviderCapabilities({
+    provider: "openai",
+    model: "gpt-5.4",
+  });
   const generic = resolveProviderCapabilities({
     provider: "openai-compatible",
     model: "gpt-4.1",
   });
 
+  assert.equal(gpt54.wireApi, "responses");
+  assert.equal(gpt54.requestTimeoutMs >= 15 * 60 * 1000, true);
+  assert.equal(gpt54.doctorProbeTimeoutMs >= 30_000, true);
   assert.equal(deepseek.toolCompatibilityFallbackModel, "deepseek-chat");
+  assert.equal(deepseek.wireApi, "chat.completions");
+  assert.equal(generic.wireApi, "chat.completions");
   assert.equal(generic.toolCompatibilityFallbackModel, undefined);
 
   assert.equal(

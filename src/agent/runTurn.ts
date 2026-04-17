@@ -1,8 +1,8 @@
-import OpenAI from "openai";
 import { buildRequestContext } from "./context/builder.js";
 import { AgentTurnError, getErrorMessage } from "./errors.js";
 import { fetchAssistantResponse } from "./api.js";
 import { createMessage } from "./session/messages.js";
+import { createProviderClientPool } from "./provider/client.js";
 import { buildRecoveryRequestConfig, buildRecoveryStatus, computeRecoveryDelayMs, isRecoverableTurnError, pickRequestModel, sleep } from "./retryPolicy.js";
 import { noteRuntimeCompression, noteRuntimeModelRequests, noteRuntimeToolExecution, type ModelRequestMetric } from "./runtimeMetrics.js";
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
@@ -43,7 +43,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const projectContext = await loadProjectContext(options.cwd);
   const identity = options.identity ?? { kind: "lead" as const, name: "lead" };
   let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
-  const client = new OpenAI({ apiKey: options.config.apiKey, baseURL: options.config.baseUrl });
+  const client = createProviderClientPool(options.config);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
   const availableToolNames = toolRegistry.entries?.map((entry) => entry.name) ?? toolRegistry.definitions.map((tool) => tool.function.name);

@@ -1,12 +1,12 @@
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-
-import type { FunctionToolDefinition } from "../tools/index.js";
-
 export interface ProviderCapabilities {
   provider: string;
   model: string;
+  wireApi: "responses" | "chat.completions";
   supportsReasoningContent: boolean;
   defaultReasoningEnabled: boolean;
+  defaultReasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
+  requestTimeoutMs: number;
+  doctorProbeTimeoutMs: number;
   toolCompatibilityFallbackModel?: string;
   recoveryFallback?: {
     consecutiveFailures: number;
@@ -19,13 +19,6 @@ interface ProviderProfileInput {
   model: string;
 }
 
-interface BuildProviderRequestBodyInput extends ProviderProfileInput {
-  messages: ChatCompletionMessageParam[];
-  tools: FunctionToolDefinition[] | undefined;
-  stream: boolean;
-  forceReasoning: boolean;
-}
-
 interface SelectProviderRequestModelInput {
   provider?: string;
   configuredModel: string;
@@ -33,6 +26,10 @@ interface SelectProviderRequestModelInput {
 }
 
 const DEFAULT_PROVIDER = "openai-compatible";
+const DEFAULT_REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
+const DEFAULT_DOCTOR_PROBE_TIMEOUT_MS = 10_000;
+const RELAY_REQUEST_TIMEOUT_MS = 15 * 60 * 1000;
+const RELAY_DOCTOR_PROBE_TIMEOUT_MS = 45_000;
 
 export function resolveProviderCapabilities(input: ProviderProfileInput): ProviderCapabilities {
   const provider = normalizeProviderName(input.provider);
@@ -45,8 +42,11 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
     return {
       provider: "deepseek",
       model,
+      wireApi: "chat.completions",
       supportsReasoningContent: true,
       defaultReasoningEnabled: isChatModel,
+      requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
+      doctorProbeTimeoutMs: DEFAULT_DOCTOR_PROBE_TIMEOUT_MS,
       toolCompatibilityFallbackModel: isReasonerModel ? "deepseek-chat" : undefined,
       recoveryFallback: isReasonerModel
         ? {
@@ -57,31 +57,28 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
     };
   }
 
+  if (provider === "openai" || model === "gpt-5.4") {
+    return {
+      provider: "openai",
+      model,
+      wireApi: "responses",
+      supportsReasoningContent: false,
+      defaultReasoningEnabled: true,
+      defaultReasoningEffort: "xhigh",
+      requestTimeoutMs: RELAY_REQUEST_TIMEOUT_MS,
+      doctorProbeTimeoutMs: RELAY_DOCTOR_PROBE_TIMEOUT_MS,
+    };
+  }
+
   return {
     provider,
     model,
+    wireApi: "chat.completions",
     supportsReasoningContent: false,
     defaultReasoningEnabled: false,
+    requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
+    doctorProbeTimeoutMs: DEFAULT_DOCTOR_PROBE_TIMEOUT_MS,
   };
-}
-
-export function buildProviderRequestBody(
-  input: BuildProviderRequestBodyInput,
-): Record<string, unknown> {
-  const capabilities = resolveProviderCapabilities(input);
-  const body: Record<string, unknown> = {
-    model: input.model,
-    messages: input.messages,
-    tools: input.tools,
-    tool_choice: input.tools?.length ? "auto" : undefined,
-    stream: input.stream,
-  };
-
-  if (input.forceReasoning || capabilities.defaultReasoningEnabled) {
-    body.thinking = { type: "enabled" };
-  }
-
-  return body;
 }
 
 export function selectProviderRequestModel(

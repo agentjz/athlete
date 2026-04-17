@@ -1,11 +1,5 @@
-import OpenAI from "openai";
-import type {
-  ChatCompletionMessageFunctionToolCall,
-  ChatCompletionMessageParam,
-} from "openai/resources/chat/completions";
+import type OpenAI from "openai";
 
-import { collapseContentParts, readReasoningContent } from "./session/messages.js";
-import { normalizeAssistantResponse } from "./responseNormalization.js";
 import {
   isContentPolicyError,
   isContextLengthError,
@@ -15,15 +9,20 @@ import {
   withApiRetries,
 } from "./turn/recovery.js";
 import type { ModelRequestMetric, ProviderUsageSnapshot } from "./runtimeMetrics.js";
-import { createAbortError, isAbortError, throwIfAborted } from "../utils/abort.js";
+import { isAbortError } from "../utils/abort.js";
 import type { AssistantResponse, AgentCallbacks } from "./types.js";
 import { recordObservabilityEvent } from "../observability/writer.js";
-import { buildProviderRequestBody, resolveProviderCapabilities } from "./provider.js";
+import { normalizeAssistantResponse } from "./responseNormalization.js";
+import { resolveProviderCapabilities } from "./provider.js";
+import type { ProviderMessage, ProviderWireAdapter } from "./provider/contract.js";
+import { chatCompletionsAdapter } from "./provider/chatCompletionsAdapter.js";
+import { responsesAdapter } from "./provider/responsesAdapter.js";
+import { isProviderClientPool, type ProviderClientPool } from "./provider/client.js";
 import type { FunctionToolDefinition } from "../tools/index.js";
 
 export async function fetchAssistantResponse(
-  client: OpenAI,
-  messages: ChatCompletionMessageParam[],
+  client: OpenAI | ProviderClientPool,
+  messages: ProviderMessage[],
   request: {
     provider: string;
     model: string;
@@ -41,10 +40,24 @@ export async function fetchAssistantResponse(
   },
 ): Promise<AssistantResponse> {
   const capabilities = resolveProviderCapabilities(request);
+  const adapter = selectProviderWireAdapter(capabilities.wireApi);
+
   try {
-    return await tryFetch(client, messages, request, tools, callbacks, false, abortSignal, onRequestMetric, observability, {
-      recoveryFallback: false,
-    });
+    return await tryFetch(
+      adapter,
+      client,
+      messages,
+      request,
+      tools,
+      callbacks,
+      false,
+      abortSignal,
+      onRequestMetric,
+      observability,
+      {
+        recoveryFallback: false,
+      },
+    );
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
@@ -52,6 +65,7 @@ export async function fetchAssistantResponse(
 
     if (tools?.length && isToolCompatibilityError(error) && capabilities.toolCompatibilityFallbackModel) {
       return tryFetch(
+        adapter,
         client,
         messages,
         {
@@ -73,10 +87,22 @@ export async function fetchAssistantResponse(
 
     if (isContextLengthError(error)) {
       const compactedMessages = shrinkMessagesForContextLimit(messages);
-      return tryFetch(client, compactedMessages, request, tools, callbacks, false, abortSignal, onRequestMetric, observability, {
-        recoveryFallback: true,
-        recoveryReason: "context_length",
-      });
+      return tryFetch(
+        adapter,
+        client,
+        compactedMessages,
+        request,
+        tools,
+        callbacks,
+        false,
+        abortSignal,
+        onRequestMetric,
+        observability,
+        {
+          recoveryFallback: true,
+          recoveryReason: "context_length",
+        },
+      );
     }
 
     if (!isContentPolicyError(error)) {
@@ -84,16 +110,29 @@ export async function fetchAssistantResponse(
     }
 
     const sanitizedMessages = sanitizeMessagesForContentPolicy(messages);
-    return tryFetch(client, sanitizedMessages, request, tools, callbacks, false, abortSignal, onRequestMetric, observability, {
-      recoveryFallback: true,
-      recoveryReason: "content_policy",
-    });
+    return tryFetch(
+      adapter,
+      client,
+      sanitizedMessages,
+      request,
+      tools,
+      callbacks,
+      false,
+      abortSignal,
+      onRequestMetric,
+      observability,
+      {
+        recoveryFallback: true,
+        recoveryReason: "content_policy",
+      },
+    );
   }
 }
 
 async function tryFetch(
-  client: OpenAI,
-  messages: ChatCompletionMessageParam[],
+  adapter: ProviderWireAdapter,
+  client: OpenAI | ProviderClientPool,
+  messages: ProviderMessage[],
   request: {
     provider: string;
     model: string;
@@ -119,6 +158,7 @@ async function tryFetch(
 ): Promise<AssistantResponse> {
   const startedAt = Date.now();
   let latestMetric: ModelRequestMetric | undefined;
+  let resolvedBaseUrl: string | undefined;
   const forwardMetric = (metric: ModelRequestMetric) => {
     latestMetric = metric;
     onRequestMetric?.(metric);
@@ -136,6 +176,8 @@ async function tryFetch(
         provider: request.provider,
         configuredModel: observability.configuredModel,
         requestModel: request.model,
+        wireApi: adapter.wireApi,
+        baseUrl: resolvedBaseUrl,
         recoveryFallback: recovery.recoveryFallback,
         recoveryReason: recovery.recoveryReason,
       },
@@ -144,9 +186,22 @@ async function tryFetch(
 
   try {
     const response = normalizeAssistantResponse(await withApiRetries(
-      () => fetchAssistantResponseStreaming(client, messages, request, tools, callbacks, forceReasoning, abortSignal, forwardMetric),
+      () => invokeWithProviderClients(client, async (providerClient, baseUrl) => {
+        resolvedBaseUrl = baseUrl;
+        return adapter.fetchStreaming(providerClient, {
+          provider: request.provider,
+          model: request.model,
+          messages,
+          tools,
+          callbacks,
+          forceReasoning,
+          abortSignal,
+          onRequestMetric: forwardMetric,
+        });
+      }),
       abortSignal,
     ));
+
     if (observability) {
       await recordObservabilityEvent(observability.rootDir, {
         event: "model.request",
@@ -160,6 +215,8 @@ async function tryFetch(
           provider: request.provider,
           configuredModel: observability.configuredModel,
           requestModel: request.model,
+          wireApi: adapter.wireApi,
+          baseUrl: resolvedBaseUrl,
           usageAvailable: hasUsageSnapshot(latestMetric?.usage),
           recoveryFallback: recovery.recoveryFallback,
           recoveryReason: recovery.recoveryReason,
@@ -174,9 +231,22 @@ async function tryFetch(
 
     try {
       const response = normalizeAssistantResponse(await withApiRetries(
-        () => fetchAssistantResponseNonStreaming(client, messages, request, tools, forceReasoning, abortSignal, forwardMetric),
+        () => invokeWithProviderClients(client, async (providerClient, baseUrl) => {
+          resolvedBaseUrl = baseUrl;
+          return adapter.fetchNonStreaming(providerClient, {
+            provider: request.provider,
+            model: request.model,
+            messages,
+            tools,
+            callbacks,
+            forceReasoning,
+            abortSignal,
+            onRequestMetric: forwardMetric,
+          });
+        }),
         abortSignal,
       ));
+
       if (observability) {
         await recordObservabilityEvent(observability.rootDir, {
           event: "model.request",
@@ -190,6 +260,8 @@ async function tryFetch(
             provider: request.provider,
             configuredModel: observability.configuredModel,
             requestModel: request.model,
+            wireApi: adapter.wireApi,
+            baseUrl: resolvedBaseUrl,
             usageAvailable: hasUsageSnapshot(latestMetric?.usage),
             recoveryFallback: recovery.recoveryFallback,
             recoveryReason: recovery.recoveryReason,
@@ -212,6 +284,8 @@ async function tryFetch(
             provider: request.provider,
             configuredModel: observability.configuredModel,
             requestModel: request.model,
+            wireApi: adapter.wireApi,
+            baseUrl: resolvedBaseUrl,
             usageAvailable: hasUsageSnapshot(latestMetric?.usage),
             recoveryFallback: recovery.recoveryFallback,
             recoveryReason: recovery.recoveryReason,
@@ -223,233 +297,14 @@ async function tryFetch(
   }
 }
 
-async function fetchAssistantResponseStreaming(
-  client: OpenAI,
-  messages: ChatCompletionMessageParam[],
-  request: {
-    provider: string;
-    model: string;
-  },
-  tools: FunctionToolDefinition[] | undefined,
-  callbacks: AgentCallbacks | undefined,
-  forceReasoning: boolean,
-  abortSignal?: AbortSignal,
-  onRequestMetric?: (metric: ModelRequestMetric) => void,
-): Promise<AssistantResponse> {
-  const startedAt = Date.now();
-  let usage: ProviderUsageSnapshot | undefined;
-  throwIfAborted(abortSignal, "Streaming request aborted");
-  try {
-    const stream = await client.chat.completions.create(
-      {
-        ...buildProviderRequestBody({
-          provider: request.provider,
-          model: request.model,
-          messages,
-          tools,
-          stream: true,
-          forceReasoning,
-        }),
-        signal: abortSignal,
-      } as never,
-    );
-
-    if (abortSignal?.aborted) {
-      abortStream(stream as { controller?: AbortController });
-      throw createAbortError("Streaming aborted");
-    }
-
-    let content = "";
-    let reasoningContent = "";
-    const toolCallParts = new Map<number, { id: string; name: string; arguments: string }>();
-
-    for await (const chunk of stream as unknown as AsyncIterable<{
-      usage?: unknown;
-      choices?: Array<{
-        delta?: {
-          content?: string | null;
-          reasoning_content?: string | null;
-          tool_calls?: Array<{
-            index?: number;
-            id?: string;
-            function?: {
-              name?: string;
-              arguments?: string;
-            };
-          }>;
-        };
-      }>;
-    }>) {
-      if (abortSignal?.aborted) {
-        abortStream(stream as { controller?: AbortController });
-        throw createAbortError("Streaming aborted");
-      }
-
-      usage = extractProviderUsage(chunk.usage) ?? usage;
-      const delta = chunk.choices?.[0]?.delta;
-      if (!delta) {
-        continue;
-      }
-
-      if (typeof delta.content === "string" && delta.content.length > 0) {
-        content += delta.content;
-        callbacks?.onAssistantDelta?.(delta.content);
-      }
-
-      if (typeof delta.reasoning_content === "string" && delta.reasoning_content.length > 0) {
-        reasoningContent += delta.reasoning_content;
-        callbacks?.onReasoningDelta?.(delta.reasoning_content);
-      }
-
-      if (Array.isArray(delta.tool_calls)) {
-        for (const toolCall of delta.tool_calls) {
-          const index = typeof toolCall.index === "number" ? toolCall.index : 0;
-          const existing = toolCallParts.get(index) ?? {
-            id: toolCall.id ?? `tool-${index}`,
-            name: "",
-            arguments: "",
-          };
-
-          if (toolCall.id) {
-            existing.id = toolCall.id;
-          }
-
-          if (toolCall.function?.name) {
-            existing.name += toolCall.function.name;
-          }
-
-          if (toolCall.function?.arguments) {
-            existing.arguments += toolCall.function.arguments;
-          }
-
-          toolCallParts.set(index, existing);
-        }
-      }
-    }
-
-    return {
-      content: content.length > 0 ? content : null,
-      reasoningContent: reasoningContent.length > 0 ? reasoningContent : undefined,
-      streamedAssistantContent: content.length > 0,
-      streamedReasoningContent: reasoningContent.length > 0,
-      toolCalls: [...toolCallParts.entries()]
-        .sort((left, right) => left[0] - right[0])
-        .map(([, toolCall]) => ({
-          id: toolCall.id,
-          type: "function",
-          function: {
-            name: toolCall.name,
-            arguments: toolCall.arguments,
-          },
-        })),
-    };
-  } finally {
-    onRequestMetric?.({
-      durationMs: Date.now() - startedAt,
-      usage,
-    });
-  }
-}
-
-async function fetchAssistantResponseNonStreaming(
-  client: OpenAI,
-  messages: ChatCompletionMessageParam[],
-  request: {
-    provider: string;
-    model: string;
-  },
-  tools?: FunctionToolDefinition[],
-  forceReasoning = false,
-  abortSignal?: AbortSignal,
-  onRequestMetric?: (metric: ModelRequestMetric) => void,
-): Promise<AssistantResponse> {
-  const startedAt = Date.now();
-  let usage: ProviderUsageSnapshot | undefined;
-  throwIfAborted(abortSignal, "Request aborted");
-  try {
-    const completion = await client.chat.completions.create(
-      {
-        ...buildProviderRequestBody({
-          provider: request.provider,
-          model: request.model,
-          messages,
-          tools,
-          stream: false,
-          forceReasoning,
-        }),
-        signal: abortSignal,
-      } as never,
-    );
-    usage = extractProviderUsage((completion as { usage?: unknown }).usage);
-
-    const message = completion.choices[0]?.message;
-    if (!message) {
-      throw new Error("API returned no message.");
-    }
-
-    return {
-      content:
-        typeof message.content === "string" ? message.content : collapseContentParts(message.content),
-      reasoningContent: readReasoningContent(message),
-      streamedAssistantContent: false,
-      streamedReasoningContent: false,
-      toolCalls: (message.tool_calls ?? [])
-        .filter((call): call is ChatCompletionMessageFunctionToolCall => call.type === "function")
-        .map((call) => ({
-          id: call.id,
-          type: "function",
-          function: {
-            name: call.function.name,
-            arguments: call.function.arguments,
-          },
-        })),
-    };
-  } finally {
-    onRequestMetric?.({
-      durationMs: Date.now() - startedAt,
-      usage,
-    });
-  }
-}
-
-function abortStream(stream: { controller?: AbortController } | undefined): void {
-  try {
-    stream?.controller?.abort();
-  } catch {
-    // best-effort abort
-  }
-}
-
-function extractProviderUsage(usage: unknown): ProviderUsageSnapshot | undefined {
-  if (!usage || typeof usage !== "object") {
-    return undefined;
+function selectProviderWireAdapter(
+  wireApi: "responses" | "chat.completions",
+): ProviderWireAdapter {
+  if (wireApi === "responses") {
+    return responsesAdapter;
   }
 
-  const record = usage as {
-    prompt_tokens?: unknown;
-    input_tokens?: unknown;
-    completion_tokens?: unknown;
-    output_tokens?: unknown;
-    total_tokens?: unknown;
-    completion_tokens_details?: { reasoning_tokens?: unknown };
-    output_tokens_details?: { reasoning_tokens?: unknown };
-  };
-
-  const snapshot: ProviderUsageSnapshot = {
-    inputTokens: readUsageNumber(record.prompt_tokens ?? record.input_tokens),
-    outputTokens: readUsageNumber(record.completion_tokens ?? record.output_tokens),
-    totalTokens: readUsageNumber(record.total_tokens),
-    reasoningTokens: readUsageNumber(
-      record.completion_tokens_details?.reasoning_tokens ??
-      record.output_tokens_details?.reasoning_tokens,
-    ),
-  };
-
-  return Object.values(snapshot).some((value) => typeof value === "number") ? snapshot : undefined;
-}
-
-function readUsageNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
+  return chatCompletionsAdapter;
 }
 
 function hasUsageSnapshot(usage: ProviderUsageSnapshot | undefined): boolean {
@@ -462,4 +317,43 @@ function hasUsageSnapshot(usage: ProviderUsageSnapshot | undefined): boolean {
       typeof usage.reasoningTokens === "number"
     ),
   );
+}
+
+async function invokeWithProviderClients<T>(
+  client: OpenAI | ProviderClientPool,
+  operation: (client: OpenAI, baseUrl: string | undefined) => Promise<T>,
+): Promise<T> {
+  if (!isProviderClientPool(client)) {
+    return operation(client, undefined);
+  }
+
+  let lastError: unknown;
+  const candidates = client.candidates();
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]!;
+    try {
+      const result = await operation(candidate.client, candidate.baseUrl);
+      client.markHealthy(candidate.baseUrl);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (isAbortError(error)) {
+        throw error;
+      }
+
+      const hasMoreCandidates = index < candidates.length - 1;
+      if (!hasMoreCandidates || !canRetryWithAlternateBaseUrl(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function canRetryWithAlternateBaseUrl(error: unknown): boolean {
+  const status = (error as { status?: unknown }).status;
+  const message = String((error as { message?: unknown }).message ?? error).toLowerCase();
+
+  return status === 404 || status === 405 || message.includes("404") || message.includes("not found");
 }

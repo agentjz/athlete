@@ -1,9 +1,8 @@
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-
-import { expandStartToToolBoundary, isAssistantMessageInLatestTurn, shouldIncludeStoredAssistantReasoning, toChatMessage } from "../session/messages.js";
+import { expandStartToToolBoundary, isAssistantMessageInLatestTurn, shouldIncludeStoredAssistantReasoning } from "../session/messages.js";
 import { createPromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
 import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "../promptSections.js";
 import { compactToolPayload } from "../toolResults/preview.js";
+import type { ProviderMessage } from "../provider/contract.js";
 import type { PromptLayerMetrics, PromptLayers } from "../promptSections.js";
 import type { RuntimeConfig, StoredMessage } from "../../types.js";
 import type { PromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
@@ -13,7 +12,7 @@ const DETAILED_RECENT_MESSAGES = 8;
 const MAX_SUMMARY_MESSAGE_COUNT = 48;
 
 export interface BuiltRequestContext {
-  messages: ChatCompletionMessageParam[];
+  messages: ProviderMessage[];
   compressed: boolean;
   estimatedChars: number;
   summary?: string;
@@ -132,17 +131,22 @@ function composeChatMessages(
   systemPrompt: string | PromptLayers,
   messages: StoredMessage[],
   model: string,
-): ChatCompletionMessageParam[] {
+): ProviderMessage[] {
   return [
     {
       role: "system",
       content: renderSystemPrompt(systemPrompt),
     },
-    ...messages.map((message, index) =>
-      toChatMessage(message, {
-        includeReasoning: shouldIncludeStoredAssistantReasoning(messages, index, model),
-      }),
-    ),
+    ...messages.map((message, index) => ({
+      role: message.role,
+      content: message.content,
+      name: message.name,
+      toolCallId: message.tool_call_id,
+      toolCalls: message.tool_calls,
+      reasoningContent: shouldIncludeStoredAssistantReasoning(messages, index, model)
+        ? message.reasoningContent
+        : undefined,
+    })),
   ];
 }
 
@@ -253,7 +257,7 @@ function summarizeStoredMessage(message: StoredMessage): string {
   return "";
 }
 
-function estimateChatMessagesChars(messages: ChatCompletionMessageParam[]): number {
+function estimateChatMessagesChars(messages: ProviderMessage[]): number {
   return messages.reduce((total, message) => total + JSON.stringify(message).length, 0);
 }
 
