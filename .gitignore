@@ -1,0 +1,22 @@
+ref/
+dist
+node_modules
+.DS_Store
+.tmp-smoke
+.tmp-smoke-check-*
+coverage
+__pycache__/
+.deadmouse/*
+.deadmouse/**/*
+!.deadmouse/.env.example
+!.deadmouse/.deadmouseignore
+validation/
+*.tgz
+*.log
+*.tsbuildinfo
+.test-build/
+.test-tmp-*
+out.txt
+out-round3.txt
+/output
+TT-config auth/

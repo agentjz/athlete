@@ -1,0 +1,75 @@
+{
+  "name": "@jun133/deadmouse",
+  "version": "0.1.1",
+  "description": "A problem-solving agent focused on durable task execution.",
+  "keywords": [
+    "deadmouse",
+    "agent",
+    "automation",
+    "runtime",
+    "problem-solving"
+  ],
+  "bin": {
+    "deadmouse": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "spec",
+    "scripts/postinstall-playwright.mjs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format cjs --platform node --target node20 --outDir dist --clean --sourcemap",
+    "check": "npm run typecheck && npm run build",
+    "dev": "tsx src/cli.ts",
+    "postinstall": "node scripts/postinstall-playwright.mjs",
+    "test:build": "node -e \"require('node:fs').rmSync('.test-build', { recursive: true, force: true })\" && tsc -p tsconfig.tests.json",
+    "test:core": "npm run test:build && node --test .test-build/tests/**/*.test.js",
+    "verify:skills-api": "npm run test:build && node scripts/verify-skills-v1.mjs",
+    "verify:runtime-context-api": "npm run test:build && node scripts/verify-runtime-lightweight-context-api.mjs",
+    "verify:runtime-checkpoint-api": "npm run test:build && node scripts/verify-runtime-checkpoint-api.mjs",
+    "verify:runtime-observability-api": "npm run test:build && node scripts/verify-runtime-observability-api.mjs",
+    "verify:mineru-documents-api": "npm run test:build && node scripts/verify-mineru-documents-api.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "test": "npm run check && npm run test:core"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.9.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@playwright/mcp": "^0.0.70",
+    "@types/adm-zip": "^0.5.8",
+    "adm-zip": "^0.5.17",
+    "better-sqlite3": "^12.8.0",
+    "cfb": "^1.2.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.1",
+    "cors": "^2.8.6",
+    "diff": "^8.0.2",
+    "docx": "^9.5.1",
+    "dompurify": "^3.3.3",
+    "dotenv": "^17.2.3",
+    "env-paths": "^3.0.0",
+    "execa": "^9.6.0",
+    "express": "^5.2.1",
+    "fast-glob": "^3.3.3",
+    "lowdb": "^7.0.1",
+    "mammoth": "^1.10.0",
+    "marked": "^17.0.4",
+    "openai": "^6.4.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.5.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
