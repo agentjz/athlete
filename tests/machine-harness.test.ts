@@ -5,9 +5,15 @@ import test from "node:test";
 
 import { MemorySessionStore } from "../src/agent/session.js";
 import { handleCompletedAssistantResponse } from "../src/agent/turn.js";
+import { buildToolExecutionFailureResult } from "../src/agent/turn/toolExecutor.js";
+import { resolveToollessTurn } from "../src/agent/turn/toolless.js";
 import type { RunTurnOptions } from "../src/agent/types.js";
+import type { SkillRuntimeState } from "../src/skills/types.js";
+import { finalizeToolExecution } from "../src/tools/toolFinalize.js";
 import { createToolRegistry } from "../src/tools/registry.js";
+import type { ToolRegistryEntry } from "../src/tools/types.js";
 import { BackgroundJobStore } from "../src/execution/background.js";
+import { ProtocolRequestStore } from "../src/team/requestStore.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "./helpers.js";
 
 test("read_file emits a stable identity, edit_file uses it, and stale identities are rejected", async (t) => {
@@ -134,6 +140,87 @@ test("run_shell blocks direct shell file reads and routes them back to read_file
   assert.equal(result.metadata?.protocol?.blockedIn, "prepare");
 });
 
+test("blocked tool results always include a continuation exit", async () => {
+  const result = finalizeToolExecution(
+    createBlockedToolEntry(),
+    {
+      ok: false,
+      output: JSON.stringify({
+        ok: false,
+        code: "TEST_BLOCKED_WITHOUT_EXIT",
+        error: "blocked without continuation fields",
+      }),
+    },
+    {
+      policy: "sequential",
+      rawArgs: "{}",
+      argumentStrictness: {
+        tier: "L2",
+        unknownArgsStripped: [],
+        warning: false,
+      },
+    },
+    {
+      status: "blocked",
+      blockedIn: "prepare",
+    },
+  );
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+
+  assert.equal(result.ok, false);
+  assert.equal(result.metadata?.protocol?.status, "blocked");
+  assert.equal(typeof payload.hint, "string");
+  assert.equal(typeof payload.next_step, "string");
+  assert.match(String(payload.next_step), /continue|retry|choose|adjust/i);
+});
+
+test("tool execution failures force a route-changing next action", () => {
+  const result = buildToolExecutionFailureResult(
+    {
+      id: "call-1",
+      type: "function",
+      function: {
+        name: "read_file",
+        arguments: JSON.stringify({ path: "missing.txt" }),
+      },
+    },
+    new Error("ENOENT: no such file or directory, open 'missing.txt'"),
+  );
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+
+  assert.equal(result.ok, false);
+  assert.match(String(payload.next_step), /choose exactly one/i);
+  assert.match(String(payload.next_step), /change the arguments/i);
+  assert.match(String(payload.next_step), /choose a different tool/i);
+  assert.match(String(payload.next_step), /switch route/i);
+  assert.match(String(payload.next_step), /Do not continue with explanation-only text/i);
+});
+
+test("shutdown_response pending tells lead to keep driving instead of asking the user", async (t) => {
+  const root = await createTempWorkspace("machine-shutdown-pending-whip", t);
+  const request = await new ProtocolRequestStore(root).create({
+    kind: "shutdown",
+    from: "lead",
+    to: "alpha",
+    subject: "Graceful shutdown for alpha",
+    content: "Please shut down gracefully.",
+  });
+  const registry = createToolRegistry("agent");
+
+  const result = await registry.execute(
+    "shutdown_response",
+    JSON.stringify({ request_id: request.id }),
+    makeToolContext(root, root) as never,
+  );
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+
+  assert.equal(result.ok, true);
+  assert.equal((payload.request as Record<string, unknown>).status, "pending");
+  assert.match(String(payload.next_step), /pending is not complete/i);
+  assert.match(String(payload.next_step), /do not ask the user whether to continue/i);
+  assert.match(String(payload.next_step), /check teammate state|read inbox|wait briefly/i);
+});
+
 test("run_shell runtime truncates long output into preview and persists full output as an artifact", async (t) => {
   const root = await createTempWorkspace("machine-shell-runtime-output", t);
   const registry = createToolRegistry("agent");
@@ -159,6 +246,26 @@ test("run_shell runtime truncates long output into preview and persists full out
   assert.equal(result.metadata?.runtime?.truncated, true);
   assert.equal(result.metadata?.runtime?.outputPath, outputPath);
   assert.equal(result.metadata?.runtime?.status, "completed");
+});
+
+test("run_shell does not force potentially long commands into background_run", async (t) => {
+  const root = await createTempWorkspace("machine-shell-long-command-foreground", t);
+  const registry = createToolRegistry("agent");
+
+  const result = await registry.execute(
+    "run_shell",
+    JSON.stringify({
+      command: "node -e \"setTimeout(() => process.exit(0), 25)\"",
+      timeout_ms: 1_000,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+
+  assert.equal(result.ok, true);
+  assert.equal(payload.status, "completed");
+  assert.notEqual(payload.code, "PREFER_BACKGROUND");
+  assert.equal(result.metadata?.protocol?.status, "completed");
 });
 
 test("run_shell timeout returns structured timed_out runtime state", async (t) => {
@@ -379,3 +486,92 @@ test("handleCompletedAssistantResponse refuses to finalize an empty visible resu
     assert.equal((outcome.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "continue.empty_assistant_response");
   }
 });
+
+test("missing skill reminders push concrete action without taking over the route", async () => {
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(process.cwd());
+  const skillRuntimeState: SkillRuntimeState = {
+    matches: [],
+    namedSkills: [],
+    applicableSkills: [],
+    suggestedSkills: [],
+    requiredSkills: [],
+    missingRequiredSkills: [
+      {
+        schemaVersion: "skill.v1",
+        version: "1.0.0",
+        name: "docx-review",
+        description: "Review DOCX files.",
+        absolutePath: path.join(process.cwd(), "skills", "docx-review", "SKILL.md"),
+        body: "Review DOCX files.",
+        loadMode: "required",
+        agentKinds: [],
+        roles: [],
+        taskTypes: [],
+        scenes: [],
+        triggers: {
+          keywords: [],
+          patterns: [],
+        },
+        tools: {
+          required: [],
+          optional: [],
+          incompatible: [],
+        },
+        path: "skills/docx-review/SKILL.md",
+      },
+    ],
+    loadedSkills: [],
+    loadedSkillNames: new Set<string>(),
+  };
+
+  const outcome = await resolveToollessTurn({
+    session,
+    response: {
+      content: "I should think about the document workflow.",
+      toolCalls: [],
+    },
+    identity: {
+      kind: "lead",
+      name: "lead",
+    },
+    changedPaths: new Set<string>(),
+    hadIncompleteTodosAtStart: false,
+    hasSubstantiveToolActivity: false,
+    validationReminderInjected: false,
+    skillRuntimeState,
+    options: {
+      input: "Review proposal.docx",
+      cwd: process.cwd(),
+      config: createTestRuntimeConfig(process.cwd()),
+      session,
+      sessionStore,
+    } as RunTurnOptions,
+  });
+
+  assert.equal(outcome.kind, "continue");
+  if (outcome.kind === "continue") {
+    const reminder = outcome.session.messages.at(-1)?.content ?? "";
+    assert.match(reminder, /Choose the next concrete action now/);
+    assert.match(reminder, /load the skill, inspect files, check paths, or verify inputs/);
+    assert.match(reminder, /Do not continue with analysis-only text/);
+  }
+});
+
+function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"> {
+  return {
+    name: "blocked_without_exit",
+    governance: {
+      source: "host",
+      specialty: "external",
+      mutation: "read",
+      risk: "low",
+      destructive: false,
+      concurrencySafe: true,
+      changeSignal: "none",
+      verificationSignal: "none",
+      preferredWorkflows: [],
+      fallbackOnlyInWorkflows: [],
+    },
+  };
+}

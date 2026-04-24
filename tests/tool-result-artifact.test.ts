@@ -56,6 +56,8 @@ test("loop guard blocks repeated identical reads of externalized tool-result art
   const blocked = loopGuard.getBlockedResult(toolCall);
   assert.ok(blocked);
   assert.match(String(blocked?.output ?? ""), /Loop guard blocked repeated read_file calls/i);
+  assert.match(String(blocked?.output ?? ""), /summarize/i);
+  assert.match(String(blocked?.output ?? ""), /different strategy/i);
 });
 
 function buildLargeArtifactOutput(): string {

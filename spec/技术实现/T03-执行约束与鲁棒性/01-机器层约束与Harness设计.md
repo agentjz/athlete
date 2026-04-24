@@ -27,12 +27,14 @@
 - `src/tools/files/editAnchorMatch.ts`
 - `src/tools/files/writeExistingFileGuard.ts`
 - `src/tools/files/writeDiagnostics.ts`
+- `src/tools/blockingResult.ts`
 - `src/tools/shell/runShellTool.ts`
 - `src/tools/toolArgumentContract.ts`
 - `src/tools/shell/outputCapture.ts`
 - `src/tools/background/backgroundTerminateTool.ts`
 - `src/utils/commandRunner/run.ts`
 - `src/execution/processProtocol.ts`
+- `src/execution/boundary.ts`
 - `src/agent/turn/toolBatch.ts`
 - `src/agent/turn/pendingToolCalls.ts`
 - `src/agent/turn/compactionRecovery.ts`
@@ -86,7 +88,31 @@
 4. 结果经过 `finalize` 收口协议元数据。
 5. 多工具批次由 `toolBatch.ts` 统一维护 `pendingToolCalls`、并行策略和结果顺序。
 
+blocked 结果在 `finalize` 阶段统一经过 continuation exit 兜底：阻断结果必须包含可读 `hint` 与 `next_step`，避免机器层只给“不允许”而不给继续路径。
+
 `run_shell` 在 execute 阶段继续走共享协议，但执行结果已扩展为正式 runtime 结构：状态、超时/中断标记、截断标记和输出落盘路径；长输出在执行中就被预览上界和落盘链路接管，而不是结束后再一次性裁切。
+
+`run_shell` 不再因为命令被分类为可能长运行而强制切换到 `background_run`；后台执行只作为模型可见建议和独立工具能力保留，是否切换由模型基于任务上下文判断。
+
+browser/web workflow 只作为工具排序、技能提醒和提示语义，不再通过 preflight gate 硬拦合法 shell、HTTP 或文件路径。网页工具排序以轻量 HTTP / download 能力优先，浏览器仍可见但不再被塑造成唯一正确路线。
+
+skill runtime 只提供强提醒，不再提供 `SKILL_REQUIRED` 形式的工具硬门。缺失 skill 时，toolless reminder 必须逼迫模型立刻选择具体行动：加载技能、检查文件、确认路径、验证输入或交付证据结果；不能继续 analysis-only 空转。
+
+orchestrator route 不再把 survey / teammate / background 任务直接自动分流。它只把这些通道作为 Lead 可见建议返回到 `self_execute`，由 Lead 判断是否委派、后台运行或直接执行。
+
+`ensureTaskPlan` 现在只创建建议阶段和事实依赖，不再根据复杂度、关键词或背景命令预设 executor，也不在未发生真实委派前预创建 merge 阶段。merge 应由真实委派结果、后台结果或合流需求触发，而不是由机器预判触发。
+
+coordination policy 不再作为 plan approval 或 shutdown request 的审批总开关。plan approval 按请求存在性、目标对象、状态等事实处理；shutdown request 交给 teammate state lock 检查，只有队友仍 working 或仍拥有活跃任务时才阻断。
+
+Lead orchestration 遇到 active delegated work 时不再进入内部 sleep 等待循环，而是把控制权交回 Lead，并注入“不要空等、准备合流、整理证据、做非冲突检查”的推进输入。这样机器层负责提醒和记账，Lead 负责判断下一步。
+
+`leadReturnGate.ts` 负责 Lead 返回前的未完成工作硬门槛。只要 lead 发起的 teammate / subagent / background execution 仍 queued / running，或 lead 发起的 protocol request 仍 pending，managed turn 就继续给 Lead 注入推进输入，而不是把“要不要继续盯”交还给用户。
+
+该硬门槛必须受 managed slice 边界约束。达到边界后，managed turn 不直接 pause 给用户，而是注入一次 Lead hard-boundary review 输入，要求 Lead 复盘未完成项、已尝试路径和下一步策略；这保证机器持续鞭打但不代替 Lead 决策，也避免机器自循环。
+
+`execution/boundary.ts` 定义统一执行边界协议 `deadmouse.execution-boundary.v1`。所有 `ExecutionStore.create(...)` 产生的 subagent、teammate、background execution 都会被规范化为同一协议：`returnTo=lead`、`onBoundary=return_to_lead_review`、`maxRuntimeMs`、`maxIdleMs`。命令执行读取该协议作为 timeout / stall 边界，agent 执行会把边界写入执行输入，要求子执行到点交状态、证据和下一步选项，而不是宣布父任务完成。
+
+acceptance route-change 文案现在必须要求模型说明已尝试或已验证内容，并选择下一步具体动作；工具执行失败的 `next_step` 统一要求三选一：改参数、换工具或换路线，禁止 explanation-only 空转。
 
 `run_shell / background_run / background_check / background_terminate` 现在共享 `deadmouse.exec.v1` 的轻量 process protocol 元数据，正式表达前后台的 start/read/terminate/exited/closed 等价语义。
 
@@ -123,6 +149,19 @@
 - `run_shell` 直接读取文件内容被阻断并回退到 `read_file`
 - `run_shell` 长输出在执行中自动控上界并落盘，避免把超长原文直接挤入上下文或在本地执行层无限堆积
 - `run_shell` 或其他工具参数不满足 schema 时，在 prepare 阶段稳定 fail closed，并且 execute 不会被触发
+- workflow hint 不再作为合法工具调用的硬阻断条件
+- `run_shell` 不再因 long-running 分类默认返回 `PREFER_BACKGROUND`
+- 缺失 skill 不再产生 `SKILL_REQUIRED` 工具阻断，只产生强推进提醒
+- survey / teammate / background 路由不再自动派活，只返回 Lead 决策建议
+- task planning 不再写死 executor，也不预判 merge
+- coordination policy 不再拦截 Lead 的 plan decision 或 idle shutdown
+- teammate shutdown 由 `team/stateLocks.ts` 的真实状态锁保护
+- active delegated work 不再让 lead loop 内部空等，改为 Lead 合流准备输入
+- pending protocol request 和 running delegated execution 会触发 Lead 返回前硬门槛；达到 managed boundary 后必须回 Lead 复盘，而不是普通回答、用户确认或机器自循环
+- subagent / teammate / background execution 统一带 `deadmouse.execution-boundary.v1`，执行到边界必须回 Lead review
+- acceptance stalled summary 必须包含已尝试/已验证、下一步具体动作和禁止 explanation-only 空转的要求
+- tool execution failure 的 `next_step` 必须统一逼迫改参数、换工具或换路线
+- blocked protocol 结果必须带继续出口；缺失 `hint` 或 `next_step` 时由 `blockingResult` 统一补齐
 - `background_terminate` 通过统一 closeout contract 把后台执行收口为 `aborted`，不再依赖旁路状态
 - 空 assistant 结果进入 continue，而不是完成
 - 压缩后连续 no-text 响应进入恢复或 pause
@@ -134,6 +173,8 @@
 - `tests/machine-harness.test.ts`
 - `tests/edit-anchors-and-feedback.test.ts`
 - `tests/tool-batch-protocol.test.ts`
+- `tests/tools-convergence.test.ts`
+- `tests/tool-governance.test.ts`
 - `tests/compaction-recovery.test.ts`
 - `tests/agent-recovery.test.ts`
 - `tests/team-and-policy.test.ts`
@@ -147,7 +188,17 @@
 - `pendingToolCalls`、`runState` 与 `compactionRecovery` 都进入正式 session 状态。
 - `runState` 在活跃 turn 中默认继承 busy，只在 yield、pause、completed 或异常收口时正式回到 idle。
 - `run_shell` 统一返回结构化 runtime 结果，并在长输出场景提供落盘路径。
+- 后台运行保持为模型可选能力，不再由 `run_shell` 基于正则分类强制改道。
+- 缺失技能保持为强提醒，不阻断合法工具；提醒必须要求模型下一轮做具体动作。
+- 子代理、队友和后台调度保持为 Lead 可选路线，不由机器路由直接替 Lead 派发。
+- 任务板只记录建议阶段、依赖和真实状态，不替 Lead 预选执行通道。
+- coordination policy 保留为可读状态偏好，不作为审批式执行门；事实冲突由状态锁处理。
+- Lead loop 遇到活跃委派工作时推动合流准备，不做无限等待。
+- Lead 返回前会检查未完成委派执行和 pending protocol request；未完成就继续鞭打 Lead 推进，到 hard boundary 后回 Lead 做复盘和再调度，不允许问用户是否继续。
+- `ExecutionStore.create(...)` 统一为所有执行通道补齐 execution boundary，不允许出现无边界执行通道。
+- 工具失败和验收卡住都走统一推进鞭子：总结事实、换路行动、继续产出证据。
 - tool 参数 contract 统一在 prepare 阶段校验，并以 blocked protocol 稳定收口。
+- blocked protocol 统一提供 continuation exit，确保机器阻断服务继续推进而不是制造停滞。
 - `run_shell / background_*` 统一返回 `deadmouse.exec.v1` process contract 元数据。
 - `background_terminate` 成为正式 terminate surface，并把后台执行收口到统一 execution lifecycle。
 - `read-only` 继续只禁止 mutation，不引入审批式安全流。

@@ -56,7 +56,7 @@ test("runManagedAgentTurn keeps continuation behavior after lead orchestration s
   assert.ok(tasks.length >= 2);
 });
 
-test("runManagedAgentTurn dispatches teammate work, waits internally, then enters a lead slice once delegation state changes", async (t) => {
+test("runManagedAgentTurn returns teammate-suitable work to the lead instead of auto-dispatching", async (t) => {
   const root = await createTempWorkspace("orchestrator-dispatch-wait", t);
   await initGitRepo(root);
   const sessionStore = new MemorySessionStore();
@@ -66,7 +66,7 @@ test("runManagedAgentTurn dispatches teammate work, waits internally, then enter
     sessionId: "worker-session",
   });
   let sliceCalls = 0;
-  const closePromise = closeActiveTeammateExecutionsEventually(root);
+  const seenInputs: string[] = [];
 
   const result = await runManagedAgentTurn({
     input: "Delegate to teammate worker-1 for implementation, then validate and merge the result without losing the task graph.",
@@ -76,6 +76,7 @@ test("runManagedAgentTurn dispatches teammate work, waits internally, then enter
     sessionStore,
     runSlice: async (options) => {
       sliceCalls += 1;
+      seenInputs.push(options.input);
       return {
         session: options.session,
         changedPaths: [],
@@ -87,15 +88,16 @@ test("runManagedAgentTurn dispatches teammate work, waits internally, then enter
 
   const tasks = await new TaskStore(root).list();
   const implementation = tasks.find((task) => task.subject.startsWith("Implement:"));
-  await closePromise;
 
   assert.ok(implementation);
-  assert.equal(implementation?.assignee, "worker-1");
+  assert.equal(implementation?.assignee, "");
   assert.equal(sliceCalls, 1);
   assert.notEqual(result.paused, true);
+  assert.match(String(seenInputs[0]), /Stage:\s*implementation/i);
+  assert.match(String(seenInputs[0]), /lead-owned stage/i);
 });
 
-test("runManagedAgentTurn keeps waiting inside the lead loop for active delegated work, then resumes without pause", async (t) => {
+test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly waiting for active delegated work", async (t) => {
   const root = await createTempWorkspace("orchestrator-active-wait", t);
   await initGitRepo(root);
   const config = createTestRuntimeConfig(root);
@@ -145,7 +147,7 @@ test("runManagedAgentTurn keeps waiting inside the lead loop for active delegate
     }),
   });
   let sliceCalls = 0;
-  const completePromise = completeBackgroundEventually(root, job.id);
+  const seenInputs: string[] = [];
 
   const result = await runManagedAgentTurn({
     input: objectiveText,
@@ -155,6 +157,7 @@ test("runManagedAgentTurn keeps waiting inside the lead loop for active delegate
     sessionStore,
     runSlice: async (options) => {
       sliceCalls += 1;
+      seenInputs.push(options.input);
       return {
         session: options.session,
         changedPaths: [],
@@ -163,13 +166,15 @@ test("runManagedAgentTurn keeps waiting inside the lead loop for active delegate
       };
     },
   });
-  await completePromise;
 
-  assert.equal(sliceCalls, 1);
+  assert.equal(sliceCalls, 2);
   assert.notEqual(result.paused, true);
+  assert.match(String(seenInputs[1]), /active delegated work/i);
+  assert.match(String(seenInputs[1]), /prepare reconciliation/i);
+  assert.match(String(seenInputs[1]), /do not wait idly/i);
 });
 
-test("runManagedAgentTurn enters merge as an explicit orchestration stage", async (t) => {
+test("runManagedAgentTurn does not precreate merge before delegated results exist", async (t) => {
   const root = await createTempWorkspace("orchestrator-merge-stage", t);
   await initGitRepo(root);
   const config = createTestRuntimeConfig(root);
@@ -224,8 +229,7 @@ test("runManagedAgentTurn enters merge as an explicit orchestration stage", asyn
 
   assert.notEqual(result.paused, true);
   assert.equal(seenInputs.length, 1);
-  assert.match(String(seenInputs[0]), /Stage:\s*merge/i);
-  assert.match(String(seenInputs[0]), /Task #\d+/i);
+  assert.equal(String(seenInputs[0]), objectiveText);
 });
 
 test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated teammate work", async (t) => {

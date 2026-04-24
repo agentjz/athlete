@@ -18,7 +18,7 @@ function createRuntimeState(loadedSkillNames: string[]): SkillRuntimeState {
   };
 }
 
-test("workflow guard blocks shell web fetching before Playwright browser navigation starts", () => {
+test("workflow guard does not block shell web fetching before Playwright browser navigation starts", () => {
   const blocked = getWorkflowToolGateResult(
     "run_shell",
     JSON.stringify({ command: "curl.exe -L https://example.com -o page.html" }),
@@ -28,12 +28,10 @@ test("workflow guard blocks shell web fetching before Playwright browser navigat
     createRuntimeState(["web-research"]),
   );
 
-  assert.ok(blocked);
-  assert.match(blocked?.output ?? "", /BROWSER_WORKFLOW_REQUIRED/);
-  assert.match(blocked?.output ?? "", /browser\.navigate/);
+  assert.equal(blocked, null);
 });
 
-test("workflow guard blocks shell web fetching until a Playwright snapshot is captured", () => {
+test("workflow guard does not block shell web fetching before a Playwright snapshot is captured", () => {
   const blocked = getWorkflowToolGateResult(
     "run_shell",
     JSON.stringify({ command: "curl.exe -L https://example.com -o page.html" }),
@@ -46,9 +44,7 @@ test("workflow guard blocks shell web fetching until a Playwright snapshot is ca
     createRuntimeState(["web-research"]),
   );
 
-  assert.ok(blocked);
-  assert.match(blocked?.output ?? "", /BROWSER_SNAPSHOT_REQUIRED/);
-  assert.match(blocked?.output ?? "", /browser\.snapshot/);
+  assert.equal(blocked, null);
 });
 
 test("workflow guard allows file writing after Playwright navigation and snapshot", () => {

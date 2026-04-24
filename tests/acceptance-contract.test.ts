@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { handleCompletedAssistantResponse } from "../src/agent/turn.js";
 import { evaluateAcceptanceState, shouldForceAcceptanceRouteChange } from "../src/agent/acceptance.js";
-import { createMessage, createToolMessage, MemorySessionStore } from "../src/agent/session.js";
+import { createMessage, createToolMessage, MemorySessionStore, SessionStore } from "../src/agent/session.js";
 import type { RunTurnOptions } from "../src/agent/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "./helpers.js";
 
@@ -333,4 +333,44 @@ test("acceptance route-change guard trips after repeated no-progress evaluations
   };
 
   assert.equal(shouldForceAcceptanceRouteChange(stalled as never), true);
+});
+
+test("acceptance stalled summary demands concrete route change evidence instead of gentle advice", async (t) => {
+  const root = await createTempWorkspace("acceptance-stalled-summary", t);
+  const sessionStore = new SessionStore(path.join(root, "sessions"));
+  const session = await sessionStore.save({
+    ...(await sessionStore.create(root)),
+    acceptanceState: {
+      contract: {
+        kind: "research",
+        requiredFiles: [
+          {
+            path: "backend/news.json",
+            format: "json",
+            min_items: 1,
+            required_record_fields: ["title", "url", "fetched_at"],
+          },
+        ],
+      },
+      status: "active",
+      currentPhase: "bind_evidence",
+      stalledPhaseCount: 2,
+      completedChecks: [
+        "file:backend/news.json",
+        "json_parse:backend/news.json",
+        "json_min_items:backend/news.json",
+      ],
+      pendingChecks: ["json_fields:backend/news.json"],
+      updatedAt: new Date().toISOString(),
+    } as never,
+  });
+  await fs.mkdir(path.join(root, "backend"), { recursive: true });
+  await fs.writeFile(path.join(root, "backend", "news.json"), JSON.stringify([{ title: "item" }]), "utf8");
+
+  const evaluation = await evaluateAcceptanceState({ session, cwd: root });
+
+  assert.match(evaluation.summary, /Pending checks:/);
+  assert.match(evaluation.summary, /already tried or verified/i);
+  assert.match(evaluation.summary, /next concrete action/i);
+  assert.match(evaluation.summary, /Do not continue with explanation-only text/i);
 });

@@ -16,8 +16,8 @@ export async function runCommandExecution(rootDir: string, execution: ExecutionR
     const result = await runCommandWithPolicy({
       command: execution.command || "",
       cwd: execution.cwd,
-      timeoutMs: execution.timeoutMs ?? 120_000,
-      stallTimeoutMs: execution.stallTimeoutMs ?? execution.timeoutMs ?? 120_000,
+      timeoutMs: execution.boundary.maxRuntimeMs,
+      stallTimeoutMs: execution.boundary.maxIdleMs,
       maxRetries: 0,
       retryBackoffMs: 0,
       canRetry: false,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { resolveExecutionBoundary } from "../src/execution/boundary.js";
 import { routeOrchestratorAction } from "../src/orchestrator/route.js";
 import type {
   OrchestratorAnalysis,
@@ -110,7 +111,7 @@ test("routeOrchestratorAction keeps simple work on the lead", () => {
   assert.equal(decision.action, "self_execute");
 });
 
-test("routeOrchestratorAction delegates survey work to a subagent first", () => {
+test("routeOrchestratorAction returns survey work to the lead with a delegation suggestion", () => {
   const surveyTask = createTask("survey");
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
@@ -125,11 +126,12 @@ test("routeOrchestratorAction delegates survey work to a subagent first", () => 
     plan: createPlan([surveyTask]),
   });
 
-  assert.equal(decision.action, "delegate_subagent");
+  assert.equal(decision.action, "self_execute");
   assert.equal(decision.task?.record.id, surveyTask.record.id);
+  assert.match(decision.reason, /may fit a subagent/i);
 });
 
-test("routeOrchestratorAction assigns implementation work to a teammate when parallel capacity exists", () => {
+test("routeOrchestratorAction keeps unassigned implementation work on the lead", () => {
   const implementationTask = createTask("implementation");
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
@@ -163,11 +165,11 @@ test("routeOrchestratorAction assigns implementation work to a teammate when par
     plan: createPlan([implementationTask]),
   });
 
-  assert.equal(decision.action, "delegate_teammate");
-  assert.equal(decision.teammate?.name, "alpha");
+  assert.equal(decision.action, "self_execute");
+  assert.doesNotMatch(decision.reason, /teammate|parallel/i);
 });
 
-test("routeOrchestratorAction sends explicit long-running work to the background", () => {
+test("routeOrchestratorAction returns background-suitable work to the lead with a lane suggestion", () => {
   const validationTask = createTask("validation");
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
@@ -182,8 +184,9 @@ test("routeOrchestratorAction sends explicit long-running work to the background
     plan: createPlan([validationTask]),
   });
 
-  assert.equal(decision.action, "run_in_background");
-  assert.equal(decision.backgroundCommand, "npm test -- --watch=false");
+  assert.equal(decision.action, "self_execute");
+  assert.equal(decision.task?.record.id, validationTask.record.id);
+  assert.match(decision.reason, /may fit background execution/i);
 });
 
 test("routeOrchestratorAction waits when delegated work is already running and nothing else is ready", () => {
@@ -206,6 +209,12 @@ test("routeOrchestratorAction waits when delegated work is already running and n
           worktreePolicy: "none",
           command: "npm test",
           timeoutMs: 30_000,
+          stallTimeoutMs: 30_000,
+          boundary: resolveExecutionBoundary({
+            profile: "background",
+            timeoutMs: 30_000,
+            stallTimeoutMs: 30_000,
+          }),
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-01-01T00:00:00.000Z",
         },

@@ -54,13 +54,14 @@ export async function runLeadOrchestrationLoop(input: LeadLoopRunInput): Promise
     session = prepared.session;
 
     if (prepared.decision.action === "wait_for_existing_work") {
-      const waitResult = await buildOrchestratorWaitResult({
-        prepared,
-        sessionStore: input.sessionStore,
-      });
-      session = waitResult.session;
-      await sleepWithSignal(waitPollIntervalMs, input.abortSignal);
-      continue;
+      return {
+        kind: "run_lead",
+        input: buildLeadExecutionInput({
+          fallbackInput: buildActiveWorkPreparationInput(input.input, prepared.decision.reason),
+          decision: prepared.decision,
+        }),
+        session,
+      };
     }
     orchestrationPasses += 1;
 
@@ -79,6 +80,18 @@ export async function runLeadOrchestrationLoop(input: LeadLoopRunInput): Promise
       throw new Error(`Lead orchestration exceeded ${maxPasses} passes without converging on execute-or-wait.`);
     }
   }
+}
+
+function buildActiveWorkPreparationInput(input: string, reason: string): string {
+  return [
+    "[internal] Active delegated work is still running; do not wait idly.",
+    `Current delegated-work state: ${reason}`,
+    "Prepare reconciliation now: inspect current task state, collect available evidence, identify non-conflicting checks, and get ready to merge results when they return.",
+    "Do not make up delegated results, do not declare completion, and do not block on idle waiting if there is any safe lead-side work to do.",
+    "<base-input>",
+    input,
+    "</base-input>",
+  ].join("\n");
 }
 
 function normalizeWaitPollIntervalMs(value: number | undefined): number {

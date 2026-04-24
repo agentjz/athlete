@@ -4,6 +4,8 @@ import test from "node:test";
 import { runManagedAgentTurn } from "../src/agent/turn.js";
 import { createProviderRecoveryBudgetPauseTransition } from "../src/agent/runtimeTransition.js";
 import { MemorySessionStore } from "../src/agent/session.js";
+import { loadProjectContext } from "../src/context/projectContext.js";
+import { ProtocolRequestStore } from "../src/team/requestStore.js";
 import type { RuntimeConfig } from "../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "./helpers.js";
 
@@ -184,4 +186,50 @@ test("runManagedAgentTurn rebounds to lead orchestration after provider recovery
   assert.equal(sliceCount, 2);
   assert.notEqual(result.paused, true);
   assert.equal(result.yielded, false);
+});
+
+test("runManagedAgentTurn returns unfinished protocol work to lead review at the hard boundary", async (t) => {
+  const root = await createTempWorkspace("managed-active-delegation-hard-gate", t);
+  await initGitRepo(root);
+  const projectContext = await loadProjectContext(root);
+  await new ProtocolRequestStore(projectContext.stateRootDir).create({
+    kind: "shutdown",
+    from: "lead",
+    to: "alpha",
+    subject: "Graceful shutdown for alpha",
+    content: "Please shut down gracefully.",
+  });
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(root);
+  let sliceCount = 0;
+
+  const seenInputs: string[] = [];
+  const result = await runManagedAgentTurn({
+    input: "recover teammate alpha and finish closeout",
+    cwd: root,
+    config: {
+      ...createTestRuntimeConfig(root),
+      managedTurnMaxSlices: 2,
+      managedTurnMaxElapsedMs: 60_000,
+    } as RuntimeConfig,
+    session,
+    sessionStore,
+    runSlice: async (options) => {
+      sliceCount += 1;
+      seenInputs.push(options.input);
+      return {
+        session: options.session,
+        changedPaths: [],
+        verificationAttempted: false,
+        yielded: false,
+      };
+    },
+  });
+
+  assert.equal(sliceCount, 3);
+  assert.notEqual(result.paused, true);
+  const boundaryInput = seenInputs[2] ?? "";
+  assert.match(boundaryInput, /hard boundary/i);
+  assert.match(boundaryInput, /Lead must review/i);
+  assert.match(boundaryInput, /do not ask the user whether to continue/i);
 });

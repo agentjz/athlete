@@ -34,26 +34,9 @@ export function getSkillToolGateResult(
   toolName: string,
   runtimeState: SkillRuntimeState,
 ): ToolExecutionResult | null {
-  if (toolName === "load_skill" || runtimeState.missingRequiredSkills.length === 0) {
-    return null;
-  }
-
-  const missingNames = runtimeState.missingRequiredSkills.map((skill) => skill.name);
-  return {
-    ok: false,
-    output: JSON.stringify(
-      {
-        ok: false,
-        error: "Required skill(s) not loaded.",
-        code: "SKILL_REQUIRED",
-        missing: missingNames,
-        hint: `Call load_skill for: ${missingNames.join(", ")}`,
-        suggestedTool: "load_skill",
-      },
-      null,
-      2,
-    ),
-  };
+  void toolName;
+  void runtimeState;
+  return null;
 }
 
 export function getLoadedSkillNames(messages: StoredMessage[]): Set<string> {

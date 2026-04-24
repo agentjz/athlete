@@ -10,6 +10,14 @@ export type ExecutionStatus = "queued" | "running" | "paused" | "completed" | "f
 
 export type ExecutionCloseStatus = Exclude<ExecutionStatus, "queued" | "running">;
 
+export interface ExecutionBoundaryProtocol {
+  protocol: "deadmouse.execution-boundary.v1";
+  returnTo: "lead";
+  onBoundary: "return_to_lead_review";
+  maxRuntimeMs: number;
+  maxIdleMs: number;
+}
+
 export interface ExecutionRecord {
   id: string;
   lane: ExecutionLane;
@@ -29,6 +37,7 @@ export interface ExecutionRecord {
   command?: string;
   timeoutMs?: number;
   stallTimeoutMs?: number;
+  boundary: ExecutionBoundaryProtocol;
   summary?: string;
   resultText?: string;
   output?: string;

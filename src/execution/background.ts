@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { closeExecution } from "./closeout.js";
 import { ExecutionStore } from "./store.js";
+import { resolveExecutionBoundary } from "./boundary.js";
 import type { ExecutionRecord } from "./types.js";
 
 export type BackgroundJobStatus = "running" | "completed" | "failed" | "timed_out" | "aborted";
@@ -231,6 +232,11 @@ function mapBackgroundJobToExecution(job: BackgroundJobRecord): ExecutionRecord 
       : job.status === "aborted"
         ? "aborted"
         : "failed";
+  const boundary = resolveExecutionBoundary({
+    profile: "background",
+    timeoutMs: job.timeoutMs,
+    stallTimeoutMs: job.stallTimeoutMs,
+  });
   return {
     id: job.id,
     lane: "command",
@@ -244,6 +250,7 @@ function mapBackgroundJobToExecution(job: BackgroundJobRecord): ExecutionRecord 
     command: job.command,
     timeoutMs: job.timeoutMs,
     stallTimeoutMs: job.stallTimeoutMs,
+    boundary,
     pid: job.pid,
     output: job.output,
     exitCode: job.exitCode,

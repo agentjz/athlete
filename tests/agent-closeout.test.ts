@@ -524,6 +524,24 @@ test("filterToolDefinitionsForCloseout still hides task board tools after contin
   assert.equal(toolNames.includes("task_update"), false);
 });
 
+test("filterToolDefinitionsForCloseout does not hide tools during ordinary execution", async () => {
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(process.cwd());
+  const definitions = createCloseoutTestRegistry(process.cwd(), []).definitions;
+
+  const filtered = filterToolDefinitionsForCloseout(definitions, {
+    session,
+    changedPaths: new Set<string>(),
+    hasSubstantiveToolActivity: false,
+    verificationState: session.verificationState,
+  });
+
+  assert.deepEqual(
+    filtered.map((tool) => tool.function.name),
+    definitions.map((tool) => tool.function.name),
+  );
+});
+
 interface FakeOpenAiRequest {
   toolNames: string[];
 }

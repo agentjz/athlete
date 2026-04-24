@@ -47,15 +47,15 @@ export async function resolveToollessTurn(
         createMessage(
           "user",
           createInternalReminder(
-            `Required skill(s) not loaded: ${missingSkillNames}. ` +
-              "Use load_skill for the missing skills before continuing.",
+            `Potentially useful skill(s) not loaded: ${missingSkillNames}. ` +
+              "Choose the next concrete action now: load the skill, inspect files, check paths, or verify inputs. Do not continue with analysis-only text unless it includes a finished, evidence-backed result.",
           ),
         ),
       ]),
       params.options.sessionStore,
       transition,
     );
-    params.options.callbacks?.onStatus?.("Required skill missing. Asking the model to load it...");
+    params.options.callbacks?.onStatus?.("Skill hint available. Asking the model to keep moving...");
     return {
       kind: "continue",
       session,

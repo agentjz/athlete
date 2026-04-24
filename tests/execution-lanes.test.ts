@@ -104,6 +104,54 @@ test("execution lanes share one formal lifecycle across agent and command work",
   assert.equal(byId.get(background.id)?.pid, 5252);
 });
 
+test("execution creation applies one boundary protocol across all execution lanes", async (t) => {
+  const root = await createTempWorkspace("execution-boundary-protocol", t);
+  const store = new ExecutionStore(root);
+
+  const subagent = await store.create({
+    lane: "agent",
+    profile: "subagent",
+    launch: "inline",
+    requestedBy: "lead",
+    actorName: "survey-1",
+    cwd: root,
+    prompt: "Survey the codebase.",
+  });
+  const teammate = await store.create({
+    lane: "agent",
+    profile: "teammate",
+    launch: "worker",
+    requestedBy: "lead",
+    actorName: "alpha",
+    actorRole: "implementer",
+    cwd: root,
+    prompt: "Implement the task.",
+  });
+  const background = await store.create({
+    lane: "command",
+    profile: "background",
+    launch: "worker",
+    requestedBy: "lead",
+    actorName: "bg-exec",
+    cwd: root,
+    command: "npm test -- --watch=false",
+    timeoutMs: 999_999,
+    stallTimeoutMs: 1,
+  });
+
+  assert.equal(subagent.boundary.protocol, "deadmouse.execution-boundary.v1");
+  assert.equal(subagent.boundary.returnTo, "lead");
+  assert.equal(subagent.boundary.onBoundary, "return_to_lead_review");
+  assert.equal(typeof subagent.boundary.maxRuntimeMs, "number");
+  assert.equal(typeof subagent.boundary.maxIdleMs, "number");
+  assert.equal(teammate.boundary.protocol, "deadmouse.execution-boundary.v1");
+  assert.equal(background.boundary.maxRuntimeMs, background.timeoutMs);
+  assert.equal(background.boundary.maxIdleMs, background.stallTimeoutMs);
+  assert.equal(background.timeoutMs! < 999_999, true);
+  assert.equal(background.stallTimeoutMs! > 1, true);
+});
+
+
 test("task-bound agent executions use the shared claim and worktree binding path", async (t) => {
   const root = await createTempWorkspace("execution-task-binding", t);
   await initGitRepo(root);

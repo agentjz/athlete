@@ -22,8 +22,8 @@ export class CoordinationPolicyStore {
   async summarize(): Promise<string> {
     const policy = await this.load();
     return [
-      `- plan decisions: ${policy.allowPlanDecisions ? "allowed" : "locked"}`,
-      `- shutdown requests: ${policy.allowShutdownRequests ? "allowed" : "locked"}`,
+      `- plan decision preference: ${policy.allowPlanDecisions ? "open" : "state-check only"}`,
+      `- shutdown request preference: ${policy.allowShutdownRequests ? "open" : "state-check only"}`,
       `- updated at: ${policy.updatedAt}`,
     ].join("\n");
   }

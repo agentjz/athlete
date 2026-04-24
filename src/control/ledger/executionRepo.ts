@@ -11,6 +11,7 @@ import type {
   ExecutionStatus,
   ExecutionWorktreePolicy,
 } from "../../execution/types.js";
+import { resolveExecutionBoundary } from "../../execution/boundary.js";
 import { applyExecutionClose, applyExecutionStart, assertExecutionSaveAllowed } from "./executionLifecycle.js";
 import { currentTimestamp, normalizeText } from "./shared.js";
 
@@ -381,12 +382,20 @@ function mapExecutionRow(row: ExecutionRow): ExecutionRecord {
   });
 }
 
-function normalizeExecution(record: ExecutionRecord): ExecutionRecord {
+function normalizeExecution(record: Omit<ExecutionRecord, "boundary"> & Partial<Pick<ExecutionRecord, "boundary">>): ExecutionRecord {
   const now = currentTimestamp();
+  const profile = normalizeProfile(record.profile);
+  const timeoutMs = normalizeOptionalNumber(record.timeoutMs);
+  const stallTimeoutMs = normalizeOptionalNumber(record.stallTimeoutMs);
+  const boundary = resolveExecutionBoundary({
+    profile,
+    timeoutMs,
+    stallTimeoutMs,
+  });
   return {
     id: normalizeExecutionId(record.id) || createExecutionId(),
     lane: normalizeLane(record.lane),
-    profile: normalizeProfile(record.profile),
+    profile,
     launch: normalizeLaunch(record.launch),
     requestedBy: normalizeText(record.requestedBy) || "lead",
     actorName: normalizeText(record.actorName) || "execution",
@@ -400,8 +409,9 @@ function normalizeExecution(record: ExecutionRecord): ExecutionRecord {
     pid: typeof record.pid === "number" && Number.isFinite(record.pid) ? Math.trunc(record.pid) : undefined,
     prompt: normalizeOptionalText(record.prompt),
     command: normalizeOptionalText(record.command),
-    timeoutMs: normalizeOptionalNumber(record.timeoutMs),
-    stallTimeoutMs: normalizeOptionalNumber(record.stallTimeoutMs),
+    timeoutMs: boundary.maxRuntimeMs,
+    stallTimeoutMs: boundary.maxIdleMs,
+    boundary,
     summary: normalizeOptionalText(record.summary),
     resultText: normalizeOptionalText(record.resultText),
     output: normalizeOptionalText(record.output),

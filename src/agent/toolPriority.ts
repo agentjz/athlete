@@ -56,7 +56,7 @@ export function prioritizeToolEntriesForTurn(
     [...missingSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
-  return entries
+  const prioritized = entries
     .map((entry, index) => ({
       entry,
       index,
@@ -73,6 +73,8 @@ export function prioritizeToolEntriesForTurn(
       return left.index - right.index;
     })
     .map((item) => item.entry);
+
+  return assertSameEntrySet(entries, prioritized);
 }
 
 export function prioritizeToolDefinitionsForTurn(
@@ -91,7 +93,7 @@ export function prioritizeToolDefinitionsForTurn(
     [...missingSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
-  return definitions
+  const prioritized = definitions
     .map((definition, index) => ({
       definition,
       index,
@@ -112,6 +114,34 @@ export function prioritizeToolDefinitionsForTurn(
       return left.index - right.index;
     })
     .map((entry) => entry.definition);
+
+  return assertSameDefinitionSet(definitions, prioritized);
+}
+
+function assertSameEntrySet(original: ToolRegistryEntry[], prioritized: ToolRegistryEntry[]): ToolRegistryEntry[] {
+  assertSameNameSet(
+    original.map((entry) => entry.name),
+    prioritized.map((entry) => entry.name),
+    "tool entry prioritization",
+  );
+  return prioritized;
+}
+
+function assertSameDefinitionSet(original: FunctionToolDefinition[], prioritized: FunctionToolDefinition[]): FunctionToolDefinition[] {
+  assertSameNameSet(
+    original.map((definition) => definition.function.name),
+    prioritized.map((definition) => definition.function.name),
+    "tool definition prioritization",
+  );
+  return prioritized;
+}
+
+function assertSameNameSet(originalNames: string[], prioritizedNames: string[], label: string): void {
+  const original = [...originalNames].sort();
+  const prioritized = [...prioritizedNames].sort();
+  if (original.length !== prioritized.length || original.some((name, index) => name !== prioritized[index])) {
+    throw new Error(`${label} must not add, remove, or hide tools.`);
+  }
 }
 
 function shouldPrioritizeBrowserTools(
@@ -193,17 +223,17 @@ function getToolPriorityRank(
   },
 ): number {
   if (options.shouldPreferLoadSkill && name === "load_skill") {
-    return 0;
+    return 170;
   }
 
   const lightweightRank = LIGHTWEIGHT_WEB_TOOL_RANK.get(name);
   if (options.interactiveWebIntent) {
     if (governance && isBrowserGovernedTool(governance)) {
-      return 10 + getBrowserStepRank(governance);
+      return 80 + getBrowserStepRank(governance);
     }
 
     if (lightweightRank !== undefined) {
-      return 40 + lightweightRank;
+      return 10 + lightweightRank;
     }
   } else {
     if (lightweightRank !== undefined) {

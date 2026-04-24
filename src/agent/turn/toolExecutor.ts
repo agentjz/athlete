@@ -48,7 +48,7 @@ export function buildToolExecutionFailureResult(
     error: message,
     hint: buildToolRecoveryHint(toolCall.function.name, toolCall.function.arguments, message),
     next_step:
-      "Use the error to retry with a safer path, inspect directory structure first, or skip unreadable files.",
+      "Choose exactly one route-changing action now: change the arguments, choose a different tool, or switch route based on the error. Do not continue with explanation-only text.",
   };
 
   if (error instanceof ToolExecutionError) {

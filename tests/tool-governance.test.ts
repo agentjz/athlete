@@ -29,6 +29,20 @@ test("tool registry exposes governed metadata and promotes specialized document 
   assert(names.indexOf("run_shell") > names.indexOf("read_file"));
 });
 
+test("governance workflow hints do not hide governed tools from the default agent surface", () => {
+  const registry = createToolRegistry("agent");
+  const names = new Set(registry.definitions.map((tool) => tool.function.name));
+
+  assert.equal(names.has("list_files"), true);
+  assert.equal(names.has("find_files"), true);
+  assert.equal(names.has("read_file"), true);
+  assert.equal(names.has("search_files"), true);
+  assert.equal(names.has("run_shell"), true);
+  assert.equal(names.has("write_file"), true);
+  assert.equal(names.has("edit_file"), true);
+  assert.equal(names.has("apply_patch"), true);
+});
+
 test("registry fails closed when an included tool omits governance metadata", () => {
   const unsafeTool = {
     definition: {

@@ -19,12 +19,15 @@ function createTool(name: string): FunctionToolDefinition {
   };
 }
 
-test("prioritizeToolDefinitionsForTurn prefers load_skill and Playwright browser tools for natural-language web research", () => {
+test("prioritizeToolDefinitionsForTurn keeps web research lightweight before browser automation", () => {
   const prioritized = prioritizeToolDefinitionsForTurn(
     [
       createTool("list_files"),
       createTool("read_file"),
       createTool("run_shell"),
+      createTool("http_probe"),
+      createTool("http_request"),
+      createTool("download_url"),
       createTool("load_skill"),
       createTool("mcp_playwright_browser_navigate"),
       createTool("mcp_playwright_browser_snapshot"),
@@ -39,22 +42,20 @@ test("prioritizeToolDefinitionsForTurn prefers load_skill and Playwright browser
   );
 
   const names = prioritized.map((tool) => tool.function.name);
-  assert.deepEqual(names.slice(0, 3), [
-    "load_skill",
-    "mcp_playwright_browser_navigate",
-    "mcp_playwright_browser_snapshot",
-  ]);
-  assert(names.indexOf("mcp_playwright_browser_click") < names.indexOf("list_files"));
-  assert(names.indexOf("mcp_playwright_browser_type") < names.indexOf("read_file"));
-  assert(names.indexOf("run_shell") > names.indexOf("write_file"));
+  assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
+  assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
+  assert(names.indexOf("download_url") < names.indexOf("mcp_playwright_browser_click"));
+  assert(names.includes("load_skill"));
 });
 
-test("prioritizeToolDefinitionsForTurn keeps Playwright browser tools first across continuation-style resume prompts", () => {
+test("prioritizeToolDefinitionsForTurn keeps continuation web hints advisory instead of browser-first", () => {
   const prioritized = prioritizeToolDefinitionsForTurn(
     [
       createTool("list_files"),
       createTool("read_file"),
       createTool("run_shell"),
+      createTool("http_probe"),
+      createTool("http_request"),
       createTool("mcp_playwright_browser_navigate"),
       createTool("mcp_playwright_browser_snapshot"),
       createTool("mcp_playwright_browser_take_screenshot"),
@@ -69,13 +70,10 @@ test("prioritizeToolDefinitionsForTurn keeps Playwright browser tools first acro
   );
 
   const names = prioritized.map((tool) => tool.function.name);
-  assert.deepEqual(names.slice(0, 3), [
-    "mcp_playwright_browser_navigate",
-    "mcp_playwright_browser_snapshot",
-    "mcp_playwright_browser_take_screenshot",
-  ]);
-  assert(names.indexOf("mcp_playwright_browser_snapshot") < names.indexOf("list_files"));
-  assert(names.indexOf("mcp_playwright_browser_take_screenshot") < names.indexOf("run_shell"));
+  assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
+  assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
+  assert(names.includes("run_shell"));
+  assert(names.includes("mcp_playwright_browser_take_screenshot"));
 });
 
 test("prioritizeToolDefinitionsForTurn leaves non-web turns in their original order", () => {

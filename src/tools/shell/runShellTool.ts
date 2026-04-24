@@ -50,18 +50,6 @@ export const runShellTool: RegisteredTool = {
     const maxRetries = clampNumber(context.config.commandMaxRetries, 0, 3, 1);
     const retryBackoffMs = clampNumber(context.config.commandRetryBackoffMs, 200, 10_000, 1_500);
 
-    if (classification.preferBackground) {
-      throw new ToolExecutionError(
-        "Long-running command should run in background_run.",
-        {
-          code: "PREFER_BACKGROUND",
-          details: {
-            suggestedTool: "background_run",
-          },
-        },
-      );
-    }
-
     const result = await runCommandWithPolicy({
       command,
       cwd: resolvedCwd,

@@ -1,6 +1,6 @@
 import { MessageBus } from "../../team/messageBus.js";
-import { CoordinationPolicyStore } from "../../team/policyStore.js";
 import { ProtocolRequestStore } from "../../team/requestStore.js";
+import { getTeammateShutdownConflict } from "../../team/stateLocks.js";
 import { TeamStore } from "../../team/store.js";
 import { okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -34,18 +34,16 @@ export const shutdownRequestTool: RegisteredTool = {
     }
 
     const args = parseArgs(rawArgs);
-    const policy = await new CoordinationPolicyStore(context.projectContext.stateRootDir).load();
-    if (!policy.allowShutdownRequests) {
-      throw new Error(
-        "Shutdown requests are currently locked by coordination policy. Use coordination_policy to allow shutdown requests before sending them.",
-      );
-    }
     const teammate = readString(args.teammate, "teammate");
     const reason = typeof args.reason === "string" ? args.reason : "Please shut down gracefully.";
     const teamStore = new TeamStore(context.projectContext.stateRootDir);
     const member = await teamStore.findMember(teammate);
     if (!member) {
       throw new Error(`Unknown teammate: ${teammate}`);
+    }
+    const conflict = await getTeammateShutdownConflict(context.projectContext.stateRootDir, member);
+    if (conflict) {
+      throw new Error(`Shutdown request blocked by active teammate state. ${conflict.reason}`);
     }
 
     const store = new ProtocolRequestStore(context.projectContext.stateRootDir);

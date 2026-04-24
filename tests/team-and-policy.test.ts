@@ -63,7 +63,7 @@ test("todo_write syncs active teammate plans into the task board", async (t) => 
   assert.equal(reloaded.checklist?.[1]?.status, "in_progress");
 });
 
-test("coordination policy gates plan approvals and shutdown requests", async (t) => {
+test("coordination policy is not an approval gate for lead plan decisions or idle shutdown", async (t) => {
   const root = await createTempWorkspace("policy", t);
   const leadContext = makeToolContext(root) as any;
   const teamStore = new TeamStore(root);
@@ -83,20 +83,6 @@ test("coordination policy gates plan approvals and shutdown requests", async (t)
     content: "test plan",
   });
 
-  await assert.rejects(
-    () => planApprovalTool.execute(JSON.stringify({ request_id: request.id, approve: true }), leadContext),
-    /coordination policy/i,
-  );
-  await assert.rejects(
-    () => shutdownRequestTool.execute(JSON.stringify({ teammate: "alpha", reason: "done" }), leadContext),
-    /coordination policy/i,
-  );
-
-  await coordinationPolicyTool.execute(
-    JSON.stringify({ allow_plan_decisions: true, allow_shutdown_requests: true }),
-    leadContext,
-  );
-
   const approval = await planApprovalTool.execute(
     JSON.stringify({ request_id: request.id, approve: true, feedback: "ok" }),
     leadContext,
@@ -108,6 +94,21 @@ test("coordination policy gates plan approvals and shutdown requests", async (t)
 
   assert.match(approval.output, /approved/i);
   assert.match(shutdown.output, /Shutdown request/i);
+});
+
+test("shutdown_request is blocked by active teammate state instead of a policy approval switch", async (t) => {
+  const root = await createTempWorkspace("shutdown-state-lock", t);
+  const leadContext = makeToolContext(root) as any;
+  const teamStore = new TeamStore(root);
+  await teamStore.upsertMember("alpha", "writer", "working");
+  const taskStore = new TaskStore(root);
+  const task = await taskStore.create("alpha task", "", { assignee: "alpha" });
+  await taskStore.claim(task.id, "alpha");
+
+  await assert.rejects(
+    () => shutdownRequestTool.execute(JSON.stringify({ teammate: "alpha", reason: "done" }), leadContext),
+    /active teammate state|Task #/i,
+  );
 });
 
 test("spawn and send_message expose explicit collaboration surface contracts", async (t) => {

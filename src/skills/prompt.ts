@@ -44,7 +44,9 @@ export function formatSkillPromptBlock(
 
   if (missingRequired.length > 0) {
     lines.push(`- Missing required: ${missingRequired.map((skill) => skill.name).join(", ")}`);
-    lines.push("- Load the missing required skills with load_skill before using that workflow.");
+    lines.push(
+      "- Consider loading the missing skills with load_skill, but you may first inspect files, paths, and inputs when that helps the task move forward.",
+    );
   }
 
   if (lines.length === 0) {

@@ -45,18 +45,17 @@ export function routeOrchestratorAction(input: {
     };
   }
 
-  const surveyTask = readyTasks.find((task) => task.meta.executor === "subagent" && leadMayAct(task));
+  const surveyTask = readyTasks.find((task) => task.meta.kind === "survey" && leadMayAct(task));
   if (surveyTask) {
     return {
-      action: "delegate_subagent",
-      reason: `Task #${surveyTask.record.id} must be surveyed before downstream stages can continue.`,
+      action: "self_execute",
+      reason: `Task #${surveyTask.record.id} may fit a subagent survey, but the lead must decide whether to delegate, inspect directly, or choose another route.`,
       task: surveyTask,
-      subagentType: "explore",
     };
   }
 
   const backgroundReconcileTask = readyTasks.find((task) =>
-    task.meta.executor === "background" && leadMayAct(task) && Boolean(task.meta.executionId || task.meta.jobId));
+    leadMayAct(task) && Boolean(task.meta.executionId || task.meta.jobId));
   if (backgroundReconcileTask) {
     return {
       action: "self_execute",
@@ -66,7 +65,7 @@ export function routeOrchestratorAction(input: {
   }
 
   const backgroundTask = readyTasks.find((task) =>
-    task.meta.executor === "background" && leadMayAct(task) && !task.meta.executionId && !task.meta.jobId);
+    leadMayAct(task) && Boolean(task.meta.backgroundCommand) && !task.meta.executionId && !task.meta.jobId);
   if (backgroundTask) {
     if (!backgroundTask.meta.backgroundCommand) {
       return {
@@ -77,20 +76,18 @@ export function routeOrchestratorAction(input: {
     }
 
     return {
-      action: "run_in_background",
-      reason: `Task #${backgroundTask.record.id} should move onto the formal background lane.`,
+      action: "self_execute",
+      reason: `Task #${backgroundTask.record.id} may fit background execution for '${backgroundTask.meta.backgroundCommand}', but the lead must decide whether to run it in foreground, background, or choose another route.`,
       task: backgroundTask,
-      backgroundCommand: backgroundTask.meta.backgroundCommand,
     };
   }
 
-  const teammateTask = readyTasks.find((task) => task.meta.executor === "teammate" && leadMayAct(task));
+  const teammateTask = readyTasks.find((task) => task.record.assignee && leadMayAct(task));
   if (teammateTask) {
     return {
-      action: "delegate_teammate",
-      reason: `Task #${teammateTask.record.id} should move onto a teammate lane before the lead continues.`,
+      action: "self_execute",
+      reason: `Task #${teammateTask.record.id} may fit teammate or parallel work, but the lead must decide whether to delegate, do it directly, or choose another route.`,
       task: teammateTask,
-      teammate: selectTeammateTarget(input.progress, teammateTask),
     };
   }
 
@@ -126,15 +123,6 @@ function isActiveLeadTask(lifecycle: OrchestratorTaskLifecycle): boolean {
   return lifecycle.stage === "active" && lifecycle.owner.kind === "lead";
 }
 
-function createWaitDecision(progress: OrchestratorProgressSnapshot): OrchestratorDecision {
-  const wait = collectDelegatedWaitState(progress);
-  return {
-    action: "wait_for_existing_work",
-    reason: formatDelegatedWaitReason(wait),
-    wait,
-  };
-}
-
 function collectDelegatedWaitState(progress: OrchestratorProgressSnapshot): OrchestratorWaitState {
   const taskIds = new Set<number>();
   const teammateNames = new Set<string>();
@@ -155,6 +143,9 @@ function collectDelegatedWaitState(progress: OrchestratorProgressSnapshot): Orch
 
   for (const task of progress.relevantTasks) {
     const lifecycle = getOrchestratorTaskLifecycle(task);
+    if (lifecycle.stage === "completed") {
+      continue;
+    }
     const taskId = task.record.id;
     if (lifecycle.owner.kind === "background" || lifecycle.handoff.kind === "background") {
       taskIds.add(taskId);
@@ -213,30 +204,3 @@ function formatDelegatedWaitReason(wait: OrchestratorWaitState): string {
     : "Waiting for delegated work to advance.";
 }
 
-function selectTeammateTarget(
-  progress: OrchestratorProgressSnapshot,
-  task: OrchestratorTaskSnapshot,
-): { name: string; role: string } {
-  if (task.record.assignee) {
-    const existing = progress.teammates.find((member) => member.name === task.record.assignee);
-    return {
-      name: task.record.assignee,
-      role: existing?.role ?? "implementer",
-    };
-  }
-
-  if (progress.idleTeammates.length > 0) {
-    const firstIdle = progress.idleTeammates[0];
-    if (firstIdle) {
-      return {
-        name: firstIdle.name,
-        role: firstIdle.role,
-      };
-    }
-  }
-
-  return {
-    name: `worker-${progress.teammates.length + 1}`,
-    role: "implementer",
-  };
-}

@@ -144,6 +144,14 @@ function buildAgentExecutionInput(
       `<worktree name="${prepared.worktree.name}" path="${prepared.worktree.path}" branch="${prepared.worktree.branch}" />`,
     );
   }
+  sections.push(
+    [
+      "<execution-boundary protocol=\"deadmouse.execution-boundary.v1\">",
+      `Return control to lead review when this execution reaches ${execution.boundary.maxRuntimeMs}ms runtime or ${execution.boundary.maxIdleMs}ms idle boundary.`,
+      "Do not claim the parent task is complete; hand back concrete status, evidence, blockers, and recommended next options.",
+      "</execution-boundary>",
+    ].join("\n"),
+  );
 
   return sections.filter(Boolean).join("\n\n");
 }

@@ -61,7 +61,7 @@ test("clear helper resets return barrier state to non-pending", async () => {
   assert.equal(state.pending, false);
 });
 
-test("return barrier forces lead review between two delegations in the same orchestration chain", async (t) => {
+test("lead orchestration no longer auto-dispatches multiple delegations in one chain", async (t) => {
   const root = await createTempWorkspace("return-barrier-integration", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -87,6 +87,10 @@ test("return barrier forces lead review between two delegations in the same orch
   });
 
   assert.equal(outcome.kind, "run_lead");
-  assert.equal(subagentCalls, 1);
-  assert.equal(spawnCount, 0, "second delegation should be blocked until lead review runs");
+  assert.equal(subagentCalls, 0);
+  assert.equal(spawnCount, 0);
+  if (outcome.kind === "run_lead") {
+    assert.match(outcome.input, /Stage:\s*survey/i);
+    assert.match(outcome.input, /may fit a subagent/i);
+  }
 });

@@ -122,37 +122,21 @@ function buildTaskSpecs(analysis: OrchestratorAnalysis): TaskSpec[] {
   if (analysis.needsInvestigation || analysis.wantsSubagent) {
     specs.push({
       kind: "survey",
-      executor: "subagent",
+      executor: "lead",
     });
   }
 
-  const implementationExecutor: OrchestratorExecutorKind =
-    analysis.wantsTeammate || (analysis.prefersParallel && analysis.complexity === "complex")
-      ? "teammate"
-      : "lead";
   specs.push({
     kind: "implementation",
-    executor: implementationExecutor,
+    executor: "lead",
     blockedBy: specs.some((spec) => spec.kind === "survey") ? "survey" : undefined,
   });
 
-  const validationExecutor: OrchestratorExecutorKind =
-    analysis.wantsBackground && analysis.backgroundCommand
-      ? "background"
-      : "lead";
   specs.push({
     kind: "validation",
-    executor: validationExecutor,
+    executor: "lead",
     blockedBy: "implementation",
   });
-
-  if (implementationExecutor !== "lead" || validationExecutor !== "lead") {
-    specs.push({
-      kind: "merge",
-      executor: "lead",
-      blockedBy: "validation",
-    });
-  }
   return specs;
 }
 

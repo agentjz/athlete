@@ -1,5 +1,4 @@
 import { MessageBus } from "../../team/messageBus.js";
-import { CoordinationPolicyStore } from "../../team/policyStore.js";
 import { ProtocolRequestStore } from "../../team/requestStore.js";
 import { okResult, parseArgs, readRequiredBoolean, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -39,7 +38,6 @@ export const planApprovalTool: RegisteredTool = {
     const args = parseArgs(rawArgs);
     const store = new ProtocolRequestStore(context.projectContext.stateRootDir);
     const bus = new MessageBus(context.projectContext.stateRootDir);
-    const policyStore = new CoordinationPolicyStore(context.projectContext.stateRootDir);
 
     if (context.identity.kind === "teammate") {
       const plan = readString(args.plan, "plan");
@@ -85,13 +83,6 @@ export const planApprovalTool: RegisteredTool = {
           null,
           2,
         ),
-      );
-    }
-
-    const policy = await policyStore.load();
-    if (!policy.allowPlanDecisions) {
-      throw new Error(
-        "Plan decisions are currently locked by coordination policy. Use coordination_policy to allow plan decisions before approving or rejecting requests.",
       );
     }
 

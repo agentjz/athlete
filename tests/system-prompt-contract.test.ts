@@ -208,7 +208,8 @@ test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   assert.match(block, /Turn match: browser-automation \[suggested; via scene\/trigger\]/);
   assert.match(block, /Turn match: spec-alignment \[required; via task_type\]/);
   assert.match(block, /Missing required: spec-alignment/);
-  assert.match(block, /Load the missing required skills with load_skill before using that workflow\./);
+  assert.match(block, /Consider loading the missing skills with load_skill/);
+  assert.match(block, /you may first inspect files, paths, and inputs/);
   assert.doesNotMatch(block, /Discovered project skill catalog/i);
   assert.doesNotMatch(block, /Research the web with browser-first tools\./);
   assert.doesNotMatch(block, /Drive browser interactions end to end\./);

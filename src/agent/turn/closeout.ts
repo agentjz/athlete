@@ -59,11 +59,25 @@ export function filterToolDefinitionsForCloseout(
 function shouldHideTaskBoardTools(
   params: Pick<CloseoutParams, "changedPaths" | "verificationState">,
 ): boolean {
-  return (
-    params.changedPaths.size > 0 ||
-    (params.verificationState?.pendingPaths?.length ?? 0) > 0 ||
-    (params.verificationState?.attempts ?? 0) > 0
-  );
+  return hasCloseoutEvidence(params);
+}
+
+function hasCloseoutEvidence(
+  params: Pick<CloseoutParams, "changedPaths" | "verificationState">,
+): boolean {
+  return hasChangedPaths(params) || hasPendingVerificationPaths(params) || hasVerificationAttempts(params);
+}
+
+function hasChangedPaths(params: Pick<CloseoutParams, "changedPaths">): boolean {
+  return params.changedPaths.size > 0;
+}
+
+function hasPendingVerificationPaths(params: Pick<CloseoutParams, "verificationState">): boolean {
+  return (params.verificationState?.pendingPaths?.length ?? 0) > 0;
+}
+
+function hasVerificationAttempts(params: Pick<CloseoutParams, "verificationState">): boolean {
+  return (params.verificationState?.attempts ?? 0) > 0;
 }
 
 function shouldPreferCloseout(

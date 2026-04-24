@@ -87,7 +87,7 @@ test("load_skill output remains recognizable across later turns through the sess
   assert.deepEqual(runtime.missingRequiredSkills, []);
 });
 
-test("getSkillToolGateResult blocks non-load_skill actions until required skills are loaded", async (t) => {
+test("getSkillToolGateResult keeps missing required skills advisory so tools can still run", async (t) => {
   const root = await createTempWorkspace("skill-gate", t);
   await writeSkill(root);
   const skills = await discoverSkills(root, root, []);
@@ -109,9 +109,6 @@ test("getSkillToolGateResult blocks non-load_skill actions until required skills
     availableToolNames: ["load_skill", "read_docx", "edit_docx", "write_file"],
   });
 
-  const blocked = getSkillToolGateResult("write_file", runtime);
-  assert.ok(blocked);
-  assert.match(blocked?.output ?? "", /SKILL_REQUIRED/);
-  assert.match(blocked?.output ?? "", /docx-review/);
+  assert.equal(getSkillToolGateResult("write_file", runtime), null);
   assert.equal(getSkillToolGateResult("load_skill", runtime), null);
 });

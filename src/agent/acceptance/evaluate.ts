@@ -396,7 +396,9 @@ function buildAcceptanceSummary(
   }
 
   if (stalledPhaseCount >= 3) {
-    parts.push("Switch strategy: change tools or close the missing acceptance checks before continuing.");
+    parts.push(
+      "Switch strategy now: list what was already tried or verified, choose the next concrete action for the pending checks, and change tool, arguments, or route before continuing. Do not continue with explanation-only text.",
+    );
   }
 
   return parts.join(" ");

@@ -18,7 +18,7 @@ export async function refreshAcceptanceStateForTurn(
   }
 
   const reminder = createInternalReminder(
-    `${evaluation.summary} Change route now: satisfy the pending acceptance checks instead of repeating the same non-progress actions.`,
+    `${evaluation.summary} Change route now: satisfy the pending acceptance checks instead of repeating the same non-progress actions. Choose a concrete next action: change tool, change arguments, or switch route. Do not continue with explanation-only text.`,
   );
   const alreadyInjected = session.messages
     .slice(-3)

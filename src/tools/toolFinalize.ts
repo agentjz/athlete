@@ -1,4 +1,5 @@
 import type { ToolExecutionMetadata, ToolExecutionProtocolMetadata, ToolExecutionResult } from "../types.js";
+import { ensureBlockedResultHasContinuation } from "./blockingResult.js";
 import { validateToolExecutionResult } from "./governance.js";
 import type { ToolRegistryEntry } from "./types.js";
 import type { PreparedToolExecution } from "./toolPrepare.js";
@@ -17,7 +18,8 @@ export function finalizeToolExecution(
 ): ToolExecutionResult {
   const finalized = result.ok ? validateToolExecutionResult(entry, result) : result;
   const status = options.status ?? (finalized.ok ? "completed" : "failed");
-  const guardCode = options.guardCode ?? (status === "blocked" ? readGuardCode(finalized.output) : undefined);
+  const continued = status === "blocked" ? ensureBlockedResultHasContinuation(finalized) : finalized;
+  const guardCode = options.guardCode ?? (status === "blocked" ? readGuardCode(continued.output) : undefined);
   const protocol = buildToolExecutionProtocolMetadata(prepared, {
     phases: status === "blocked" ? ["prepare", "finalize"] : ["prepare", "execute", "finalize"],
     status,
@@ -26,8 +28,8 @@ export function finalizeToolExecution(
   });
 
   return {
-    ...finalized,
-    metadata: mergeToolExecutionMetadata(finalized.metadata, protocol),
+    ...continued,
+    metadata: mergeToolExecutionMetadata(continued.metadata, protocol),
   };
 }
 

@@ -46,7 +46,7 @@ test("TaskStore keeps completed dependency edges so the scheduler can still reco
   assert.deepEqual(completedChild.blocks, [parent.id]);
 });
 
-test("ensureTaskPlan writes an executor-aware graph with an explicit merge step for delegated work", async (t) => {
+test("ensureTaskPlan writes an advisory graph without preselecting lanes or merge", async (t) => {
   const root = await createTempWorkspace("schedule-plan", t);
   const analysis = createComplexAnalysis();
 
@@ -66,24 +66,20 @@ test("ensureTaskPlan writes an executor-aware graph with an explicit merge step 
   assert.ok(survey);
   assert.ok(implementation);
   assert.ok(validation);
-  assert.ok(merge);
+  assert.equal(merge, undefined);
 
   const surveyMeta = readOrchestratorMetadata(survey!.description) as Record<string, unknown> | null;
   const implementationMeta = readOrchestratorMetadata(implementation!.description) as Record<string, unknown> | null;
   const validationMeta = readOrchestratorMetadata(validation!.description) as Record<string, unknown> | null;
-  const mergeMeta = readOrchestratorMetadata(merge!.description) as Record<string, unknown> | null;
-
-  assert.equal(surveyMeta?.executor, "subagent");
-  assert.equal(implementationMeta?.executor, "teammate");
-  assert.equal(validationMeta?.executor, "background");
-  assert.equal(mergeMeta?.executor, "lead");
+  assert.equal(surveyMeta?.executor, "lead");
+  assert.equal(implementationMeta?.executor, "lead");
+  assert.equal(validationMeta?.executor, "lead");
 
   assert.deepEqual(implementation?.blockedBy, [survey!.id]);
   assert.deepEqual(validation?.blockedBy, [implementation!.id]);
-  assert.deepEqual(merge?.blockedBy, [validation!.id]);
 });
 
-test("background child completion promotes a merge task into the lead-ready queue", async (t) => {
+test("background child completion syncs validation without precreating merge", async (t) => {
   const root = await createTempWorkspace("schedule-background-merge", t);
   const analysis = createComplexAnalysis();
 
@@ -140,13 +136,16 @@ test("background child completion promotes a merge task into the lead-ready queu
     cwd: root,
     objective: analysis.objective,
   });
+  const reloadedValidation = progressAfterCompletion.relevantTasks.find((task) => task.record.id === validationTask!.record.id);
   const mergeTask = progressAfterCompletion.relevantTasks.find((task) => task.record.subject.startsWith("Merge:"));
 
-  assert.ok(mergeTask);
-  assert.equal(progressAfterCompletion.readyTasks.some((task) => task.record.id === mergeTask!.record.id), true);
+  assert.ok(reloadedValidation);
+  assert.equal(reloadedValidation?.record.status, "completed");
+  assert.equal(mergeTask, undefined);
+  assert.equal(progressAfterCompletion.readyTasks.some((task) => task.record.id === reloadedValidation!.record.id), false);
 });
 
-test("routing after reload returns the lead to the merge step after delegated background work finishes", async (t) => {
+test("routing after reload does not wait on completed background validation", async (t) => {
   const root = await createTempWorkspace("schedule-reload-merge", t);
   const analysis = createComplexAnalysis();
 
@@ -215,7 +214,7 @@ test("routing after reload returns the lead to the merge step after delegated ba
   });
 
   assert.equal(decision.action, "self_execute");
-  assert.match(String(decision.task?.record.subject ?? ""), /^Merge:/);
+  assert.doesNotMatch(decision.reason, /Waiting for delegated work/i);
 });
 
 function writeMetadataPatch(

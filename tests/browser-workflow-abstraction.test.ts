@@ -34,7 +34,7 @@ function createRuntimeState(loadedSkillNames: string[]): SkillRuntimeState {
   };
 }
 
-test("workflow guard emits browser capability guidance instead of Playwright-specific tool names", () => {
+test("workflow guard does not block shell web fetching while preserving Playwright-independent naming", () => {
   const blocked = getWorkflowToolGateResult(
     "run_shell",
     JSON.stringify({ command: "curl https://example.com -o page.html" }),
@@ -44,16 +44,10 @@ test("workflow guard emits browser capability guidance instead of Playwright-spe
     createRuntimeState(["web-research"]),
   );
 
-  assert.ok(blocked);
-
-  const payload = JSON.parse(blocked.output) as Record<string, unknown>;
-  assert.equal(payload.code, "BROWSER_WORKFLOW_REQUIRED");
-  assert.equal(payload.suggestedCapability, "browser.navigate");
-  assert.equal(payload.suggestedTool, undefined);
-  assert.doesNotMatch(blocked.output, /playwright|mcp_playwright_browser_/i);
+  assert.equal(blocked, null);
 });
 
-test("workflow guard recognizes browser capability progress from non-Playwright browser tool names", () => {
+test("workflow guard does not block shell web fetching after non-Playwright browser progress", () => {
   const blocked = getWorkflowToolGateResult(
     "run_shell",
     JSON.stringify({ command: "curl https://example.com -o page.html" }),
@@ -66,12 +60,7 @@ test("workflow guard recognizes browser capability progress from non-Playwright 
     createRuntimeState(["web-research"]),
   );
 
-  assert.ok(blocked);
-
-  const payload = JSON.parse(blocked.output) as Record<string, unknown>;
-  assert.equal(payload.code, "BROWSER_SNAPSHOT_REQUIRED");
-  assert.equal(payload.suggestedCapability, "browser.snapshot");
-  assert.doesNotMatch(blocked.output, /playwright|mcp_playwright_browser_/i);
+  assert.equal(blocked, null);
 });
 
 test("tool priority recognizes browser capability tools without depending on Playwright naming", () => {

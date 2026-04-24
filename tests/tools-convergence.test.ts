@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { buildSystemPromptLayers, renderPromptLayers } from "../src/agent/promptSections.js";
+import { prioritizeToolDefinitionsForTurn } from "../src/agent/toolPriority.js";
 import { createToolRegistry } from "../src/tools/registry.js";
 import { createRuntimeToolRegistry } from "../src/tools/runtimeRegistry.js";
 import type { ProjectContext } from "../src/types.js";
@@ -26,6 +27,10 @@ function normalizeSlashes(value: string): string {
   return value.replace(/\\/g, "/");
 }
 
+function sortedToolNames(names: string[]): string[] {
+  return [...names].sort((left, right) => left.localeCompare(right));
+}
+
 test("find_files is exposed through the formal runtime registry as a governed builtin read tool", async () => {
   const root = process.cwd();
   const registry = await createRuntimeToolRegistry(
@@ -43,6 +48,28 @@ test("find_files is exposed through the formal runtime registry as a governed bu
   assert.equal(entry.governance.source, "builtin");
   assert.equal(entry.governance.mutation, "read");
   assert.equal(entry.governance.changeSignal, "none");
+  await registry.close?.();
+});
+
+test("turn-time tool prioritization reorders tools without reducing the visible tool set", async () => {
+  const registry = await createRuntimeToolRegistry(
+    createTestRuntimeConfig(process.cwd()),
+    {},
+    {
+      collectMcpSources: async () => [],
+      close: async () => undefined,
+    },
+  );
+  const originalNames = registry.definitions.map((tool) => tool.function.name);
+
+  const prioritized = prioritizeToolDefinitionsForTurn(registry.definitions, {
+    input: "Open https://example.com in the browser and inspect the page.",
+    missingRequiredSkillNames: ["browser-automation"],
+  });
+  const prioritizedNames = prioritized.map((tool) => tool.function.name);
+
+  assert.deepEqual(sortedToolNames(prioritizedNames), sortedToolNames(originalNames));
+  assert.equal(new Set(prioritizedNames).size, new Set(originalNames).size);
   await registry.close?.();
 });
 
