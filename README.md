@@ -1,7 +1,11 @@
-# Deadmouse
+﻿# Deadmouse
 
 <p align="center">
-  <strong>一个以 Lead 为方向盘、以机器层为账本和刹车的任务执行 harness</strong>
+  <strong>A task execution harness where the Lead keeps the wheel and the machine layer keeps the ledger and brakes</strong>
+</p>
+
+<p align="center">
+  <a href="./README.zh.md">中文 README</a>
 </p>
 
 <p align="center">
@@ -12,61 +16,61 @@
   <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-Deadmouse 不是让机器层替 Lead 模型干活，也不是让机器层变成第二个总指挥。它的设计是给 Lead 配上账本、边界、循环守卫、验证门和收口门：用户给目标，Lead 负责理解目标、选路线、调工具、派 team 或 subagent、开后台、回收结果、判断下一步；机器层负责把这些执行行为变成有记录、有状态、有证据的过程。
+Deadmouse does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, verification gates, and closeout gates. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
 
-方向盘始终在 Lead 手里，但 pending 不能假装完成，执行通道不能无限跑，工具失败不能原地解释，没有合流不能交付，没有验证不能收口。简单说，Deadmouse 不是自动驾驶，也不是审批系统；它是一个把大模型执行过程逼到可持续、可恢复、可验证状态的 agent harness。
+The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, tool failures cannot be explained away in place, nothing can be shipped without convergence, and nothing can be closed without verification. In short, Deadmouse is neither autopilot nor an approval system. It is an agent harness that pushes large-model execution toward a durable, recoverable, and verifiable runtime.
 
-## 开发指令
+## Developer commands
 
-| 命令 | 含义 |
+| Command | Meaning |
 | --- | --- |
-| `npm.cmd install` | 安装项目依赖 |
-| `npm.cmd run typecheck` | TypeScript 类型检查 |
-| `npm.cmd run build` | 构建 CLI 到 `dist/cli.js` |
-| `npm.cmd run check` | 执行 `typecheck + build` |
-| `npm.cmd test` | 全量测试，包含 `check + test:core` |
-| `npm.cmd run test:build` | 构建测试产物到 `.test-build/` |
-| `npm.cmd run test:core` | 执行核心测试 |
-| `npm.cmd run verify:skills-api` | 验证 skills API |
-| `npm.cmd run verify:runtime-context-api` | 验证 runtime lightweight context API |
-| `npm.cmd run verify:runtime-checkpoint-api` | 验证 runtime checkpoint API |
-| `npm.cmd run verify:runtime-observability-api` | 验证 runtime observability API |
-| `npm.cmd run verify:mineru-documents-api` | 验证 MinerU 文档能力 API |
-| `npm.cmd run dev` | 用源码启动 CLI |
-| `npm.cmd run dev -- "帮我看看这个项目"` | 用源码执行一次 one-shot 任务 |
-| `node dist/cli.js` | 用构建产物启动交互模式 |
-| `node dist/cli.js "帮我看看这个项目"` | 用构建产物执行一次 one-shot 任务 |
-| `node dist/cli.js telegram serve` | 用构建产物启动 Telegram 服务 |
+| `npm.cmd install` | Install project dependencies |
+| `npm.cmd run typecheck` | Run TypeScript type checking |
+| `npm.cmd run build` | Build the CLI into `dist/cli.js` |
+| `npm.cmd run check` | Run `typecheck + build` |
+| `npm.cmd test` | Run the full test suite, including `check + test:core` |
+| `npm.cmd run test:build` | Build test artifacts into `.test-build/` |
+| `npm.cmd run test:core` | Run the core test suite |
+| `npm.cmd run verify:skills-api` | Verify the skills API |
+| `npm.cmd run verify:runtime-context-api` | Verify the runtime lightweight context API |
+| `npm.cmd run verify:runtime-checkpoint-api` | Verify the runtime checkpoint API |
+| `npm.cmd run verify:runtime-observability-api` | Verify the runtime observability API |
+| `npm.cmd run verify:mineru-documents-api` | Verify the MinerU document capability API |
+| `npm.cmd run dev` | Start the CLI from source |
+| `npm.cmd run dev -- "Help me inspect this project"` | Run a one-shot task from source |
+| `node dist/cli.js` | Start interactive mode from the built artifact |
+| `node dist/cli.js "Help me inspect this project"` | Run a one-shot task from the built artifact |
+| `node dist/cli.js telegram serve` | Start the Telegram service from the built artifact |
 
-## 用户指令
+## User commands
 
-| 命令 | 含义 |
+| Command | Meaning |
 | --- | --- |
-| `npm install -g @jun133/deadmouse` | 全局安装 CLI |
-| `deadmouse init` | 初始化当前项目的 `.deadmouse/` |
-| `deadmouse` | 进入交互模式 |
-| `deadmouse "帮我看看这个项目"` | 执行一次任务 |
-| `deadmouse run "帮我看看这个项目"` | 显式执行一次任务 |
-| `deadmouse resume [sessionId]` | 恢复最近一次或指定会话 |
-| `deadmouse sessions -n 20` | 查看最近会话 |
-| `deadmouse diff [path]` | 查看当前项目 Git diff |
-| `deadmouse changes [changeId]` | 查看变更记录 |
-| `deadmouse undo [changeId]` | 回滚最近一次或指定变更 |
-| `deadmouse config show` | 查看当前配置 |
-| `deadmouse config path` | 查看配置文件路径 |
-| `deadmouse doctor` | 检查本地配置和 API 连通性 |
-| `deadmouse telegram serve` | 启动 Telegram 私聊服务 |
+| `npm install -g @jun133/deadmouse` | Install the CLI globally |
+| `deadmouse init` | Initialize `.deadmouse/` for the current project |
+| `deadmouse` | Enter interactive mode |
+| `deadmouse "Help me inspect this project"` | Run a one-shot task |
+| `deadmouse run "Help me inspect this project"` | Explicitly run a one-shot task |
+| `deadmouse resume [sessionId]` | Resume the latest or a specific session |
+| `deadmouse sessions -n 20` | List recent sessions |
+| `deadmouse diff [path]` | Show the current project's Git diff |
+| `deadmouse changes [changeId]` | Show recorded changes |
+| `deadmouse undo [changeId]` | Roll back the latest or a specific change |
+| `deadmouse config show` | Show the current configuration |
+| `deadmouse config path` | Show the configuration file path |
+| `deadmouse doctor` | Check local configuration and API connectivity |
+| `deadmouse telegram serve` | Start the Telegram direct-message service |
 
-## 发布指令
+## Release commands
 
-| 命令 | 含义 |
+| Command | Meaning |
 | --- | --- |
-| `npm login` | 登录 NPM |
-| `npm whoami` | 确认当前发布账号 |
-| `npm.cmd run check` | 发布前执行类型检查和构建 |
-| `npm.cmd test` | 发布前执行全量测试 |
-| `npm pack --dry-run` | 预览即将发布到 NPM 的文件 |
-| `npm version patch` | 发布补丁版本 |
-| `npm version minor` | 发布次版本 |
-| `npm version major` | 发布主版本 |
-| `npm publish` | 发布到 NPM |
+| `npm login` | Sign in to NPM |
+| `npm whoami` | Confirm the current publishing account |
+| `npm.cmd run check` | Run type checking and build before publishing |
+| `npm.cmd test` | Run the full test suite before publishing |
+| `npm pack --dry-run` | Preview the files that would be published to NPM |
+| `npm version patch` | Publish a patch version |
+| `npm version minor` | Publish a minor version |
+| `npm version major` | Publish a major version |
+| `npm publish` | Publish to NPM |
