@@ -1,4 +1,4 @@
-# "死老鼠"智能体
+# 🐭"灭鼠"人工智能代理
 
 <p align="center">
   <strong>一个以 Lead 为方向盘、以机器层为账本和刹车的任务执行 harness</strong>
