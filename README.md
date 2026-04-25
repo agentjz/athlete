@@ -1,163 +1,42 @@
 # Deadmouse
 
 <p align="center">
-  <strong>一个专注于解决问题与持续推进任务的智能体</strong>
+  <strong>一个以 Lead 为方向盘、以机器层为账本和刹车的任务执行 harness</strong>
 </p>
 
 <p align="center">
-  <img alt="problem solving agent" src="https://img.shields.io/badge/problem--solving-agent-2ea44f?style=for-the-badge">
-  <img alt="durable runtime" src="https://img.shields.io/badge/durable-runtime-1f6feb?style=for-the-badge">
-  <img alt="gpt-5.4 supported" src="https://img.shields.io/badge/GPT--5.4-supported-0f766e?style=for-the-badge">
-  <img alt="checkpoint persisted" src="https://img.shields.io/badge/checkpoint-persisted-8250df?style=for-the-badge">
-  <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-f59e0b?style=for-the-badge">
+  <img alt="lead harness" src="https://img.shields.io/badge/lead-harness-c0c0c0?style=for-the-badge&labelColor=111827">
+  <img alt="durable runtime" src="https://img.shields.io/badge/durable-runtime-9ca3af?style=for-the-badge&labelColor=1f2937">
+  <img alt="gpt-5.4 supported" src="https://img.shields.io/badge/GPT--5.4-supported-d6d3d1?style=for-the-badge&labelColor=292524">
+  <img alt="checkpoint persisted" src="https://img.shields.io/badge/checkpoint-persisted-64748b?style=for-the-badge&labelColor=0f172a">
+  <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-一个专注于解决问题的智能体。
+Deadmouse 不是让机器层替 Lead 模型干活，也不是让机器层变成第二个总指挥。它的设计是给 Lead 配上账本、边界、循环守卫、验证门和收口门：用户给目标，Lead 负责理解目标、选路线、调工具、派 team 或 subagent、开后台、回收结果、判断下一步；机器层负责把这些执行行为变成有记录、有状态、有证据的过程。
 
-Deadmouse 现已正式支持 GPT-5.4，并已经完成真实 `doctor` 探测、真实 Responses API 请求和真实 Agent 回合验证。现在它不仅支持 OpenAI-compatible chat provider，也已经有一条正式可维护的 GPT-5.4 `responses` 接入链路。
-
-一个单纯的 LLM，往往擅长回答问题；一个加上 harness 的 LLM，才开始真正接住任务。它不只是“说下一句”，而是能在复杂任务里持续往前跑，知道什么时候该读文件、什么时候该调用工具、什么时候该拆任务、什么时候该把状态记下来，出了错以后还能接着做。✨
-
-Deadmouse 想做的，就是这层把模型变成“可执行系统”的底盘。它不只是在终端里包一层聊天壳，而是把状态、工具、恢复、协作和通道接成一条完整链路，让任务可以推进、暂停、恢复、续跑，并把过程留下来。🛠️
-
-Deadmouse 当前的核心不是“陪聊”，而是“持续推进任务”：
-
-- 一个耐跑的主 Agent
-- 一个会拆任务、派任务、等任务、合流任务的总指挥层
-- 一套统一的控制面、宿主边界和扩展口
-
-它已经不该被理解成一个“自己闷头干活的单兵 Agent”，而应该被理解成：
-
-- 一个能长期耐跑的主 Agent
-- 一个会组织任务、拆解任务、调度任务的总指挥
-- 一个把工具、技能、宿主和控制面统一起来的平台内核
-
-主文档现在只看 `spec/`：
-
-- 给人审阅的：`spec/用户审阅/`
-- 给实现和测试用的：`spec/技术实现/`
-
-## 一个完整例子
-
-比如用户在 Telegram 私聊里丢来一句话，再附上几份材料：
-
-> “帮我做一个《Helldivers 2》最新新闻情报包。  
-> 去网上找最新公开新闻，再结合我刚发给你的 PDF、截图、docx、pptx、表格和一个公开链接，最后给我：  
-> 1. 一个网页摘要  
-> 2. 一份 markdown 报告  
-> 3. 一份 docx 成品  
-> 4. 把最终文件回传给我。  
-> 如果任务太大，你自己拆分和调度。”
-
-这一个例子，基本就能把 Deadmouse 当前大部分能力串起来。🌟
-
-### 你从用户视角会看到什么 👀
-
-你看到的不是“建议你这样做”，而是一条真的在推进的任务链：
-
-1. 它先接住多种输入。
-   不管你是从 CLI 直接发任务，还是从 Telegram 私聊发消息、发图片、发文件、发语音，它都不是当成一段普通聊天，而是当成一个真实任务的入口。
-2. 它先理解任务全貌。
-   它会判断：这个目标不只是“找新闻”，还包含网页信息搜集、附件解析、报告生成、文件交付和最终验证，所以不能闷头一步做到底。
-3. 它会把不同材料接进来。
-   PDF、截图、docx、pptx、表格、公开 URL，都不会被一刀切当成“普通文件”处理，而是按各自最合适的读取链路走。
-4. 它会真的去外部世界看。
-   它会去搜新闻、打开页面、检查标题、时间、链接和内容，而不是假装“我大概知道最新新闻是什么”。
-5. 它会真的开始干活。
-   它会写报告、改文件、做网页、补脚本、整理输出，而不是只给你一个“你可以这样做”的方案。
-6. 它会自己组织任务。
-   一部分工作可以自己做，一部分可以放后台慢慢跑，一部分可以拆给别的执行者并行推进。
-7. 它会继续验证。
-   它不会一写完就说“完成了”，而是继续检查网页、命令、HTTP 探针、输出文件和最终交付是否真的可用。
-8. 它会把结果交回给你。
-   如果你在 Telegram 里，它会把文本结果分块可见地发出来，并在需要时把最终文件直接发回去。
-9. 如果你中途要停，它也不会炸掉。
-   `/stop` 会停当前任务，但宿主服务不会退出；你下一条消息还可以继续接着干。🫶
-
-### 系统在机器层 / 开发视角到底做了什么 🤖
-
-这个例子背后，不是 prompt 在“努力自觉”，而是机器层在强约束：
-
-1. 统一宿主入口。
-   同一个任务，不管来自 CLI 还是 Telegram，都会先经过统一宿主边界进入核心，而不是每个宿主自己偷偷拼一套 runtime。
-2. Lead 先建立当前目标帧。
-   普通新输入会成为新的 current objective，旧 todo、旧 checkpoint、旧任务板只作为 carryover 留账，不再把模型拉回上一轮；只有“继续/恢复”这类输入才沿用旧现场。
-3. 委派只认用户前缀。
-   不加前缀时默认 Lead 单兵执行；`/team` 才允许队友，`/subagent` 才允许子代理，`/team/subagent` 才允许两条 agent 通道同时参与。机器不再靠关键词猜“要不要派人”。
-4. 控制面落正式真相。
-   任务、队友、后台任务、协议请求、worktree 绑定这些状态，都落在统一控制面里，不靠聊天记录临时记忆。
-5. session 是任务现场，不是普通聊天记录。
-   session 里会带着 checkpoint、verificationState、acceptanceState、runtimeStats，所以系统中断以后不是从零开始，而是能从现场继续；但用户换新目标时，旧现场不能压住新目标。
-6. 文件和材料按能力链路走。
-   PDF 会走 `mineru_pdf_read`，图片走 `mineru_image_read`，docx 走 `mineru_doc_read`，pptx 走 `mineru_ppt_read`，表格走 `read_spreadsheet`，公开链接走 `download_url`，不是所有输入都粗暴塞给一个读文件工具。
-7. 网页和文件能力都是真实动作。
-   网页部分依赖轻量 HTTP / 下载链路与按需浏览器能力：`http_request`、`download_url` 这类工具定义会先给 Lead，真正联网发生在工具执行时；Playwright MCP 这类重型浏览器服务也先暴露能力定义，只有 Lead 明确调用浏览器工具时才启动。本地部分依赖 `read_file`、`write_file`、`edit_file`、`apply_patch`、`search_files`、`run_shell` 等真实工具，而不是让模型“脑补执行”。
-8. 慢任务和并行任务有正式执行位。
-   慢操作可以进入 `background_run`；队友和子代理必须由用户前缀明确打开；并行改动需要 worktree 隔离，而不是所有执行者挤在同一个目录里乱改。
-9. finalize 受机器状态约束。
-   一旦文件改动、工具执行或 closeout 条件触发，verification 和 acceptance 会进入正式状态机；没验过、没收口、没满足条件，就不能假装完成。
-10. 文件交付不是旁路。
-   Telegram 的 send file 能力是通过宿主边界注入的正式 extra tool，不是宿主自己绕开核心偷偷发文件。
-11. 通道自己的现实语义也被保留。
-   Telegram 会保留它的 delivery、typing 和 `/stop` 语义，但这些都不能反过来定义核心真相。
-12. 所有这些能力最后还能重新回到同一条主路径。
-   所以 Deadmouse 不是“碰巧能做很多事”，而是“在机器层被组织成了同一个可续跑、可调度、可验证的系统”。🧭
-
-所以这个例子展示的，不只是“Agent 会不会写代码”，而是整个项目真正的能力全景：
-
-- 网页研究与浏览器动作
-- 文档、图片、PPT、表格、URL 输入链路
-- 本地文件读写与补丁修改
-- shell、后台任务和 HTTP 验证
-- lead 调度、teammate、background、worktree
-- session、checkpoint、verification、acceptance、runtime stats
-- CLI、Telegram 两种宿主入口
-- 文本结果与文件结果的最终交付
-
-## 已实现功能
-
-| 能力 | 接口 / 实现 | 状态 |
-| --- | --- | --- |
-| GPT-5.4 模型支持 | OpenAI relay + Responses adapter，已真实跑通 | ✅ |
-| Provider 双层接入边界 | 通用请求协议层 + provider / wire adapter 层 | ✅ |
-| 浏览器自动化 | Playwright MCP `@playwright/mcp`，定义先可见，执行时按需启动 | ✅ |
-| PDF 读取 | `mineru_pdf_read` + `mineru-pdf-reading` | ✅ |
-| 图片读取 | `mineru_image_read` + `mineru-image-reading` | ✅ |
-| Word 读取 | `mineru_doc_read` + `mineru-doc-reading`，`.docx` 可回退到 `read_docx` | ✅ |
-| Word 写入 / 编辑 | `write_docx` / `edit_docx` | ✅ |
-| PPT / PPTX 读取 | `mineru_ppt_read` + `mineru-ppt-reading` | ✅ |
-| 表格读取 | `read_spreadsheet`，支持 `xlsx` / `xls` / `csv` / `tsv` / `ods` | ✅ |
-| 远程文件获取 | `download_url` | ✅ |
-| HTTP 探针 | `http_probe` | ✅ |
-| 本地文件读写 / 补丁 | `read_file` / `write_file` / `edit_file` / `apply_patch` / `search_files` | ✅ |
-| Shell 与后台任务 | `run_shell` / `background_run` / `background_check` | ✅ |
-| 任务板与协作队友 | `task` / `spawn_teammate` / `read_inbox` / `send_message` | ✅ |
-| 隔离工作区 | Git worktree：`worktree_*` | ✅ |
-| Telegram 私聊接入 | `deadmouse telegram serve` | ✅ |
-
-## 使用说明
-
-- 当前项目默认示例配置已经切到 GPT-5.4；初始化 `.deadmouse/.env` 后可以直接按 README / `deadmouse doctor` 的提示完成接入。
-- 当前已支持 GPT-5.4，推荐通过项目自己的 `.deadmouse/.env` 配置默认 `DEADMOUSE_PROVIDER`、`DEADMOUSE_BASE_URL`、`DEADMOUSE_MODEL` 和 `DEADMOUSE_API_KEY`；如需分层用模型，可以额外配置 `DEADMOUSE_LEAD_*`、`DEADMOUSE_TEAMMATE_*`、`DEADMOUSE_SUBAGENT_*` 三组 provider bundle。
-- 默认任务由 Lead 单兵执行；需要队友时用 `/team` 开头，需要子代理时用 `/subagent` 开头，两者都要上时用 `/team/subagent` 开头。
-- 文档读取能力依赖 `MINERU_API_TOKEN`。
-- Telegram 需要 `DEADMOUSE_TELEGRAM_TOKEN` 和 `DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS`。
-- Telegram 当前只支持 private chat，不支持 group / supergroup / channel；非私聊或非白名单消息会被忽略，并在终端 logs 里标出原因。
-- Telegram 私聊支持 `/stop`，可以停止当前任务但不关闭服务。
-- Telegram 支持 file 输入与 file 回传；终端 logs 会用面向操作者的短句显示服务启动、消息接入、投递和失败信息。
+方向盘始终在 Lead 手里，但 pending 不能假装完成，执行通道不能无限跑，工具失败不能原地解释，没有合流不能交付，没有验证不能收口。简单说，Deadmouse 不是自动驾驶，也不是审批系统；它是一个把大模型执行过程逼到可持续、可恢复、可验证状态的 agent harness。
 
 ## 开发指令
 
 | 命令 | 含义 |
 | --- | --- |
-| `npm.cmd install` | 安装依赖 |
+| `npm.cmd install` | 安装项目依赖 |
+| `npm.cmd run typecheck` | TypeScript 类型检查 |
 | `npm.cmd run build` | 构建 CLI 到 `dist/cli.js` |
 | `npm.cmd run check` | 执行 `typecheck + build` |
-| `npm.cmd test` | 执行完整测试 |
-| `npm.cmd run test:build` | 单独构建测试产物 |
-| `node dist\\cli.js` | 用构建产物启动 CLI |
-| `node dist\\cli.js "帮我看看这个项目"` | 执行一次 one-shot 任务 |
-| `node dist\\cli.js telegram serve` | 源码环境启动 Telegram 服务 |
+| `npm.cmd test` | 全量测试，包含 `check + test:core` |
+| `npm.cmd run test:build` | 构建测试产物到 `.test-build/` |
+| `npm.cmd run test:core` | 执行核心测试 |
+| `npm.cmd run verify:skills-api` | 验证 skills API |
+| `npm.cmd run verify:runtime-context-api` | 验证 runtime lightweight context API |
+| `npm.cmd run verify:runtime-checkpoint-api` | 验证 runtime checkpoint API |
+| `npm.cmd run verify:runtime-observability-api` | 验证 runtime observability API |
+| `npm.cmd run verify:mineru-documents-api` | 验证 MinerU 文档能力 API |
+| `npm.cmd run dev` | 用源码启动 CLI |
+| `npm.cmd run dev -- "帮我看看这个项目"` | 用源码执行一次 one-shot 任务 |
+| `node dist/cli.js` | 用构建产物启动交互模式 |
+| `node dist/cli.js "帮我看看这个项目"` | 用构建产物执行一次 one-shot 任务 |
+| `node dist/cli.js telegram serve` | 用构建产物启动 Telegram 服务 |
 
 ## 用户指令
 
@@ -184,7 +63,9 @@ Deadmouse 当前的核心不是“陪聊”，而是“持续推进任务”：
 | --- | --- |
 | `npm login` | 登录 NPM |
 | `npm whoami` | 确认当前发布账号 |
-| `npm.cmd run check` | 发布前检查 |
+| `npm.cmd run check` | 发布前执行类型检查和构建 |
+| `npm.cmd test` | 发布前执行全量测试 |
+| `npm pack --dry-run` | 预览即将发布到 NPM 的文件 |
 | `npm version patch` | 发布补丁版本 |
 | `npm version minor` | 发布次版本 |
 | `npm version major` | 发布主版本 |

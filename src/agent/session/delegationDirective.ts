@@ -19,7 +19,7 @@ const NONE: DelegationDirective = {
 
 export function parseDelegationDirective(input: string | null | undefined): ParsedDelegationDirective {
   const text = String(input ?? "").trim();
-  const match = text.match(/^\/(team\/subagent|team|subagent)(?:\s+|$)([\s\S]*)$/i);
+  const match = text.match(/^@(team\/subagent|team|subagent)(?:\s+|$)([\s\S]*)$/i);
   if (!match) {
     return {
       directive: NONE,

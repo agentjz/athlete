@@ -125,6 +125,14 @@ test("config keeps dotenv loading and runtime env resolution behind one formal e
   assert.equal(configFiles.some((file) => file.endsWith(path.join("src", "config", "store.ts"))), true);
 });
 
+test("npm package allowlist includes repo skills for runtime discovery", async () => {
+  const packageJson = JSON.parse(await fs.readFile("package.json", "utf8")) as {
+    files?: string[];
+  };
+
+  assert.equal(packageJson.files?.includes("skills"), true);
+});
+
 test("CLI error rendering classifies network failures instead of only echoing the raw exception", () => {
   const message = getErrorMessage(
     Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:443"), {

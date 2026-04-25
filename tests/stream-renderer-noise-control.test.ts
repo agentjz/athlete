@@ -244,16 +244,21 @@ test("stream renderer compacts apply_patch call previews to head lines with rema
 });
 
 function countPreviewLines(output: string, label: "[content]" | "[preview]"): number {
+  const normalizedOutput = stripAnsi(output);
   const marker = `${label}\n`;
-  const markerIndex = output.indexOf(marker);
+  const markerIndex = normalizedOutput.indexOf(marker);
   if (markerIndex < 0) {
     return 0;
   }
 
-  const previewText = output.slice(markerIndex + marker.length).trim();
+  const previewText = normalizedOutput.slice(markerIndex + marker.length).trim();
   if (!previewText) {
     return 0;
   }
 
   return previewText.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");
 }

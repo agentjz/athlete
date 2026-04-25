@@ -771,16 +771,13 @@ test("telegram service can locate a workspace file and send it back through the 
   assert.deepEqual(bot.sentDocuments.map((entry) => entry.fileName), ["README.txt"]);
 });
 
-test("README documents Telegram bot setup, /stop semantics, file transfer, and terminal logs for first-time users", async () => {
+test("README exposes the Telegram serve command without carrying detailed setup docs", async () => {
   const readme = await fs.readFile(path.join(process.cwd(), "README.md"), "utf8");
 
   assert.match(readme, /deadmouse telegram serve/i);
-  assert.match(readme, /DEADMOUSE_TELEGRAM_TOKEN/);
-  assert.match(readme, /DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS/);
-  assert.match(readme, /\/stop/);
   assert.match(readme, /Telegram/i);
-  assert.match(readme, /file/i);
-  assert.match(readme, /log/i);
+  assert.doesNotMatch(readme, /DEADMOUSE_TELEGRAM_TOKEN/);
+  assert.doesNotMatch(readme, /DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS/);
   assert.doesNotMatch(readme, /\bweixin\b/i);
   assert.doesNotMatch(readme, /微信/);
   assert.doesNotMatch(readme, /DEADMOUSE_WEIXIN/);

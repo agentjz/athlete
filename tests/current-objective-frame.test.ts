@@ -112,21 +112,27 @@ test("delegation intent only comes from explicit user prefixes", async (t) => {
     input: "请派出一个队友和 subagent 看看这个问题",
     session,
   });
-  const team = analyzeOrchestratorInput({
+  const slash = analyzeOrchestratorInput({
     input: "/team 请研究这个问题",
     session,
   });
+  const team = analyzeOrchestratorInput({
+    input: "@team 请研究这个问题",
+    session,
+  });
   const subagent = analyzeOrchestratorInput({
-    input: "/subagent 请研究这个问题",
+    input: "@subagent 请研究这个问题",
     session,
   });
   const both = analyzeOrchestratorInput({
-    input: "/team/subagent 请研究这个问题",
+    input: "@team/subagent 请研究这个问题",
     session,
   });
 
   assert.equal(plain.wantsTeammate, false);
   assert.equal(plain.wantsSubagent, false);
+  assert.equal(slash.wantsTeammate, false);
+  assert.equal(slash.wantsSubagent, false);
   assert.equal(team.wantsTeammate, true);
   assert.equal(team.wantsSubagent, false);
   assert.equal(subagent.wantsTeammate, false);
@@ -144,7 +150,7 @@ test("lead cannot spawn delegation lanes without an explicit prefix", async (t) 
   assert.ok(blocked);
   assert.match(blocked.output, /DELEGATION_PREFIX_REQUIRED/);
 
-  const prefixed = await initializeTurnSession(session, "/team 做一次明确队友演示", sessionStore);
+  const prefixed = await initializeTurnSession(session, "@team 做一次明确队友演示", sessionStore);
   const allowed = getPlanBlockedResult("spawn_teammate", "{}", prefixed, { kind: "lead", name: "lead" });
   assert.equal(allowed, null);
 });

@@ -16,6 +16,7 @@
     "dist",
     "README.md",
     "spec",
+    "skills",
     "scripts/postinstall-playwright.mjs"
   ],
   "publishConfig": {

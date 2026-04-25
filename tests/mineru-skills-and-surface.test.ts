@@ -201,7 +201,7 @@ test("stream renderer shows MinerU document tool calls with file paths", async (
   assert.match(output, /# Deck/);
 });
 
-test("README, spec, skills docs, and package scripts describe the MinerU document chain", async () => {
+test("README exposes the MinerU verification command while spec and skills docs describe the document chain", async () => {
   const readme = await fsPromises.readFile(path.join(REPO_ROOT, "README.md"), "utf8");
   const skillsReadme = await fsPromises.readFile(path.join(REPO_ROOT, "skills", "README.md"), "utf8");
   const spec = await fsPromises.readFile(
@@ -212,7 +212,11 @@ test("README, spec, skills docs, and package scripts describe the MinerU documen
     scripts?: Record<string, string>;
   };
 
-  for (const source of [readme, skillsReadme, spec]) {
+  assert.match(readme, /verify:mineru-documents-api/);
+  assert.doesNotMatch(readme, /`read_pdf`/);
+  assert.doesNotMatch(readme, /`pdf-reading`/);
+
+  for (const source of [skillsReadme, spec]) {
     assert.match(source, /mineru_pdf_read/);
     assert.match(source, /mineru_doc_read/);
     assert.match(source, /mineru_ppt_read/);
