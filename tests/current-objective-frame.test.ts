@@ -125,7 +125,7 @@ test("delegation intent only comes from explicit user prefixes", async (t) => {
     session,
   });
   const both = analyzeOrchestratorInput({
-    input: "@team/subagent 请研究这个问题",
+    input: "@allpeople 请研究这个问题",
     session,
   });
 

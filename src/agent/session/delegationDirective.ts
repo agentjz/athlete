@@ -19,7 +19,7 @@ const NONE: DelegationDirective = {
 
 export function parseDelegationDirective(input: string | null | undefined): ParsedDelegationDirective {
   const text = String(input ?? "").trim();
-  const match = text.match(/^@(team\/subagent|team|subagent)(?:\s+|$)([\s\S]*)$/i);
+  const match = text.match(/^@(allpeople|team|subagent)(?:\s+|$)([\s\S]*)$/i);
   if (!match) {
     return {
       directive: NONE,
@@ -30,8 +30,8 @@ export function parseDelegationDirective(input: string | null | undefined): Pars
   const prefix = match[1]!.toLowerCase();
   return {
     directive: {
-      teammate: prefix === "team" || prefix === "team/subagent",
-      subagent: prefix === "subagent" || prefix === "team/subagent",
+      teammate: prefix === "team" || prefix === "allpeople",
+      subagent: prefix === "subagent" || prefix === "allpeople",
       source: "user_prefix",
     },
     input: String(match[2] ?? "").trim(),

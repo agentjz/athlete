@@ -34,7 +34,7 @@ export function getPlanBlockedResult(
           ok: false,
           error: "Delegation requires an explicit user prefix.",
           code: "DELEGATION_PREFIX_REQUIRED",
-          hint: "Run the task directly as Lead, or ask the user to start the next request with @team, @subagent, or @team/subagent.",
+          hint: "Run the task directly as Lead, or ask the user to start the next request with @team, @subagent, or @allpeople.",
           next_step: "Do not spawn teammates or subagents for this turn unless the current user objective carries an explicit delegation prefix.",
         },
         null,
