@@ -1,4 +1,4 @@
-# Deadmouse
+# deadmouse-agent
 
 <p align="center">
   <strong>一个以 Lead 为方向盘、以机器层为账本和刹车的任务执行 harness</strong>

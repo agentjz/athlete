@@ -1,4 +1,4 @@
-﻿# Deadmouse
+﻿# deadmouse-agent
 
 <p align="center">
   <strong>A task execution harness where the Lead keeps the wheel and the machine layer keeps the ledger and brakes</strong>
