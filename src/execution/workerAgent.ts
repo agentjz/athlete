@@ -4,10 +4,12 @@ import { runManagedAgentTurn } from "../agent/turn.js";
 import { runAgentTurn } from "../agent/runTurn.js";
 import { SessionStore } from "../agent/session.js";
 import { isSessionNotFoundError } from "../agent/session/errors.js";
+import type { AgentCallbacks } from "../agent/types.js";
 import { getSubagentProfile, resolveSubagentMode } from "../subagent/profiles.js";
 import { TeamStore } from "../team/store.js";
 import { createToolRegistry } from "../tools/index.js";
-import type { RuntimeConfig, StoredMessage, ToolExecutionMetadata } from "../types.js";
+import type { RuntimeConfig, StoredMessage } from "../types.js";
+import { runWithinAgentExecutionBoundary } from "./agentBoundary.js";
 import { closeExecution } from "./closeout.js";
 import { ExecutionStore } from "./store.js";
 import { prepareExecutionTaskContext } from "./taskBinding.js";
@@ -44,33 +46,54 @@ export async function runAgentExecution(rootDir: string, config: RuntimeConfig, 
 
   try {
     const inputText = buildAgentExecutionInput(execution, prepared);
-    const result = execution.profile === "subagent"
-      ? await runSubagentExecutionSlice({
-          input: inputText,
-          cwd: prepared.cwd,
-          config,
-          session,
-          sessionStore,
-          identity: {
-            kind: "subagent",
-            name: execution.actorName,
-            role: execution.actorRole,
-          },
-          subagentType: execution.actorRole ?? "explore",
-        })
-      : await runManagedAgentTurn({
-          input: inputText,
-          cwd: prepared.cwd,
-          config,
-          session,
-          sessionStore,
-          identity: teammateIdentity ?? {
-            kind: "teammate",
-            name: execution.actorName,
-            role: execution.actorRole ?? "implementer",
-            teamName: "default",
-          },
-        });
+    const boundaryResult = await runWithinAgentExecutionBoundary({
+      boundary: execution.boundary,
+      run: ({ abortSignal, callbacks }) => execution.profile === "subagent"
+        ? runSubagentExecutionSlice({
+            input: inputText,
+            cwd: prepared.cwd,
+            config,
+            session,
+            sessionStore,
+            callbacks,
+            abortSignal,
+            identity: {
+              kind: "subagent",
+              name: execution.actorName,
+              role: execution.actorRole,
+            },
+            subagentType: execution.actorRole ?? "explore",
+          })
+        : runManagedAgentTurn({
+            input: inputText,
+            cwd: prepared.cwd,
+            config,
+            session,
+            sessionStore,
+            callbacks,
+            abortSignal,
+            identity: teammateIdentity ?? {
+              kind: "teammate",
+              name: execution.actorName,
+              role: execution.actorRole ?? "implementer",
+              teamName: "default",
+            },
+          }),
+    });
+    if (boundaryResult.kind === "boundary") {
+      await closeExecution({
+        rootDir,
+        executionId: execution.id,
+        status: "paused",
+        summary: boundaryResult.reason.message,
+        output: JSON.stringify(boundaryResult.reason, null, 2),
+        pauseReason: boundaryResult.reason.message,
+        statusDetail: boundaryResult.reason.code,
+      });
+      return;
+    }
+
+    const result = boundaryResult.result;
 
     await closeExecution({
       rootDir,
@@ -162,6 +185,8 @@ async function runSubagentExecutionSlice(input: {
   config: RuntimeConfig;
   session: Awaited<ReturnType<SessionStore["create"]>>;
   sessionStore: SessionStore;
+  callbacks?: AgentCallbacks;
+  abortSignal?: AbortSignal;
   identity: {
     kind: "subagent";
     name: string;
@@ -186,6 +211,8 @@ async function runSubagentExecutionSlice(input: {
       onlyNames: profile.toolNames,
       excludeNames: ["task"],
     }),
+    callbacks: input.callbacks,
+    abortSignal: input.abortSignal,
     identity: input.identity,
   });
 }

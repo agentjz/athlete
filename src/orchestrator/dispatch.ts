@@ -2,10 +2,9 @@ import { createEmptyTaskState } from "../agent/session.js";
 import { BackgroundJobStore } from "../execution/background.js";
 import { spawnExecutionWorker as defaultSpawnExecutionWorker } from "../execution/launch.js";
 import { ExecutionStore } from "../execution/store.js";
-import { runSubagentTask as defaultRunSubagentTask } from "../subagent/run.js";
+import { launchSubagentWorkerExecution } from "../subagent/launch.js";
 import { TeamStore } from "../team/store.js";
 import { TaskStore } from "../tasks/store.js";
-import { createToolRegistry } from "../tools/index.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
 import { clearOrchestratorReturnBarrier, markOrchestratorReturnBarrierPending } from "./returnBarrier.js";
@@ -23,7 +22,6 @@ import type {
   OrchestratorAnalysis,
   OrchestratorDecision,
   OrchestratorDispatchDependencies,
-  OrchestratorSubagentInput,
   PrepareLeadTurnOptions,
 } from "./types.js";
 
@@ -42,11 +40,6 @@ export async function dispatchOrchestratorAction(input: {
   decision: OrchestratorDecision;
 }> {
   const deps = {
-    runSubagentTask: input.deps?.runSubagentTask ?? (async (options: OrchestratorSubagentInput) =>
-      defaultRunSubagentTask({
-        ...options,
-        createToolRegistry,
-      })),
     spawnExecutionWorker: input.deps?.spawnExecutionWorker ?? defaultSpawnExecutionWorker,
   };
   const taskStore = new TaskStore(input.rootDir);
@@ -67,42 +60,32 @@ export async function dispatchOrchestratorAction(input: {
         return { session, decision: input.decision };
       }
       assertTaskReadyFor("delegate_subagent", task, "lead");
+      if (task.meta.executionId) {
+        throw new Error(`Task #${task.record.id} already has execution '${task.meta.executionId}'.`);
+      }
 
-      await claimForLead(taskStore, task.record.id);
-      const result = await deps.runSubagentTask({
-        description: task.record.subject,
-        prompt: buildSubagentPrompt(input.analysis, task.record.id, task.record.subject),
-        agentType: input.decision.subagentType ?? "explore",
+      const { execution } = await launchSubagentWorkerExecution({
+        rootDir: input.rootDir,
         cwd: input.cwd,
         config: input.config,
-        callbacks: input.callbacks,
-        taskId: task.record.id,
+        description: `Task #${task.record.id}: ${task.record.subject}`,
+        prompt: buildSubagentPrompt(input.analysis, task.record.id, task.record.subject),
+        agentType: input.decision.subagentType ?? "explore",
         requestedBy: "lead",
+        taskId: task.record.id,
+        actorName: `subagent-${task.record.id}`,
         worktreePolicy: input.decision.subagentType === "code" ? "task" : "none",
+      }, {
+        spawnExecutionWorker: deps.spawnExecutionWorker,
       });
       await patchTaskMetadata(taskStore, task.record.id, {
-        executionId: result.executionId,
+        executionId: execution.id,
       });
-      if (result.status === "budget_exhausted") {
-        await taskStore.update(task.record.id, {
-          owner: "lead",
-        }).catch(() => null);
-        session = await appendOrchestratorNote(
-          session,
-          input.sessionStore,
-          `Orchestrator delegated Task #${task.record.id} onto execution '${result.executionId}' but hit a hard subagent budget.\n<subagent-budget>${JSON.stringify(result.budgetExceededReason ?? {}, null, 2)}</subagent-budget>`,
-        );
-      } else {
-        await taskStore.update(task.record.id, {
-          status: "completed",
-          owner: "lead",
-        });
-        session = await appendOrchestratorNote(
-          session,
-          input.sessionStore,
-          `Orchestrator delegated Task #${task.record.id} onto execution '${result.executionId}' and completed it.\n<subagent-result>${result.content}</subagent-result>`,
-        );
-      }
+      session = await appendOrchestratorNote(
+        session,
+        input.sessionStore,
+        `Orchestrator launched subagent execution '${execution.id}' for Task #${task.record.id}.`,
+      );
       session = await input.sessionStore.save(markOrchestratorReturnBarrierPending(session, {
         action: "delegate_subagent",
         taskId: task.record.id,

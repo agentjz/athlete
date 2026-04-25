@@ -15,7 +15,6 @@ export function createCliTurnDisplay(options: {
     assistantTrailingNewlines: "\n\n",
     reasoningLeadingBlankLine: true,
     toolArgsMaxChars: 200,
-    toolErrorLabel: "failed, retrying via model",
     abortSignal: options.abortSignal,
   });
   const waitingSpinner = createWaitingSpinner({ label: "thinking" });

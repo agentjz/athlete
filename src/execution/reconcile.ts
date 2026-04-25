@@ -30,15 +30,7 @@ async function reconcileExecution(
   store: ExecutionStore,
   execution: ExecutionRecord,
 ): Promise<ExecutionRecord | null> {
-  if (execution.launch === "inline") {
-    return failExecution(store, execution, {
-      summary: `${execution.profile} execution failed after the host process exited unexpectedly`,
-      output: `Inline ${execution.profile} execution '${execution.id}' was interrupted because the host process exited before completion.`,
-      statusDetail: "host_exited_unexpectedly",
-    });
-  }
-
-  if (typeof execution.pid === "number") {
+if (typeof execution.pid === "number") {
     if (isProcessAlive(execution.pid)) {
       if (execution.status === "queued") {
         return store.start(execution.id, {

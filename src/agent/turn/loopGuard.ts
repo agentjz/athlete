@@ -1,43 +1,135 @@
 import type { ToolCallRecord, ToolExecutionResult } from "../../types.js";
 
-const MAX_IDENTICAL_TOOL_CALLS = 2;
+const MAX_IDENTICAL_OBSERVATIONS = 2;
+
+const VOLATILE_STATE_TOOLS = new Set([
+  "read_inbox",
+  "list_teammates",
+  "background_check",
+  "task_list",
+  "task_get",
+  "worktree_events",
+  "worktree_list",
+  "worktree_get",
+  "shutdown_response",
+  "plan_approval",
+]);
+
+interface ToolLoopObservation {
+  resultSignature: string;
+  identicalCount: number;
+}
 
 export class ToolLoopGuard {
-  private readonly counts = new Map<string, number>();
+  private readonly observations = new Map<string, ToolLoopObservation>();
 
   reset(): void {
-    this.counts.clear();
+    this.observations.clear();
   }
 
-  getBlockedResult(toolCall: ToolCallRecord): ToolExecutionResult | null {
-    const signature = buildToolCallSignature(toolCall);
-    const nextCount = (this.counts.get(signature) ?? 0) + 1;
-    this.counts.set(signature, nextCount);
-
-    if (nextCount <= MAX_IDENTICAL_TOOL_CALLS) {
+  getPreflightBlockedResult(toolCall: ToolCallRecord): ToolExecutionResult | null {
+    if (isVolatileStateTool(toolCall.function.name)) {
       return null;
     }
 
-    return {
-      ok: false,
-      output: JSON.stringify(
-        {
-          ok: false,
-          error: `Loop guard blocked repeated ${toolCall.function.name} calls with identical arguments.`,
-          code: "LOOP_GUARD_BLOCKED",
-          hint: "You are repeating the same tool call without new input. Summarize what the previous results showed, explain why the retry is not progressing, and choose a different strategy.",
-          next_step: "Do not retry the identical call again. Change the arguments, choose a different tool, or continue by summarizing the failed path and switching strategy.",
-          repeatedCount: nextCount,
-        },
-        null,
-        2,
-      ),
-    };
+    const observation = this.observations.get(buildToolCallSignature(toolCall));
+    if (!observation || observation.identicalCount < MAX_IDENTICAL_OBSERVATIONS) {
+      return null;
+    }
+
+    if (isObservationTool(toolCall.function.name)) {
+      return null;
+    }
+
+    return buildBlockedResult(toolCall, observation.identicalCount + 1);
+  }
+
+  noteToolResult(toolCall: ToolCallRecord, result: ToolExecutionResult): ToolExecutionResult | null {
+    if (isVolatileStateTool(toolCall.function.name) || isLoopGuardBlockedResult(result)) {
+      return null;
+    }
+
+    const actionSignature = buildToolCallSignature(toolCall);
+    const resultSignature = buildToolResultSignature(result);
+    const previous = this.observations.get(actionSignature);
+    const identicalCount = previous?.resultSignature === resultSignature
+      ? previous.identicalCount + 1
+      : 1;
+    this.observations.set(actionSignature, {
+      resultSignature,
+      identicalCount,
+    });
+
+    if (identicalCount <= MAX_IDENTICAL_OBSERVATIONS || !isObservationTool(toolCall.function.name)) {
+      return null;
+    }
+
+    return buildBlockedResult(toolCall, identicalCount);
+  }
+}
+
+function buildBlockedResult(toolCall: ToolCallRecord, repeatedCount: number): ToolExecutionResult {
+  return {
+    ok: false,
+    output: JSON.stringify(
+      {
+        ok: false,
+        error: `Loop guard blocked repeated ${toolCall.function.name} calls with identical arguments and the same result.`,
+        code: "LOOP_GUARD_BLOCKED",
+        hint: "You are repeating the same tool call and observing the same result without new progress. Summarize what the previous results showed, explain why the retry is not progressing, and choose a different strategy.",
+        next_step: "Do not retry the identical no-progress action again. Change the arguments, wait for a real state change, choose a different tool, or continue by summarizing the failed path and switching strategy.",
+        repeatedCount,
+      },
+      null,
+      2,
+    ),
+  };
+}
+
+function isObservationTool(toolName: string): boolean {
+  return toolName.startsWith("read_")
+    || toolName.startsWith("list_")
+    || toolName.startsWith("find_")
+    || toolName.startsWith("search_")
+    || toolName.startsWith("openapi_")
+    || toolName.startsWith("mineru_")
+    || toolName === "http_probe"
+    || toolName === "http_request"
+    || toolName === "http_suite"
+    || toolName === "network_trace";
+}
+
+function isVolatileStateTool(toolName: string): boolean {
+  return VOLATILE_STATE_TOOLS.has(toolName);
+}
+
+function isLoopGuardBlockedResult(result: ToolExecutionResult): boolean {
+  if (result.ok) {
+    return false;
+  }
+
+  try {
+    const payload = JSON.parse(result.output) as unknown;
+    return Boolean(
+      payload
+      && typeof payload === "object"
+      && !Array.isArray(payload)
+      && (payload as Record<string, unknown>).code === "LOOP_GUARD_BLOCKED",
+    );
+  } catch {
+    return false;
   }
 }
 
 function buildToolCallSignature(toolCall: ToolCallRecord): string {
   return `${toolCall.function.name}:${normalizeJsonLike(toolCall.function.arguments)}`;
+}
+
+function buildToolResultSignature(result: ToolExecutionResult): string {
+  return normalizeJsonLike(JSON.stringify({
+    ok: result.ok,
+    output: result.output,
+  }));
 }
 
 function normalizeJsonLike(raw: string): string {

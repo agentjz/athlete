@@ -3,16 +3,17 @@ import test from "node:test";
 
 import { MemorySessionStore } from "../src/agent/session.js";
 import { dispatchOrchestratorAction } from "../src/orchestrator/dispatch.js";
-import { buildOrchestratorObjective } from "../src/orchestrator/metadata.js";
+import { buildOrchestratorObjective, readOrchestratorMetadata } from "../src/orchestrator/metadata.js";
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
 import { routeOrchestratorAction } from "../src/orchestrator/route.js";
 import { BackgroundJobStore } from "../src/execution/background.js";
+import { ExecutionStore } from "../src/execution/store.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "./helpers.js";
 
-test("dispatchOrchestratorAction completes delegated subagent tasks and records the handoff", async (t) => {
+test("dispatchOrchestratorAction launches delegated subagent work through execution worker", async (t) => {
   const root = await createTempWorkspace("orchestrator-subagent", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -37,6 +38,7 @@ test("dispatchOrchestratorAction completes delegated subagent tasks and records 
   });
   const surveyTask = plan.readyTasks.find((task) => task.meta.kind === "survey");
   assert.ok(surveyTask);
+  let spawnCount = 0;
 
   const outcome = await dispatchOrchestratorAction({
     rootDir: root,
@@ -52,86 +54,26 @@ test("dispatchOrchestratorAction completes delegated subagent tasks and records 
       subagentType: "explore",
     },
     deps: {
-      runSubagentTask: async () => ({
-        executionId: "exec-subagent-1",
-        content: "Found the narrow integration point.",
-      }),
-    },
-  });
-
-  const task = await new TaskStore(root).load(surveyTask!.record.id);
-  assert.equal(task.status, "completed");
-  assert.equal(outcome.session.messages.some((message) => String(message.content ?? "").includes("subagent")), true);
-});
-
-test("dispatchOrchestratorAction records a structured budget reason when delegated subagent hits a hard limit", async (t) => {
-  const root = await createTempWorkspace("orchestrator-subagent-budget", t);
-  const sessionStore = new MemorySessionStore();
-  const session = await sessionStore.create(root);
-  const analysis = {
-    objective: {
-      key: "objective-subagent-budget",
-      text: "Survey the runtime constraints before implementation.",
-    },
-    complexity: "complex" as const,
-    needsInvestigation: true,
-    prefersParallel: false,
-    wantsBackground: false,
-    wantsSubagent: true,
-    wantsTeammate: false,
-    backgroundCommand: undefined,
-  };
-  const plan = await ensureTaskPlan({
-    rootDir: root,
-    cwd: root,
-    analysis,
-    existingTasks: [],
-  });
-  const surveyTask = plan.readyTasks.find((task) => task.meta.kind === "survey");
-  assert.ok(surveyTask);
-
-  const outcome = await dispatchOrchestratorAction({
-    rootDir: root,
-    cwd: root,
-    config: createTestRuntimeConfig(root),
-    session,
-    sessionStore,
-    analysis,
-    decision: {
-      action: "delegate_subagent",
-      reason: "survey first",
-      task: surveyTask!,
-      subagentType: "explore",
-    },
-    deps: {
-      runSubagentTask: async () => ({
-        executionId: "exec-subagent-budget-1",
-        content: "budget exhausted",
-        status: "budget_exhausted",
-        budgetExceededReason: {
-          code: "subagent_budget_exhausted",
-          dimension: "tool_calls",
-          message: "Subagent budget exhausted (tool calls 5/4). Returning control to lead.",
-          snapshot: {
-            toolCalls: 5,
-            modelTurns: 2,
-            elapsedMs: 12_000,
-            maxToolCalls: 4,
-            maxModelTurns: 3,
-            maxElapsedMs: 120_000,
-          },
-        },
-      }),
+      spawnExecutionWorker: () => {
+        spawnCount += 1;
+        return 2468;
+      },
     },
   });
 
   const task = await new TaskStore(root).load(surveyTask!.record.id);
   assert.notEqual(task.status, "completed");
-  const note = [...outcome.session.messages].reverse().find(
-    (message) => message.role === "user" && String(message.content ?? "").includes("<subagent-budget>"),
-  );
-  assert.ok(note);
-  assert.match(String(note?.content ?? ""), /subagent_budget_exhausted/);
+  const taskMeta = readOrchestratorMetadata(task.description);
+  const executions = await new ExecutionStore(root).list();
+  const subagent = executions.find((execution) => execution.profile === "subagent");
+
+  assert.equal(spawnCount, 1);
+  assert.ok(subagent);
+  assert.equal(subagent?.launch, "worker");
+  assert.equal(subagent?.pid, 2468);
+  assert.equal(subagent?.taskId, surveyTask!.record.id);
+  assert.equal(taskMeta?.executionId, subagent?.id);
+  assert.equal(outcome.session.messages.some((message) => String(message.content ?? "").includes("launched subagent execution")), true);
 });
 
 test("dispatchOrchestratorAction reserves teammate work on the task board and starts a worker when needed", async (t) => {

@@ -3,10 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { ToolLoopGuard } from "../src/agent/turn.js";
 import { createStoredToolMessage } from "../src/agent/context.js";
 import { readFileTool } from "../src/tools/files/readFileTool.js";
-import type { ToolCallRecord } from "../src/types.js";
 import { createTempWorkspace, makeToolContext } from "./helpers.js";
 
 const LARGE_ARTIFACT_MARKER = "ROUND1-ARTIFACT::" + "Z".repeat(24_000);
@@ -46,20 +44,6 @@ test("read_file returns a compact artifact view for externalized tool-result fil
   assert.equal(storedMessage.externalizedToolResult, undefined);
 });
 
-test("loop guard blocks repeated identical reads of externalized tool-result artifacts on the second retry", () => {
-  const loopGuard = new ToolLoopGuard();
-  const toolCall = createReadFileToolCall(".deadmouse/tool-results/session-a/artifact.json");
-
-  assert.equal(loopGuard.getBlockedResult(toolCall), null);
-  assert.equal(loopGuard.getBlockedResult(toolCall), null);
-
-  const blocked = loopGuard.getBlockedResult(toolCall);
-  assert.ok(blocked);
-  assert.match(String(blocked?.output ?? ""), /Loop guard blocked repeated read_file calls/i);
-  assert.match(String(blocked?.output ?? ""), /summarize/i);
-  assert.match(String(blocked?.output ?? ""), /different strategy/i);
-});
-
 function buildLargeArtifactOutput(): string {
   return JSON.stringify(
     {
@@ -80,17 +64,4 @@ function buildLargeArtifactOutput(): string {
     null,
     2,
   );
-}
-
-function createReadFileToolCall(targetPath: string): ToolCallRecord {
-  return {
-    id: "call-1",
-    type: "function",
-    function: {
-      name: "read_file",
-      arguments: JSON.stringify({
-        path: targetPath,
-      }),
-    },
-  };
 }

@@ -1,4 +1,5 @@
 import type { ChangeStore } from "../../changes/store.js";
+import { buildOrchestratorObjective } from "../../orchestrator/metadata.js";
 import { createToolRegistry } from "../../tools/index.js";
 import type { PreparedToolRegistryCall, ToolRegistry } from "../../tools/types.js";
 import type {
@@ -306,6 +307,9 @@ function buildToolContext(
     callbacks: options.callbacks,
     abortSignal: options.abortSignal,
     projectContext,
+    currentObjective: options.session.taskState?.objective
+      ? buildOrchestratorObjective(options.session.taskState.objective)
+      : undefined,
     changeStore,
     createToolRegistry,
   };

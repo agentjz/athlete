@@ -73,6 +73,132 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
   }
 });
 
+test("resolveRuntimeConfig builds role-specific model provider profiles from project .env", async (t) => {
+  const root = await createTempWorkspace("provider-role-model-config", t);
+  const nestedCwd = path.join(root, "packages", "app");
+  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(nestedCwd, { recursive: true });
+
+  await fs.writeFile(
+    path.join(root, ".deadmouse", ".env"),
+    [
+      "DEADMOUSE_PROVIDER=openai-compatible",
+      "DEADMOUSE_API_KEY=default-key",
+      "DEADMOUSE_BASE_URL=https://default.example.test/v1",
+      "DEADMOUSE_MODEL=default-model",
+      "DEADMOUSE_REASONING_EFFORT=medium",
+      "DEADMOUSE_LEAD_PROVIDER=openai",
+      "DEADMOUSE_LEAD_API_KEY=lead-key",
+      "DEADMOUSE_LEAD_BASE_URL=https://lead.example.test/v1",
+      "DEADMOUSE_LEAD_MODEL=gpt-5.4",
+      "DEADMOUSE_TEAMMATE_PROVIDER=openai-compatible",
+      "DEADMOUSE_TEAMMATE_API_KEY=team-key",
+      "DEADMOUSE_TEAMMATE_BASE_URL=https://api.siliconflow.cn/v1",
+      "DEADMOUSE_TEAMMATE_MODEL=deepseek-ai/DeepSeek-V3.2",
+      "DEADMOUSE_SUBAGENT_PROVIDER=deepseek",
+      "DEADMOUSE_SUBAGENT_API_KEY=subagent-key",
+      "DEADMOUSE_SUBAGENT_BASE_URL=https://api.deepseek.com",
+      "DEADMOUSE_SUBAGENT_MODEL=deepseek-reasoner",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = snapshotEnv([
+    "DEADMOUSE_PROVIDER",
+    "DEADMOUSE_API_KEY",
+    "DEADMOUSE_BASE_URL",
+    "DEADMOUSE_MODEL",
+    "DEADMOUSE_REASONING_EFFORT",
+    "DEADMOUSE_LEAD_PROVIDER",
+    "DEADMOUSE_LEAD_API_KEY",
+    "DEADMOUSE_LEAD_BASE_URL",
+    "DEADMOUSE_LEAD_MODEL",
+    "DEADMOUSE_TEAMMATE_PROVIDER",
+    "DEADMOUSE_TEAMMATE_API_KEY",
+    "DEADMOUSE_TEAMMATE_BASE_URL",
+    "DEADMOUSE_TEAMMATE_MODEL",
+    "DEADMOUSE_SUBAGENT_PROVIDER",
+    "DEADMOUSE_SUBAGENT_API_KEY",
+    "DEADMOUSE_SUBAGENT_BASE_URL",
+    "DEADMOUSE_SUBAGENT_MODEL",
+  ]);
+
+  try {
+    restoreEnv(Object.fromEntries(Object.keys(previous).map((key) => [key, undefined])));
+
+    const runtime = await resolveRuntimeConfig({ cwd: nestedCwd });
+    assert.deepEqual(runtime.agentModels.lead, {
+      provider: "openai",
+      apiKey: "lead-key",
+      baseUrl: "https://lead.example.test/v1",
+      model: "gpt-5.4",
+      reasoningEffort: "medium",
+    });
+    assert.deepEqual(runtime.agentModels.teammate, {
+      provider: "openai-compatible",
+      apiKey: "team-key",
+      baseUrl: "https://api.siliconflow.cn/v1",
+      model: "deepseek-ai/DeepSeek-V3.2",
+      reasoningEffort: "medium",
+    });
+    assert.deepEqual(runtime.agentModels.subagent, {
+      provider: "deepseek",
+      apiKey: "subagent-key",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-reasoner",
+      reasoningEffort: "medium",
+    });
+  } finally {
+    restoreEnv(previous);
+  }
+});
+
+test("resolveRuntimeConfig falls role model profiles back to the default provider bundle", async (t) => {
+  const root = await createTempWorkspace("provider-role-model-fallback", t);
+  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, ".deadmouse", ".env"),
+    [
+      "DEADMOUSE_PROVIDER=openai-compatible",
+      "DEADMOUSE_API_KEY=default-key",
+      "DEADMOUSE_BASE_URL=https://default.example.test/v1",
+      "DEADMOUSE_MODEL=default-model",
+      "DEADMOUSE_SUBAGENT_MODEL=subagent-only-model",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = snapshotEnv([
+    "DEADMOUSE_PROVIDER",
+    "DEADMOUSE_API_KEY",
+    "DEADMOUSE_BASE_URL",
+    "DEADMOUSE_MODEL",
+    "DEADMOUSE_SUBAGENT_MODEL",
+  ]);
+
+  try {
+    restoreEnv(Object.fromEntries(Object.keys(previous).map((key) => [key, undefined])));
+
+    const runtime = await resolveRuntimeConfig({ cwd: root });
+    assert.deepEqual(runtime.agentModels.lead, {
+      provider: "openai-compatible",
+      apiKey: "default-key",
+      baseUrl: "https://default.example.test/v1",
+      model: "default-model",
+      reasoningEffort: undefined,
+    });
+    assert.deepEqual(runtime.agentModels.subagent, {
+      provider: "openai-compatible",
+      apiKey: "default-key",
+      baseUrl: "https://default.example.test/v1",
+      model: "subagent-only-model",
+      reasoningEffort: undefined,
+    });
+  } finally {
+    restoreEnv(previous);
+  }
+});
+
 function snapshotEnv(keys: string[]): Record<string, string | undefined> {
   return Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 }

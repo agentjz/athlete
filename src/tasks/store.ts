@@ -2,6 +2,7 @@ import { withProjectLedger } from "../control/ledger/open.js";
 import { TaskLedgerRepo } from "../control/ledger/taskRepo.js";
 import type { TaskRecord, TaskStatus } from "./types.js";
 import type { TodoItem } from "../types.js";
+import { readOrchestratorMetadata } from "../orchestrator/metadata.js";
 
 export class TaskStore {
   constructor(private readonly rootDir: string) {}
@@ -72,13 +73,19 @@ export class TaskStore {
     return withProjectLedger(this.rootDir, ({ db }) => new TaskLedgerRepo(db).listClaimable(owner));
   }
 
-  async summarize(): Promise<string> {
-    const tasks = await this.list();
+  async summarize(options: { objectiveKey?: string; includeCarryoverCount?: boolean } = {}): Promise<string> {
+    const allTasks = await this.list();
+    const tasks = options.objectiveKey
+      ? allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key === options.objectiveKey)
+      : allTasks;
     if (tasks.length === 0) {
-      return "No tasks.";
+      const carryoverCount = options.objectiveKey && options.includeCarryoverCount
+        ? allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key !== options.objectiveKey).length
+        : 0;
+      return carryoverCount > 0 ? `No current objective tasks. Carryover tasks: ${carryoverCount}.` : "No tasks.";
     }
 
-    return tasks
+    const lines = tasks
       .map((task) => {
         const marker = task.status === "completed" ? "[x]" : task.status === "in_progress" ? "[>]" : "[ ]";
         const blocked = task.blockedBy.length > 0 ? ` blockedBy=${task.blockedBy.join(",")}` : "";
@@ -92,5 +99,11 @@ export class TaskStore {
         return `${marker} #${task.id}: ${task.subject}${blocked}${blocks}${checklist}${assignee}${owner}${worktree}`;
       })
       .join("\n");
+    if (!options.objectiveKey || !options.includeCarryoverCount) {
+      return lines;
+    }
+
+    const carryoverCount = allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key !== options.objectiveKey).length;
+    return carryoverCount > 0 ? `${lines}\n- Carryover tasks hidden: ${carryoverCount}` : lines;
   }
 }

@@ -178,7 +178,6 @@ test("stream renderer shows MinerU document tool calls with file paths", async (
       },
       {
         cwd: REPO_ROOT,
-        toolErrorLabel: "failed",
       },
     );
 

@@ -1,7 +1,7 @@
 import type { SessionStoreLike } from "../agent/session/store.js";
 import type { AgentCallbacks, RunTurnResult } from "../agent/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import { sleepWithSignal, throwIfAborted } from "../utils/abort.js";
+import { throwIfAborted } from "../utils/abort.js";
 import { buildLeadExecutionInput } from "./leadInput.js";
 import { prepareLeadTurn } from "./prepareLeadTurn.js";
 import { buildOrchestratorWaitResult } from "./terminal.js";

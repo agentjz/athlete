@@ -17,6 +17,19 @@ export function buildTeammateWorkerEnv(options: BuildTeammateWorkerEnvOptions): 
     DEADMOUSE_BASE_URL: options.config.baseUrl,
     DEADMOUSE_MODEL: options.config.model,
     DEADMOUSE_MODE: options.config.mode,
+    DEADMOUSE_PROVIDER: options.config.provider,
+    DEADMOUSE_LEAD_API_KEY: options.config.agentModels.lead.apiKey,
+    DEADMOUSE_LEAD_BASE_URL: options.config.agentModels.lead.baseUrl,
+    DEADMOUSE_LEAD_MODEL: options.config.agentModels.lead.model,
+    DEADMOUSE_LEAD_PROVIDER: options.config.agentModels.lead.provider,
+    DEADMOUSE_TEAMMATE_API_KEY: options.config.agentModels.teammate.apiKey,
+    DEADMOUSE_TEAMMATE_BASE_URL: options.config.agentModels.teammate.baseUrl,
+    DEADMOUSE_TEAMMATE_MODEL: options.config.agentModels.teammate.model,
+    DEADMOUSE_TEAMMATE_PROVIDER: options.config.agentModels.teammate.provider,
+    DEADMOUSE_SUBAGENT_API_KEY: options.config.agentModels.subagent.apiKey,
+    DEADMOUSE_SUBAGENT_BASE_URL: options.config.agentModels.subagent.baseUrl,
+    DEADMOUSE_SUBAGENT_MODEL: options.config.agentModels.subagent.model,
+    DEADMOUSE_SUBAGENT_PROVIDER: options.config.agentModels.subagent.provider,
   };
   if (options.config.reasoningEffort) {
     env.DEADMOUSE_REASONING_EFFORT = options.config.reasoningEffort;

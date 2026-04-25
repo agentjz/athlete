@@ -56,6 +56,26 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
     schemaVersion: 1,
     provider: "deepseek",
     apiKey: "test-key",
+    agentModels: {
+      lead: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+      teammate: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+      subagent: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+    },
     mineru: {
       token: "test-mineru-token",
       baseUrl: "https://mineru.net/api/v4",

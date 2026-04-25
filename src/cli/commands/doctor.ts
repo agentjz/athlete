@@ -30,19 +30,22 @@ export function registerDoctorCommand(
       ui.info(`provider: ${runtime.config.provider}`);
       ui.info(`model: ${runtime.config.model}`);
       ui.info(`baseUrl: ${runtime.config.baseUrl}`);
+      ui.info(`leadProvider: ${runtime.config.agentModels.lead.provider}`);
+      ui.info(`leadModel: ${runtime.config.agentModels.lead.model}`);
+      ui.info(`leadBaseUrl: ${runtime.config.agentModels.lead.baseUrl}`);
       ui.info(`mode: ${runtime.config.mode}`);
 
-      if (!runtime.config.apiKey.trim()) {
+      if (!runtime.config.agentModels.lead.apiKey.trim()) {
         throw new Error(
-          "用户可修复错误：未找到 API key。请先在当前项目的 `.deadmouse/.env` 里设置 `DEADMOUSE_API_KEY`，再重新运行 `deadmouse doctor`。",
+          "用户可修复错误：未找到 Lead API key。请先在当前项目的 `.deadmouse/.env` 里设置 `DEADMOUSE_LEAD_API_KEY` 或 `DEADMOUSE_API_KEY`，再重新运行 `deadmouse doctor`。",
         );
       }
 
       const diagnosis = await probeProviderConnection({
-        provider: runtime.config.provider,
-        model: runtime.config.model,
-        baseUrl: runtime.config.baseUrl,
-        apiKey: runtime.config.apiKey,
+        provider: runtime.config.agentModels.lead.provider,
+        model: runtime.config.agentModels.lead.model,
+        baseUrl: runtime.config.agentModels.lead.baseUrl,
+        apiKey: runtime.config.agentModels.lead.apiKey,
       });
       if (diagnosis.kind === "ok") {
         ui.success(`Provider reachable. models=${diagnosis.models}`);

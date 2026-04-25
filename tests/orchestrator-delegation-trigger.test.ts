@@ -45,10 +45,6 @@ async function decide(
     session,
     sessionStore,
     deps: {
-      runSubagentTask: async () => ({
-        executionId: "stub-execution-id",
-        content: "stub-subagent",
-      }),
       spawnExecutionWorker: () => 9999,
     },
   });

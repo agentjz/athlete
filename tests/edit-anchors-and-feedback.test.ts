@@ -192,7 +192,7 @@ test("runManagedAgentTurn persists session diff into the formal session truth af
   });
 
   const result = await runManagedAgentTurn({
-    input: "Create the artifact and keep the session diff up to date.",
+    input: "continue",
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),

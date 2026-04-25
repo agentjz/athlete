@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../agent/session.js";
+import { isContinuationDirective, isInternalMessage, normalizeDelegationDirective, parseDelegationDirective } from "../agent/session.js";
 import type { SessionRecord } from "../types.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
 import { buildOrchestratorObjective } from "./metadata.js";
@@ -10,11 +10,16 @@ export function analyzeOrchestratorInput(input: {
   progress?: Partial<Pick<OrchestratorProgressSnapshot, "relevantTasks" | "runningBackgroundJobs" | "teammates">>;
 }): OrchestratorAnalysis {
   const objective = buildOrchestratorObjective(resolveObjectiveText(input.input, input.session));
+  const delegationDirective = normalizeDelegationDirective(
+    parseDelegationDirective(input.input).directive.source === "user_prefix"
+      ? parseDelegationDirective(input.input).directive
+      : input.session.taskState?.delegationDirective,
+  );
   const text = objective.text;
   const backgroundCommand = normalizeBackgroundCommand(extractBackgroundCommand(text));
   const wantsBackground = Boolean(backgroundCommand);
-  const wantsSubagent = readExplicitDelegationRequest(text, "subagent");
-  const wantsTeammate = readExplicitDelegationRequest(text, "teammate");
+  const wantsSubagent = delegationDirective.subagent;
+  const wantsTeammate = delegationDirective.teammate;
 
   let score = 0;
   if (objective.text.length >= 64) {
@@ -42,6 +47,7 @@ export function analyzeOrchestratorInput(input: {
 
   return {
     objective,
+    delegationDirective,
     complexity,
     needsInvestigation,
     prefersParallel,
@@ -55,7 +61,7 @@ export function analyzeOrchestratorInput(input: {
 function resolveObjectiveText(input: string, session: SessionRecord): string {
   const normalizedInput = String(input ?? "").trim();
   if (normalizedInput && !isInternalMessage(normalizedInput) && !isContinuationDirective(normalizedInput)) {
-    return normalizedInput;
+    return parseDelegationDirective(normalizedInput).input || normalizedInput;
   }
 
   if (session.taskState?.objective && !isInternalMessage(session.taskState.objective)) {
@@ -89,12 +95,4 @@ function extractBackgroundCommand(text: string): string | undefined {
 function countStructuralClauses(text: string): number {
   const matches = text.match(/[;,，；。]|(?:\s+\-\s+)|(?:\s*>\s*)/g);
   return matches?.length ?? 0;
-}
-
-function readExplicitDelegationRequest(text: string, target: "subagent" | "teammate"): boolean {
-  if (target === "subagent") {
-    return /\b(delegate|assign|spawn)\b[\s\S]{0,24}\bsubagent\b/i.test(text);
-  }
-
-  return /\b(delegate|assign|spawn)\b[\s\S]{0,24}\b(teammate|worker)\b/i.test(text);
 }

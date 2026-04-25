@@ -158,6 +158,13 @@ test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly 
     runSlice: async (options) => {
       sliceCalls += 1;
       seenInputs.push(options.input);
+      if (sliceCalls === 2) {
+        await backgroundStore.complete(job.id, {
+          status: "completed",
+          exitCode: 0,
+          output: "background validation complete",
+        });
+      }
       return {
         session: options.session,
         changedPaths: [],
@@ -239,6 +246,7 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
   let sliceCalls = 0;
+  const seenInputs: string[] = [];
 
   const result = await runManagedAgentTurn({
     input: "Check latest news and summarize briefly.",
@@ -248,6 +256,7 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
     sessionStore,
     runSlice: async (options) => {
       sliceCalls += 1;
+      seenInputs.push(options.input);
       if (sliceCalls === 1) {
         const executionStore = new ExecutionStore(root);
         const execution = await executionStore.create({
@@ -263,13 +272,8 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
         await executionStore.start(execution.id, {
           pid: process.pid,
         });
-        setTimeout(() => {
-          void executionStore.close(execution.id, {
-            status: "completed",
-            summary: "delegated research done",
-            resultText: "ok",
-          }).catch(() => undefined);
-        }, 200);
+      } else if (sliceCalls === 2) {
+        await closeActiveTeammateExecutions(root);
       }
 
       return {
@@ -283,6 +287,8 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
 
   assert.notEqual(result.paused, true);
   assert.equal(sliceCalls, 2);
+  assert.match(String(seenInputs[1]), /active delegated work/i);
+  assert.match(String(seenInputs[1]), /prepare reconciliation/i);
 });
 
 async function closeActiveTeammateExecutions(rootDir: string): Promise<void> {
@@ -298,59 +304,5 @@ async function closeActiveTeammateExecutions(rootDir: string): Promise<void> {
       summary: "teammate execution completed for test orchestration flow",
       resultText: "ok",
     });
-  }
-}
-
-async function closeActiveTeammateExecutionsEventually(rootDir: string): Promise<void> {
-  const deadline = Date.now() + 15_000;
-  let observedActive = false;
-  for (;;) {
-    const active = await new ExecutionStore(rootDir).listRelevant({
-      requestedBy: "lead",
-      profile: "teammate",
-      statuses: ["queued", "running"],
-    });
-    if (active.length > 0) {
-      observedActive = true;
-      await closeActiveTeammateExecutions(rootDir);
-      const remaining = await new ExecutionStore(rootDir).listRelevant({
-        requestedBy: "lead",
-        profile: "teammate",
-        statuses: ["queued", "running"],
-      });
-      if (remaining.length === 0) {
-        return;
-      }
-    }
-    if (observedActive && active.length === 0) {
-      return;
-    }
-    if (Date.now() > deadline) {
-      throw new Error("Timed out waiting to close teammate executions.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-}
-
-async function completeBackgroundEventually(rootDir: string, jobId: string): Promise<void> {
-  const store = new BackgroundJobStore(rootDir);
-  const deadline = Date.now() + 15_000;
-  for (;;) {
-    const job = await store.load(jobId);
-    if (job.status === "completed") {
-      return;
-    }
-    if (job.status === "running") {
-      await store.complete(job.id, {
-        status: "completed",
-        exitCode: 0,
-        output: "background validation complete",
-      });
-      return;
-    }
-    if (Date.now() > deadline) {
-      throw new Error("Timed out waiting for background job to reach completable state.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }

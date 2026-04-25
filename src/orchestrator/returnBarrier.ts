@@ -52,6 +52,7 @@ export function clearOrchestratorReturnBarrier(session: SessionRecord): SessionR
 export function applyOrchestratorReturnBarrier(
   session: SessionRecord,
   decision: OrchestratorDecision,
+  options: { allowExplicitDelegation?: boolean } = {},
 ): {
   session: SessionRecord;
   decision: OrchestratorDecision;
@@ -59,6 +60,14 @@ export function applyOrchestratorReturnBarrier(
 } {
   const state = readOrchestratorReturnBarrierState(session);
   if (!state.pending) {
+    return {
+      session,
+      decision,
+      enforced: false,
+    };
+  }
+
+  if (options.allowExplicitDelegation) {
     return {
       session,
       decision,

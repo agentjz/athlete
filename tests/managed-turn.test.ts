@@ -5,13 +5,33 @@ import { runManagedAgentTurn } from "../src/agent/turn.js";
 import { MemorySessionStore } from "../src/agent/session.js";
 import { getDefaultPlaywrightMcpConfig } from "../src/mcp/playwright/config.js";
 import type { RuntimeConfig } from "../src/types.js";
-import { createCheckpointFixture } from "./helpers.js";
+import { createCheckpointFixture, createTempWorkspace } from "./helpers.js";
 
 function createConfig(): RuntimeConfig {
   return {
     schemaVersion: 1,
     provider: "deepseek",
     apiKey: "test-key",
+    agentModels: {
+      lead: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+      teammate: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+      subagent: {
+        provider: "deepseek",
+        apiKey: "test-key",
+        baseUrl: "https://api.deepseek.com",
+        model: "deepseek-reasoner",
+      },
+    },
     mineru: {
       token: "test-mineru-token",
       baseUrl: "https://mineru.net/api/v4",
@@ -74,10 +94,11 @@ function createConfig(): RuntimeConfig {
   };
 }
 
-test("runManagedAgentTurn auto-continues yielded lead turns", async () => {
+test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
+  const root = await createTempWorkspace("managed-turn", t);
   const sessionStore = new MemorySessionStore();
   const initialSession = await sessionStore.save({
-    ...(await sessionStore.create(process.cwd())),
+    ...(await sessionStore.create(root)),
     checkpoint: createCheckpointFixture("Ship the round2 checkpoint runtime.", {
       completedSteps: ["Persisted the first tool batch"],
       currentStep: "Waiting for continuation",
@@ -93,7 +114,7 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async () => {
 
   const result = await runManagedAgentTurn({
     input: "start task",
-    cwd: process.cwd(),
+    cwd: root,
     config: createConfig(),
     session: initialSession,
     sessionStore,
@@ -124,15 +145,16 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async () => {
   assert.equal(result.session.title, "slice-2");
 });
 
-test("runManagedAgentTurn lets supervisors override continuation input", async () => {
+test("runManagedAgentTurn lets supervisors override continuation input", async (t) => {
+  const root = await createTempWorkspace("managed-turn", t);
   const sessionStore = new MemorySessionStore();
-  const initialSession = await sessionStore.create(process.cwd());
+  const initialSession = await sessionStore.create(root);
   const seenInputs: string[] = [];
   let sliceCount = 0;
 
   await runManagedAgentTurn({
     input: "bootstrap",
-    cwd: process.cwd(),
+    cwd: root,
     config: createConfig(),
     session: initialSession,
     sessionStore,
@@ -162,9 +184,10 @@ test("runManagedAgentTurn lets supervisors override continuation input", async (
   assert.match(String(seenInputs[1]), /New inbox updates are pending/i);
 });
 
-test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config is enabled", async () => {
+test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config is enabled", async (t) => {
+  const root = await createTempWorkspace("managed-turn", t);
   const sessionStore = new MemorySessionStore();
-  const initialSession = await sessionStore.create(process.cwd());
+  const initialSession = await sessionStore.create(root);
   const seenInputs: string[] = [];
   const seenHeadlessFlags: Array<boolean | undefined> = [];
   let sliceCount = 0;
@@ -184,7 +207,7 @@ test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config
 
   const result = await runManagedAgentTurn({
     input: "resume browser task",
-    cwd: process.cwd(),
+    cwd: root,
     config,
     session: initialSession,
     sessionStore,
@@ -209,9 +232,10 @@ test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config
   assert.match(String(seenInputs[1]), /Resume the current task/i);
 });
 
-test("runManagedAgentTurn still auto-continues yielded turns when verification state is already passed", async () => {
+test("runManagedAgentTurn still auto-continues yielded turns when verification state is already passed", async (t) => {
+  const root = await createTempWorkspace("managed-turn", t);
   const sessionStore = new MemorySessionStore();
-  const initialSession = await sessionStore.create(process.cwd());
+  const initialSession = await sessionStore.create(root);
   const session = await sessionStore.save(({
     ...initialSession,
     checkpoint: createCheckpointFixture("Resume the verified task without restarting.", {
@@ -244,7 +268,7 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
 
   const result = await runManagedAgentTurn({
     input: "resume verified task",
-    cwd: process.cwd(),
+    cwd: root,
     config: createConfig(),
     session,
     sessionStore,

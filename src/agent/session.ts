@@ -1,4 +1,5 @@
 export * from "./session/messages.js";
+export * from "./session/delegationDirective.js";
 export * from "./session/sessionDiff.js";
 export * from "./session/store.js";
 export * from "./session/taskState.js";

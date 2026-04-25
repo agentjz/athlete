@@ -95,7 +95,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
         validationReminderInjected = false;
       }
     }
-    const blockedResult = loopGuard.getBlockedResult(toolCall);
+    const blockedResult = loopGuard.getPreflightBlockedResult(toolCall);
     const planBlockedResult = blockedResult
       ? null
       : getPlanBlockedResult(toolCall.function.name, toolCall.function.arguments, session, identity);
@@ -131,9 +131,10 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
   session = batchExecution.session;
 
   for (const item of batchExecution.items) {
-    const { toolCall, result, durationMs } = item;
+    const { toolCall, durationMs } = item;
+    let result = item.result;
     throwIfAborted(options.abortSignal, "Turn aborted by user.");
-    const metadata = "metadata" in result ? result.metadata : undefined;
+    let metadata = "metadata" in result ? result.metadata : undefined;
     if (metadata?.changedPaths?.length) {
       changedPaths = new Set([...changedPaths, ...metadata.changedPaths]);
       metadata.changedPaths.forEach((changedPath) => batchChangedPaths.add(changedPath));
@@ -149,6 +150,15 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     } else if (metadata?.sessionDiff) {
       session = await options.sessionStore.save(noteSessionDiff(session, metadata.sessionDiff));
     }
+
+    if (!metadata?.changedPaths?.length) {
+      const loopGuardBlockedResult = loopGuard.noteToolResult(toolCall, result);
+      if (loopGuardBlockedResult) {
+        result = loopGuardBlockedResult;
+        metadata = undefined;
+      }
+    }
+
     const verificationAttempt = metadata?.verification?.attempted
       ? metadata.verification
       : getLightweightVerificationAttempt({

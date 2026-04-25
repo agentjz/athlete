@@ -13,6 +13,7 @@ import { initGitRepo, createTempWorkspace, createTestRuntimeConfig } from "./hel
 import { closeExecution } from "../src/execution/closeout.js";
 import { prepareExecutionTaskContext } from "../src/execution/taskBinding.js";
 import { buildExecutionWorkerLaunch } from "../src/execution/launch.js";
+import { runWithinAgentExecutionBoundary } from "../src/execution/agentBoundary.js";
 import { ExecutionStore } from "../src/execution/store.js";
 import { runExecutionWorker } from "../src/execution/worker.js";
 
@@ -28,6 +29,9 @@ test("execution lanes share one worker launch protocol instead of lane-specific 
     launch.args.slice(-4),
     ["__worker__", "run", "--execution-id", "exec-123"],
   );
+  assert.equal(launch.args.includes("--model"), false);
+  assert.equal(launch.env.DEADMOUSE_SUBAGENT_MODEL, "deepseek-reasoner");
+  assert.equal(launch.env.DEADMOUSE_TEAMMATE_MODEL, "deepseek-reasoner");
 });
 
 test("execution lanes share one formal lifecycle across agent and command work", async (t) => {
@@ -37,7 +41,7 @@ test("execution lanes share one formal lifecycle across agent and command work",
   const subagent = await store.create({
     lane: "agent",
     profile: "subagent",
-    launch: "inline",
+    launch: "worker",
     requestedBy: "lead",
     actorName: "survey-1",
     cwd: root,
@@ -111,7 +115,7 @@ test("execution creation applies one boundary protocol across all execution lane
   const subagent = await store.create({
     lane: "agent",
     profile: "subagent",
-    launch: "inline",
+    launch: "worker",
     requestedBy: "lead",
     actorName: "survey-1",
     cwd: root,
@@ -151,6 +155,48 @@ test("execution creation applies one boundary protocol across all execution lane
   assert.equal(background.stallTimeoutMs! > 1, true);
 });
 
+test("agent execution boundary is enforced by the machine instead of prompt text only", async () => {
+  const result = await runWithinAgentExecutionBoundary({
+    boundary: {
+      protocol: "deadmouse.execution-boundary.v1",
+      returnTo: "lead",
+      onBoundary: "return_to_lead_review",
+      maxRuntimeMs: 10,
+      maxIdleMs: 1_000,
+    },
+    run: async ({ abortSignal }) => {
+      await new Promise<void>((resolve) => {
+        abortSignal.addEventListener("abort", () => resolve(), { once: true });
+      });
+      return "runner observed abort";
+    },
+  });
+
+  assert.equal(result.kind, "boundary");
+  assert.equal(result.reason.code, "execution_boundary_runtime");
+  assert.equal(result.reason.returnTo, "lead");
+  assert.equal(result.reason.onBoundary, "return_to_lead_review");
+
+  const idleResult = await runWithinAgentExecutionBoundary({
+    boundary: {
+      protocol: "deadmouse.execution-boundary.v1",
+      returnTo: "lead",
+      onBoundary: "return_to_lead_review",
+      maxRuntimeMs: 1_000,
+      maxIdleMs: 10,
+    },
+    run: async ({ abortSignal }) => {
+      await new Promise<void>((resolve) => {
+        abortSignal.addEventListener("abort", () => resolve(), { once: true });
+      });
+      return "runner observed abort";
+    },
+  });
+
+  assert.equal(idleResult.kind, "boundary");
+  assert.equal(idleResult.reason.code, "execution_boundary_idle");
+});
+
 
 test("task-bound agent executions use the shared claim and worktree binding path", async (t) => {
   const root = await createTempWorkspace("execution-task-binding", t);
@@ -164,7 +210,7 @@ test("task-bound agent executions use the shared claim and worktree binding path
   const subagent = await store.create({
     lane: "agent",
     profile: "subagent",
-    launch: "inline",
+    launch: "worker",
     requestedBy: "lead",
     actorName: "survey-1",
     cwd: root,
@@ -322,30 +368,23 @@ test("reconcileActiveExecutions fails queued worker executions that never reache
   assert.match(String(reloaded.output ?? ""), /never reached a live worker/i);
 });
 
-test("reconcileActiveExecutions fails inline executions left running after the host process exits", async (t) => {
-  const root = await createTempWorkspace("execution-stale-inline", t);
+test("execution ledger rejects the removed inline launch mode", async (t) => {
+  const root = await createTempWorkspace("execution-no-inline-launch", t);
   const store = new ExecutionStore(root);
-  const execution = await store.create({
-    lane: "agent",
-    profile: "subagent",
-    launch: "inline",
-    requestedBy: "lead",
-    actorName: "survey-1",
-    cwd: root,
-    prompt: "Survey the codebase.",
-  });
-  await store.start(execution.id, {
-    sessionId: "subagent-session",
-  });
 
-  const result = await reconcileActiveExecutions(root);
-  const reloaded = await store.load(execution.id);
-
-  assert.equal(result.reconciledExecutions.length, 1);
-  assert.equal(reloaded.status, "failed");
-  assert.match(String(reloaded.output ?? ""), /host process exited/i);
+  await assert.rejects(
+    () => store.create({
+      lane: "agent",
+      profile: "subagent",
+      launch: "inline" as unknown as "worker",
+      requestedBy: "lead",
+      actorName: "survey-1",
+      cwd: root,
+      prompt: "Survey the codebase.",
+    }),
+    /invalid execution launch mode/i,
+  );
 });
-
 test("runExecutionWorker fails closed on corrupt persisted sessions instead of inventing a replacement session", async (t) => {
   const root = await createTempWorkspace("execution-corrupt-session", t);
   const config = createTestRuntimeConfig(root);
@@ -482,7 +521,7 @@ test("execution lifecycle rejects status rewrites through save bypasses", async 
   const execution = await store.create({
     lane: "agent",
     profile: "subagent",
-    launch: "inline",
+    launch: "worker",
     requestedBy: "lead",
     actorName: "survey-1",
     cwd: root,
@@ -511,7 +550,7 @@ test("execution ledger fails closed on invalid status values instead of defaulti
   const execution = await store.create({
     lane: "agent",
     profile: "subagent",
-    launch: "inline",
+    launch: "worker",
     requestedBy: "lead",
     actorName: "survey-1",
     cwd: root,

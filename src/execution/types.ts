@@ -2,7 +2,7 @@ export type ExecutionLane = "agent" | "command";
 
 export type ExecutionProfile = "subagent" | "teammate" | "background";
 
-export type ExecutionLaunchMode = "inline" | "worker";
+export type ExecutionLaunchMode = "worker";
 
 export type ExecutionWorktreePolicy = "none" | "task";
 

@@ -1,3 +1,4 @@
+import { launchSubagentWorkerExecution } from "../../subagent/launch.js";
 import { buildSubagentTypeSummary, listSubagentTypes } from "../../subagent/profiles.js";
 import { okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -10,7 +11,7 @@ export const taskTool: RegisteredTool = {
     function: {
       name: "task",
       description:
-        "Spawn a focused subagent with fresh context. The child shares the filesystem but not the current conversation history.\n\nAvailable agent types:\n" +
+        "Lead-only: launch a focused subagent execution with fresh context. The tool returns an execution_id immediately; the Lead must wait for execution closeout before judging completion.\n\nAvailable agent types:\n" +
         buildSubagentTypeSummary(),
       parameters: {
         type: "object",
@@ -35,39 +36,35 @@ export const taskTool: RegisteredTool = {
     },
   },
   async execute(rawArgs, context) {
-    if (context.identity.kind === "subagent") {
-      throw new Error("Subagents cannot spawn additional subagents.");
+    if (context.identity.kind !== "lead") {
+      throw new Error("Only the lead can launch subagent executions.");
     }
 
     const args = parseArgs(rawArgs);
     const description = readString(args.description, "description");
     const prompt = readString(args.prompt, "prompt");
     const agentType = readString(args.agent_type, "agent_type");
-    const { runSubagentTask } = await import("../../subagent/run.js");
-    const result = await runSubagentTask({
+    const { execution, pid } = await launchSubagentWorkerExecution({
+      rootDir: context.projectContext.stateRootDir,
+      cwd: context.cwd,
+      config: context.config,
       description,
       prompt,
       agentType,
-      cwd: context.cwd,
-      config: context.config,
-      createToolRegistry: context.createToolRegistry,
-      callbacks: context.callbacks,
+      requestedBy: "lead",
+      worktreePolicy: agentType === "code" ? "task" : "none",
     });
-    const payload: Record<string, unknown> = {
+
+    return okResult(JSON.stringify({
       ok: true,
+      status: "launched",
       description,
       agentType,
-      content: result.content,
-    };
-
-    if (result.metadata?.changedPaths?.length) {
-      payload.changedPaths = result.metadata.changedPaths;
-    }
-
-    if (result.metadata?.verification?.attempted) {
-      payload.verification = result.metadata.verification;
-    }
-
-    return okResult(JSON.stringify(payload, null, 2), result.metadata);
+      executionId: execution.id,
+      pid,
+      nextAction: "Lead must monitor the execution closeout/inbox and reconcile the result before declaring completion.",
+      boundary: execution.boundary,
+      preview: `Launched subagent execution '${execution.id}' (${agentType}) pid=${pid}.`,
+    }, null, 2));
   },
 };

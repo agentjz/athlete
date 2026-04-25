@@ -2,6 +2,7 @@ import type { McpConfig } from "./mcp/types.js";
 import type { AcceptanceState } from "./types/acceptance.js";
 import type { LoadedSkill } from "./skills/types.js";
 import type { TelegramConfig, TelegramRuntimeConfig } from "./telegram/config.js";
+import type { RuntimeAgentModelRuntime } from "./config/agentModelTypes.js";
 import type { RuntimeTransition } from "./types/runtimeTransitions.js";
 export type {
   LoadedSkill,
@@ -95,8 +96,7 @@ export interface AppConfig {
   telegram: TelegramConfig;
 }
 
-export interface RuntimeConfig extends AppConfig {
-  apiKey: string;
+export interface RuntimeConfig extends AppConfig, RuntimeAgentModelRuntime {
   mineru: MineruRuntimeConfig;
   paths: AppPaths;
   telegram: TelegramRuntimeConfig;
@@ -462,6 +462,7 @@ export interface MineruRuntimeConfig {
 
 export interface TaskState {
   objective?: string;
+  delegationDirective?: { teammate: boolean; subagent: boolean; source: "none" | "user_prefix" };
   activeFiles: string[];
   plannedActions: string[];
   completedActions: string[];

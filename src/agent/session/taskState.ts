@@ -1,4 +1,5 @@
 import type { SessionRecord, StoredMessage, TaskState } from "../../types.js";
+import { normalizeDelegationDirective, parseDelegationDirective } from "./delegationDirective.js";
 import { collectActiveFiles, collectBlockers, collectCompletedActions, collectPlannedActions, oneLine, truncate } from "./taskStateHistory.js";
 
 const MAX_ACTIVE_FILES = 12;
@@ -9,6 +10,7 @@ const INTERNAL_PREFIX = "[internal]";
 
 export function createEmptyTaskState(timestamp = new Date().toISOString()): TaskState {
   return {
+    delegationDirective: normalizeDelegationDirective(undefined),
     activeFiles: [],
     plannedActions: [],
     completedActions: [],
@@ -19,7 +21,10 @@ export function createEmptyTaskState(timestamp = new Date().toISOString()): Task
 
 export function deriveTaskState(messages: StoredMessage[], previous?: TaskState): TaskState {
   const now = new Date().toISOString();
-  const objective = findObjective(messages) ?? previous?.objective;
+  const currentTurn = findCurrentTurn(messages);
+  const objective = currentTurn?.objective ?? previous?.objective;
+  const delegationDirective = currentTurn?.delegationDirective ?? normalizeDelegationDirective(previous?.delegationDirective);
+  const frameMessages = currentTurn ? messages.slice(currentTurn.startIndex) : messages;
   const objectiveChanged =
     typeof previous?.objective === "string" &&
     typeof objective === "string" &&
@@ -28,6 +33,7 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   if (objectiveChanged) {
     return {
       objective,
+      delegationDirective,
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
@@ -39,10 +45,11 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
 
   return {
     objective,
-    activeFiles: takeLastUnique(collectActiveFiles(messages), MAX_ACTIVE_FILES),
-    plannedActions: takeLastUnique(collectPlannedActions(messages), MAX_PLANNED_ACTIONS),
-    completedActions: takeLastUnique(collectCompletedActions(messages), MAX_COMPLETED_ACTIONS),
-    blockers: takeLastUnique(collectBlockers(messages), MAX_BLOCKERS),
+    delegationDirective,
+    activeFiles: takeLastUnique(collectActiveFiles(frameMessages), MAX_ACTIVE_FILES),
+    plannedActions: takeLastUnique(collectPlannedActions(frameMessages), MAX_PLANNED_ACTIONS),
+    completedActions: takeLastUnique(collectCompletedActions(frameMessages), MAX_COMPLETED_ACTIONS),
+    blockers: takeLastUnique(collectBlockers(frameMessages), MAX_BLOCKERS),
     orchestratorReturnBarrier: normalizeReturnBarrier(previous?.orchestratorReturnBarrier),
     lastUpdatedAt: now,
   };
@@ -55,6 +62,7 @@ export function normalizeTaskState(taskState: TaskState | undefined): TaskState 
 
   return {
     objective: typeof taskState.objective === "string" ? taskState.objective : undefined,
+    delegationDirective: normalizeDelegationDirective(taskState.delegationDirective),
     activeFiles: takeLastUnique(taskState.activeFiles ?? [], MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(taskState.plannedActions ?? [], MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(taskState.completedActions ?? [], MAX_COMPLETED_ACTIONS),
@@ -74,6 +82,7 @@ export function formatTaskStateBlock(taskState: TaskState | undefined): string {
 
   const parts = [
     taskState.objective ? `- Objective: ${taskState.objective}` : "- Objective: none",
+    `- Delegation directive: ${formatDelegationDirective(taskState.delegationDirective)}`,
     `- Active files: ${formatList(taskState.activeFiles)}`,
     `- Planned actions: ${formatList(taskState.plannedActions)}`,
     `- Completed actions: ${formatList(taskState.completedActions)}`,
@@ -114,13 +123,40 @@ export function normalizeSessionRecord(session: SessionRecord): SessionRecord {
     ...session,
     messageCount: Array.isArray(session.messages) ? session.messages.length : 0,
     messages: Array.isArray(session.messages) ? session.messages : [],
-    taskState: normalizeTaskState(
-      session.taskState ?? deriveTaskState(Array.isArray(session.messages) ? session.messages : []),
-    ),
+    taskState: normalizeTaskState(deriveTaskState(Array.isArray(session.messages) ? session.messages : [], session.taskState)),
   };
 }
 
-function findObjective(messages: StoredMessage[]): string | undefined {
+export function applyCurrentTurnFrame(
+  session: SessionRecord,
+  input: string,
+  timestamp = new Date().toISOString(),
+): SessionRecord {
+  if (isInternalMessage(input) || isContinuationDirective(input)) {
+    return {
+      ...session,
+      taskState: normalizeTaskState(session.taskState ?? createEmptyTaskState(timestamp)),
+    };
+  }
+
+  const parsed = parseDelegationDirective(input);
+  const objective = truncate(oneLine(parsed.input || input), 240);
+  return {
+    ...session,
+    todoItems: [],
+    taskState: {
+      objective,
+      delegationDirective: parsed.directive,
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: timestamp,
+    },
+  };
+}
+
+function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective" | "delegationDirective"> & { startIndex: number }) | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message?.role !== "user" || isInternalMessage(message.content) || isContinuationDirective(message.content)) {
@@ -129,11 +165,29 @@ function findObjective(messages: StoredMessage[]): string | undefined {
 
     const normalized = oneLine(message.content ?? "");
     if (normalized) {
-      return truncate(normalized, 240);
+      const parsed = parseDelegationDirective(normalized);
+      return {
+        objective: truncate(oneLine(parsed.input || normalized), 240),
+        delegationDirective: parsed.directive,
+        startIndex: index,
+      };
     }
   }
 
   return undefined;
+}
+
+function formatDelegationDirective(value: TaskState["delegationDirective"]): string {
+  const directive = normalizeDelegationDirective(value);
+  if (!directive.teammate && !directive.subagent) {
+    return "none";
+  }
+
+  const lanes = [
+    directive.teammate ? "team" : undefined,
+    directive.subagent ? "subagent" : undefined,
+  ].filter(Boolean);
+  return `${lanes.join("+")} (${directive.source})`;
 }
 
 function takeLastUnique(values: string[], limit: number): string[] {

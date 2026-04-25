@@ -8,7 +8,7 @@ import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
 import { createTempWorkspace } from "./helpers.js";
 
-test("ensureTaskPlan writes advisory stages without preselecting execution lanes", async (t) => {
+test("ensureTaskPlan uses explicit delegation prefixes to select execution lanes", async (t) => {
   const root = await createTempWorkspace("orchestrator-plan", t);
   const plan = await ensureTaskPlan({
     rootDir: root,
@@ -24,6 +24,11 @@ test("ensureTaskPlan writes advisory stages without preselecting execution lanes
       wantsBackground: false,
       wantsSubagent: true,
       wantsTeammate: true,
+      delegationDirective: {
+        teammate: true,
+        subagent: true,
+        source: "user_prefix" as const,
+      },
       backgroundCommand: undefined,
     },
     existingTasks: [],
@@ -42,14 +47,12 @@ test("ensureTaskPlan writes advisory stages without preselecting execution lanes
   assert.ok(implementation);
   assert.ok(validation);
   assert.equal(merge, undefined);
-  assert.deepEqual(implementation?.blockedBy, [survey?.id]);
+  assert.deepEqual(implementation?.blockedBy, []);
   assert.deepEqual(validation?.blockedBy, [implementation?.id]);
   assert.match(String(survey?.description ?? ""), /deadmouse-orchestrator/i);
-
-  for (const task of [survey, implementation, validation]) {
-    const meta = readOrchestratorMetadata(task!.description);
-    assert.equal(meta?.executor, "lead");
-  }
+  assert.equal(readOrchestratorMetadata(survey!.description)?.executor, "subagent");
+  assert.equal(readOrchestratorMetadata(implementation!.description)?.executor, "teammate");
+  assert.equal(readOrchestratorMetadata(validation!.description)?.executor, "lead");
 });
 
 test("loadOrchestratorProgress keeps teammate-reserved work off the lead-ready list and records who can pick it up", async (t) => {

@@ -55,7 +55,7 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
       evaluation,
       mode,
       activeDelegationCount: readActiveDelegationCount(progress),
-      returnBarrierPending: readOrchestratorReturnBarrierState(options.session).pending,
+      returnBarrierPending: readOrchestratorReturnBarrierState(options.session).pending && !isExplicitDelegationRequested(analysis),
     });
     if (!gate.allow) {
       decision = {
@@ -66,7 +66,9 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
     }
   }
 
-  const returnBarrierDecision = applyOrchestratorReturnBarrier(options.session, decision);
+  const returnBarrierDecision = applyOrchestratorReturnBarrier(options.session, decision, {
+    allowExplicitDelegation: isExplicitDelegationRequested(analysis),
+  });
   decision = returnBarrierDecision.decision;
   const dispatched = await dispatchOrchestratorAction({
     rootDir: projectContext.stateRootDir,
@@ -87,6 +89,10 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
     plan,
     decision: dispatched.decision,
   };
+}
+
+function isExplicitDelegationRequested(analysis: Pick<PreparedLeadTurn["analysis"], "delegationDirective">): boolean {
+  return Boolean(analysis.delegationDirective?.teammate || analysis.delegationDirective?.subagent);
 }
 
 function readActiveDelegationCount(progress: OrchestratorProgressSnapshot): number {

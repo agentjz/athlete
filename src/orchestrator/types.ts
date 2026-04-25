@@ -2,9 +2,8 @@ import type { SessionStoreLike } from "../agent/session.js";
 import type { BackgroundJobRecord } from "../execution/background.js";
 import type { ExecutionRecord } from "../execution/types.js";
 import type { AgentCallbacks } from "../agent/types.js";
-import type { RunSubagentTaskResult } from "../subagent/run.js";
+import type { DelegationDirective } from "../agent/session.js";
 import type { CoordinationPolicyRecord, ProtocolRequestRecord, TeamMemberRecord } from "../team/types.js";
-import type { ToolRegistryFactory } from "../tools/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import type { TaskRecord } from "../tasks/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";
@@ -71,6 +70,7 @@ export interface OrchestratorTaskSnapshot {
 
 export interface OrchestratorAnalysis {
   objective: OrchestratorObjective;
+  delegationDirective?: DelegationDirective;
   complexity: OrchestratorComplexity;
   needsInvestigation: boolean;
   prefersParallel: boolean;
@@ -127,26 +127,12 @@ export interface OrchestratorDecision {
 }
 
 export interface OrchestratorDispatchDependencies {
-  runSubagentTask?: (input: OrchestratorSubagentInput) => Promise<RunSubagentTaskResult>;
   spawnExecutionWorker?: (input: {
     rootDir: string;
     config: RuntimeConfig;
     executionId: string;
     actorName?: string;
   }) => number;
-}
-
-export interface OrchestratorSubagentInput {
-  description: string;
-  prompt: string;
-  agentType: string;
-  cwd: string;
-  config: RuntimeConfig;
-  callbacks?: AgentCallbacks;
-  createToolRegistry?: ToolRegistryFactory;
-  taskId?: number;
-  requestedBy?: string;
-  worktreePolicy?: "none" | "task";
 }
 
 export interface PreparedLeadTurn {

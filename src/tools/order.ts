@@ -19,20 +19,24 @@ export function sortToolRegistryEntriesForExposure(entries: readonly ToolRegistr
 }
 
 function getExposureRank(entry: ToolRegistryEntry): number {
-  if (isBrowserGovernedTool(entry.governance)) {
-    return getBrowserStepRank(entry.governance);
-  }
-
   if (entry.governance.specialty === "document" && entry.governance.mutation === "read") {
     return 20;
   }
 
-  if (entry.governance.source === "mcp") {
+  if (entry.governance.specialty === "filesystem" && entry.governance.mutation === "read") {
     return 30;
   }
 
-  if (entry.governance.specialty === "filesystem" && entry.governance.mutation === "read") {
+  if (entry.governance.specialty === "external") {
     return 40;
+  }
+
+  if (isBrowserGovernedTool(entry.governance)) {
+    return 60 + getBrowserStepRank(entry.governance);
+  }
+
+  if (entry.governance.source === "mcp") {
+    return 70;
   }
 
   if (entry.governance.specialty === "shell" || entry.governance.specialty === "background") {

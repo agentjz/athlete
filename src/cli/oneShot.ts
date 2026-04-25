@@ -48,7 +48,6 @@ export async function runOneShotPrompt(
     assistantTrailingNewlines: "\n",
     reasoningLeadingBlankLine: false,
     toolArgsMaxChars: 160,
-    toolErrorLabel: "failed, model will try another path",
   });
 
   const outcome = await runHostTurn({

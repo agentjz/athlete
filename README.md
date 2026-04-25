@@ -80,25 +80,27 @@ Deadmouse 当前的核心不是“陪聊”，而是“持续推进任务”：
 
 1. 统一宿主入口。
    同一个任务，不管来自 CLI 还是 Telegram，都会先经过统一宿主边界进入核心，而不是每个宿主自己偷偷拼一套 runtime。
-2. lead 先做总指挥预处理。
-   真正调用模型前，系统会先分析 objective、复杂度、现有任务进度，判断这一步应该自己做、拆任务、派工、等待还是合流。
-3. 控制面落正式真相。
+2. Lead 先建立当前目标帧。
+   普通新输入会成为新的 current objective，旧 todo、旧 checkpoint、旧任务板只作为 carryover 留账，不再把模型拉回上一轮；只有“继续/恢复”这类输入才沿用旧现场。
+3. 委派只认用户前缀。
+   不加前缀时默认 Lead 单兵执行；`/team` 才允许队友，`/subagent` 才允许子代理，`/team/subagent` 才允许两条 agent 通道同时参与。机器不再靠关键词猜“要不要派人”。
+4. 控制面落正式真相。
    任务、队友、后台任务、协议请求、worktree 绑定这些状态，都落在统一控制面里，不靠聊天记录临时记忆。
-4. session 是任务现场，不是普通聊天记录。
-   session 里会带着 checkpoint、verificationState、acceptanceState、runtimeStats，所以系统中断以后不是从零开始，而是能从现场继续。
-5. 文件和材料按能力链路走。
+5. session 是任务现场，不是普通聊天记录。
+   session 里会带着 checkpoint、verificationState、acceptanceState、runtimeStats，所以系统中断以后不是从零开始，而是能从现场继续；但用户换新目标时，旧现场不能压住新目标。
+6. 文件和材料按能力链路走。
    PDF 会走 `mineru_pdf_read`，图片走 `mineru_image_read`，docx 走 `mineru_doc_read`，pptx 走 `mineru_ppt_read`，表格走 `read_spreadsheet`，公开链接走 `download_url`，不是所有输入都粗暴塞给一个读文件工具。
-6. 网页和文件能力都是真实动作。
-   网页部分依赖浏览器能力和网页研究链路；本地部分依赖 `read_file`、`write_file`、`edit_file`、`apply_patch`、`search_files`、`run_shell` 等真实工具，而不是让模型“脑补执行”。
-7. 慢任务和并行任务有正式执行位。
-   慢操作可以进入 `background_run`；适合拆分的工作可以交给 teammate；并行改动需要 worktree 隔离，而不是所有执行者挤在同一个目录里乱改。
-8. finalize 受机器状态约束。
+7. 网页和文件能力都是真实动作。
+   网页部分依赖轻量 HTTP / 下载链路与按需浏览器能力：`http_request`、`download_url` 这类工具定义会先给 Lead，真正联网发生在工具执行时；Playwright MCP 这类重型浏览器服务也先暴露能力定义，只有 Lead 明确调用浏览器工具时才启动。本地部分依赖 `read_file`、`write_file`、`edit_file`、`apply_patch`、`search_files`、`run_shell` 等真实工具，而不是让模型“脑补执行”。
+8. 慢任务和并行任务有正式执行位。
+   慢操作可以进入 `background_run`；队友和子代理必须由用户前缀明确打开；并行改动需要 worktree 隔离，而不是所有执行者挤在同一个目录里乱改。
+9. finalize 受机器状态约束。
    一旦文件改动、工具执行或 closeout 条件触发，verification 和 acceptance 会进入正式状态机；没验过、没收口、没满足条件，就不能假装完成。
-9. 文件交付不是旁路。
+10. 文件交付不是旁路。
    Telegram 的 send file 能力是通过宿主边界注入的正式 extra tool，不是宿主自己绕开核心偷偷发文件。
-10. 通道自己的现实语义也被保留。
+11. 通道自己的现实语义也被保留。
    Telegram 会保留它的 delivery、typing 和 `/stop` 语义，但这些都不能反过来定义核心真相。
-11. 所有这些能力最后还能重新回到同一条主路径。
+12. 所有这些能力最后还能重新回到同一条主路径。
    所以 Deadmouse 不是“碰巧能做很多事”，而是“在机器层被组织成了同一个可续跑、可调度、可验证的系统”。🧭
 
 所以这个例子展示的，不只是“Agent 会不会写代码”，而是整个项目真正的能力全景：
@@ -118,7 +120,7 @@ Deadmouse 当前的核心不是“陪聊”，而是“持续推进任务”：
 | --- | --- | --- |
 | GPT-5.4 模型支持 | OpenAI relay + Responses adapter，已真实跑通 | ✅ |
 | Provider 双层接入边界 | 通用请求协议层 + provider / wire adapter 层 | ✅ |
-| 浏览器自动化 | Playwright MCP `@playwright/mcp` | ✅ |
+| 浏览器自动化 | Playwright MCP `@playwright/mcp`，定义先可见，执行时按需启动 | ✅ |
 | PDF 读取 | `mineru_pdf_read` + `mineru-pdf-reading` | ✅ |
 | 图片读取 | `mineru_image_read` + `mineru-image-reading` | ✅ |
 | Word 读取 | `mineru_doc_read` + `mineru-doc-reading`，`.docx` 可回退到 `read_docx` | ✅ |
@@ -136,7 +138,8 @@ Deadmouse 当前的核心不是“陪聊”，而是“持续推进任务”：
 ## 使用说明
 
 - 当前项目默认示例配置已经切到 GPT-5.4；初始化 `.deadmouse/.env` 后可以直接按 README / `deadmouse doctor` 的提示完成接入。
-- 当前已支持 GPT-5.4，推荐通过项目自己的 `.deadmouse/.env` 配置 `DEADMOUSE_PROVIDER`、`DEADMOUSE_BASE_URL`、`DEADMOUSE_MODEL` 和 `DEADMOUSE_API_KEY`。
+- 当前已支持 GPT-5.4，推荐通过项目自己的 `.deadmouse/.env` 配置默认 `DEADMOUSE_PROVIDER`、`DEADMOUSE_BASE_URL`、`DEADMOUSE_MODEL` 和 `DEADMOUSE_API_KEY`；如需分层用模型，可以额外配置 `DEADMOUSE_LEAD_*`、`DEADMOUSE_TEAMMATE_*`、`DEADMOUSE_SUBAGENT_*` 三组 provider bundle。
+- 默认任务由 Lead 单兵执行；需要队友时用 `/team` 开头，需要子代理时用 `/subagent` 开头，两者都要上时用 `/team/subagent` 开头。
 - 文档读取能力依赖 `MINERU_API_TOKEN`。
 - Telegram 需要 `DEADMOUSE_TELEGRAM_TOKEN` 和 `DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS`。
 - Telegram 当前只支持 private chat，不支持 group / supergroup / channel；非私聊或非白名单消息会被忽略，并在终端 logs 里标出原因。

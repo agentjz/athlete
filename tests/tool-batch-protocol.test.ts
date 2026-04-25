@@ -72,6 +72,57 @@ test("tool batches preflight in source order, persist pendingToolCalls, and fina
   assert.deepEqual((result.session.checkpoint?.flow as { pendingToolCalls?: unknown[] } | undefined)?.pendingToolCalls ?? [], []);
 });
 
+test("tool loop guard blocks only after a repeated read returns the same result", async (t) => {
+  const root = await createTempWorkspace("tool-loop-guard-read", t);
+  const sessionStore = new RecordingSessionStore();
+  const session = await sessionStore.create(root);
+  const events: string[] = [];
+
+  const server = await startFakeOpenAiServer((request) => {
+    if (request.requestIndex <= 3) {
+      return toolCallsResponse([
+        { id: `call-${request.requestIndex}`, name: "read_probe", args: {} },
+      ]);
+    }
+
+    return textResponse("done");
+  });
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await runManagedAgentTurn({
+    input: "Repeat a read until the loop guard proves no progress.",
+    cwd: root,
+    config: {
+      ...createTestRuntimeConfig(root),
+      baseUrl: server.baseUrl,
+    },
+    session,
+    sessionStore,
+    toolRegistry: createToolRegistry("agent", {
+      onlyNames: ["read_probe"],
+      sources: [createToolSource("host", "tests.loop-guard-read", [
+        createTestTool("read_probe", events, 1, {
+          mutation: "read",
+          concurrencySafe: true,
+        }),
+      ])],
+    }),
+    identity: {
+      kind: "teammate",
+      name: "batch-test",
+    },
+  });
+
+  const toolMessages = result.session.messages.filter((message) => message.role === "tool" && message.name === "read_probe");
+  assert.equal(events.filter((event) => event === "execute-start:read_probe").length, 3);
+  assert.equal(toolMessages.length, 3);
+  assert.doesNotMatch(String(toolMessages[0]?.content ?? ""), /LOOP_GUARD_BLOCKED/);
+  assert.doesNotMatch(String(toolMessages[1]?.content ?? ""), /LOOP_GUARD_BLOCKED/);
+  assert.match(String(toolMessages[2]?.content ?? ""), /LOOP_GUARD_BLOCKED/);
+  assert.match(String(toolMessages[2]?.content ?? ""), /same result/i);
+});
 test("any sequential tool forces the whole batch back to sequential execution", async (t) => {
   const root = await createTempWorkspace("tool-batch-sequential", t);
   const sessionStore = new RecordingSessionStore();

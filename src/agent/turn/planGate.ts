@@ -1,4 +1,5 @@
 import { hasIncompleteTodos } from "../session/todos.js";
+import { hasDelegationDirective } from "../session/delegationDirective.js";
 import type { AgentIdentity } from "../types.js";
 import type { SessionRecord } from "../../types.js";
 import { classifyCommand } from "../../utils/commandPolicy.js";
@@ -13,6 +14,8 @@ const PLAN_REQUIRED_TOOLS = new Set([
   "background_run",
 ]);
 
+const DELEGATION_TOOLS = new Set(["spawn_teammate", "task"]);
+
 export function getPlanBlockedResult(
   toolName: string,
   rawArgs: string,
@@ -21,6 +24,23 @@ export function getPlanBlockedResult(
 ): { ok: false; output: string } | null {
   if (identity.kind === "subagent") {
     return null;
+  }
+
+  if (identity.kind === "lead" && DELEGATION_TOOLS.has(toolName) && !hasDelegationDirective(session.taskState?.delegationDirective)) {
+    return {
+      ok: false,
+      output: JSON.stringify(
+        {
+          ok: false,
+          error: "Delegation requires an explicit user prefix.",
+          code: "DELEGATION_PREFIX_REQUIRED",
+          hint: "Run the task directly as Lead, or ask the user to start the next request with /team, /subagent, or /team/subagent.",
+          next_step: "Do not spawn teammates or subagents for this turn unless the current user objective carries an explicit delegation prefix.",
+        },
+        null,
+        2,
+      ),
+    };
   }
 
   if (!PLAN_REQUIRED_TOOLS.has(toolName)) {

@@ -61,11 +61,10 @@ test("clear helper resets return barrier state to non-pending", async () => {
   assert.equal(state.pending, false);
 });
 
-test("lead orchestration no longer auto-dispatches multiple delegations in one chain", async (t) => {
+test("plain delegation words no longer open agent lanes without prefixes", async (t) => {
   const root = await createTempWorkspace("return-barrier-integration", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
-  let subagentCalls = 0;
   let spawnCount = 0;
 
   const outcome = await runLeadOrchestrationLoop({
@@ -75,10 +74,6 @@ test("lead orchestration no longer auto-dispatches multiple delegations in one c
     session,
     sessionStore,
     deps: {
-      runSubagentTask: async () => ({
-        executionId: `exec-subagent-${++subagentCalls}`,
-        content: "survey complete",
-      }),
       spawnExecutionWorker: () => {
         spawnCount += 1;
         return 5000 + spawnCount;
@@ -87,10 +82,9 @@ test("lead orchestration no longer auto-dispatches multiple delegations in one c
   });
 
   assert.equal(outcome.kind, "run_lead");
-  assert.equal(subagentCalls, 0);
   assert.equal(spawnCount, 0);
   if (outcome.kind === "run_lead") {
-    assert.match(outcome.input, /Stage:\s*survey/i);
-    assert.match(outcome.input, /may fit a subagent/i);
+    assert.match(outcome.input, /Stage:\s*implementation/i);
+    assert.doesNotMatch(outcome.input, /may fit a subagent/i);
   }
 });

@@ -6,6 +6,7 @@ import {
   noteCheckpointYield,
 } from "../checkpoint.js";
 import { createMessage } from "../session/messages.js";
+import { applyCurrentTurnFrame } from "../session/taskState.js";
 import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "../runtimeMetrics.js";
 import { clearVerificationPause } from "../verification/state.js";
 import type { SessionStoreLike } from "../session/store.js";
@@ -34,15 +35,12 @@ export async function initializeTurnSession(
     createMessage("user", input),
   ]);
 
-  return sessionStore.save(
-    noteRuntimeTurnInput(noteCheckpointTurnInput(
-      {
-        ...appended,
-        verificationState: clearVerificationPause(appended.verificationState),
-      },
-      input,
-    ), input),
-  );
+  const framed = applyCurrentTurnFrame({
+    ...appended,
+    verificationState: clearVerificationPause(appended.verificationState),
+  }, input);
+
+  return sessionStore.save(noteRuntimeTurnInput(noteCheckpointTurnInput(framed, input), input));
 }
 
 export async function persistYieldedTurn(

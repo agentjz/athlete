@@ -1,14 +1,11 @@
-﻿import type { AgentCallbacks } from "../agent/types.js";
+import type { AgentCallbacks } from "../agent/types.js";
 import type { RuntimeConfig } from "../types.js";
 import { ui } from "../utils/console.js";
 import { writeStdout } from "../utils/stdio.js";
 import { colorizeTodoMarkers } from "./todoStyling.js";
 import {
-  compactHighNoisePreview,
   emitPreview,
   normalizeTerminalVerbosity,
-  shouldClampReadContentPreview,
-  shouldCompactPreview,
   shouldShowToolCallPreview,
   shouldShowToolResultPreview,
   truncateVisiblePreview,
@@ -25,7 +22,6 @@ interface StreamRendererOptions {
   assistantTrailingNewlines?: string;
   reasoningLeadingBlankLine?: boolean;
   toolArgsMaxChars?: number;
-  toolErrorLabel: string;
   abortSignal?: AbortSignal;
 }
 
@@ -183,15 +179,15 @@ export function createStreamRenderer(
         flush();
         const display = buildToolResultDisplay(name, output, options.cwd);
         if (display.summary) {
-          ui.dim(terminalVerbosity === "minimal" ? display.summary : `[result] ${display.summary}`);
+          const resultStatus = display.ok === false ? "fail" : "success";
+          const tracked = display.tracked ? " tracked" : "";
+          const summary = `${display.summary} ${resultStatus}${tracked}`.trim();
+          ui.dim(terminalVerbosity === "minimal" ? summary : `[result] ${summary}`);
         }
         if (display.preview && shouldShowToolResultPreview(name, terminalVerbosity)) {
-          const preview = shouldClampReadContentPreview(name)
-            ? truncateVisiblePreview(display.preview)
-            : display.preview;
-          const compactedPreview = shouldCompactPreview(name)
-            ? compactHighNoisePreview(preview)
-            : preview;
+          const compactedPreview = name === "todo_write"
+            ? display.preview
+            : truncateVisiblePreview(display.preview);
           const coloredPreview = name === "todo_write"
             ? colorizeTodoMarkers(compactedPreview)
             : compactedPreview;
@@ -204,8 +200,14 @@ export function createStreamRenderer(
         }
 
         flush();
-        ui.warn(`${name} ${options.toolErrorLabel}`);
-        ui.dim(error.length <= 600 ? error : `${error.slice(0, 600)}...`);
+        const display = buildToolResultDisplay(name, error, options.cwd);
+        ui.warn(terminalVerbosity === "minimal" ? `${name} fail` : `[result] ${name} fail`);
+        if (terminalVerbosity !== "minimal") {
+          const preview = truncateVisiblePreview(display.preview ?? error);
+          if (preview) {
+            emitPreview("preview", preview, terminalVerbosity);
+          }
+        }
       },
       onStatus(text) {
         if (isAborted()) {

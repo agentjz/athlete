@@ -1,23 +1,8 @@
-﻿import { ui } from "../../utils/console.js";
+import { ui } from "../../utils/console.js";
 
 export type TerminalVerbosity = "minimal" | "normal" | "verbose";
 
-const VISIBLE_PREVIEW_MAX_LINES = 3;
-const VISIBLE_PREVIEW_MAX_CHARS = 1_600;
-const READ_CONTENT_PREVIEW_TOOL_NAMES = new Set([
-  "read_file",
-  "read_docx",
-  "read_spreadsheet",
-  "mineru_doc_read",
-  "mineru_image_read",
-  "mineru_pdf_read",
-  "mineru_ppt_read",
-]);
-const HIGH_NOISE_PREVIEW_TOOL_NAMES = new Set(["edit_file", "apply_patch"]);
-const MINIMAL_VERBOSE_PREVIEW_TOOL_NAMES = new Set([
-  ...READ_CONTENT_PREVIEW_TOOL_NAMES,
-  "todo_write",
-]);
+const VISIBLE_RESULT_PREVIEW_MAX_CHARS = 180;
 
 export function truncate(value: string, maxChars: number): string {
   if (value.length <= maxChars) {
@@ -37,30 +22,15 @@ export function truncateBlock(value: string, maxChars: number): string {
 }
 
 export function truncateVisiblePreview(value: string): string {
-  const normalized = value.replace(/\r\n/g, "\n").trim();
+  const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) {
     return normalized;
   }
 
-  const lines = normalized.split("\n");
-  const limitedLines = lines.slice(0, VISIBLE_PREVIEW_MAX_LINES);
-  const linesTruncated = lines.length > VISIBLE_PREVIEW_MAX_LINES;
-  let preview = limitedLines.join("\n");
-  let truncated = linesTruncated;
-
-  if (preview.length > VISIBLE_PREVIEW_MAX_CHARS) {
-    preview = preview.slice(0, VISIBLE_PREVIEW_MAX_CHARS);
-    truncated = true;
-  }
-
-  if (!truncated) {
-    return preview;
-  }
-
-  return appendTruncatedMarker(preview);
+  return truncate(normalized, VISIBLE_RESULT_PREVIEW_MAX_CHARS);
 }
 
-export function compactHighNoisePreview(value: string): string {
+export function summarizePatchPreview(value: string): string {
   const normalized = value.replace(/\r\n/g, "\n").trim();
   if (!normalized) {
     return normalized;
@@ -75,14 +45,6 @@ export function compactHighNoisePreview(value: string): string {
     : compactedHead;
 }
 
-export function summarizePatchPreview(value: string): string {
-  return compactHighNoisePreview(value);
-}
-
-export function shouldClampReadContentPreview(name: string): boolean {
-  return READ_CONTENT_PREVIEW_TOOL_NAMES.has(name);
-}
-
 export function shouldShowToolCallPreview(name: string, verbosity: TerminalVerbosity): boolean {
   if (name === "todo_write") {
     return false;
@@ -93,14 +55,10 @@ export function shouldShowToolCallPreview(name: string, verbosity: TerminalVerbo
 
 export function shouldShowToolResultPreview(name: string, verbosity: TerminalVerbosity): boolean {
   if (verbosity === "minimal") {
-    return MINIMAL_VERBOSE_PREVIEW_TOOL_NAMES.has(name);
+    return name === "todo_write";
   }
 
   return true;
-}
-
-export function shouldCompactPreview(name: string): boolean {
-  return HIGH_NOISE_PREVIEW_TOOL_NAMES.has(name);
 }
 
 export function normalizeTerminalVerbosity(
@@ -127,16 +85,4 @@ export function emitPreview(
   }
 
   ui.dim(`[${label}]\n${preview}`);
-}
-
-function appendTruncatedMarker(preview: string): string {
-  const marker = "... [truncated]";
-  const lines = preview.split("\n");
-  if (lines.length < VISIBLE_PREVIEW_MAX_LINES) {
-    return `${preview}\n${marker}`;
-  }
-
-  const head = lines.slice(0, Math.max(0, VISIBLE_PREVIEW_MAX_LINES - 1));
-  const tail = lines.at(VISIBLE_PREVIEW_MAX_LINES - 1) ?? "";
-  return [...head, `${tail} ${marker}`.trim()].join("\n");
 }

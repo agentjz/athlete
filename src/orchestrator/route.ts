@@ -1,5 +1,6 @@
 import type {
   OrchestratorDecision,
+  OrchestratorAnalysis,
   OrchestratorProgressSnapshot,
   OrchestratorTaskLifecycle,
   OrchestratorTaskPlan,
@@ -9,7 +10,7 @@ import type {
 import { getOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 
 export function routeOrchestratorAction(input: {
-  analysis?: unknown;
+  analysis?: Partial<OrchestratorAnalysis>;
   progress: OrchestratorProgressSnapshot;
   plan: OrchestratorTaskPlan;
 }): OrchestratorDecision {
@@ -47,6 +48,15 @@ export function routeOrchestratorAction(input: {
 
   const surveyTask = readyTasks.find((task) => task.meta.kind === "survey" && leadMayAct(task));
   if (surveyTask) {
+    if (surveyTask.meta.executor === "subagent" && wantsSubagent(input.analysis)) {
+      return {
+        action: "delegate_subagent",
+        reason: `User explicitly requested a subagent for Task #${surveyTask.record.id}.`,
+        task: surveyTask,
+        subagentType: "explore",
+      };
+    }
+
     return {
       action: "self_execute",
       reason: `Task #${surveyTask.record.id} may fit a subagent survey, but the lead must decide whether to delegate, inspect directly, or choose another route.`,
@@ -91,6 +101,21 @@ export function routeOrchestratorAction(input: {
     };
   }
 
+  const explicitTeammateTask = wantsTeammate(input.analysis)
+    ? readyTasks.find((task) => task.meta.executor === "teammate" && leadMayAct(task))
+    : undefined;
+  if (explicitTeammateTask) {
+    return {
+      action: "delegate_teammate",
+      reason: `User explicitly requested a teammate for Task #${explicitTeammateTask.record.id}.`,
+      task: explicitTeammateTask,
+      teammate: {
+        name: `teammate-task-${explicitTeammateTask.record.id}`,
+        role: "Explicit user-requested execution teammate",
+      },
+    };
+  }
+
   const delegatedWait = collectDelegatedWaitState(input.progress);
   if (hasDelegatedWait(delegatedWait)) {
     return {
@@ -113,6 +138,14 @@ export function routeOrchestratorAction(input: {
     action: "self_execute",
     reason: "No orchestration state requires dispatch or waiting before the lead continues directly.",
   };
+}
+
+function wantsSubagent(analysis: Partial<OrchestratorAnalysis> | undefined): boolean {
+  return Boolean(analysis?.delegationDirective?.subagent);
+}
+
+function wantsTeammate(analysis: Partial<OrchestratorAnalysis> | undefined): boolean {
+  return Boolean(analysis?.delegationDirective?.teammate);
 }
 
 function leadMayAct(task: OrchestratorTaskSnapshot): boolean {

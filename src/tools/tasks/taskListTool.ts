@@ -19,13 +19,21 @@ export const taskListTool: RegisteredTool = {
   async execute(_rawArgs, context) {
     await reconcileTeamState(context.projectContext.stateRootDir).catch(() => null);
     const store = new TaskStore(context.projectContext.stateRootDir);
-    const tasks = await store.list();
+    const allTasks = await store.list();
+    const tasks = context.currentObjective
+      ? allTasks.filter((task) => task.description.includes(`"key": "${context.currentObjective?.key}"`))
+      : allTasks;
+    const carryoverTaskCount = allTasks.length - tasks.length;
     return okResult(
       JSON.stringify(
         {
           ok: true,
           tasks,
-          preview: await store.summarize(),
+          carryoverTaskCount,
+          preview: await store.summarize({
+            objectiveKey: context.currentObjective?.key,
+            includeCarryoverCount: Boolean(context.currentObjective),
+          }),
         },
         null,
         2,

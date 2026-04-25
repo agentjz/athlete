@@ -114,22 +114,24 @@ export async function ensureTaskPlan(input: {
 }
 
 function buildTaskSpecs(analysis: OrchestratorAnalysis): TaskSpec[] {
-  if (analysis.complexity === "simple" && !analysis.wantsBackground && !analysis.wantsSubagent && !analysis.wantsTeammate) {
+  const explicitSubagent = wantsSubagent(analysis);
+  const explicitTeammate = wantsTeammate(analysis);
+  if (analysis.complexity === "simple" && !analysis.wantsBackground && !explicitSubagent && !explicitTeammate) {
     return [];
   }
 
   const specs: TaskSpec[] = [];
-  if (analysis.needsInvestigation || analysis.wantsSubagent) {
+  if (explicitSubagent || analysis.needsInvestigation) {
     specs.push({
       kind: "survey",
-      executor: "lead",
+      executor: explicitSubagent ? "subagent" : "lead",
     });
   }
 
   specs.push({
     kind: "implementation",
-    executor: "lead",
-    blockedBy: specs.some((spec) => spec.kind === "survey") ? "survey" : undefined,
+    executor: explicitTeammate ? "teammate" : "lead",
+    blockedBy: specs.some((spec) => spec.kind === "survey") && !explicitTeammate ? "survey" : undefined,
   });
 
   specs.push({
@@ -140,6 +142,13 @@ function buildTaskSpecs(analysis: OrchestratorAnalysis): TaskSpec[] {
   return specs;
 }
 
+function wantsSubagent(analysis: OrchestratorAnalysis): boolean {
+  return Boolean(analysis.delegationDirective?.subagent);
+}
+
+function wantsTeammate(analysis: OrchestratorAnalysis): boolean {
+  return Boolean(analysis.delegationDirective?.teammate);
+}
 function buildTaskSubject(kind: OrchestratorTaskKind, objective: string): string {
   const label =
     kind === "survey"

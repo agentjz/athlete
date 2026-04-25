@@ -336,6 +336,125 @@ test("McpClientManager keeps discovered MCP tools callable until the manager is 
   assert.equal(closeCalls, 1);
 });
 
+
+test("runtime registry exposes Playwright MCP tool definitions without eager MCP discovery", async () => {
+  const toolName = formatMcpToolName("playwright", "browser_navigate");
+  let refreshCalls = 0;
+
+  const manager = {
+    async refresh() {
+      refreshCalls += 1;
+      return [];
+    },
+    getDiscoveredTools() {
+      return [];
+    },
+    getSnapshots() {
+      return [];
+    },
+    async close() {
+      return;
+    },
+  };
+
+  const registry = await (createRuntimeToolRegistry as any)(
+    {
+      ...createTestRuntimeConfig(process.cwd()),
+      mcp: {
+        enabled: true,
+        playwright: {
+          enabled: true,
+        },
+        servers: [],
+      },
+    },
+    {},
+    {
+      manager,
+    },
+  );
+
+  const names = new Set(registry.definitions.map((tool: any) => tool.function.name));
+  assert(names.has("read_file"));
+  assert(names.has(toolName));
+  assert.equal(refreshCalls, 0);
+
+  await registry.close();
+  assert.equal(refreshCalls, 0);
+});
+
+test("runtime registry starts Playwright MCP only when a browser tool is executed", async () => {
+  const toolName = formatMcpToolName("playwright", "browser_navigate");
+  let refreshCalls = 0;
+  let invokeCalls = 0;
+
+  const manager = {
+    async refresh() {
+      refreshCalls += 1;
+      return [];
+    },
+    getDiscoveredTools() {
+      return [
+        {
+          serverName: "playwright",
+          name: "browser_navigate",
+          description: "Navigate the browser to a URL.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              url: { type: "string" },
+            },
+            required: ["url"],
+          },
+          async invoke(input: Record<string, unknown>) {
+            invokeCalls += 1;
+            return {
+              ok: true,
+              output: `lazy-visited:${String(input.url ?? "")}`,
+            };
+          },
+        },
+      ];
+    },
+    getSnapshots() {
+      return [];
+    },
+    async close() {
+      return;
+    },
+  };
+
+  const registry = await (createRuntimeToolRegistry as any)(
+    {
+      ...createTestRuntimeConfig(process.cwd()),
+      mcp: {
+        enabled: true,
+        playwright: {
+          enabled: true,
+        },
+        servers: [],
+      },
+    },
+    {},
+    {
+      manager,
+    },
+  );
+
+  assert.equal(refreshCalls, 0);
+  const result = await registry.execute(
+    toolName,
+    JSON.stringify({ url: "https://playwright.dev" }),
+    makeToolContext(process.cwd()) as any,
+  );
+
+  assert.equal(refreshCalls, 1);
+  assert.equal(invokeCalls, 1);
+  assert.equal(result.output, "lazy-visited:https://playwright.dev");
+
+  await registry.close();
+});
+
 test("runtime registry wires Playwright MCP tools through the core registry without dropping built-ins", async () => {
   const toolName = formatMcpToolName("playwright", "browser_navigate");
   let closeCalls = 0;
@@ -439,7 +558,7 @@ test("agent-visible runtime tool definitions include Playwright MCP browser tool
   assert.match(definition.function.description ?? "", /MCP server: playwright/i);
 });
 
-test("runtime registry surfaces Playwright browser tools ahead of file and shell tools for browser-first planning", async () => {
+test("runtime registry keeps Playwright browser tools visible without making them default-first tools", async () => {
   const navigateToolName = formatMcpToolName("playwright", "browser_navigate");
   const snapshotToolName = formatMcpToolName("playwright", "browser_snapshot");
   const registry = await (createRuntimeToolRegistry as any)(
@@ -496,7 +615,7 @@ test("runtime registry surfaces Playwright browser tools ahead of file and shell
   const names = registry.definitions.map((tool: any) => tool.function.name);
   assert(names.indexOf(navigateToolName) >= 0);
   assert(names.indexOf(snapshotToolName) >= 0);
-  assert(names.indexOf(navigateToolName) < names.indexOf("list_files"));
-  assert(names.indexOf(snapshotToolName) < names.indexOf("read_file"));
-  assert(names.indexOf(snapshotToolName) < names.indexOf("run_shell"));
+  assert(names.indexOf("list_files") < names.indexOf(navigateToolName));
+  assert(names.indexOf("read_file") < names.indexOf(snapshotToolName));
+  assert(names.indexOf("http_request") < names.indexOf(navigateToolName));
 });

@@ -448,7 +448,7 @@ function normalizeProfile(value: string): ExecutionProfile {
 }
 
 function normalizeLaunch(value: string): ExecutionLaunchMode {
-  if (value === "inline" || value === "worker") {
+  if (value === "worker") {
     return value;
   }
 

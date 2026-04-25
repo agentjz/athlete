@@ -1,10 +1,14 @@
 import type { SessionRecord, StoredMessage, TodoItem, TodoStatus } from "../../types.js";
+import { isContinuationDirective, isInternalMessage } from "./taskState.js";
 
 const MAX_TODO_ITEMS = 20;
 const MAX_TODO_TEXT_CHARS = 240;
 
 export function deriveTodoItems(messages: StoredMessage[], previous: TodoItem[] = []): TodoItem[] {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
+  const objectiveBoundaryIndex = findLatestObjectiveBoundaryIndex(messages);
+  const stopIndex = objectiveBoundaryIndex >= 0 ? objectiveBoundaryIndex : -1;
+
+  for (let index = messages.length - 1; index > stopIndex; index -= 1) {
     const message = messages[index];
     if (message?.role !== "tool" || message.name !== "todo_write" || typeof message.content !== "string") {
       continue;
@@ -110,6 +114,17 @@ export function normalizeSessionTodos(session: SessionRecord): SessionRecord {
     ...session,
     todoItems: deriveTodoItems(session.messages ?? [], session.todoItems ?? []),
   };
+}
+
+function findLatestObjectiveBoundaryIndex(messages: StoredMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "user" && !isInternalMessage(message.content) && !isContinuationDirective(message.content)) {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function normalizeTodoStatus(value: unknown): TodoStatus {
