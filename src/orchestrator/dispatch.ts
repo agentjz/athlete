@@ -49,6 +49,7 @@ export async function dispatchOrchestratorAction(input: {
     taskState: {
       ...(input.session.taskState ?? createEmptyTaskState()),
       objective: input.analysis.objective.text,
+      delegationDirective: input.analysis.delegationDirective,
       lastUpdatedAt: new Date().toISOString(),
     },
   });

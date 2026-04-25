@@ -8,6 +8,7 @@ import { initializeTurnSession } from "../src/agent/turn/persistence.js";
 import { hasUnfinishedLeadWork } from "../src/agent/turn/leadReturnGate.js";
 import { loadProjectContext } from "../src/context/projectContext.js";
 import { analyzeOrchestratorInput } from "../src/orchestrator/analyze.js";
+import { dispatchOrchestratorAction } from "../src/orchestrator/dispatch.js";
 import { buildOrchestratorObjective, writeOrchestratorMetadata } from "../src/orchestrator/metadata.js";
 import { ProtocolRequestStore } from "../src/team/requestStore.js";
 import { TeamStore } from "../src/team/store.js";
@@ -15,7 +16,7 @@ import { TaskStore } from "../src/tasks/store.js";
 import { taskListTool } from "../src/tools/tasks/taskListTool.js";
 import type { ToolContext } from "../src/tools/types.js";
 import type { SessionCheckpoint } from "../src/types.js";
-import { createCheckpointFixture, createTempWorkspace, makeToolContext } from "./helpers.js";
+import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "./helpers.js";
 
 test("new user objective starts a fresh current task frame", async (t) => {
   const root = await createTempWorkspace("current-objective-frame", t);
@@ -153,4 +154,41 @@ test("lead cannot spawn delegation lanes without an explicit prefix", async (t) 
   const prefixed = await initializeTurnSession(session, "@team 做一次明确队友演示", sessionStore);
   const allowed = getPlanBlockedResult("spawn_teammate", "{}", prefixed, { kind: "lead", name: "lead" });
   assert.equal(allowed, null);
+});
+
+test("orchestrator preserves explicit delegation prefixes before lead tool execution", async (t) => {
+  const root = await createTempWorkspace("delegation-prefix-orchestrator", t);
+  const sessionStore = new MemorySessionStore();
+
+  const cases = [
+    { input: "@team 请研究这个问题", teammate: true, subagent: false },
+    { input: "@subagent 请研究这个问题", teammate: false, subagent: true },
+    { input: "@allpeople 请研究这个问题", teammate: true, subagent: true },
+  ];
+
+  for (const entry of cases) {
+    const session = await sessionStore.create(root);
+    const analysis = analyzeOrchestratorInput({
+      input: entry.input,
+      session,
+    });
+    const dispatched = await dispatchOrchestratorAction({
+      rootDir: root,
+      cwd: root,
+      config: createTestRuntimeConfig(root),
+      session,
+      sessionStore,
+      analysis,
+      decision: {
+        action: "self_execute",
+        reason: "test",
+      },
+    });
+
+    assert.equal(dispatched.session.taskState?.delegationDirective?.teammate, entry.teammate);
+    assert.equal(dispatched.session.taskState?.delegationDirective?.subagent, entry.subagent);
+    assert.equal(dispatched.session.taskState?.delegationDirective?.source, "user_prefix");
+    assert.equal(getPlanBlockedResult("spawn_teammate", "{}", dispatched.session, { kind: "lead", name: "lead" }), null);
+    assert.equal(getPlanBlockedResult("task", "{}", dispatched.session, { kind: "lead", name: "lead" }), null);
+  }
 });
