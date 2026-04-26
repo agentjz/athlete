@@ -23,11 +23,14 @@ test("dispatchOrchestratorAction launches delegated subagent work through execut
       text: "Survey the runtime and find the safest integration point.",
     },
     complexity: "complex" as const,
-    needsInvestigation: true,
-    prefersParallel: false,
     wantsBackground: false,
     wantsSubagent: true,
     wantsTeammate: false,
+    delegationDirective: {
+      teammate: false,
+      subagent: true,
+      source: "user_prefix" as const,
+    },
     backgroundCommand: undefined,
   };
   const plan = await ensureTaskPlan({
@@ -39,6 +42,7 @@ test("dispatchOrchestratorAction launches delegated subagent work through execut
   const surveyTask = plan.readyTasks.find((task) => task.meta.kind === "survey");
   assert.ok(surveyTask);
   let spawnCount = 0;
+  const dispatchEvents: Array<{ profile: string; actorName: string; taskId?: number; pid?: number }> = [];
 
   const outcome = await dispatchOrchestratorAction({
     rootDir: root,
@@ -59,6 +63,16 @@ test("dispatchOrchestratorAction launches delegated subagent work through execut
         return 2468;
       },
     },
+    callbacks: {
+      onDispatch(event) {
+        dispatchEvents.push({
+          profile: event.profile,
+          actorName: event.actorName,
+          taskId: event.taskId,
+          pid: event.pid,
+        });
+      },
+    },
   });
 
   const task = await new TaskStore(root).load(surveyTask!.record.id);
@@ -73,6 +87,14 @@ test("dispatchOrchestratorAction launches delegated subagent work through execut
   assert.equal(subagent?.pid, 2468);
   assert.equal(subagent?.taskId, surveyTask!.record.id);
   assert.equal(taskMeta?.executionId, subagent?.id);
+  assert.deepEqual(dispatchEvents, [
+    {
+      profile: "subagent",
+      actorName: `subagent-${surveyTask!.record.id}`,
+      taskId: surveyTask!.record.id,
+      pid: 2468,
+    },
+  ]);
   assert.equal(outcome.session.messages.some((message) => String(message.content ?? "").includes("launched subagent execution")), true);
 });
 
@@ -86,11 +108,14 @@ test("dispatchOrchestratorAction reserves teammate work on the task board and st
       text: "Implement the feature in parallel with a teammate.",
     },
     complexity: "complex" as const,
-    needsInvestigation: false,
-    prefersParallel: true,
     wantsBackground: false,
     wantsSubagent: false,
     wantsTeammate: true,
+    delegationDirective: {
+      teammate: true,
+      subagent: false,
+      source: "user_prefix" as const,
+    },
     backgroundCommand: undefined,
   };
   const plan = await ensureTaskPlan({
@@ -106,6 +131,7 @@ test("dispatchOrchestratorAction reserves teammate work on the task board and st
   });
   const implementationTask = progress.readyTasks.find((task) => task.meta.kind === "implementation");
   assert.ok(implementationTask);
+  const dispatchEvents: Array<{ profile: string; actorName: string; taskId?: number; pid?: number }> = [];
 
   await dispatchOrchestratorAction({
     rootDir: root,
@@ -126,6 +152,16 @@ test("dispatchOrchestratorAction reserves teammate work on the task board and st
     deps: {
       spawnExecutionWorker: () => 4321,
     },
+    callbacks: {
+      onDispatch(event) {
+        dispatchEvents.push({
+          profile: event.profile,
+          actorName: event.actorName,
+          taskId: event.taskId,
+          pid: event.pid,
+        });
+      },
+    },
   });
 
   const task = await new TaskStore(root).load(implementationTask!.record.id);
@@ -133,6 +169,14 @@ test("dispatchOrchestratorAction reserves teammate work on the task board and st
   assert.equal(task.assignee, "worker-1");
   assert.equal(member?.status, "working");
   assert.equal(member?.pid, 4321);
+  assert.deepEqual(dispatchEvents, [
+    {
+      profile: "teammate",
+      actorName: "worker-1",
+      taskId: implementationTask!.record.id,
+      pid: 4321,
+    },
+  ]);
 });
 
 test("dispatchOrchestratorAction creates real background jobs through BackgroundJobStore", async (t) => {
@@ -145,11 +189,14 @@ test("dispatchOrchestratorAction creates real background jobs through Background
       text: "Run the validation suite in the background.",
     },
     complexity: "moderate" as const,
-    needsInvestigation: false,
-    prefersParallel: false,
     wantsBackground: true,
     wantsSubagent: false,
     wantsTeammate: false,
+    delegationDirective: {
+      teammate: false,
+      subagent: false,
+      source: "none" as const,
+    },
     backgroundCommand: "node -e setTimeout(() => console.log(123), 500)",
   };
   const plan = await ensureTaskPlan({
@@ -160,6 +207,7 @@ test("dispatchOrchestratorAction creates real background jobs through Background
   });
   const backgroundTask = plan.readyTasks.find((task) => task.meta.kind === "validation") ?? plan.readyTasks[0];
   assert.ok(backgroundTask);
+  const dispatchEvents: Array<{ profile: string; actorName: string; taskId?: number; pid?: number }> = [];
 
   await dispatchOrchestratorAction({
     rootDir: root,
@@ -177,12 +225,30 @@ test("dispatchOrchestratorAction creates real background jobs through Background
     deps: {
       spawnExecutionWorker: () => 9876,
     },
+    callbacks: {
+      onDispatch(event) {
+        dispatchEvents.push({
+          profile: event.profile,
+          actorName: event.actorName,
+          taskId: event.taskId,
+          pid: event.pid,
+        });
+      },
+    },
   });
 
   const jobs = await new BackgroundJobStore(root).list();
   assert.equal(jobs.length, 1);
   assert.equal(jobs[0]?.pid, 9876);
   assert.equal(jobs[0]?.command, "node -e \"setTimeout(() => console.log(123), 500)\"");
+  assert.deepEqual(dispatchEvents, [
+    {
+      profile: "background",
+      actorName: `bg-${jobs[0]!.id}`,
+      taskId: backgroundTask!.record.id,
+      pid: 9876,
+    },
+  ]);
 });
 
 test("background routing does not silently launch duplicate jobs after reload", async (t) => {
@@ -192,11 +258,14 @@ test("background routing does not silently launch duplicate jobs after reload", 
   const analysis = {
     objective: buildOrchestratorObjective("Run the validation suite in the background: `npm test -- --watch=false`"),
     complexity: "moderate" as const,
-    needsInvestigation: false,
-    prefersParallel: false,
     wantsBackground: true,
     wantsSubagent: false,
     wantsTeammate: false,
+    delegationDirective: {
+      teammate: false,
+      subagent: false,
+      source: "none" as const,
+    },
     backgroundCommand: "npm test -- --watch=false",
   };
   await ensureTaskPlan({

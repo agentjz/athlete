@@ -39,6 +39,7 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
     readyTasks: progress.readyTasks,
   };
   let decision = routeOrchestratorAction({
+    analysis,
     progress,
     plan,
   });
@@ -55,7 +56,9 @@ export async function prepareLeadTurn(options: PrepareLeadTurnOptions): Promise<
       evaluation,
       mode,
       activeDelegationCount: readActiveDelegationCount(progress),
+      activeDelegationProfiles: readActiveDelegationProfiles(progress),
       returnBarrierPending: readOrchestratorReturnBarrierState(options.session).pending && !isExplicitDelegationRequested(analysis),
+      allowDualAgentLanes: isExplicitDualAgentLaneRequested(analysis),
     });
     if (!gate.allow) {
       decision = {
@@ -95,6 +98,10 @@ function isExplicitDelegationRequested(analysis: Pick<PreparedLeadTurn["analysis
   return Boolean(analysis.delegationDirective?.teammate || analysis.delegationDirective?.subagent);
 }
 
+function isExplicitDualAgentLaneRequested(analysis: Pick<PreparedLeadTurn["analysis"], "delegationDirective">): boolean {
+  return Boolean(analysis.delegationDirective?.teammate && analysis.delegationDirective?.subagent);
+}
+
 function readActiveDelegationCount(progress: OrchestratorProgressSnapshot): number {
   const activeIds = new Set<string>();
   for (const execution of progress.activeExecutions) {
@@ -103,4 +110,10 @@ function readActiveDelegationCount(progress: OrchestratorProgressSnapshot): numb
     }
   }
   return activeIds.size;
+}
+
+function readActiveDelegationProfiles(progress: OrchestratorProgressSnapshot): Array<"subagent" | "teammate" | "background"> {
+  return progress.activeExecutions
+    .filter((execution) => execution.profile === "subagent" || execution.profile === "teammate" || execution.profile === "background")
+    .map((execution) => execution.profile);
 }

@@ -13,6 +13,7 @@ export function readRuntimeAgentModels(input: {
   apiKey: string;
   baseUrl: string;
   model: string;
+  thinking: RuntimeConfig["thinking"];
   reasoningEffort: RuntimeConfig["reasoningEffort"];
 }): RuntimeConfig["agentModels"] {
   const overrides = readRuntimeAgentModelOverrides();
@@ -54,6 +55,8 @@ function readRoleModelOverride(
     apiKey: readTrimmedEnv(`${prefix}_API_KEY`),
     baseUrl: readTrimmedEnv(`${prefix}_BASE_URL`),
     model: readTrimmedEnv(`${prefix}_MODEL`),
+    thinking: readThinkingEnv(`${prefix}_THINKING`),
+    reasoningEffort: readReasoningEffortEnv(`${prefix}_REASONING_EFFORT`),
   };
 }
 
@@ -66,6 +69,7 @@ function resolveRoleModel(
     apiKey: override?.apiKey ?? fallback.apiKey,
     baseUrl: override?.baseUrl ?? fallback.baseUrl,
     model: override?.model ?? fallback.model,
+    thinking: override?.thinking ?? fallback.thinking,
     reasoningEffort: override?.reasoningEffort ?? fallback.reasoningEffort,
   };
 }
@@ -85,4 +89,34 @@ function resolveAgentModelRole(identity: AgentIdentity | undefined): AgentModelR
 function readTrimmedEnv(key: string): string | undefined {
   const normalized = process.env[key]?.trim();
   return normalized ? normalized : undefined;
+}
+
+function readThinkingEnv(key: string): RuntimeConfig["thinking"] | undefined {
+  switch (readTrimmedEnv(key)?.toLowerCase()) {
+    case "enabled":
+      return "enabled";
+    case "disabled":
+      return "disabled";
+    default:
+      return undefined;
+  }
+}
+
+function readReasoningEffortEnv(key: string): RuntimeConfig["reasoningEffort"] | undefined {
+  switch (readTrimmedEnv(key)?.toLowerCase()) {
+    case "minimal":
+      return "minimal";
+    case "low":
+      return "low";
+    case "medium":
+      return "medium";
+    case "high":
+      return "high";
+    case "xhigh":
+      return "xhigh";
+    case "max":
+      return "max";
+    default:
+      return undefined;
+  }
 }

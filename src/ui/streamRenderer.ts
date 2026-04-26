@@ -159,6 +159,17 @@ export function createStreamRenderer(
           state.assistantOpen = false;
         }
       },
+      onDispatch(event) {
+        if (isAborted()) {
+          return;
+        }
+
+        flush();
+        const task = typeof event.taskId === "number" ? ` task=${event.taskId}` : "";
+        const pid = typeof event.pid === "number" ? ` pid=${event.pid}` : "";
+        const summary = event.summary ? ` ${event.summary}` : "";
+        ui.dispatch(`${event.profile} ${event.actorName} 已启动${task}${pid}${summary}`);
+      },
       onToolCall(name, args) {
         if (isAborted()) {
           return;
@@ -179,10 +190,15 @@ export function createStreamRenderer(
         flush();
         const display = buildToolResultDisplay(name, output, options.cwd);
         if (display.summary) {
-          const resultStatus = display.ok === false ? "fail" : "success";
+          const resultStatus = display.ok === false ? "失败" : "成功";
           const tracked = display.tracked ? " tracked" : "";
-          const summary = `${display.summary} ${resultStatus}${tracked}`.trim();
-          ui.dim(terminalVerbosity === "minimal" ? summary : `[result] ${summary}`);
+          const summary = `[result] ${display.summary} ${resultStatus}${tracked}`.trim();
+          if (display.ok === false) {
+            const detail = summarizeToolFailure(display.preview);
+            ui.warn(detail ? `${summary}: ${detail}` : summary);
+          } else {
+            ui.plain(summary);
+          }
         }
         if (display.preview && shouldShowToolResultPreview(name, terminalVerbosity)) {
           const compactedPreview = name === "todo_write"
@@ -201,13 +217,8 @@ export function createStreamRenderer(
 
         flush();
         const display = buildToolResultDisplay(name, error, options.cwd);
-        ui.warn(terminalVerbosity === "minimal" ? `${name} fail` : `[result] ${name} fail`);
-        if (terminalVerbosity !== "minimal") {
-          const preview = truncateVisiblePreview(display.preview ?? error);
-          if (preview) {
-            emitPreview("preview", preview, terminalVerbosity);
-          }
-        }
+        const detail = summarizeToolFailure(display.preview ?? error);
+        ui.warn(`[result] ${name} 失败${detail ? `: ${detail}` : ""}`);
       },
       onStatus(text) {
         if (isAborted()) {
@@ -219,4 +230,12 @@ export function createStreamRenderer(
       },
     },
   };
+}
+
+function summarizeToolFailure(value: string | undefined): string {
+  if (!value) {
+    return "";
+  }
+
+  return truncateVisiblePreview(value);
 }

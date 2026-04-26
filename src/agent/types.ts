@@ -30,9 +30,19 @@ export interface AfterToolCallHookResult {
   result?: ToolExecutionResult;
 }
 
+export interface AgentDispatchEvent {
+  profile: "teammate" | "subagent" | "background";
+  actorName: string;
+  executionId: string;
+  taskId?: number;
+  pid?: number;
+  summary?: string;
+}
+
 export interface AgentCallbacks {
   onModelWaitStart?: () => void;
   onModelWaitStop?: () => void;
+  onDispatch?: (event: AgentDispatchEvent) => void;
   onStatus?: (text: string) => void;
   onAssistantStage?: (text: string) => void;
   onAssistantDelta?: (delta: string) => void;

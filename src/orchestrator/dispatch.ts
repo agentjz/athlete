@@ -7,6 +7,7 @@ import { TeamStore } from "../team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
+import { emitBackgroundDispatch, emitSubagentDispatch, emitTeammateDispatch } from "./dispatchEvents.js";
 import { clearOrchestratorReturnBarrier, markOrchestratorReturnBarrierPending } from "./returnBarrier.js";
 import { getOrchestratorTaskLifecycle } from "./taskLifecycle.js";
 import {
@@ -18,12 +19,7 @@ import {
   claimForLead,
   patchTaskMetadata,
 } from "./dispatchHelpers.js";
-import type {
-  OrchestratorAnalysis,
-  OrchestratorDecision,
-  OrchestratorDispatchDependencies,
-  PrepareLeadTurnOptions,
-} from "./types.js";
+import type { OrchestratorAnalysis, OrchestratorDecision, OrchestratorDispatchDependencies, PrepareLeadTurnOptions } from "./types.js";
 
 export async function dispatchOrchestratorAction(input: {
   rootDir: string;
@@ -35,10 +31,7 @@ export async function dispatchOrchestratorAction(input: {
   decision: OrchestratorDecision;
   callbacks?: PrepareLeadTurnOptions["callbacks"];
   deps?: OrchestratorDispatchDependencies;
-}): Promise<{
-  session: PrepareLeadTurnOptions["session"];
-  decision: OrchestratorDecision;
-}> {
+}): Promise<{ session: PrepareLeadTurnOptions["session"]; decision: OrchestratorDecision }> {
   const deps = {
     spawnExecutionWorker: input.deps?.spawnExecutionWorker ?? defaultSpawnExecutionWorker,
   };
@@ -57,15 +50,13 @@ export async function dispatchOrchestratorAction(input: {
   switch (input.decision.action) {
     case "delegate_subagent": {
       const task = input.decision.task;
-      if (!task) {
-        return { session, decision: input.decision };
-      }
+      if (!task) return { session, decision: input.decision };
       assertTaskReadyFor("delegate_subagent", task, "lead");
       if (task.meta.executionId) {
         throw new Error(`Task #${task.record.id} already has execution '${task.meta.executionId}'.`);
       }
 
-      const { execution } = await launchSubagentWorkerExecution({
+      const { execution, pid } = await launchSubagentWorkerExecution({
         rootDir: input.rootDir,
         cwd: input.cwd,
         config: input.config,
@@ -74,13 +65,20 @@ export async function dispatchOrchestratorAction(input: {
         agentType: input.decision.subagentType ?? "explore",
         requestedBy: "lead",
         taskId: task.record.id,
+        objectiveKey: input.analysis.objective.key,
+        objectiveText: input.analysis.objective.text,
         actorName: `subagent-${task.record.id}`,
         worktreePolicy: input.decision.subagentType === "code" ? "task" : "none",
       }, {
         spawnExecutionWorker: deps.spawnExecutionWorker,
       });
-      await patchTaskMetadata(taskStore, task.record.id, {
-        executionId: execution.id,
+      await patchTaskMetadata(taskStore, task.record.id, { executionId: execution.id });
+      emitSubagentDispatch({
+        callbacks: input.callbacks,
+        execution,
+        taskId: task.record.id,
+        pid,
+        subagentType: input.decision.subagentType,
       });
       session = await appendOrchestratorNote(
         session,
@@ -97,9 +95,7 @@ export async function dispatchOrchestratorAction(input: {
     case "delegate_teammate": {
       const task = input.decision.task;
       const teammate = input.decision.teammate;
-      if (!task || !teammate) {
-        return { session, decision: input.decision };
-      }
+      if (!task || !teammate) return { session, decision: input.decision };
       assertTaskReadyFor("delegate_teammate", task, "lead");
       if (task.meta.executionId) {
         throw new Error(`Task #${task.record.id} already has execution '${task.meta.executionId}'.`);
@@ -117,6 +113,8 @@ export async function dispatchOrchestratorAction(input: {
         actorName: teammate.name,
         actorRole: teammate.role,
         taskId: task.record.id,
+        objectiveKey: input.analysis.objective.key,
+        objectiveText: input.analysis.objective.text,
         cwd: input.cwd,
         prompt,
         worktreePolicy: "task",
@@ -127,9 +125,7 @@ export async function dispatchOrchestratorAction(input: {
         executionId: execution.id,
         actorName: teammate.name,
       });
-      await executionStore.start(execution.id, {
-        pid,
-      });
+      await executionStore.start(execution.id, { pid });
       await patchTaskMetadata(taskStore, task.record.id, {
         delegatedTo: teammate.name,
         executionId: execution.id,
@@ -137,6 +133,14 @@ export async function dispatchOrchestratorAction(input: {
       await teamStore.upsertMember(teammate.name, teammate.role, "working", {
         pid,
         sessionId: existing?.sessionId,
+      });
+      emitTeammateDispatch({
+        callbacks: input.callbacks,
+        actorName: teammate.name,
+        executionId: execution.id,
+        taskId: task.record.id,
+        pid,
+        role: teammate.role,
       });
       session = await appendOrchestratorNote(
         session,
@@ -152,9 +156,7 @@ export async function dispatchOrchestratorAction(input: {
 
     case "run_in_background": {
       const command = normalizeBackgroundCommand(input.decision.backgroundCommand ?? input.analysis.backgroundCommand);
-      if (!command) {
-        return { session, decision: input.decision };
-      }
+      if (!command) return { session, decision: input.decision };
       if (input.decision.task) {
         assertTaskReadyFor("run_in_background", input.decision.task, "lead");
         if (input.decision.task.meta.executionId) {
@@ -172,6 +174,8 @@ export async function dispatchOrchestratorAction(input: {
         requestedBy: "lead",
         timeoutMs: 120_000,
         stallTimeoutMs: input.config.commandStallTimeoutMs,
+        objectiveKey: input.analysis.objective.key,
+        objectiveText: input.analysis.objective.text,
       });
       const pid = deps.spawnExecutionWorker({
         rootDir: input.rootDir,
@@ -180,6 +184,13 @@ export async function dispatchOrchestratorAction(input: {
         actorName: `bg-${job.id}`,
       });
       await store.setPid(job.id, pid);
+      emitBackgroundDispatch({
+        callbacks: input.callbacks,
+        jobId: job.id,
+        taskId: input.decision.task?.record.id,
+        pid,
+        command,
+      });
       if (input.decision.task) {
         await claimForLead(taskStore, input.decision.task.record.id);
         await patchTaskMetadata(taskStore, input.decision.task.record.id, {

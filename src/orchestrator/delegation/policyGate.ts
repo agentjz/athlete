@@ -13,7 +13,7 @@ export function applyDelegationPolicyGate(input: DelegationPolicyGateInput): Del
     );
   }
 
-  if (input.activeDelegationCount >= input.mode.maxConcurrentDelegations) {
+  if (input.activeDelegationCount >= input.mode.maxConcurrentDelegations && !canFillExplicitDualAgentLane(input)) {
     return deny(
       "policy.concurrent_delegation_limit",
       `Active delegations ${input.activeDelegationCount} reached mode limit ${input.mode.maxConcurrentDelegations}.`,
@@ -28,6 +28,27 @@ export function applyDelegationPolicyGate(input: DelegationPolicyGateInput): Del
   }
 
   return allow("policy.allow", "Delegation passed evaluator and machine policy checks.");
+}
+
+function canFillExplicitDualAgentLane(input: DelegationPolicyGateInput): boolean {
+  if (!input.allowDualAgentLanes) {
+    return false;
+  }
+
+  if (input.decisionAction !== "delegate_subagent" && input.decisionAction !== "delegate_teammate") {
+    return false;
+  }
+
+  const targetProfile = input.decisionAction === "delegate_subagent" ? "subagent" : "teammate";
+  const otherProfile = targetProfile === "subagent" ? "teammate" : "subagent";
+  const activeProfiles = input.activeDelegationProfiles ?? [];
+  const activeAgentProfiles = activeProfiles.filter((profile) => profile === "subagent" || profile === "teammate");
+  return (
+    input.activeDelegationCount === 1 &&
+    activeAgentProfiles.length === 1 &&
+    activeAgentProfiles[0] === otherProfile &&
+    !activeProfiles.includes(targetProfile)
+  );
 }
 
 function allow(reasonCode: string, reason: string): DelegationPolicyGateOutcome {

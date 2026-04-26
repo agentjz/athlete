@@ -66,7 +66,7 @@ export function applyExecutionClose(
       ? Math.trunc(input.exitCode)
       : undefined,
     pauseReason: input.status === "paused" ? normalizeOptionalCloseText(input.pauseReason) : undefined,
-    statusDetail: input.status === "failed" || input.status === "aborted"
+    statusDetail: input.status === "failed" || input.status === "aborted" || input.status === "paused"
       ? normalizeOptionalCloseText(input.statusDetail)
       : undefined,
     updatedAt: now,

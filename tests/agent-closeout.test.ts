@@ -447,6 +447,57 @@ test("runAgentTurn does not spin through task_list, task_get, and task_update af
   );
 });
 
+test("runAgentTurn applies lead closeout gates even when identity defaults to lead", async (t) => {
+  const root = await createTempWorkspace("closeout-default-lead", t);
+  const sessionStore = new MemorySessionStore();
+  const baseSession = await sessionStore.create(root);
+  const session = await sessionStore.save({
+    ...baseSession,
+    todoItems: [
+      { id: "1", text: "Finish the visible result", status: "pending" },
+    ],
+  });
+  const executedTools: string[] = [];
+  const seenToolSets: string[][] = [];
+
+  const server = await startFakeOpenAiServer((request) => {
+    seenToolSets.push(request.toolNames);
+    switch (seenToolSets.length) {
+      case 1:
+        return textResponse("Done.");
+      case 2:
+        return toolCallResponse("todo_write", {
+          items: [
+            { id: "1", text: "Finish the visible result", status: "completed" },
+          ],
+        });
+      default:
+        return textResponse("Finished after clearing the todo gate.");
+    }
+  });
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await runAgentTurn({
+    input: "continue current task",
+    cwd: root,
+    config: {
+      ...createTestRuntimeConfig(root),
+      baseUrl: server.baseUrl,
+      yieldAfterToolSteps: 8,
+    },
+    session,
+    sessionStore,
+    toolRegistry: createCloseoutTestRegistry(root, executedTools),
+  });
+
+  assert.equal(result.yielded, false);
+  assert.equal(result.transition?.reason.code, "finalize.completed");
+  assert.deepEqual(executedTools, ["todo_write"]);
+  assert.equal(seenToolSets.length, 3);
+});
+
 test("getLightweightVerificationAttempt treats a targeted read_file of a written validation markdown as passed verification", () => {
   const attempt = getLightweightVerificationAttempt({
     toolName: "read_file",

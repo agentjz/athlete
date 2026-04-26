@@ -65,12 +65,12 @@ function readActionIntentSignal(
   action: DelegationDecisionAction,
   analysis: OrchestratorAnalysis,
 ): string | undefined {
-  if (action === "delegate_subagent" && (analysis.wantsSubagent || analysis.needsInvestigation)) {
-    return "Analysis indicates investigation-heavy work where subagent support may help.";
+  if (action === "delegate_subagent" && analysis.wantsSubagent) {
+    return "Current objective explicitly opens subagent support.";
   }
 
-  if (action === "delegate_teammate" && (analysis.wantsTeammate || analysis.prefersParallel)) {
-    return "Analysis indicates parallel implementation intent.";
+  if (action === "delegate_teammate" && analysis.wantsTeammate) {
+    return "Current objective explicitly opens teammate support.";
   }
 
   if (action === "run_in_background" && (analysis.wantsBackground || Boolean(analysis.backgroundCommand))) {

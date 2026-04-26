@@ -1,5 +1,5 @@
 import { hasIncompleteTodos } from "../session/todos.js";
-import { hasDelegationDirective } from "../session/delegationDirective.js";
+import { normalizeDelegationDirective } from "../session/delegationDirective.js";
 import type { AgentIdentity } from "../types.js";
 import type { SessionRecord } from "../../types.js";
 import { classifyCommand } from "../../utils/commandPolicy.js";
@@ -26,7 +26,8 @@ export function getPlanBlockedResult(
     return null;
   }
 
-  if (identity.kind === "lead" && DELEGATION_TOOLS.has(toolName) && !hasDelegationDirective(session.taskState?.delegationDirective)) {
+  const delegationBlock = getDelegationToolBlock(toolName, session);
+  if (identity.kind === "lead" && delegationBlock) {
     return {
       ok: false,
       output: JSON.stringify(
@@ -34,8 +35,8 @@ export function getPlanBlockedResult(
           ok: false,
           error: "Delegation requires an explicit user prefix.",
           code: "DELEGATION_PREFIX_REQUIRED",
-          hint: "Run the task directly as Lead, or ask the user to start the next request with @team, @subagent, or @allpeople.",
-          next_step: "Do not spawn teammates or subagents for this turn unless the current user objective carries an explicit delegation prefix.",
+          hint: delegationBlock.hint,
+          next_step: delegationBlock.nextStep,
         },
         null,
         2,
@@ -74,6 +75,29 @@ export function getPlanBlockedResult(
       null,
       2,
     ),
+  };
+}
+
+function getDelegationToolBlock(
+  toolName: string,
+  session: SessionRecord,
+): { hint: string; nextStep: string } | null {
+  if (!DELEGATION_TOOLS.has(toolName)) {
+    return null;
+  }
+
+  const directive = normalizeDelegationDirective(session.taskState?.delegationDirective);
+  if (toolName === "spawn_teammate" && directive.teammate) {
+    return null;
+  }
+  if (toolName === "task" && directive.subagent) {
+    return null;
+  }
+
+  const requiredPrefix = toolName === "task" ? "@subagent or @allpeople" : "@team or @allpeople";
+  return {
+    hint: `Run the task directly as Lead, or ask the user to start the next request with ${requiredPrefix}.`,
+    nextStep: `Do not call ${toolName} for this turn unless the current user objective opens that exact delegation lane.`,
   };
 }
 

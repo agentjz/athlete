@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -167,12 +167,12 @@ test("doctor observability command prints the operator view without requiring a 
     event: "model.request",
     status: "completed",
     sessionId: "session-1",
-    model: "deepseek-reasoner",
+    model: "deepseek-v4-flash",
     durationMs: 420,
     details: {
       provider: "deepseek",
-      configuredModel: "deepseek-reasoner",
-      requestModel: "deepseek-reasoner",
+      configuredModel: "deepseek-v4-flash",
+      requestModel: "deepseek-v4-flash",
       usageAvailable: false,
       recoveryFallback: false,
     },
@@ -197,6 +197,6 @@ test("doctor observability command prints the operator view without requiring a 
   assert.match(output, /recent crashes: 1/i);
   assert.match(output, /run_shell/i);
   assert.match(output, /command failed/i);
-  assert.match(output, /deepseek-reasoner/i);
+  assert.match(output, /deepseek-v4-flash/i);
   assert.doesNotMatch(output, /provider reachable/i);
 });

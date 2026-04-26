@@ -1,4 +1,5 @@
 import { getErrorMessage } from "../agent/errors.js";
+import process from "node:process";
 import type { SessionStoreLike } from "../agent/session.js";
 import { loadProjectContext } from "../context/projectContext.js";
 import { reconcileBackgroundJobs } from "../execution/background.js";
@@ -27,6 +28,8 @@ export class InteractiveSessionDriver {
   private turnInFlight = false;
   private turnAbortController: AbortController | null = null;
   private lastInterruptNoticeAt = 0;
+  private exitRequested = false;
+  private terminationInProgress = false;
 
   constructor(private readonly options: InteractiveSessionDriverOptions) {
     this.session = options.session;
@@ -37,13 +40,14 @@ export class InteractiveSessionDriver {
     const releaseInterrupt = this.options.shell.input.bindInterrupt(() => {
       this.handleInterrupt();
     });
+    const releaseProcessTermination = this.bindProcessTerminationCleanup();
 
     try {
       while (true) {
         const prompt = await this.options.shell.input.readInput("> ");
         if (prompt.kind === "closed") {
-          this.showInterruptNotice("This session will not exit automatically. Type quit or q to exit.");
-          continue;
+          await this.terminateRunningProcessesForForcedExit("Input closed. Stopping running worker processes before exit.");
+          return this.session;
         }
 
         const input = prompt.value.trim();
@@ -55,8 +59,12 @@ export class InteractiveSessionDriver {
         if (decision === "quit") {
           return this.session;
         }
+        if (this.exitRequested) {
+          return this.session;
+        }
       }
     } finally {
+      releaseProcessTermination();
       releaseInterrupt();
     }
   }
@@ -117,11 +125,11 @@ export class InteractiveSessionDriver {
       return "quit";
     }
 
-    this.options.shell.output.warn("Running background processes detected. Exiting now will kill them all.");
+    this.options.shell.output.warn("Running worker processes detected. Exiting now will kill them all.");
     this.options.shell.output.plain(runningProcesses.map((process) => process.summary).join("\n"));
 
     const confirmation = await this.options.shell.input.readInput(
-      "Kill all running background processes and exit? [y/N] ",
+      "Kill all running worker processes and exit? [y/N] ",
     );
 
     if (confirmation.kind !== "submit" || !isYes(confirmation.value)) {
@@ -157,7 +165,8 @@ export class InteractiveSessionDriver {
     }
 
     if (multiline.kind === "closed") {
-      this.options.shell.output.warn("Multiline input was interrupted.\n");
+      await this.terminateRunningProcessesForForcedExit("Input closed during multiline mode. Stopping running worker processes before exit.");
+      this.exitRequested = true;
       return;
     }
 
@@ -188,6 +197,61 @@ export class InteractiveSessionDriver {
 
     this.lastInterruptNoticeAt = now;
     this.options.shell.output.interrupt(message);
+  }
+
+  private bindProcessTerminationCleanup(): () => void {
+    const signals: NodeJS.Signals[] = ["SIGHUP", "SIGTERM", "SIGBREAK"];
+    const handler = (signal: NodeJS.Signals): void => {
+      void this.terminateRunningProcessesForForcedExit(
+        `Received ${signal}. Stopping running worker processes before exit.`,
+      ).finally(() => {
+        process.exit(0);
+      });
+    };
+
+    for (const signal of signals) {
+      process.once(signal, handler);
+    }
+
+    return () => {
+      for (const signal of signals) {
+        process.off(signal, handler);
+      }
+    };
+  }
+
+  private async terminateRunningProcessesForForcedExit(reason: string): Promise<void> {
+    if (this.terminationInProgress) {
+      return;
+    }
+
+    this.terminationInProgress = true;
+    this.exitRequested = true;
+    if (this.turnAbortController && !this.turnAbortController.signal.aborted) {
+      this.turnAbortController.abort();
+    }
+
+    const exitGuard = this.options.exitGuard ?? defaultInteractiveExitGuard;
+    try {
+      const runningProcesses = await exitGuard.collectRunningProcesses(this.options.cwd);
+      if (runningProcesses.length === 0) {
+        this.options.shell.output.info("Session saved.");
+        return;
+      }
+
+      this.options.shell.output.warn(reason);
+      this.options.shell.output.plain(runningProcesses.map((processInfo) => processInfo.summary).join("\n"));
+      const result = await exitGuard.terminateProcesses(runningProcesses);
+      if (result.failedPids.length > 0) {
+        this.options.shell.output.error(`Could not stop all worker processes. Still running: ${result.failedPids.join(", ")}.`);
+        return;
+      }
+
+      this.options.shell.output.warn(`Stopped ${result.terminatedPids.length} worker process(es).`);
+      this.options.shell.output.info("Session saved.");
+    } catch (error) {
+      this.options.shell.output.error(`Failed to stop worker processes: ${getErrorMessage(error)}`);
+    }
   }
 
   private async runTurn(input: string): Promise<void> {

@@ -4,11 +4,9 @@ import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { throwIfAborted } from "../utils/abort.js";
 import { buildLeadExecutionInput } from "./leadInput.js";
 import { prepareLeadTurn } from "./prepareLeadTurn.js";
-import { buildOrchestratorWaitResult } from "./terminal.js";
 import type { OrchestratorDispatchDependencies } from "./types.js";
 
 const DEFAULT_MAX_ORCHESTRATION_PASSES = 8;
-const DEFAULT_WAIT_POLL_INTERVAL_MS = 300;
 
 export interface LeadLoopRunInput {
   input: string;
@@ -20,7 +18,6 @@ export interface LeadLoopRunInput {
   callbacks?: AgentCallbacks;
   deps?: OrchestratorDispatchDependencies;
   maxPasses?: number;
-  waitPollIntervalMs?: number;
 }
 
 export type LeadLoopOutcome =
@@ -37,7 +34,6 @@ export type LeadLoopOutcome =
 export async function runLeadOrchestrationLoop(input: LeadLoopRunInput): Promise<LeadLoopOutcome> {
   let session = input.session;
   const maxPasses = Math.max(1, Math.trunc(input.maxPasses ?? DEFAULT_MAX_ORCHESTRATION_PASSES));
-  const waitPollIntervalMs = normalizeWaitPollIntervalMs(input.waitPollIntervalMs);
   let orchestrationPasses = 0;
 
   for (;;) {
@@ -92,13 +88,5 @@ function buildActiveWorkPreparationInput(input: string, reason: string): string 
     input,
     "</base-input>",
   ].join("\n");
-}
-
-function normalizeWaitPollIntervalMs(value: number | undefined): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return DEFAULT_WAIT_POLL_INTERVAL_MS;
-  }
-
-  return Math.max(100, Math.trunc(value));
 }
 

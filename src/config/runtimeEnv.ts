@@ -38,6 +38,19 @@ export function parseReasoningEffortEnv(value: string | undefined): RuntimeConfi
       return "high";
     case "xhigh":
       return "xhigh";
+    case "max":
+      return "max";
+    default:
+      return undefined;
+  }
+}
+
+export function parseThinkingEnv(value: string | undefined): RuntimeConfig["thinking"] | undefined {
+  switch ((value ?? "").trim().toLowerCase()) {
+    case "enabled":
+      return "enabled";
+    case "disabled":
+      return "disabled";
     default:
       return undefined;
   }

@@ -52,6 +52,8 @@ export const taskTool: RegisteredTool = {
       prompt,
       agentType,
       requestedBy: "lead",
+      objectiveKey: context.currentObjective?.key,
+      objectiveText: context.currentObjective?.text,
       worktreePolicy: agentType === "code" ? "task" : "none",
     });
 

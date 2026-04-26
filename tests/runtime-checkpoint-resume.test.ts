@@ -382,9 +382,12 @@ test("runtime checkpoint keeps a structured checkpoint block available even when
 
   assert.equal(built.compressed, true);
   assert.match(String(built.messages[0]?.content ?? ""), /Session checkpoint:/i);
-  assert.match(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
   assert.match(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
   assert.match(String(built.messages[0]?.content ?? ""), /\.deadmouse\/tool-results\/session-a\/large\.json/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Completed actions:/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Current step:/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Next step:/i);
 });
 
 interface FakeOpenAiResponse {

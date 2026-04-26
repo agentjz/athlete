@@ -140,16 +140,12 @@ function inferExecutorFromMetadata(
     return "teammate";
   }
 
-  if (meta.kind === "survey") {
-    return "subagent";
-  }
-
   return "lead";
 }
 
 export function resolveOrchestratorExecutor(
   task: Pick<OrchestratorTaskSnapshot, "meta">,
-  analysis?: Pick<OrchestratorAnalysis, "needsInvestigation" | "prefersParallel" | "complexity" | "wantsBackground" | "backgroundCommand" | "wantsSubagent" | "wantsTeammate">,
+  analysis?: Pick<OrchestratorAnalysis, "wantsBackground" | "backgroundCommand" | "wantsSubagent" | "wantsTeammate">,
 ): OrchestratorExecutorKind {
   if (task.meta.executor) {
     return task.meta.executor;
@@ -159,13 +155,11 @@ export function resolveOrchestratorExecutor(
     case "merge":
       return "lead";
     case "survey":
-      return analysis?.needsInvestigation || analysis?.wantsSubagent ? "subagent" : "lead";
+      return analysis?.wantsSubagent ? "subagent" : "lead";
     case "validation":
       return analysis?.wantsBackground && analysis.backgroundCommand ? "background" : inferExecutorFromMetadata(task.meta);
     case "implementation":
-      return analysis?.wantsTeammate || (analysis?.prefersParallel && analysis.complexity === "complex")
-        ? "teammate"
-        : inferExecutorFromMetadata(task.meta);
+      return analysis?.wantsTeammate ? "teammate" : inferExecutorFromMetadata(task.meta);
     default:
       return inferExecutorFromMetadata(task.meta);
   }

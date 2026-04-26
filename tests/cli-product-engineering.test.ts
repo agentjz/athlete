@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -58,7 +58,7 @@ test("legacy versionless config is rewritten to the current schema version", asy
       paths.configFile,
       `${JSON.stringify(
         {
-          model: "deepseek-reasoner",
+          model: "deepseek-v4-flash",
           baseUrl: "https://api.deepseek.com",
         },
         null,
@@ -84,7 +84,7 @@ test("unsupported config schema version fails closed with an actionable message"
       `${JSON.stringify(
         {
           schemaVersion: 999,
-          model: "deepseek-reasoner",
+          model: "deepseek-v4-flash",
         },
         null,
         2,

@@ -11,6 +11,8 @@ import { reconcileTeamState } from "../team/reconcile.js";
 import { TeamStore } from "../team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { BackgroundJobStore, reconcileBackgroundJobs } from "../execution/background.js";
+import { summarizeAgentExecutionsForPrompt } from "../execution/promptSummary.js";
+import { buildOrchestratorObjective } from "../orchestrator/metadata.js";
 import { WorktreeStore } from "../worktrees/store.js";
 
 export function shouldYieldTurn(yieldAfterToolSteps: number | undefined, iteration: number): boolean {
@@ -52,18 +54,32 @@ export async function loadPromptRuntimeState(
   rootDir: string,
   identity: AgentIdentity,
   cwd?: string,
+  objectiveText?: string,
 ): Promise<PromptRuntimeState> {
   await reconcileTeamState(rootDir).catch(() => null);
   await reconcileBackgroundJobs(rootDir).catch(() => null);
+  const objectiveKey = objectiveText ? buildOrchestratorObjective(objectiveText).key : undefined;
   const [taskSummary, teamSummary, worktreeSummary, backgroundSummary, protocolSummary, coordinationPolicySummary] = await Promise.all([
-    new TaskStore(rootDir).summarize().catch(() => "No tasks."),
-    new TeamStore(rootDir).summarizeMembers().catch(() => "No teammates."),
+    new TaskStore(rootDir).summarize({
+      objectiveKey,
+      includeCarryoverCount: Boolean(objectiveKey),
+    }).catch(() => "No tasks."),
+    objectiveKey
+      ? summarizeAgentExecutionsForPrompt(rootDir, {
+          objectiveKey,
+          includeCarryoverCount: true,
+        }).catch(() => "No teammates.")
+      : new TeamStore(rootDir).summarizeMembers().catch(() => "No teammates."),
     new WorktreeStore(rootDir).summarize().catch(() => "No worktrees."),
     new BackgroundJobStore(rootDir).summarize({
       cwd,
       requestedBy: identity.name,
+      objectiveKey,
+      includeCarryoverCount: Boolean(objectiveKey),
     }).catch(() => "No background jobs."),
-    new ProtocolRequestStore(rootDir).summarize().catch(() => "No protocol requests."),
+    objectiveKey
+      ? new ProtocolRequestStore(rootDir).summarizeForCurrentPrompt().catch(() => "No protocol requests.")
+      : new ProtocolRequestStore(rootDir).summarize().catch(() => "No protocol requests."),
     new CoordinationPolicyStore(rootDir).summarize().catch(() => "- plan decisions: locked\n- shutdown requests: locked"),
   ]);
 

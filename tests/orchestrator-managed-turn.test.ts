@@ -51,8 +51,9 @@ test("runManagedAgentTurn keeps continuation behavior after lead orchestration s
   assert.equal(result.yielded, false);
   assert.match(String(seenInputs[0]), /Stage:\s*implementation/i);
   assert.match(String(seenInputs[0]), /<base-input>[\s\S]*Refactor the CLI flow and validate the runtime behavior afterwards\./i);
-  assert.match(String(seenInputs[1]), /Seeded the persistent task board/i);
-  assert.match(String(seenInputs[1]), /Continue the active implementation task/i);
+  assert.match(String(seenInputs[1]), /Stage:\s*implementation/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Seeded the persistent task board/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Continue the active implementation task/i);
   assert.ok(tasks.length >= 2);
 });
 
@@ -111,8 +112,6 @@ test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly 
     analysis: {
       objective,
       complexity: "moderate",
-      needsInvestigation: false,
-      prefersParallel: false,
       wantsBackground: true,
       wantsSubagent: false,
       wantsTeammate: false,
@@ -194,9 +193,7 @@ test("runManagedAgentTurn does not precreate merge before delegated results exis
     cwd: root,
     analysis: {
       objective,
-      complexity: "complex",
-      needsInvestigation: false,
-      prefersParallel: true,
+      complexity: "moderate",
       wantsBackground: false,
       wantsSubagent: false,
       wantsTeammate: true,
@@ -245,6 +242,7 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
   const config = createTestRuntimeConfig(root);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
+  const objective = buildOrchestratorObjective("Check latest news and summarize briefly.");
   let sliceCalls = 0;
   const seenInputs: string[] = [];
 
@@ -266,6 +264,8 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
           requestedBy: "lead",
           actorName: "researcher-news",
           actorRole: "researcher",
+          objectiveKey: objective.key,
+          objectiveText: objective.text,
           cwd: root,
           prompt: "Gather latest news updates.",
         });

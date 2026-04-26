@@ -46,6 +46,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
     apiKey: modelConfig.apiKey,
     baseUrl: modelConfig.baseUrl,
     model: modelConfig.model,
+    thinking: modelConfig.thinking,
     reasoningEffort: modelConfig.reasoningEffort,
   };
   if (!modelConfig.apiKey) {
@@ -61,7 +62,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const softToolLimit = Math.max(1, options.config.maxToolIterations);
   const continuationWindow = softToolLimit * Math.max(1, options.config.maxContinuationBatches);
   const recoveryBudget = resolveProviderRecoveryBudget(options.config);
-  const hadIncompleteTodosAtStart = options.identity?.kind === "lead" ? hasIncompleteTodos(options.session.todoItems) : false;
+  const hadIncompleteTodosAtStart = identity.kind === "lead" ? hasIncompleteTodos(session.todoItems) : false;
   let compressionAnnounced = false;
   let changedPaths = new Set<string>();
   let hasSubstantiveToolActivity = false;
@@ -91,7 +92,12 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         cwd: options.cwd,
         sessionStore: options.sessionStore,
       });
-      const runtimeState = await loadPromptRuntimeState(projectContext.stateRootDir, identity, options.cwd);
+      const runtimeState = await loadPromptRuntimeState(
+        projectContext.stateRootDir,
+        identity,
+        options.cwd,
+        session.taskState?.objective,
+      );
       const skillRuntimeState = buildSkillRuntimeState({
         skills: projectContext.skills,
         session,
@@ -146,7 +152,12 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         response = await fetchAssistantResponse(
           client,
           requestContext.messages,
-          { provider: modelConfig.provider, model: requestModel, reasoningEffort: modelConfig.reasoningEffort },
+          {
+            provider: modelConfig.provider,
+            model: requestModel,
+            thinking: modelConfig.thinking,
+            reasoningEffort: modelConfig.reasoningEffort,
+          },
           turnToolDefinitions,
           options.callbacks,
           options.abortSignal,

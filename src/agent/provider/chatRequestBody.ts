@@ -10,6 +10,8 @@ interface BuildProviderRequestBodyInput {
   tools: FunctionToolDefinition[] | undefined;
   stream: boolean;
   forceReasoning: boolean;
+  thinking?: "enabled" | "disabled";
+  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 }
 
 export function buildProviderRequestBody(
@@ -24,9 +26,25 @@ export function buildProviderRequestBody(
     stream: input.stream,
   };
 
-  if (input.forceReasoning || capabilities.defaultReasoningEnabled) {
+  if (capabilities.provider === "deepseek") {
+    const thinking = input.thinking ?? "enabled";
+    body.thinking = { type: thinking };
+    if (thinking === "enabled") {
+      body.reasoning_effort = normalizeDeepSeekReasoningEffort(input.reasoningEffort ?? capabilities.defaultReasoningEffort);
+    }
+  } else if (input.forceReasoning || capabilities.defaultReasoningEnabled) {
     body.thinking = { type: "enabled" };
   }
 
   return body;
+}
+
+function normalizeDeepSeekReasoningEffort(
+  effort: "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | undefined,
+): "high" | "max" {
+  if (effort === undefined || effort === "high" || effort === "max") {
+    return effort ?? "high";
+  }
+
+  throw new Error(`DeepSeek V4 reasoning_effort must be high or max, received ${effort}`);
 }

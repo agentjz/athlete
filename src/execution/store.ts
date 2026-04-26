@@ -14,6 +14,8 @@ export class ExecutionStore {
     actorName: string;
     actorRole?: string;
     taskId?: number;
+    objectiveKey?: string;
+    objectiveText?: string;
     cwd: string;
     worktreePolicy?: ExecutionRecord["worktreePolicy"];
     prompt?: string;

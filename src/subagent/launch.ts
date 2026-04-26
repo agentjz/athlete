@@ -15,6 +15,8 @@ export interface LaunchSubagentWorkerExecutionOptions {
   agentType: string;
   requestedBy?: string;
   taskId?: number;
+  objectiveKey?: string;
+  objectiveText?: string;
   actorName?: string;
   worktreePolicy?: ExecutionWorktreePolicy;
 }
@@ -44,6 +46,8 @@ export async function launchSubagentWorkerExecution(
     actorName: options.actorName ?? buildSubagentName(profile.type, options.description),
     actorRole: profile.type,
     taskId: options.taskId,
+    objectiveKey: options.objectiveKey,
+    objectiveText: options.objectiveText,
     cwd: options.cwd,
     prompt: buildSubagentAssignment(options.description, options.prompt, profile),
     worktreePolicy: options.worktreePolicy ?? "none",

@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+﻿import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -61,19 +61,22 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
+        thinking: "enabled",
       },
       teammate: {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
+        thinking: "enabled",
       },
       subagent: {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
+        thinking: "enabled",
       },
     },
     mineru: {
@@ -87,7 +90,8 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
       timeoutMs: 300_000,
     },
     baseUrl: "https://api.deepseek.com",
-    model: "deepseek-reasoner",
+    model: "deepseek-v4-flash",
+    thinking: "enabled",
     mode: "agent",
     yieldAfterToolSteps: 5,
     contextWindowMessages: 30,

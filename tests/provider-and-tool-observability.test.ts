@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
@@ -134,19 +134,21 @@ test("tool execution observability records success metadata and failed recovery 
   assert.match(String((failureToolEvents[1]?.error as { message?: unknown })?.message ?? ""), /tool exploded/i);
 });
 
-test("provider request observability records failed then fallback model requests with recovery context", async (t) => {
-  const root = await createTempWorkspace("provider-observability-fallback", t);
+test("provider request observability records failed then recovered DeepSeek V4 requests without model fallback", async (t) => {
+  const root = await createTempWorkspace("provider-observability-recovery", t);
   const sessionStore = new SessionStore(path.join(root, "sessions"));
   const session = await sessionStore.create(root);
   const requests: string[] = [];
+  let attempts = 0;
   const server = await startFakeChatCompletionServer(async (payload) => {
     requests.push(String(payload.model ?? ""));
+    attempts += 1;
 
-    if (payload.model === "deepseek-reasoner") {
+    if (attempts <= 2) {
       return {
         kind: "error",
         status: 400,
-        errorMessage: "This model does not support tools.",
+        errorMessage: "content policy risk",
       };
     }
 
@@ -160,13 +162,13 @@ test("provider request observability records failed then fallback model requests
   });
 
   await runManagedAgentTurn({
-    input: "use a tool-compatible fallback",
+    input: "recover from a provider content policy response",
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),
       baseUrl: server.baseUrl,
       provider: "deepseek",
-      model: "deepseek-reasoner",
+      model: "deepseek-v4-flash",
     },
     session,
     sessionStore,
@@ -179,15 +181,15 @@ test("provider request observability records failed then fallback model requests
   const events = await readObservabilityEvents(root);
   const requestEvents = events.filter((event) => event.event === "model.request");
 
-  assert.equal(requests[0], "deepseek-reasoner");
-  assert.equal(requests.at(-1), "deepseek-chat");
-  assert.equal(requests.filter((model) => model === "deepseek-reasoner").length >= 1, true);
+  assert.equal(requests[0], "deepseek-v4-flash");
+  assert.equal(requests.at(-1), "deepseek-v4-flash");
+  assert.equal(requests.every((model) => model === "deepseek-v4-flash"), true);
   assert.deepEqual(
     requestEvents.map((event) => event.status),
     ["started", "failed", "started", "completed"],
   );
   assert.equal((requestEvents[0]?.details as Record<string, unknown>)?.provider, "deepseek");
-  assert.equal(requestEvents[0]?.model, "deepseek-reasoner");
+  assert.equal(requestEvents[0]?.model, "deepseek-v4-flash");
   assert.equal(
     (requestEvents[1]?.details as Record<string, unknown>)?.recoveryFallback,
     false,
@@ -197,12 +199,16 @@ test("provider request observability records failed then fallback model requests
     true,
   );
   assert.equal(
+    (requestEvents[2]?.details as Record<string, unknown>)?.recoveryReason,
+    "content_policy",
+  );
+  assert.equal(
     (requestEvents[2]?.details as Record<string, unknown>)?.configuredModel,
-    "deepseek-reasoner",
+    "deepseek-v4-flash",
   );
   assert.equal(
     (requestEvents[2]?.details as Record<string, unknown>)?.requestModel,
-    "deepseek-chat",
+    "deepseek-v4-flash",
   );
   assert.equal(
     (requestEvents[3]?.details as Record<string, unknown>)?.usageAvailable,

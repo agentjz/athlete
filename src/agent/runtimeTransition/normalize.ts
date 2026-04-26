@@ -225,27 +225,6 @@ function normalizePauseTransition(
     };
   }
 
-  if (reason.code === "pause.orchestrator_waiting_for_delegated_work") {
-    return {
-      action: "pause",
-      reason: {
-        code: reason.code,
-        taskIds: takeLastUnique((reason.taskIds ?? []).map((taskId) => String(Math.trunc(taskId))))
-          .map((taskId) => Number(taskId))
-          .filter((taskId) => Number.isFinite(taskId) && taskId > 0),
-        teammateNames: takeLastUnique(reason.teammateNames ?? []),
-        backgroundJobIds: takeLastUnique(reason.backgroundJobIds ?? []),
-        pauseReason:
-          truncate(
-            normalizeText(reason.pauseReason) ||
-              "Delegated work is still running, so the lead is waiting for the next machine-state change.",
-          ) ||
-          "Delegated work is still running, so the lead is waiting for the next machine-state change.",
-      },
-      timestamp,
-    };
-  }
-
   if (reason.code === "pause.provider_recovery_budget_exhausted") {
     return {
       action: "pause",

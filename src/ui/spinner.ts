@@ -79,6 +79,10 @@ export function wrapCallbacksWithSpinnerStop(
       stopSpinner();
       callbacks.onStatus?.(text);
     },
+    onDispatch(event) {
+      stopSpinner();
+      callbacks.onDispatch?.(event);
+    },
     onAssistantDelta(delta) {
       stopSpinner();
       callbacks.onAssistantDelta?.(delta);

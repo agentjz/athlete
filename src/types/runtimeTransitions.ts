@@ -100,14 +100,6 @@ export interface RuntimePauseManagedSliceBudgetExhaustedReason {
   maxElapsedMs?: number;
 }
 
-export interface RuntimePauseOrchestratorWaitingReason {
-  code: "pause.orchestrator_waiting_for_delegated_work";
-  taskIds: number[];
-  teammateNames: string[];
-  backgroundJobIds: string[];
-  pauseReason: string;
-}
-
 export interface RuntimePauseDegradationRecoveryExhaustedReason {
   code: "pause.degradation_recovery_exhausted";
   pauseReason: string;
@@ -143,7 +135,6 @@ export type RuntimePauseReason =
   | RuntimePauseVerificationAwaitingUserReason
   | RuntimePauseProviderRecoveryBudgetExhaustedReason
   | RuntimePauseManagedSliceBudgetExhaustedReason
-  | RuntimePauseOrchestratorWaitingReason
   | RuntimePauseDegradationRecoveryExhaustedReason;
 
 export type RuntimeFinalizeReason = RuntimeFinalizeCompletedReason;

@@ -13,6 +13,8 @@ export interface BackgroundJobRecord {
   command: string;
   cwd: string;
   requestedBy: string;
+  objectiveKey?: string;
+  objectiveText?: string;
   status: BackgroundJobStatus;
   timeoutMs: number;
   stallTimeoutMs?: number;
@@ -37,6 +39,8 @@ export class BackgroundJobStore {
     requestedBy: string;
     timeoutMs: number;
     stallTimeoutMs?: number;
+    objectiveKey?: string;
+    objectiveText?: string;
   }): Promise<BackgroundJobRecord> {
     const execution = await new ExecutionStore(this.rootDir).create({
       lane: "command",
@@ -48,6 +52,8 @@ export class BackgroundJobStore {
       command: input.command,
       timeoutMs: input.timeoutMs,
       stallTimeoutMs: input.stallTimeoutMs,
+      objectiveKey: input.objectiveKey,
+      objectiveText: input.objectiveText,
     });
     return mapExecutionToBackgroundJob(execution);
   }
@@ -113,13 +119,26 @@ export class BackgroundJobStore {
     return jobs.filter((job) => isRelevantJob(job, options));
   }
 
-  async summarize(options: { cwd?: string; requestedBy?: string } = {}): Promise<string> {
-    const jobs = await this.listRelevant(options);
+  async summarize(options: {
+    cwd?: string;
+    requestedBy?: string;
+    objectiveKey?: string;
+    includeCarryoverCount?: boolean;
+  } = {}): Promise<string> {
+    const allJobs = await this.listRelevant(options);
+    const jobs = options.objectiveKey
+      ? allJobs.filter((job) => job.objectiveKey === options.objectiveKey)
+      : allJobs;
     if (jobs.length === 0) {
-      return "No background jobs.";
+      const carryoverCount = options.objectiveKey && options.includeCarryoverCount
+        ? allJobs.filter((job) => job.objectiveKey !== options.objectiveKey).length
+        : 0;
+      return carryoverCount > 0
+        ? `No current objective background jobs. Carryover background jobs hidden: ${carryoverCount}.`
+        : "No background jobs.";
     }
 
-    return jobs
+    const lines = jobs
       .slice(0, 12)
       .map((job) => {
         const marker = job.status === "completed"
@@ -135,6 +154,13 @@ export class BackgroundJobStore {
         return `${marker} ${job.id} @${job.requestedBy} ${job.command}${exit}`;
       })
       .join("\n");
+
+    if (!options.objectiveKey || !options.includeCarryoverCount) {
+      return lines;
+    }
+
+    const carryoverCount = allJobs.filter((job) => job.objectiveKey !== options.objectiveKey).length;
+    return carryoverCount > 0 ? `${lines}\n- Carryover background jobs hidden: ${carryoverCount}` : lines;
   }
 }
 
@@ -212,6 +238,8 @@ function mapExecutionToBackgroundJob(execution: ExecutionRecord): BackgroundJobR
     command: execution.command || "",
     cwd: execution.cwd,
     requestedBy: execution.requestedBy,
+    objectiveKey: execution.objectiveKey,
+    objectiveText: execution.objectiveText,
     status: readBackgroundJobStatus(execution),
     timeoutMs: execution.timeoutMs ?? 120_000,
     stallTimeoutMs: execution.stallTimeoutMs ?? execution.timeoutMs ?? 120_000,
@@ -243,6 +271,8 @@ function mapBackgroundJobToExecution(job: BackgroundJobRecord): ExecutionRecord 
     profile: "background",
     launch: "worker",
     requestedBy: job.requestedBy,
+    objectiveKey: job.objectiveKey,
+    objectiveText: job.objectiveText,
     actorName: "background",
     cwd: job.cwd,
     status,

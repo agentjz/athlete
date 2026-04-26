@@ -162,9 +162,22 @@ export function shouldIncludeStoredAssistantReasoning(
   index: number,
   model: string,
 ): boolean {
-  return (
-    modelUsesReasoningContent(model) &&
-    isAssistantMessageInLatestTurn(messages, index) &&
-    Boolean(messages[index]?.reasoningContent)
-  );
+  return modelUsesReasoningContent(model) &&
+    messages[index]?.role === "assistant" &&
+    Boolean(messages[index]?.reasoningContent) &&
+    isInToolUsingUserFrame(messages, index);
+}
+
+export function hasAssistantToolCalls(message: Pick<StoredMessage, "role" | "tool_calls"> | undefined): boolean {
+  return message?.role === "assistant" && Boolean(message.tool_calls?.length);
+}
+
+function isInToolUsingUserFrame(messages: StoredMessage[], index: number): boolean {
+  const message = messages[index];
+  if (hasAssistantToolCalls(message)) {
+    return true;
+  }
+
+  const previous = messages[index - 1];
+  return previous?.role === "tool";
 }

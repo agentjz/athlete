@@ -30,7 +30,7 @@
 ## 术语
 
 - `通用请求协议层`：turn 主流程看到的统一模型调用边界。
-- `provider capability/profile`：根据 provider 与 model 决定 wire API、超时、fallback 和 reasoning 策略。
+- `provider capability/profile`：根据 provider、model 与显式运行配置决定 wire API、超时和 reasoning 策略。
 - `wire API adapter`：把统一请求映射成 `responses` 或 `chat.completions` 协议，再归一回统一响应结构。
 
 ## 真相源与状态归属
@@ -47,8 +47,8 @@ provider 相关正式状态当前归属如下：
 
 当前模型请求主路径如下：
 
-1. 配置系统解析 provider、model、base URL、API key 和运行策略。
-2. `resolveProviderCapabilities(...)` 判断 wire API、超时、reasoning 与 recovery fallback。
+1. 配置系统解析 provider、model、base URL、API key、thinking 和 reasoning effort。
+2. `resolveProviderCapabilities(...)` 判断 wire API、超时与 provider 默认 reasoning 策略。
 3. `src/agent/api.ts` 依据 capability 选择 `responsesAdapter` 或 `chatCompletionsAdapter`。
 4. adapter 将具体协议响应归一为统一的 `AssistantResponse`。
 5. `runTurn` 继续沿统一响应结构处理工具调用、文本结果和 closeout。
@@ -58,7 +58,9 @@ provider 相关正式状态当前归属如下：
 从代码现状看，当前能力已经固定为：
 
 - `provider === openai` 或 `model === gpt-5.4` 时，默认走 `responses`
-- DeepSeek 模型继续走 `chat.completions`
+- DeepSeek 官方 V4 走 `chat.completions`，模型名固定为 `deepseek-v4-flash / deepseek-v4-pro`，是否思考由 `thinking` 字段决定
+- DeepSeek 官方 V4 只在 `thinking=enabled` 时发送 `reasoning_effort=high|max`；配置成其他值时直接报错，不做跨模型兼容映射
+- DeepSeek 官方 V4 的工具调用用户轮次如果带 `reasoning_content`，后续多轮请求必须按协议回传该轮必要 reasoning；普通无 tool call 的历史 reasoning 不回传、不进摘要
 - GPT-5.4 默认使用更长的 request timeout 与 doctor probe timeout
 - doctor 与真实请求链路共用同一套 provider 选择与 base URL 规则
 
@@ -91,6 +93,7 @@ provider 相关正式状态当前归属如下：
 
 - provider 差异收在 capability/profile 与 adapter 层，不再塞回 turn 主流程。
 - GPT-5.4 当前以 `responses` 作为正式接入协议。
+- DeepSeek 官方 V4 不再用旧 `chat/reasoner` 模型名表达思考模式。
 - `.deadmouse/.env` 与统一配置系统是唯一正式运行配置入口。
 - 增加 provider 时，仍沿 capability/profile/adapter 三层结构接入，不回到 provider-specific 特判堆叠。
 

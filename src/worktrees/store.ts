@@ -16,6 +16,7 @@ export class WorktreeStore {
 
   async create(name: string, taskId?: number): Promise<WorktreeRecord> {
     await ensureGitRepository(this.rootDir);
+    await runGitCommand(this.rootDir, ["worktree", "prune"]).catch(() => null);
     await this.reconcile();
 
     const normalizedName = normalizeWorktreeName(name);

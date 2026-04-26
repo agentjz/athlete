@@ -77,6 +77,8 @@ Deadmouse 当前仍然只有两种正式模式：
 
 这个硬门槛也不能变成机器无限续跑。达到 managed slice 次数或时间边界后，机器必须把未完成事实交回 Lead 做复盘判断：列出 pending 项、已尝试路径和下一步策略，由 Lead 决定继续查、重派、换路、标记失败/超时或合流；不能直接问用户，也不能让机器替 Lead 选路线。
 
+机器层只守可判定事实，不把旧状态当成 prompt 记忆。当前目标帧只暴露 objectiveKey 一致的任务、执行和后台；不一致的旧状态只保留 carryover 计数。没有 objectiveKey 的 protocol request 不让模型看正文，避免旧目标内容污染当前目标；真正的 unresolved protocol 仍由机器门读取账本判断。
+
 同时，`run_shell` 已按正式 runtime 返回结构化执行状态（`completed/failed/timed_out/stalled/aborted`）、截断标记和输出落盘路径，不再只返回一段裸文本；长输出也会在执行中受正式上界控制，而不是等命令结束后再临时截断。
 
 `run_shell / background_run / background_check / background_terminate` 现在共用一套轻量 process protocol contract（`deadmouse.exec.v1`），正式暴露 start/read/terminate/exited/closed 的等价语义：前台命令是一次性 closed contract，后台命令是可 read/terminate 的运行中 contract。
@@ -106,8 +108,9 @@ Deadmouse 当前仍然只有两种正式模式：
 - 子代理、队友、后台执行必须共享统一边界协议，执行到边界回 Lead 复盘
 - 任务规划不能预设 executor，不能在未发生委派前预判 merge
 - coordination policy 不能作为审批开关，只能让位给真实状态冲突锁
-- 已有委派工作未返回时，不应让 Lead 空等；应推动 Lead 准备合流和非冲突检查
+- 已有委派工作未返回时，不应让 Lead 空等；Lead 可以用一个工具批次查委派状态，然后必须先准备合流和非冲突检查，下一轮才能再查委派状态
 - 未完成的委派执行或协议请求不能作为可交付状态返回给用户；pending 只能触发继续追踪、合流或到硬边界后回 Lead 复盘
+- 当前目标 prompt 不应整块暴露旧目标的 task、todo、checkpoint、execution、background job 或 protocol request 正文
 - 循环守卫只拦截“同动作、同参数、同结果、无新进展”的重复；`read_inbox / list_teammates / background_check` 等活状态轮询不能仅因同参重复被硬拦
 - acceptance 连续卡住时，必须要求列出已尝试路径、待完成验收项和下一步具体动作
 - 工具失败必须要求模型三选一推进：改参数、换工具或换路线

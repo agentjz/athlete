@@ -36,7 +36,8 @@ export const worktreeEventsTool: RegisteredTool = {
                   .map((event) => {
                     const worktree = event.worktree?.name ? ` ${event.worktree.name}` : "";
                     const task = typeof event.task?.id === "number" ? ` task=${event.task.id}` : "";
-                    return `${event.event}${worktree}${task}`;
+                    const error = event.error ? ` error=${event.error.split(/\r?\n/)[0]}` : "";
+                    return `${event.event}${worktree}${task}${error}`;
                   })
                   .join("\n")
               : "No worktree events.",

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
@@ -141,6 +141,8 @@ test("system prompt keeps orchestration guidance at the principle level instead 
   );
 
   assert.match(prompt, /Use the task board, coordination policy, protocol tools, background jobs, and worktrees/i);
+  assert.match(prompt, /only when the current user objective or runtime state actually opens that path/i);
+  assert.doesNotMatch(prompt, /delegate-first/i);
   assert.doesNotMatch(prompt, /delegate_subagent|delegate_teammate|run_in_background/);
   assert.doesNotMatch(prompt, /ready\.teammate_reserved|blocked\.missing_background_job|active\.background_running/);
   assert.doesNotMatch(prompt, /Survey:|Implement:|Validate:/);
@@ -260,11 +262,12 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
     [
       createMessage("user", "Please keep refining the prompt contract."),
       createMessage("assistant", "Working on it."),
-      createMessage("user", "Make sure the next turn still carries the compact summary."),
+      createMessage("assistant", "Measure the current prompt size."),
+      createMessage("assistant", "Make sure this current objective still carries the compact summary."),
     ],
     {
       contextWindowMessages: 2,
-      model: "deepseek-reasoner",
+      model: "deepseek-v4-flash",
       maxContextChars: 8_500,
       contextSummaryChars: 320,
     },

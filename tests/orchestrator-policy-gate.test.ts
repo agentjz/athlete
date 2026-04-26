@@ -36,6 +36,39 @@ test("F03: policy gate can reject delegation even when evaluator says it is nece
   assert.equal(outcome.reasonCode, "policy.concurrent_delegation_limit");
 });
 
+test("@allpeople can fill the complementary agent lane without opening unlimited delegation", () => {
+  const teammateAfterSubagent = applyDelegationPolicyGate({
+    decisionAction: "delegate_teammate",
+    evaluation: createEvaluation({
+      action: "delegate_teammate",
+      necessary: true,
+      score: 0.9,
+    }),
+    mode: getDelegationModeProfile("balanced"),
+    activeDelegationCount: 1,
+    activeDelegationProfiles: ["subagent"],
+    returnBarrierPending: false,
+    allowDualAgentLanes: true,
+  });
+  assert.equal(teammateAfterSubagent.allow, true);
+
+  const secondSubagent = applyDelegationPolicyGate({
+    decisionAction: "delegate_subagent",
+    evaluation: createEvaluation({
+      action: "delegate_subagent",
+      necessary: true,
+      score: 0.9,
+    }),
+    mode: getDelegationModeProfile("balanced"),
+    activeDelegationCount: 1,
+    activeDelegationProfiles: ["subagent"],
+    returnBarrierPending: false,
+    allowDualAgentLanes: true,
+  });
+  assert.equal(secondSubagent.allow, false);
+  assert.equal(secondSubagent.reasonCode, "policy.concurrent_delegation_limit");
+});
+
 test("policy gate keeps evaluator output advisory when hard constraints are clear", () => {
   const evaluation = createEvaluation({
     necessary: false,

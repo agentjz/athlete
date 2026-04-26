@@ -30,7 +30,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
     path.join(ttConfigDir, "config.toml"),
     [
       "model_provider = \"OpenAI\"",
-      "model = \"deepseek-reasoner\"",
+      "model = \"deepseek-v4-flash\"",
       "[model_providers.OpenAI]",
       "base_url = \"https://tt-config.example.test\"",
       "wire_api = \"chat.completions\"",
@@ -50,6 +50,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
     "DEADMOUSE_API_KEY",
     "DEADMOUSE_BASE_URL",
     "DEADMOUSE_MODEL",
+    "DEADMOUSE_THINKING",
     "DEADMOUSE_REASONING_EFFORT",
   ]);
 
@@ -59,6 +60,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
       DEADMOUSE_API_KEY: undefined,
       DEADMOUSE_BASE_URL: undefined,
       DEADMOUSE_MODEL: undefined,
+      DEADMOUSE_THINKING: undefined,
       DEADMOUSE_REASONING_EFFORT: undefined,
     });
 
@@ -67,6 +69,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
     assert.equal(runtime.apiKey, "project-key");
     assert.equal(runtime.baseUrl, "https://relay.example.test/v1");
     assert.equal(runtime.model, "gpt-5.4");
+    assert.equal(runtime.thinking, undefined);
     assert.equal(runtime.reasoningEffort, "medium");
   } finally {
     restoreEnv(previous);
@@ -86,11 +89,13 @@ test("resolveRuntimeConfig builds role-specific model provider profiles from pro
       "DEADMOUSE_API_KEY=default-key",
       "DEADMOUSE_BASE_URL=https://default.example.test/v1",
       "DEADMOUSE_MODEL=default-model",
-      "DEADMOUSE_REASONING_EFFORT=medium",
+      "DEADMOUSE_THINKING=enabled",
+      "DEADMOUSE_REASONING_EFFORT=max",
       "DEADMOUSE_LEAD_PROVIDER=openai",
       "DEADMOUSE_LEAD_API_KEY=lead-key",
       "DEADMOUSE_LEAD_BASE_URL=https://lead.example.test/v1",
       "DEADMOUSE_LEAD_MODEL=gpt-5.4",
+      "DEADMOUSE_LEAD_REASONING_EFFORT=xhigh",
       "DEADMOUSE_TEAMMATE_PROVIDER=openai-compatible",
       "DEADMOUSE_TEAMMATE_API_KEY=team-key",
       "DEADMOUSE_TEAMMATE_BASE_URL=https://api.siliconflow.cn/v1",
@@ -98,7 +103,9 @@ test("resolveRuntimeConfig builds role-specific model provider profiles from pro
       "DEADMOUSE_SUBAGENT_PROVIDER=deepseek",
       "DEADMOUSE_SUBAGENT_API_KEY=subagent-key",
       "DEADMOUSE_SUBAGENT_BASE_URL=https://api.deepseek.com",
-      "DEADMOUSE_SUBAGENT_MODEL=deepseek-reasoner",
+      "DEADMOUSE_SUBAGENT_MODEL=deepseek-v4-pro",
+      "DEADMOUSE_SUBAGENT_THINKING=disabled",
+      "DEADMOUSE_SUBAGENT_REASONING_EFFORT=high",
     ].join("\n"),
     "utf8",
   );
@@ -108,19 +115,26 @@ test("resolveRuntimeConfig builds role-specific model provider profiles from pro
     "DEADMOUSE_API_KEY",
     "DEADMOUSE_BASE_URL",
     "DEADMOUSE_MODEL",
+    "DEADMOUSE_THINKING",
     "DEADMOUSE_REASONING_EFFORT",
     "DEADMOUSE_LEAD_PROVIDER",
     "DEADMOUSE_LEAD_API_KEY",
     "DEADMOUSE_LEAD_BASE_URL",
     "DEADMOUSE_LEAD_MODEL",
+    "DEADMOUSE_LEAD_THINKING",
+    "DEADMOUSE_LEAD_REASONING_EFFORT",
     "DEADMOUSE_TEAMMATE_PROVIDER",
     "DEADMOUSE_TEAMMATE_API_KEY",
     "DEADMOUSE_TEAMMATE_BASE_URL",
     "DEADMOUSE_TEAMMATE_MODEL",
+    "DEADMOUSE_TEAMMATE_THINKING",
+    "DEADMOUSE_TEAMMATE_REASONING_EFFORT",
     "DEADMOUSE_SUBAGENT_PROVIDER",
     "DEADMOUSE_SUBAGENT_API_KEY",
     "DEADMOUSE_SUBAGENT_BASE_URL",
     "DEADMOUSE_SUBAGENT_MODEL",
+    "DEADMOUSE_SUBAGENT_THINKING",
+    "DEADMOUSE_SUBAGENT_REASONING_EFFORT",
   ]);
 
   try {
@@ -132,21 +146,24 @@ test("resolveRuntimeConfig builds role-specific model provider profiles from pro
       apiKey: "lead-key",
       baseUrl: "https://lead.example.test/v1",
       model: "gpt-5.4",
-      reasoningEffort: "medium",
+      thinking: "enabled",
+      reasoningEffort: "xhigh",
     });
     assert.deepEqual(runtime.agentModels.teammate, {
       provider: "openai-compatible",
       apiKey: "team-key",
       baseUrl: "https://api.siliconflow.cn/v1",
       model: "deepseek-ai/DeepSeek-V3.2",
-      reasoningEffort: "medium",
+      thinking: "enabled",
+      reasoningEffort: "max",
     });
     assert.deepEqual(runtime.agentModels.subagent, {
       provider: "deepseek",
       apiKey: "subagent-key",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-reasoner",
-      reasoningEffort: "medium",
+      model: "deepseek-v4-pro",
+      thinking: "disabled",
+      reasoningEffort: "high",
     });
   } finally {
     restoreEnv(previous);
@@ -185,6 +202,7 @@ test("resolveRuntimeConfig falls role model profiles back to the default provide
       apiKey: "default-key",
       baseUrl: "https://default.example.test/v1",
       model: "default-model",
+      thinking: undefined,
       reasoningEffort: undefined,
     });
     assert.deepEqual(runtime.agentModels.subagent, {
@@ -192,6 +210,7 @@ test("resolveRuntimeConfig falls role model profiles back to the default provide
       apiKey: "default-key",
       baseUrl: "https://default.example.test/v1",
       model: "subagent-only-model",
+      thinking: undefined,
       reasoningEffort: undefined,
     });
   } finally {

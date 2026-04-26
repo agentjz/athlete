@@ -1,5 +1,4 @@
 import { isRetryableApiError } from "./turn/recovery.js";
-import { selectProviderRequestModel } from "./provider.js";
 import { sleepWithSignal, throwIfAborted } from "../utils/abort.js";
 import type { RuntimeConfig, RuntimeRecoverTransition } from "../types.js";
 
@@ -36,15 +35,11 @@ export function isRecoverableTurnError(error: unknown): boolean {
 }
 
 export function pickRequestModel(
-  provider: string,
+  _provider: string,
   configuredModel: string,
-  consecutiveFailures: number,
+  _consecutiveFailures: number,
 ): string {
-  return selectProviderRequestModel({
-    provider,
-    configuredModel,
-    consecutiveFailures,
-  });
+  return configuredModel;
 }
 
 export function buildRecoveryRequestConfig(

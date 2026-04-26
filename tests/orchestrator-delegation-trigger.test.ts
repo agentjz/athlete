@@ -32,6 +32,16 @@ test("F02: keyword-only parallel wording does not auto-trigger teammate delegati
   );
 });
 
+test("explicit @subagent prefix reaches routing and may launch the subagent lane", async (t) => {
+  const root = await createTempWorkspace("delegation-trigger-explicit-subagent", t);
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(root);
+
+  const decision = await decide(root, sessionStore, session, "@subagent Inspect the runtime closeout path and report evidence.");
+
+  assert.equal(decision.action, "delegate_subagent");
+});
+
 async function decide(
   root: string,
   sessionStore: MemorySessionStore,

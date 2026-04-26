@@ -1,4 +1,5 @@
 import type { OrchestratorAction } from "../types.js";
+import type { ExecutionProfile } from "../../execution/types.js";
 
 export type DelegationMode = "fast" | "balanced" | "deep";
 
@@ -37,7 +38,9 @@ export interface DelegationPolicyGateInput {
   evaluation: DelegationEvaluation;
   mode: DelegationModeProfile;
   activeDelegationCount: number;
+  activeDelegationProfiles?: ExecutionProfile[];
   returnBarrierPending: boolean;
+  allowDualAgentLanes?: boolean;
 }
 
 export interface DelegationPolicyGateOutcome {

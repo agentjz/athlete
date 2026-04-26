@@ -30,35 +30,12 @@ export function truncateVisiblePreview(value: string): string {
   return truncate(normalized, VISIBLE_RESULT_PREVIEW_MAX_CHARS);
 }
 
-export function summarizePatchPreview(value: string): string {
-  const normalized = value.replace(/\r\n/g, "\n").trim();
-  if (!normalized) {
-    return normalized;
-  }
-
-  const lines = normalized.split("\n");
-  const headLines = lines.slice(0, 8).join("\n");
-  const moreLines = Math.max(0, lines.length - 8);
-  const compactedHead = truncateBlock(headLines, 1_200);
-  return moreLines > 0
-    ? `${compactedHead}\n... (${moreLines} more line(s))`
-    : compactedHead;
-}
-
 export function shouldShowToolCallPreview(name: string, verbosity: TerminalVerbosity): boolean {
-  if (name === "todo_write") {
-    return false;
-  }
-
-  return verbosity !== "minimal";
+  return false;
 }
 
 export function shouldShowToolResultPreview(name: string, verbosity: TerminalVerbosity): boolean {
-  if (verbosity === "minimal") {
-    return name === "todo_write";
-  }
-
-  return true;
+  return name === "todo_write";
 }
 
 export function normalizeTerminalVerbosity(
@@ -80,9 +57,9 @@ export function emitPreview(
   verbosity: TerminalVerbosity,
 ): void {
   if (verbosity === "minimal") {
-    ui.dim(preview);
+    ui.plain(preview);
     return;
   }
 
-  ui.dim(`[${label}]\n${preview}`);
+  ui.plain(`[${label}]\n${preview}`);
 }

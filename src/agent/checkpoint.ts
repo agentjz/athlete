@@ -1,7 +1,6 @@
 export {
   buildCheckpointContinuationInput,
   buildGenericContinuationInput,
-  formatCheckpointBlock,
 } from "./checkpoint/prompt.js";
 
 export {

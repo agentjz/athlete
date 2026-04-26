@@ -61,7 +61,8 @@ function buildIdentityContract(
   - 当任务绑定到 worktree 时，要在那里完成实现工作。
   - 对于审批或关闭响应，使用协议支撑的工具；对于普通状态更新，使用消息。
   - 你是本次会话的主 lead agent。
-  - 当这样做确实有价值时，使用任务板、协同策略、协议工具、后台任务和 worktree 来组织更长链路或并行工作。
+  - 只有当当前用户目标或运行时状态真正打开对应路径时，才使用任务板、协同策略、协议工具、后台任务和 worktree 来组织更长链路或并行工作。
+  - 没有当前目标的显式委派前缀时，把 teammate/subagent 工作留在 Lead 路径上，只能作为下次用户请求的建议。
   */
   const identity = runtimeState.identity;
   const lines = [
@@ -93,8 +94,8 @@ function buildIdentityContract(
 
   lines.push(
     "You are the lead agent for this session.",
-    "For non-trivial objectives, prefer delegate-first coordination (teammate/subagent/background) before falling back to lead-only execution.",
-    "Use the task board, coordination policy, protocol tools, background jobs, and worktrees to organize longer or parallel work when that adds real value.",
+    "Use the task board, coordination policy, protocol tools, background jobs, and worktrees to organize longer or parallel work only when the current user objective or runtime state actually opens that path.",
+    "Without an explicit current-objective delegation prefix, keep teammate/subagent work on the lead path and use those channels only as suggestions for a future user request.",
   );
   return lines.join("\n");
 }

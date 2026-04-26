@@ -6,6 +6,7 @@ import {
   parsePlaywrightBrowserEnv,
   parsePlaywrightOutputModeEnv,
   parseReasoningEffortEnv,
+  parseThinkingEnv,
   readMineruRuntimeConfig,
 } from "./runtimeEnv.js";
 import {
@@ -68,6 +69,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       ...fileConfig,
       provider: process.env.DEADMOUSE_PROVIDER ?? fileConfig.provider,
       model: process.env.DEADMOUSE_MODEL ?? overrides.model ?? fileConfig.model,
+      thinking: parseThinkingEnv(process.env.DEADMOUSE_THINKING) ?? fileConfig.thinking,
       reasoningEffort: parseReasoningEffortEnv(process.env.DEADMOUSE_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
       baseUrl: process.env.DEADMOUSE_BASE_URL ?? fileConfig.baseUrl,
       mode: parseAgentMode(process.env.DEADMOUSE_MODE) ?? overrides.mode ?? fileConfig.mode,
@@ -107,6 +109,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       apiKey: process.env.DEADMOUSE_API_KEY ?? "",
       baseUrl: merged.baseUrl,
       model: merged.model,
+      thinking: merged.thinking,
       reasoningEffort: merged.reasoningEffort,
     }, agentModelOverrides),
     mineru: readMineruRuntimeConfig(),

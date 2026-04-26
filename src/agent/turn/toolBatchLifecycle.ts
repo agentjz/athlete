@@ -4,6 +4,7 @@ import { createMessage } from "../session/messages.js";
 import { createStoredToolMessage } from "../toolResults/storage.js";
 import { noteRuntimeToolExecution } from "../runtimeMetrics.js";
 import { noteSubstantiveToolActivity } from "./closeout.js";
+import { DelegatedWaitRhythmGuard } from "./delegatedWaitRhythm.js";
 import { shouldInjectTodoReminder } from "./finalize.js";
 import { getPlanBlockedResult, readCommandFromArgs } from "./planGate.js";
 import { persistToolBatchCheckpoint } from "./persistence.js";
@@ -78,6 +79,8 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
   const batchChangedPaths = new Set<string>();
   let usedTodoWrite = false;
   const preflightBlocked = new Map<string, ToolExecutionResult>();
+  const delegatedWaitAcceptedToolCalls: typeof response.toolCalls = [];
+  const delegatedWaitRhythm = new DelegatedWaitRhythmGuard(session);
   for (const toolCall of response.toolCalls) {
     throwIfAborted(options.abortSignal, "Turn aborted by user.");
     options.callbacks?.onToolCall?.(toolCall.function.name, toolCall.function.arguments);
@@ -95,7 +98,8 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
         validationReminderInjected = false;
       }
     }
-    const blockedResult = loopGuard.getPreflightBlockedResult(toolCall);
+    const delegatedWaitBlockedResult = delegatedWaitRhythm.getPreflightBlockedResult(toolCall);
+    const blockedResult = delegatedWaitBlockedResult ?? loopGuard.getPreflightBlockedResult(toolCall);
     const planBlockedResult = blockedResult
       ? null
       : getPlanBlockedResult(toolCall.function.name, toolCall.function.arguments, session, identity);
@@ -108,6 +112,8 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     const gatedResult = blockedResult ?? planBlockedResult ?? skillBlockedResult ?? workflowBlockedResult ?? undefined;
     if (gatedResult) {
       preflightBlocked.set(toolCall.id, gatedResult);
+    } else {
+      delegatedWaitAcceptedToolCalls.push(toolCall);
     }
     await recordObservabilityEvent(projectContext.stateRootDir, {
       event: "tool.execution",
@@ -118,6 +124,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       toolName: toolCall.function.name,
     });
   }
+  delegatedWaitRhythm.noteAcceptedToolBatch(delegatedWaitAcceptedToolCalls);
 
   const batchExecution = await executeToolBatch({
     session,

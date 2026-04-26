@@ -72,8 +72,6 @@ export interface OrchestratorAnalysis {
   objective: OrchestratorObjective;
   delegationDirective?: DelegationDirective;
   complexity: OrchestratorComplexity;
-  needsInvestigation: boolean;
-  prefersParallel: boolean;
   wantsBackground: boolean;
   wantsSubagent: boolean;
   wantsTeammate: boolean;

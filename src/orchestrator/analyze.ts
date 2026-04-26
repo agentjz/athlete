@@ -10,11 +10,7 @@ export function analyzeOrchestratorInput(input: {
   progress?: Partial<Pick<OrchestratorProgressSnapshot, "relevantTasks" | "runningBackgroundJobs" | "teammates">>;
 }): OrchestratorAnalysis {
   const objective = buildOrchestratorObjective(resolveObjectiveText(input.input, input.session));
-  const delegationDirective = normalizeDelegationDirective(
-    parseDelegationDirective(input.input).directive.source === "user_prefix"
-      ? parseDelegationDirective(input.input).directive
-      : input.session.taskState?.delegationDirective,
-  );
+  const delegationDirective = resolveDelegationDirective(input.input, input.session);
   const text = objective.text;
   const backgroundCommand = normalizeBackgroundCommand(extractBackgroundCommand(text));
   const wantsBackground = Boolean(backgroundCommand);
@@ -42,20 +38,25 @@ export function analyzeOrchestratorInput(input: {
   }
 
   const complexity = score >= 4 ? "complex" : score >= 1 ? "moderate" : "simple";
-  const prefersParallel = complexity !== "simple";
-  const needsInvestigation = wantsSubagent;
 
   return {
     objective,
     delegationDirective,
     complexity,
-    needsInvestigation,
-    prefersParallel,
     wantsBackground,
     wantsSubagent,
     wantsTeammate,
     backgroundCommand,
   };
+}
+
+function resolveDelegationDirective(input: string, session: SessionRecord) {
+  const normalizedInput = String(input ?? "").trim();
+  if (normalizedInput && !isInternalMessage(normalizedInput) && !isContinuationDirective(normalizedInput)) {
+    return normalizeDelegationDirective(parseDelegationDirective(normalizedInput).directive);
+  }
+
+  return normalizeDelegationDirective(session.taskState?.delegationDirective);
 }
 
 function resolveObjectiveText(input: string, session: SessionRecord): string {

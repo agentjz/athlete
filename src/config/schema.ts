@@ -12,7 +12,7 @@ const DEFAULT_CONFIG: AppConfig = {
   schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
   provider: "deepseek",
   baseUrl: "https://api.deepseek.com",
-  model: "deepseek-reasoner",
+  model: "deepseek-v4-flash",
   mode: "agent",
   delegationMode: "balanced",
   yieldAfterToolSteps: 12,
@@ -71,6 +71,7 @@ export function normalizeConfig(
     provider: String(config.provider ?? DEFAULT_CONFIG.provider).trim() || DEFAULT_CONFIG.provider,
     baseUrl: config.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     model: config.model?.trim() || DEFAULT_CONFIG.model,
+    thinking: normalizeThinking(config.thinking),
     reasoningEffort: normalizeReasoningEffort(config.reasoningEffort),
     mode: parseAgentMode(config.mode) ?? DEFAULT_CONFIG.mode,
     delegationMode: normalizeDelegationMode(config.delegationMode),
@@ -159,6 +160,19 @@ function normalizeReasoningEffort(value: unknown): AppConfig["reasoningEffort"] 
       return "high";
     case "xhigh":
       return "xhigh";
+    case "max":
+      return "max";
+    default:
+      return undefined;
+  }
+}
+
+function normalizeThinking(value: unknown): AppConfig["thinking"] | undefined {
+  switch (String(value ?? "").trim().toLowerCase()) {
+    case "enabled":
+      return "enabled";
+    case "disabled":
+      return "disabled";
     default:
       return undefined;
   }

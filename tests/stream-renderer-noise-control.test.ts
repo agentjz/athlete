@@ -34,7 +34,53 @@ test("stream renderer suppresses todo_write tool-call content preview while keep
   assert.doesNotMatch(output, /line 1|line 2|line 3|line 4/);
 });
 
-test("stream renderer shows non-todo tool results as success plus one short preview", async () => {
+test("stream renderer keeps todo_write result previews as the only visible preview block", async () => {
+  const output = await captureStdout(async () => {
+    const renderer = createStreamRenderer(
+      { showReasoning: false, terminalVerbosity: "normal" },
+      {
+        cwd: REPO_ROOT,
+      },
+    );
+
+    renderer.callbacks.onToolResult?.(
+      "todo_write",
+      JSON.stringify({
+        preview: "[>] #1: Inspect\n[ ] #2: Report",
+      }),
+    );
+  });
+
+  assert.match(output, /\[result\] todo_write 成功/);
+  assert.match(output, /\[preview\]/);
+  assert.match(output, /\[>\] #1: Inspect/);
+  assert.equal(countPreviewLines(output, "[preview]"), 2);
+});
+
+test("stream renderer shows dispatch receipts as real runtime events", async () => {
+  const output = await captureStdout(async () => {
+    const renderer = createStreamRenderer(
+      { showReasoning: false, terminalVerbosity: "normal" },
+      {
+        cwd: REPO_ROOT,
+      },
+    );
+
+    renderer.callbacks.onDispatch?.({
+      profile: "teammate",
+      actorName: "teammate-task-1",
+      executionId: "exec-1",
+      taskId: 1,
+      pid: 4321,
+      summary: "role=implementer",
+    });
+  });
+
+  assert.match(output, /\[dispatch\] teammate teammate-task-1 已启动 task=1 pid=4321 role=implementer/);
+  assert.doesNotMatch(output, /\[tool\]|\[preview\]/);
+});
+
+test("stream renderer shows non-todo tool results as compact success receipts without previews", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -53,14 +99,13 @@ test("stream renderer shows non-todo tool results as success plus one short prev
     );
   });
 
-  assert.match(output, /\[result\] read_file notes\.txt success/);
-  assert.match(output, /line 1/);
-  assert.doesNotMatch(output, /line 10/);
+  assert.match(output, /\[result\] read_file notes\.txt 成功/);
+  assert.doesNotMatch(output, /line 1|line 10/);
   assert.doesNotMatch(output, /\.\.\. \[truncated\]/);
-  assert.equal(countPreviewLines(output, "[preview]"), 1);
+  assert.equal(countPreviewLines(output, "[preview]"), 0);
 });
 
-test("stream renderer uses one generic short preview for structured match results", async () => {
+test("stream renderer suppresses structured non-todo result previews", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -81,11 +126,11 @@ test("stream renderer uses one generic short preview for structured match result
     );
   });
 
-  assert.match(output, /\[result\] search_files success/);
-  assert.match(output, /matches/);
-  assert.equal(countPreviewLines(output, "[preview]"), 1);
+  assert.match(output, /\[result\] search_files 成功/);
+  assert.doesNotMatch(output, /matches|first match|second match/);
+  assert.equal(countPreviewLines(output, "[preview]"), 0);
 });
-test("stream renderer shows failed structured results as fail plus one short preview", async () => {
+test("stream renderer shows failed structured results as one-line failure receipts", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -104,13 +149,13 @@ test("stream renderer shows failed structured results as fail plus one short pre
     );
   });
 
-  assert.match(output, /\[result\] read_inbox fail/);
+  assert.match(output, /\[result\] read_inbox 失败/);
   assert.match(output, /Loop guard blocked/);
-  assert.doesNotMatch(output, /Choose a different route/);
-  assert.equal(countPreviewLines(output, "[preview]"), 1);
+  assert.doesNotMatch(output, /\[preview\]/);
+  assert.equal(countPreviewLines(output, "[preview]"), 0);
 });
 
-test("stream renderer shows tool errors as fail receipts with short previews", async () => {
+test("stream renderer shows tool errors as one-line failure receipts", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -129,10 +174,10 @@ test("stream renderer shows tool errors as fail receipts with short previews", a
     );
   });
 
-  assert.match(output, /\[result\] read_inbox fail/);
+  assert.match(output, /\[result\] read_inbox 失败/);
   assert.match(output, /Loop guard blocked/);
-  assert.doesNotMatch(output, /Choose a different route/);
-  assert.equal(countPreviewLines(output, "[preview]"), 1);
+  assert.doesNotMatch(output, /\[preview\]/);
+  assert.equal(countPreviewLines(output, "[preview]"), 0);
 });
 
 test("minimal terminal verbosity keeps tool result receipts without preview blocks", async () => {
@@ -155,7 +200,7 @@ test("minimal terminal verbosity keeps tool result receipts without preview bloc
     );
   });
 
-  assert.match(output, /list_files success/);
+  assert.match(output, /\[result\] list_files 成功/);
   assert.doesNotMatch(output, /a\.txt|b\.txt/);
   assert.doesNotMatch(output, /\[preview\]/);
 });
@@ -179,11 +224,11 @@ test("stream renderer marks externalized tool results as tracked", async () => {
     );
   });
 
-  assert.match(output, /\[result\] read_file success tracked/);
-  assert.match(output, /large output head/);
+  assert.match(output, /\[result\] read_file 成功 tracked/);
+  assert.doesNotMatch(output, /large output head/);
 });
 
-test("stream renderer compacts edit_file call previews to first edit plus remainder count", async () => {
+test("stream renderer suppresses non-todo tool-call previews", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -204,13 +249,13 @@ test("stream renderer compacts edit_file call previews to first edit plus remain
     );
   });
 
-  assert.match(output, /alpha old/);
-  assert.match(output, /alpha new/);
-  assert.match(output, /\(1 more edit\(s\)\)/);
+  assert.match(output, /\[tool\] edit_file notes\.txt edits=2/);
+  assert.doesNotMatch(output, /\[content\]/);
+  assert.doesNotMatch(output, /alpha old|alpha new|\(1 more edit\(s\)\)/);
   assert.doesNotMatch(output, /beta old|beta new/);
 });
 
-test("stream renderer compacts apply_patch call previews to head lines with remainder count", async () => {
+test("stream renderer suppresses apply_patch call previews", async () => {
   const output = await captureStdout(async () => {
     const renderer = createStreamRenderer(
       { showReasoning: false, terminalVerbosity: "normal" },
@@ -238,9 +283,9 @@ test("stream renderer compacts apply_patch call previews to head lines with rema
     );
   });
 
-  assert.match(output, /\*\*\* Begin Patch/);
-  assert.match(output, /\*\*\* Update File: notes\.txt/);
-  assert.match(output, /\.\.\. \(\d+ more line\(s\)\)/);
+  assert.match(output, /\[tool\] apply_patch/);
+  assert.doesNotMatch(output, /\[content\]/);
+  assert.doesNotMatch(output, /\*\*\* Begin Patch|\*\*\* Update File: notes\.txt/);
 });
 
 function countPreviewLines(output: string, label: "[content]" | "[preview]"): number {

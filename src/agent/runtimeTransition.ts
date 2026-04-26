@@ -16,7 +16,6 @@ export {
   createIncompleteTodoTransition,
   createManagedSliceBudgetPauseTransition,
   createMissingSkillTransition,
-  createOrchestratorWaitTransition,
   createCompactionDegradationPauseTransition,
   createCompactionDegradationRecoveryTransition,
   createProviderRecoveryBudgetPauseTransition,

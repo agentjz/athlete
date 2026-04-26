@@ -271,6 +271,43 @@ test("quit exits immediately when no background processes are running", async ()
   assert.equal(shell.outputs.some((entry) => entry.level === "info" && entry.text.includes("Session saved.")), true);
 });
 
+test("closed interactive input terminates running workers instead of leaving detached processes alive", async () => {
+  const cwd = process.cwd();
+  const config = createTestRuntimeConfig(cwd);
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(cwd);
+  const shell = createFakeShell({
+    prompts: [{ kind: "closed" }],
+  });
+  const runningProcesses: InteractiveExitProcess[] = [
+    {
+      kind: "execution_worker",
+      id: "exec-1",
+      pid: 321,
+      summary: "teammate execution exec-1 pid=321 actor=teammate-task-1 status=running",
+    },
+  ];
+  const exitGuard = createExitGuard({
+    processSets: [runningProcesses],
+  });
+
+  const driver = new InteractiveSessionDriver({
+    cwd,
+    config,
+    session,
+    sessionStore,
+    shell,
+    exitGuard,
+  });
+
+  await driver.run();
+
+  assert.equal(exitGuard.collectCalls, 1);
+  assert.equal(exitGuard.terminateCalls, 1);
+  assert.deepEqual(exitGuard.lastTerminated.map((item) => item.pid), [321]);
+  assert.equal(shell.outputs.some((entry) => entry.level === "warn" && entry.text.includes("Input closed")), true);
+});
+
 test("quit lists running background processes and lets the user cancel exit", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
@@ -316,7 +353,7 @@ test("quit lists running background processes and lets the user cancel exit", as
   assert.equal(exitGuard.collectCalls, 2);
   assert.equal(exitGuard.terminateCalls, 1);
   assert.deepEqual(exitGuard.lastTerminated.map((item) => item.pid), [123, 456]);
-  assert.equal(shell.outputs.some((entry) => entry.level === "warn" && entry.text.includes("Running background processes detected")), true);
+  assert.equal(shell.outputs.some((entry) => entry.level === "warn" && entry.text.includes("Running worker processes detected")), true);
   assert.equal(shell.outputs.some((entry) => entry.level === "plain" && entry.text.includes("background bg-123 pid=123")), true);
   assert.equal(shell.outputs.some((entry) => entry.level === "plain" && entry.text.includes("teammate alpha pid=456")), true);
   assert.equal(shell.outputs.some((entry) => entry.level === "info" && entry.text.includes("Exit cancelled")), true);

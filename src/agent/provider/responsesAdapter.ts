@@ -184,7 +184,9 @@ function buildResponsesRequestBody(request: ProviderAdapterRequest): Record<stri
     tool_choice: request.tools?.length ? "auto" : undefined,
   };
 
-  const reasoningEffort = request.reasoningEffort ?? capabilities.defaultReasoningEffort;
+  const reasoningEffort = normalizeResponsesReasoningEffort(
+    request.reasoningEffort ?? capabilities.defaultReasoningEffort,
+  );
   if (request.forceReasoning || capabilities.defaultReasoningEnabled || reasoningEffort) {
     body.reasoning = {
       effort: reasoningEffort ?? "high",
@@ -193,6 +195,12 @@ function buildResponsesRequestBody(request: ProviderAdapterRequest): Record<stri
   }
 
   return body;
+}
+
+function normalizeResponsesReasoningEffort(
+  effort: "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | undefined,
+): "minimal" | "low" | "medium" | "high" | "xhigh" | undefined {
+  return effort === "max" ? undefined : effort;
 }
 
 function toResponsesInput(messages: ProviderMessage[]): Array<Record<string, unknown>> {

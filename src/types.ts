@@ -38,7 +38,6 @@ export type {
   RuntimeFinalizeTransition,
   RuntimePauseDegradationRecoveryExhaustedReason,
   RuntimePauseManagedSliceBudgetExhaustedReason,
-  RuntimePauseOrchestratorWaitingReason,
   RuntimePauseProviderRecoveryBudgetExhaustedReason,
   RuntimePauseReason,
   RuntimePauseTransition,
@@ -55,7 +54,8 @@ export type {
 } from "./types/runtimeTransitions.js";
 export type AgentMode = "read-only" | "agent";
 export type DelegationMode = "fast" | "balanced" | "deep";
-export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh";
+export type ModelThinkingMode = "enabled" | "disabled";
+export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
 export interface AppPaths {
   configDir: string;
@@ -71,6 +71,7 @@ export interface AppConfig {
   provider: string;
   baseUrl: string;
   model: string;
+  thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
   mode: AgentMode;
   delegationMode?: DelegationMode;
@@ -229,7 +230,6 @@ export interface SessionDiffState {
 }
 
 export type SessionCheckpointStatus = "active" | "completed";
-
 export type SessionCheckpointPhase = "active" | "continuation" | "resume" | "recovery";
 
 export type SessionCheckpointArtifactKind =

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -262,8 +262,6 @@ test("loadOrchestratorProgress fails closed when the control-plane teammate ledg
       text: "Implement the feature in parallel with a teammate.",
     },
     complexity: "complex" as const,
-    needsInvestigation: false,
-    prefersParallel: true,
     wantsBackground: false,
     wantsSubagent: false,
     wantsTeammate: true,

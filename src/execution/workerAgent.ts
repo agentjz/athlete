@@ -5,6 +5,8 @@ import { runAgentTurn } from "../agent/runTurn.js";
 import { SessionStore } from "../agent/session.js";
 import { isSessionNotFoundError } from "../agent/session/errors.js";
 import type { AgentCallbacks } from "../agent/types.js";
+import { createSubagentBudgetTracker, resolveSubagentBudget } from "../subagent/budget.js";
+import { readSubagentBudgetExceededReason, SubagentBudgetExceededError } from "../subagent/errors.js";
 import { getSubagentProfile, resolveSubagentMode } from "../subagent/profiles.js";
 import { TeamStore } from "../team/store.js";
 import { createToolRegistry } from "../tools/index.js";
@@ -106,6 +108,20 @@ export async function runAgentExecution(rootDir: string, config: RuntimeConfig, 
       pauseReason: result.pauseReason,
     });
   } catch (error) {
+    const budgetExceeded = readSubagentBudgetExceededReason(error);
+    if (budgetExceeded) {
+      await closeExecution({
+        rootDir,
+        executionId: execution.id,
+        status: "paused",
+        summary: budgetExceeded.message,
+        output: JSON.stringify(budgetExceeded, null, 2),
+        pauseReason: budgetExceeded.message,
+        statusDetail: budgetExceeded.code,
+      }).catch(() => null);
+      return;
+    }
+
     await closeExecution({
       rootDir,
       executionId: execution.id,
@@ -196,25 +212,68 @@ async function runSubagentExecutionSlice(input: {
 }) {
   const profile = getSubagentProfile(input.subagentType);
   const mode = resolveSubagentMode(profile, input.config.mode);
+  const budgetTracker = createSubagentBudgetTracker(resolveSubagentBudget(input.config.delegationMode));
+  const budgetAbortController = new AbortController();
+  const onParentAbort = () => budgetAbortController.abort();
+  input.abortSignal?.addEventListener("abort", onParentAbort, { once: true });
+  const elapsedTimer = setTimeout(() => {
+    budgetAbortController.abort();
+  }, budgetTracker.snapshot().maxElapsedMs + 1);
   const subagentConfig: RuntimeConfig = {
     ...input.config,
     mode,
   };
 
-  return runAgentTurn({
-    input: input.input,
-    cwd: input.cwd,
-    config: subagentConfig,
-    session: input.session,
-    sessionStore: input.sessionStore,
-    toolRegistry: createToolRegistry(mode, {
-      onlyNames: profile.toolNames,
-      excludeNames: ["task"],
-    }),
-    callbacks: input.callbacks,
-    abortSignal: input.abortSignal,
-    identity: input.identity,
-  });
+  try {
+    return await runAgentTurn({
+      input: input.input,
+      cwd: input.cwd,
+      config: subagentConfig,
+      session: input.session,
+      sessionStore: input.sessionStore,
+      toolRegistry: createToolRegistry(mode, {
+        onlyNames: profile.toolNames,
+        excludeNames: ["task"],
+      }),
+      callbacks: createSubagentBudgetCallbacks(input.callbacks, budgetTracker),
+      abortSignal: budgetAbortController.signal,
+      identity: input.identity,
+    });
+  } catch (error) {
+    if (budgetAbortController.signal.aborted && !input.abortSignal?.aborted) {
+      const reason = budgetTracker.evaluate();
+      if (reason) {
+        throw new SubagentBudgetExceededError(reason);
+      }
+    }
+    throw error;
+  } finally {
+    clearTimeout(elapsedTimer);
+    input.abortSignal?.removeEventListener("abort", onParentAbort);
+  }
+}
+
+function createSubagentBudgetCallbacks(
+  callbacks: AgentCallbacks | undefined,
+  budgetTracker: ReturnType<typeof createSubagentBudgetTracker>,
+): AgentCallbacks {
+  return {
+    ...callbacks,
+    onModelWaitStart: () => {
+      const exceeded = budgetTracker.noteModelTurn();
+      if (exceeded) {
+        throw new SubagentBudgetExceededError(exceeded);
+      }
+      callbacks?.onModelWaitStart?.();
+    },
+    onToolCall: (name, rawArgs) => {
+      const exceeded = budgetTracker.noteToolCall(name);
+      if (exceeded) {
+        throw new SubagentBudgetExceededError(exceeded);
+      }
+      callbacks?.onToolCall?.(name, rawArgs);
+    },
+  };
 }
 
 function readLatestAssistantText(messages: StoredMessage[]): string {

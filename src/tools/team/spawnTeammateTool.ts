@@ -75,6 +75,8 @@ export const spawnTeammateTool: RegisteredTool = {
         actorName: name,
         actorRole: role,
         taskId: reservedTaskId,
+        objectiveKey: context.currentObjective?.key,
+        objectiveText: context.currentObjective?.text,
         cwd: context.cwd,
         prompt,
         worktreePolicy: reservedTaskId ? "task" : "none",

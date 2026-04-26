@@ -5,7 +5,7 @@ import { fetchAssistantResponse } from "../src/agent/api.js";
 import { withApiRetries } from "../src/agent/turn.js";
 import type { FunctionToolDefinition } from "../src/tools/index.js";
 
-test("fetchAssistantResponse falls back to deepseek-chat when the primary model rejects tool use", async () => {
+test("fetchAssistantResponse does not revive legacy DeepSeek chat fallback when V4 tool use is rejected", async () => {
   const seenRequests: string[] = [];
   const client = {
     chat: {
@@ -15,7 +15,7 @@ test("fetchAssistantResponse falls back to deepseek-chat when the primary model 
           const stream = body.stream === true;
           seenRequests.push(`${model}:${stream ? "stream" : "nonstream"}`);
 
-          if (model === "deepseek-reasoner") {
+          if (model === "deepseek-v4-flash") {
             const error = new Error("This model does not support tools.");
             (error as Error & { status?: number }).status = 400;
             throw error;
@@ -68,23 +68,23 @@ test("fetchAssistantResponse falls back to deepseek-chat when the primary model 
     },
   ];
 
-  const response = await fetchAssistantResponse(
-    client as any,
-    [{ role: "user", content: "Inspect README.md" }],
-    {
-      provider: "deepseek",
-      model: "deepseek-reasoner",
-    },
-    tools,
-    undefined,
+  await assert.rejects(
+    () => fetchAssistantResponse(
+      client as any,
+      [{ role: "user", content: "Inspect README.md" }],
+      {
+        provider: "deepseek",
+        model: "deepseek-v4-flash",
+      },
+      tools,
+      undefined,
+    ),
+    /does not support tools/,
   );
 
-  assert.equal(response.toolCalls[0]?.function.name, "read_file");
   assert.deepEqual(seenRequests, [
-    "deepseek-reasoner:stream",
-    "deepseek-reasoner:nonstream",
-    "deepseek-chat:stream",
-    "deepseek-chat:nonstream",
+    "deepseek-v4-flash:stream",
+    "deepseek-v4-flash:nonstream",
   ]);
 });
 
@@ -130,7 +130,7 @@ test("fetchAssistantResponse marks assistant text as streamed when content arriv
     [{ role: "user", content: "Say hello." }],
     {
       provider: "deepseek",
-      model: "deepseek-reasoner",
+      model: "deepseek-v4-flash",
     },
     undefined,
     undefined,

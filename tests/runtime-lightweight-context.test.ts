@@ -220,10 +220,18 @@ test("runtime context keeps externalized tool previews across compression and re
       ? createMessage("user", `older-user-${index} ${"U".repeat(1_600)}`)
       : createMessage("assistant", `older-assistant-${index} ${"V".repeat(1_600)}`),
   );
+  const currentFramePressure = Array.from({ length: 14 }, (_, index) =>
+    createMessage("assistant", `current-frame-pressure-${index} ${"W".repeat(1_600)}`),
+  );
+  const currentFrameMessages = [
+    session.messages[0],
+    ...currentFramePressure,
+    ...session.messages.slice(1),
+  ].filter((message): message is StoredMessage => Boolean(message));
 
-  const built = buildRequestContext("system", [...olderMessages, ...session.messages], {
+  const built = buildRequestContext("system", [...olderMessages, ...currentFrameMessages], {
     contextWindowMessages: 16,
-    model: "deepseek-reasoner",
+    model: "deepseek-v4-flash",
     maxContextChars: 8_500,
     contextSummaryChars: 1_400,
   });
@@ -312,7 +320,7 @@ test("runtime context externalizes only large tool results while small results s
 
   const built = buildRequestContext("system", result.session.messages, {
     contextWindowMessages: 10,
-    model: "deepseek-reasoner",
+    model: "deepseek-v4-flash",
     maxContextChars: 10_000,
     contextSummaryChars: 1_600,
   });

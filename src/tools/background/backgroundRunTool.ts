@@ -47,6 +47,8 @@ export const backgroundRunTool: RegisteredTool = {
       requestedBy: context.identity.name,
       timeoutMs,
       stallTimeoutMs,
+      objectiveKey: context.currentObjective?.key,
+      objectiveText: context.currentObjective?.text,
     });
     const pid = spawnExecutionWorker({
       rootDir: context.projectContext.stateRootDir,

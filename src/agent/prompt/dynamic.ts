@@ -85,6 +85,8 @@ function buildRuntimeEnvironmentBlock(input: DynamicPromptInput): string | undef
     { label: "Path access", value: "Unrestricted local filesystem access" },
     { label: "Mode", value: input.config.mode },
     { label: "Model", value: input.config.model },
+    { label: "Thinking", value: input.config.thinking ?? "provider default" },
+    { label: "Reasoning effort", value: input.config.reasoningEffort ?? "provider default" },
     { label: "Date", value: new Date().toISOString() },
   ]);
 }
@@ -97,9 +99,7 @@ function buildTaskExecutionBlock(
   中文翻译：
   - Task execution state = 任务执行状态
   - Objective = 目标
-  - Active files = 活跃文件
   - Planned actions = 计划动作
-  - Completed actions = 已完成动作
   - Blockers = 阻塞项
   - Todo progress = Todo 进度
   - Current todo = 当前 todo
@@ -110,14 +110,8 @@ function buildTaskExecutionBlock(
   if (taskState?.objective) {
     fields.push({ label: "Objective", value: taskState.objective });
   }
-  if ((taskState?.activeFiles?.length ?? 0) > 0) {
-    fields.push({ label: "Active files", value: formatLimitedList(taskState?.activeFiles ?? [], 6) });
-  }
   if ((taskState?.plannedActions?.length ?? 0) > 0) {
     fields.push({ label: "Planned actions", value: formatLimitedList(taskState?.plannedActions ?? [], 4) });
-  }
-  if ((taskState?.completedActions?.length ?? 0) > 0) {
-    fields.push({ label: "Completed actions", value: formatLimitedList(taskState?.completedActions ?? [], 4) });
   }
   if ((taskState?.blockers?.length ?? 0) > 0) {
     fields.push({ label: "Blockers", value: formatLimitedList(taskState?.blockers ?? [], 4) });
@@ -234,35 +228,21 @@ function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined): string
   /*
   中文翻译：
   - Session checkpoint = 会话检查点
-  - Objective = 目标
   - Status = 状态
   - Runtime phase = 运行时阶段
-  - Completed steps = 已完成步骤
-  - Current step = 当前步骤
-  - Next step = 下一步
   - Recent tool batch = 最近工具批次
   - Priority artifacts = 优先工件
   */
   const normalized = normalizeCheckpoint(checkpoint);
-  if (!normalized) {
+  if (!normalized || normalized.status === "completed") {
     return undefined;
   }
 
   const fields: PromptField[] = [
-    { label: "Objective", value: normalized.objective ?? "none" },
     { label: "Status", value: normalized.status },
     { label: "Runtime phase", value: formatCheckpointPhase(normalized.flow.phase, normalized.flow.reason) },
   ];
 
-  if (normalized.completedSteps.length > 0) {
-    fields.push({ label: "Completed steps", value: formatLimitedList(normalized.completedSteps, 4) });
-  }
-  if (normalized.currentStep) {
-    fields.push({ label: "Current step", value: normalized.currentStep });
-  }
-  if (normalized.nextStep) {
-    fields.push({ label: "Next step", value: normalized.nextStep });
-  }
   if (normalized.recentToolBatch?.summary) {
     fields.push({ label: "Recent tool batch", value: normalized.recentToolBatch.summary });
   }

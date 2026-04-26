@@ -86,7 +86,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         };
       }
 
-      if (isLead && await hasUnfinishedLeadWork(options.cwd)) {
+      if (isLead && await hasUnfinishedLeadWork(options.cwd, session.taskState?.objective)) {
         managedWindowSlicesUsed += 1;
         const budgetDecision = evaluateManagedSliceBudget({
           budget: managedBudget,

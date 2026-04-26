@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -30,8 +30,10 @@ test("execution lanes share one worker launch protocol instead of lane-specific 
     ["__worker__", "run", "--execution-id", "exec-123"],
   );
   assert.equal(launch.args.includes("--model"), false);
-  assert.equal(launch.env.DEADMOUSE_SUBAGENT_MODEL, "deepseek-reasoner");
-  assert.equal(launch.env.DEADMOUSE_TEAMMATE_MODEL, "deepseek-reasoner");
+  assert.equal(launch.env.DEADMOUSE_SUBAGENT_MODEL, "deepseek-v4-flash");
+  assert.equal(launch.env.DEADMOUSE_SUBAGENT_THINKING, "enabled");
+  assert.equal(launch.env.DEADMOUSE_TEAMMATE_MODEL, "deepseek-v4-flash");
+  assert.equal(launch.env.DEADMOUSE_TEAMMATE_THINKING, "enabled");
 });
 
 test("execution lanes share one formal lifecycle across agent and command work", async (t) => {

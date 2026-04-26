@@ -121,7 +121,7 @@ function buildTaskSpecs(analysis: OrchestratorAnalysis): TaskSpec[] {
   }
 
   const specs: TaskSpec[] = [];
-  if (explicitSubagent || analysis.needsInvestigation) {
+  if (explicitSubagent || analysis.complexity === "complex") {
     specs.push({
       kind: "survey",
       executor: explicitSubagent ? "subagent" : "lead",

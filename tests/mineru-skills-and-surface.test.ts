@@ -198,7 +198,8 @@ test("stream renderer shows MinerU document tool calls with file paths", async (
 
   assert.match(output, /mineru_ppt_read/);
   assert.match(output, /docs[\\/]+deck\.pptx/);
-  assert.match(output, /# Deck/);
+  assert.match(output, /\[result\] mineru_ppt_read docs[\\/]+deck\.pptx 成功/);
+  assert.doesNotMatch(output, /# Deck|\[preview\]/);
 });
 
 test("README exposes the MinerU verification command while spec and skills docs describe the document chain", async () => {

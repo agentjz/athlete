@@ -17,19 +17,19 @@ function createConfig(): RuntimeConfig {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
       },
       teammate: {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
       },
       subagent: {
         provider: "deepseek",
         apiKey: "test-key",
         baseUrl: "https://api.deepseek.com",
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
       },
     },
     mineru: {
@@ -43,7 +43,7 @@ function createConfig(): RuntimeConfig {
       timeoutMs: 300_000,
     },
     baseUrl: "https://api.deepseek.com",
-    model: "deepseek-reasoner",
+    model: "deepseek-v4-flash",
     mode: "agent",
     yieldAfterToolSteps: 5,
     contextWindowMessages: 30,
@@ -138,9 +138,10 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
   assert.equal(sliceCount, 2);
   assert.deepEqual(seenYieldSteps, [5, 5]);
   assert.equal(seenInputs[0], "start task");
-  assert.match(String(seenInputs[1]), /Objective: start task/);
-  assert.match(String(seenInputs[1]), /Persisted the first tool batch/i);
-  assert.match(String(seenInputs[1]), /Write validation\/round2-resume-summary\.md/i);
+  assert.match(String(seenInputs[1]), /Resume the current task/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Objective:/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Persisted the first tool batch/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Write validation\/round2-resume-summary\.md/i);
   assert.equal(result.yielded, false);
   assert.equal(result.session.title, "slice-2");
 });
@@ -288,7 +289,8 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
   assert.equal(sliceCount, 2);
   assert.equal(result.yielded, false);
   assert.equal(seenInputs[0], "resume verified task");
-  assert.match(String(seenInputs[1]), /Objective: resume verified task/);
-  assert.match(String(seenInputs[1]), /Finished the implementation/i);
-  assert.match(String(seenInputs[1]), /Summarize the verified result/i);
+  assert.match(String(seenInputs[1]), /Resume the current task/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Objective:/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Finished the implementation/i);
+  assert.doesNotMatch(String(seenInputs[1]), /Summarize the verified result/i);
 });

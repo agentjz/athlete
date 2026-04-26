@@ -27,6 +27,8 @@ export class ExecutionLedgerRepo {
     actorName: string;
     actorRole?: string;
     taskId?: number;
+    objectiveKey?: string;
+    objectiveText?: string;
     cwd: string;
     worktreePolicy?: ExecutionWorktreePolicy;
     prompt?: string;
@@ -44,6 +46,8 @@ export class ExecutionLedgerRepo {
       actorName: input.actorName,
       actorRole: input.actorRole,
       taskId: input.taskId,
+      objectiveKey: input.objectiveKey,
+      objectiveText: input.objectiveText,
       cwd: input.cwd,
       status: "queued",
       worktreePolicy: input.worktreePolicy ?? "none",
@@ -65,6 +69,8 @@ export class ExecutionLedgerRepo {
         actor_name,
         actor_role,
         task_id,
+        objective_key,
+        objective_text,
         cwd,
         status,
         worktree_policy,
@@ -84,7 +90,7 @@ export class ExecutionLedgerRepo {
         created_at,
         updated_at,
         finished_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       record.id,
       record.lane,
@@ -94,6 +100,8 @@ export class ExecutionLedgerRepo {
       record.actorName,
       record.actorRole ?? null,
       record.taskId ?? null,
+      record.objectiveKey ?? null,
+      record.objectiveText ?? null,
       record.cwd,
       record.status,
       record.worktreePolicy,
@@ -167,6 +175,8 @@ export class ExecutionLedgerRepo {
         actor_name,
         actor_role,
         task_id,
+        objective_key,
+        objective_text,
         cwd,
         status,
         worktree_policy,
@@ -204,6 +214,8 @@ export class ExecutionLedgerRepo {
         actor_name,
         actor_role,
         task_id,
+        objective_key,
+        objective_text,
         cwd,
         status,
         worktree_policy,
@@ -223,7 +235,7 @@ export class ExecutionLedgerRepo {
         created_at,
         updated_at,
         finished_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         lane = excluded.lane,
         profile = excluded.profile,
@@ -232,6 +244,8 @@ export class ExecutionLedgerRepo {
         actor_name = excluded.actor_name,
         actor_role = excluded.actor_role,
         task_id = excluded.task_id,
+        objective_key = excluded.objective_key,
+        objective_text = excluded.objective_text,
         cwd = excluded.cwd,
         status = excluded.status,
         worktree_policy = excluded.worktree_policy,
@@ -260,6 +274,8 @@ export class ExecutionLedgerRepo {
       normalized.actorName,
       normalized.actorRole ?? null,
       normalized.taskId ?? null,
+      normalized.objectiveKey ?? null,
+      normalized.objectiveText ?? null,
       normalized.cwd,
       normalized.status,
       normalized.worktreePolicy,
@@ -295,6 +311,8 @@ export class ExecutionLedgerRepo {
         actor_name,
         actor_role,
         task_id,
+        objective_key,
+        objective_text,
         cwd,
         status,
         worktree_policy,
@@ -329,6 +347,8 @@ interface ExecutionRow {
   actor_name: string;
   actor_role: string | null;
   task_id: number | null;
+  objective_key: string | null;
+  objective_text: string | null;
   cwd: string;
   status: string;
   worktree_policy: string;
@@ -360,6 +380,8 @@ function mapExecutionRow(row: ExecutionRow): ExecutionRecord {
     actorName: row.actor_name,
     actorRole: row.actor_role ?? undefined,
     taskId: row.task_id ?? undefined,
+    objectiveKey: row.objective_key ?? undefined,
+    objectiveText: row.objective_text ?? undefined,
     cwd: row.cwd,
     status: row.status as ExecutionStatus,
     worktreePolicy: row.worktree_policy as ExecutionWorktreePolicy,
@@ -401,6 +423,8 @@ function normalizeExecution(record: Omit<ExecutionRecord, "boundary"> & Partial<
     actorName: normalizeText(record.actorName) || "execution",
     actorRole: normalizeOptionalText(record.actorRole),
     taskId: typeof record.taskId === "number" && Number.isFinite(record.taskId) ? Math.trunc(record.taskId) : undefined,
+    objectiveKey: normalizeOptionalText(record.objectiveKey),
+    objectiveText: normalizeOptionalText(record.objectiveText),
     cwd: normalizeText(record.cwd),
     status: normalizeStatus(record.status),
     worktreePolicy: normalizeWorktreePolicy(record.worktreePolicy),

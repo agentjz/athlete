@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -65,3 +66,33 @@ test("claim_task fails closed instead of leaving a teammate task half-claimed wh
   assert.equal(reloaded.owner, "");
   assert.equal(reloaded.worktree, "");
 });
+
+test("create prunes missing git worktree registrations before reusing the path", async (t) => {
+  const root = await createTempWorkspace("worktree-prune", t);
+  await initGitRepo(root);
+
+  const worktreeStore = new WorktreeStore(root);
+  const first = await worktreeStore.create("implement");
+  await fs.rm(first.path, { recursive: true, force: true });
+
+  const staleList = execFileSync("git", ["worktree", "list", "--porcelain"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.match(staleList, /prunable gitdir file points to non-existent location/);
+
+  const second = await worktreeStore.create("implement");
+
+  assert.equal(second.name, "implement");
+  assert.equal(second.status, "active");
+  assert.equal(await pathExists(second.path), true);
+});
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}

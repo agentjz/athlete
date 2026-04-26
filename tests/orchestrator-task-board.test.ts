@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { ensureTaskPlan } from "../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../src/orchestrator/progress.js";
-import { readOrchestratorMetadata, writeOrchestratorMetadata } from "../src/orchestrator/metadata.js";
+import { readOrchestratorMetadata, resolveOrchestratorExecutor, writeOrchestratorMetadata } from "../src/orchestrator/metadata.js";
 import { TaskStore } from "../src/tasks/store.js";
 import { TeamStore } from "../src/team/store.js";
 import { createTempWorkspace } from "./helpers.js";
@@ -19,8 +19,6 @@ test("ensureTaskPlan uses explicit delegation prefixes to select execution lanes
         text: "Refactor the CLI flow, then validate the runtime behavior.",
       },
       complexity: "complex",
-      needsInvestigation: true,
-      prefersParallel: true,
       wantsBackground: false,
       wantsSubagent: true,
       wantsTeammate: true,
@@ -62,9 +60,7 @@ test("loadOrchestratorProgress keeps teammate-reserved work off the lead-ready l
       key: "objective-teammate-ready",
       text: "Refactor the CLI flow in parallel with a teammate.",
     },
-    complexity: "complex" as const,
-    needsInvestigation: false,
-    prefersParallel: true,
+    complexity: "moderate" as const,
     wantsBackground: false,
     wantsSubagent: false,
     wantsTeammate: true,
@@ -98,6 +94,35 @@ test("loadOrchestratorProgress keeps teammate-reserved work off the lead-ready l
   assert.equal((implementationSnapshot as any).lifecycle?.runnableBy?.name, "worker-1");
 });
 
+test("executor inference does not turn complexity or survey shape into agent-lane authorization", () => {
+  const complexLeadOnly = {
+    complexity: "complex" as const,
+    wantsBackground: false,
+    wantsSubagent: false,
+    wantsTeammate: false,
+    backgroundCommand: undefined,
+  };
+
+  assert.equal(
+    resolveOrchestratorExecutor({
+      meta: {
+        key: "complex-lead-only",
+        kind: "implementation",
+        objective: "Complex but not explicitly delegated.",
+      },
+    }, complexLeadOnly),
+    "lead",
+  );
+  assert.equal(
+    readOrchestratorMetadata(writeOrchestratorMetadata("legacy survey", {
+      key: "legacy-survey",
+      kind: "survey",
+      objective: "Survey-shaped task without explicit executor.",
+    }))?.executor,
+    "lead",
+  );
+});
+
 test("loadOrchestratorProgress fails closed when a background handoff points to a missing job", async (t) => {
   const root = await createTempWorkspace("orchestrator-plan-missing-job", t);
   const analysis = {
@@ -106,8 +131,6 @@ test("loadOrchestratorProgress fails closed when a background handoff points to 
       text: "Run the validation suite in the background.",
     },
     complexity: "moderate" as const,
-    needsInvestigation: false,
-    prefersParallel: false,
     wantsBackground: true,
     wantsSubagent: false,
     wantsTeammate: false,

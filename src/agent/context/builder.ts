@@ -1,4 +1,4 @@
-import { expandStartToToolBoundary, isAssistantMessageInLatestTurn, shouldIncludeStoredAssistantReasoning } from "../session/messages.js";
+import { expandStartToToolBoundary, shouldIncludeStoredAssistantReasoning } from "../session/messages.js";
 import { createPromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
 import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "../promptSections.js";
 import { compactToolPayload } from "../toolResults/preview.js";
@@ -26,12 +26,13 @@ export function buildRequestContext(
   config: Pick<RuntimeConfig, "contextWindowMessages" | "model" | "maxContextChars" | "contextSummaryChars">,
 ): BuiltRequestContext {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
-  const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, messages, config.model));
-  let tailCount = Math.max(1, Math.min(messages.length, config.contextWindowMessages));
+  const frameMessages = sliceCurrentUserFrame(messages);
+  const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, frameMessages, config.model));
+  let tailCount = Math.max(1, Math.min(frameMessages.length, config.contextWindowMessages));
 
   while (true) {
-    const tailMessages = sliceTailMessages(messages, tailCount);
-    const olderMessages = messages.slice(0, Math.max(0, messages.length - tailMessages.length));
+    const tailMessages = sliceTailMessages(frameMessages, tailCount);
+    const olderMessages = frameMessages.slice(0, Math.max(0, frameMessages.length - tailMessages.length));
     const summary =
       olderMessages.length > 0
         ? summarizeConversation(olderMessages, config.contextSummaryChars)
@@ -92,7 +93,7 @@ export function buildRequestContext(
     const fallbackSummary = summary
       ? truncate(summary, Math.max(1_200, Math.floor(config.contextSummaryChars * 0.6)))
       : undefined;
-    const fallbackTail = sliceTailMessages(messages, MIN_TAIL_MESSAGES);
+    const fallbackTail = sliceTailMessages(frameMessages, MIN_TAIL_MESSAGES);
     const fallbackMessages = composeChatMessages(
       appendSummary(systemPrompt, fallbackSummary),
       compactTailMessages(fallbackTail, true),
@@ -169,9 +170,7 @@ function compactTailMessages(messages: StoredMessage[], aggressive: boolean): St
       return {
         ...message,
         content: truncate(message.content ?? "", aggressive ? 300 : 700),
-        reasoningContent: isAssistantMessageInLatestTurn(messages, index)
-          ? message.reasoningContent
-          : undefined,
+        reasoningContent: message.reasoningContent,
       };
     }
 
@@ -219,14 +218,16 @@ function summarizeConversation(messages: StoredMessage[], maxChars: number): str
 }
 
 function pickSummaryCandidates(messages: StoredMessage[]): StoredMessage[] {
-  const firstUser = messages.find((message) => message.role === "user");
-  const recent = messages.slice(-MAX_SUMMARY_MESSAGE_COUNT);
+  const currentFrameStart = findLatestUserFrameStart(messages);
+  const frameMessages = currentFrameStart >= 0 ? messages.slice(currentFrameStart) : messages;
+  const recent = frameMessages.slice(-MAX_SUMMARY_MESSAGE_COUNT);
 
-  if (!firstUser) {
-    return recent;
-  }
+  return recent;
+}
 
-  return [firstUser, ...recent.filter((message) => message !== firstUser)];
+function sliceCurrentUserFrame(messages: StoredMessage[]): StoredMessage[] {
+  const currentFrameStart = findLatestUserFrameStart(messages);
+  return currentFrameStart >= 0 ? messages.slice(currentFrameStart) : messages;
 }
 
 function summarizeStoredMessage(message: StoredMessage): string {
@@ -288,6 +289,21 @@ function measureSystemPrompt(systemPrompt: string | PromptLayers): PromptLayerMe
 
 function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function findLatestUserFrameStart(messages: StoredMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "user" && !isInternalMessage(message.content)) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function isInternalMessage(content: string | null | undefined): boolean {
+  return typeof content === "string" && content.trim().toLowerCase().startsWith("[internal]");
 }
 
 function truncate(value: string, maxChars: number): string {

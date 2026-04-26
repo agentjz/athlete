@@ -35,6 +35,7 @@ export function registerConfigCommands(
             schemaVersion: runtime.config.schemaVersion,
             provider: runtime.config.provider,
             model: runtime.config.model,
+            thinking: runtime.config.thinking,
             mode: runtime.config.mode,
             baseUrl: runtime.config.baseUrl,
             pathAccess: "unrestricted",
@@ -113,6 +114,7 @@ function redactAgentModel(profile: RuntimeConfig["agentModels"]["lead"]): Record
     baseUrl: profile.baseUrl,
     model: profile.model,
     apiKey: profile.apiKey ? "set" : "missing",
+    thinking: profile.thinking,
     reasoningEffort: profile.reasoningEffort,
   };
 }

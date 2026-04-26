@@ -1,4 +1,4 @@
-import type { ModelReasoningEffort } from "../types.js";
+import type { ModelReasoningEffort, ModelThinkingMode } from "../types.js";
 
 export type AgentModelRole = "lead" | "teammate" | "subagent";
 
@@ -7,6 +7,7 @@ export interface RuntimeAgentModelConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+  thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
 }
 

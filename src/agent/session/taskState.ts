@@ -83,9 +83,7 @@ export function formatTaskStateBlock(taskState: TaskState | undefined): string {
   const parts = [
     taskState.objective ? `- Objective: ${taskState.objective}` : "- Objective: none",
     `- Delegation directive: ${formatDelegationDirective(taskState.delegationDirective)}`,
-    `- Active files: ${formatList(taskState.activeFiles)}`,
     `- Planned actions: ${formatList(taskState.plannedActions)}`,
-    `- Completed actions: ${formatList(taskState.completedActions)}`,
     `- Blockers: ${formatList(taskState.blockers)}`,
     `- Updated at: ${taskState.lastUpdatedAt}`,
   ];

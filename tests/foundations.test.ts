@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getDefaultConfig } from "../src/config/store.js";
@@ -54,13 +54,13 @@ test("local command layer recognizes Chinese aliases and multiline command", asy
       todoItems: [],
     },
     config: {
-      model: "deepseek-reasoner",
+      model: "deepseek-v4-flash",
       mode: "agent",
       baseUrl: "https://api.deepseek.com",
     },
   } as any;
 
-  assert.equal(isExplicitExitCommand("/退出"), true);
-  assert.equal(await handleLocalCommand("/多行", context), "multiline");
-  assert.equal(await handleLocalCommand("/帮助", context), "handled");
+  assert.equal(isExplicitExitCommand("/\u9000\u51fa"), true);
+  assert.equal(await handleLocalCommand("/\u591a\u884c", context), "multiline");
+  assert.equal(await handleLocalCommand("/\u5e2e\u52a9", context), "handled");
 });

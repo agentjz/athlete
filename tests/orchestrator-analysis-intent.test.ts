@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { analyzeOrchestratorInput } from "../src/orchestrator/analyze.js";
@@ -15,10 +15,39 @@ test("analyzeOrchestratorInput does not infer delegation intent from plain keywo
     session,
   });
 
-  assert.equal(analysis.needsInvestigation, false);
-  assert.equal(analysis.prefersParallel, false);
   assert.equal(analysis.wantsSubagent, false);
   assert.equal(analysis.wantsTeammate, false);
+});
+
+test("analyzeOrchestratorInput does not carry an old delegation prefix into a new plain objective", async (t) => {
+  t.diagnostic("A fresh user objective without @team/@subagent must reset the previous lane authorization.");
+  const session = {
+    messages: [],
+    taskState: {
+      objective: "old delegated objective",
+      delegationDirective: {
+        teammate: false,
+        subagent: true,
+        source: "user_prefix",
+      },
+    },
+  } as any;
+
+  const fresh = analyzeOrchestratorInput({
+    input: "New objective: inspect the runtime path and summarize the result.",
+    session,
+  });
+
+  assert.equal(fresh.wantsSubagent, false);
+  assert.equal(fresh.wantsTeammate, false);
+  assert.equal(fresh.delegationDirective?.source, "none");
+
+  const continuation = analyzeOrchestratorInput({
+    input: "继续",
+    session,
+  });
+  assert.equal(continuation.wantsSubagent, true);
+  assert.equal(continuation.delegationDirective?.source, "user_prefix");
 });
 
 test("analyzeOrchestratorInput accepts explicit background command syntax only", async (t) => {

@@ -1,6 +1,7 @@
 import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
 import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { ExecutionStore } from "../execution/store.js";
+import type { ExecutionRecord } from "../execution/types.js";
 import { CoordinationPolicyStore } from "../team/policyStore.js";
 import { ProtocolRequestStore } from "../team/requestStore.js";
 import { reconcileTeamState } from "../team/reconcile.js";
@@ -49,13 +50,15 @@ export async function loadOrchestratorProgress(input: {
   const relevantTasks = refreshedTasks
     .map((task) => readOrchestratorTask(task))
     .filter((task): task is OrchestratorTaskSnapshot => Boolean(task && task.meta.key === input.objective.key));
+  const relevantExecutions = executions.filter((execution) =>
+    isExecutionRelevantToObjective(execution, input.objective, relevantTasks));
   const lifecycleTasks = relevantTasks
     .map((task) => ({
       ...task,
       lifecycle: deriveOrchestratorTaskLifecycle({
         task,
         teammates,
-        executions,
+        executions: relevantExecutions,
         backgroundJobs: relevantBackgroundJobs,
         worktrees,
       }),
@@ -73,8 +76,8 @@ export async function loadOrchestratorProgress(input: {
     readyTasks,
     relevantBackgroundJobs,
     runningBackgroundJobs: relevantBackgroundJobs.filter((job) => job.status === "running"),
-    executions,
-    activeExecutions: executions.filter((execution) => execution.status === "queued" || execution.status === "running"),
+    executions: relevantExecutions,
+    activeExecutions: relevantExecutions.filter((execution) => execution.status === "queued" || execution.status === "running"),
     teammates,
     idleTeammates: teammates.filter((member) => member.status === "idle"),
     workingTeammates: teammates.filter((member) => member.status === "working"),
@@ -82,6 +85,24 @@ export async function loadOrchestratorProgress(input: {
     protocolRequests,
     policy,
   };
+}
+
+function isExecutionRelevantToObjective(
+  execution: ExecutionRecord,
+  objective: OrchestratorObjective,
+  relevantTasks: OrchestratorTaskSnapshot[],
+): boolean {
+  if (execution.objectiveKey && execution.objectiveKey === objective.key) {
+    return true;
+  }
+
+  const relevantTaskIds = new Set(relevantTasks.map((task) => task.record.id));
+  if (typeof execution.taskId === "number" && relevantTaskIds.has(execution.taskId)) {
+    return true;
+  }
+
+  return relevantTasks.some((task) =>
+    task.meta.executionId === execution.id || task.meta.jobId === execution.id);
 }
 
 async function syncSuccessfulBackgroundTasks(

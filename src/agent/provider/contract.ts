@@ -21,6 +21,7 @@ export interface ProviderAdapterRequest {
   tools: FunctionToolDefinition[] | undefined;
   callbacks: AgentCallbacks | undefined;
   forceReasoning: boolean;
+  thinking?: "enabled" | "disabled";
   reasoningEffort?: ModelReasoningEffort;
   abortSignal?: AbortSignal;
   onRequestMetric?: (metric: ModelRequestMetric) => void;

@@ -27,6 +27,8 @@ export interface ExecutionRecord {
   actorName: string;
   actorRole?: string;
   taskId?: number;
+  objectiveKey?: string;
+  objectiveText?: string;
   cwd: string;
   status: ExecutionStatus;
   worktreePolicy: ExecutionWorktreePolicy;

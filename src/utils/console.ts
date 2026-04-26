@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import { writeStderrLine, writeStdoutLine } from "./stdio.js";
 
+const ANSI_RESET = "\x1b[0m";
+
 export const ui = {
   info(message: string): void {
     writeStdoutLine(`${chalk.cyan("[i]")} ${message}`);
@@ -17,8 +19,11 @@ export const ui = {
   tool(message: string): void {
     writeStdoutLine(`${chalk.magenta("[tool]")} ${message}`);
   },
+  dispatch(message: string): void {
+    writeStdoutLine(`${chalk.magenta("[dispatch]")} ${message}`);
+  },
   dim(message: string): void {
-    writeStdoutLine(chalk.gray(message));
+    writeStdoutLine(`${chalk.gray(message)}${ANSI_RESET}`);
   },
   heading(message: string): void {
     writeStdoutLine(chalk.bold(message));

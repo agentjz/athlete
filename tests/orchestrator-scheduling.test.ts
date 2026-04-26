@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BackgroundJobStore } from "../src/execution/background.js";
@@ -16,11 +16,14 @@ function createComplexAnalysis() {
       text: "Survey the change, implement in parallel, run long validation, then merge the child results.",
     },
     complexity: "complex" as const,
-    needsInvestigation: true,
-    prefersParallel: true,
     wantsBackground: true,
-    wantsSubagent: true,
-    wantsTeammate: true,
+    wantsSubagent: false,
+    wantsTeammate: false,
+    delegationDirective: {
+      teammate: false,
+      subagent: false,
+      source: "none" as const,
+    },
     backgroundCommand: "npm test -- --watch=false",
   };
 }

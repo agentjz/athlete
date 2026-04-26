@@ -3,7 +3,6 @@ import type OpenAI from "openai";
 import {
   isContentPolicyError,
   isContextLengthError,
-  isToolCompatibilityError,
   sanitizeMessagesForContentPolicy,
   shrinkMessagesForContextLimit,
   withApiRetries,
@@ -19,7 +18,7 @@ import { chatCompletionsAdapter } from "./provider/chatCompletionsAdapter.js";
 import { responsesAdapter } from "./provider/responsesAdapter.js";
 import { isProviderClientPool, type ProviderClientPool } from "./provider/client.js";
 import type { FunctionToolDefinition } from "../tools/index.js";
-import type { ModelReasoningEffort } from "../types.js";
+import type { ModelReasoningEffort, ModelThinkingMode } from "../types.js";
 
 export async function fetchAssistantResponse(
   client: OpenAI | ProviderClientPool,
@@ -27,6 +26,7 @@ export async function fetchAssistantResponse(
   request: {
     provider: string;
     model: string;
+    thinking?: ModelThinkingMode;
     reasoningEffort?: ModelReasoningEffort;
   },
   tools: FunctionToolDefinition[] | undefined,
@@ -63,28 +63,6 @@ export async function fetchAssistantResponse(
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
-    }
-
-    if (tools?.length && isToolCompatibilityError(error) && capabilities.toolCompatibilityFallbackModel) {
-      return tryFetch(
-        adapter,
-        client,
-        messages,
-        {
-          ...request,
-          model: capabilities.toolCompatibilityFallbackModel,
-        },
-        tools,
-        callbacks,
-        false,
-        abortSignal,
-        onRequestMetric,
-        observability,
-        {
-          recoveryFallback: true,
-          recoveryReason: "tool_compatibility",
-        },
-      );
     }
 
     if (isContextLengthError(error)) {
@@ -138,6 +116,7 @@ async function tryFetch(
   request: {
     provider: string;
     model: string;
+    thinking?: ModelThinkingMode;
     reasoningEffort?: ModelReasoningEffort;
   },
   tools: FunctionToolDefinition[] | undefined,
@@ -198,6 +177,7 @@ async function tryFetch(
           tools,
           callbacks,
           forceReasoning,
+          thinking: request.thinking,
           reasoningEffort: request.reasoningEffort,
           abortSignal,
           onRequestMetric: forwardMetric,
@@ -244,6 +224,7 @@ async function tryFetch(
             tools,
             callbacks,
             forceReasoning,
+            thinking: request.thinking,
             reasoningEffort: request.reasoningEffort,
             abortSignal,
             onRequestMetric: forwardMetric,

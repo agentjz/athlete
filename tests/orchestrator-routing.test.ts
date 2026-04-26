@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { resolveExecutionBoundary } from "../src/execution/boundary.js";
@@ -18,8 +18,6 @@ function createAnalysis(overrides: Partial<OrchestratorAnalysis> = {}): Orchestr
       text: "Refactor the CLI workflow and keep tests green.",
     },
     complexity: "moderate",
-    needsInvestigation: false,
-    prefersParallel: false,
     wantsBackground: false,
     wantsSubagent: false,
     wantsTeammate: false,
@@ -116,7 +114,6 @@ test("routeOrchestratorAction returns survey work to the lead with a delegation 
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
       complexity: "complex",
-      needsInvestigation: true,
     }),
     progress: createProgress({
       readyTasks: [surveyTask],
@@ -136,7 +133,6 @@ test("routeOrchestratorAction keeps unassigned implementation work on the lead",
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
       complexity: "complex",
-      prefersParallel: true,
       wantsTeammate: true,
     }),
     progress: createProgress({
@@ -193,7 +189,6 @@ test("routeOrchestratorAction waits when delegated work is already running and n
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
       complexity: "complex",
-      prefersParallel: true,
     }),
     progress: createProgress({
       activeExecutions: [
@@ -275,7 +270,6 @@ test("routeOrchestratorAction waits for teammate-reserved work instead of redisp
   const decision = routeOrchestratorAction({
     analysis: createAnalysis({
       complexity: "complex",
-      prefersParallel: true,
       wantsTeammate: true,
     }),
     progress: createProgress({

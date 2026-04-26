@@ -253,32 +253,6 @@ export function createManagedSliceBudgetPauseTransition(
   };
 }
 
-export function createOrchestratorWaitTransition(
-  input: {
-    taskIds?: number[];
-    teammateNames?: string[];
-    backgroundJobIds?: string[];
-    pauseReason: string;
-  },
-  timestamp = new Date().toISOString(),
-): RuntimePauseTransition {
-  return {
-    action: "pause",
-    reason: {
-      code: "pause.orchestrator_waiting_for_delegated_work",
-      taskIds: takeLastUnique((input.taskIds ?? []).map((taskId) => String(Math.trunc(taskId))))
-        .map((taskId) => Number(taskId))
-        .filter((taskId) => Number.isFinite(taskId) && taskId > 0),
-      teammateNames: takeLastUnique(input.teammateNames ?? []),
-      backgroundJobIds: takeLastUnique(input.backgroundJobIds ?? []),
-      pauseReason:
-        normalizeText(input.pauseReason) ||
-        "Delegated work is still running, so the lead is waiting for the next machine-state change.",
-    },
-    timestamp,
-  };
-}
-
 export function createCompactionDegradationPauseTransition(
   input: {
     noTextStreak: number;

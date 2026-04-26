@@ -1,6 +1,6 @@
 import { tryParseJson } from "../../../utils/json.js";
 import { normalizeDisplayPath } from "../pathDisplay.js";
-import { summarizePatchPreview, truncate, truncateBlock } from "../previewPolicy.js";
+import { truncate } from "../previewPolicy.js";
 import { formatLineRange, readStringField } from "./shared.js";
 import type { ToolDisplay } from "./types.js";
 
@@ -19,7 +19,6 @@ export function buildToolCallDisplay(
 
   const args = parsed as Record<string, unknown>;
   const path = normalizeDisplayPath(readStringField(args, "path"), cwd);
-  const content = readStringField(args, "content");
 
   switch (name) {
     case "read_file": {
@@ -60,12 +59,10 @@ export function buildToolCallDisplay(
     case "write_file":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
-        preview: content ? truncateBlock(content, 1_600) : undefined,
       };
     case "write_docx":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
-        preview: content ? truncateBlock(content, 1_600) : undefined,
       };
     case "edit_docx": {
       const action = readStringField(args, "action");
@@ -75,7 +72,6 @@ export function buildToolCallDisplay(
           `${name} ${path ?? "(missing path)"}` +
           (action ? ` action=${action}` : "") +
           (heading ? ` heading=${heading}` : ""),
-        preview: content ? truncateBlock(content, 1_600) : undefined,
       };
     }
     case "edit_file": {
@@ -84,13 +80,11 @@ export function buildToolCallDisplay(
         summary:
           `${name} ${path ?? "(missing path)"}` +
           (edits.length > 0 ? ` edits=${edits.length}` : ""),
-        preview: buildEditBatchPreview(edits),
       };
     }
     case "apply_patch":
       return {
         summary: `${name}`,
-        preview: typeof args.patch === "string" ? summarizePatchPreview(args.patch) : undefined,
       };
     case "run_shell": {
       const command = readStringField(args, "command");
@@ -205,49 +199,4 @@ export function buildToolCallDisplay(
         summary: `${name} ${truncate(rawArgs, maxChars)}`,
       };
   }
-}
-
-function buildReplacementPreview(oldString: string | undefined, newString: string | undefined): string | undefined {
-  const fragments: string[] = [];
-
-  if (oldString) {
-    fragments.push(`- old\n${truncateBlock(oldString, 700)}`);
-  }
-
-  if (newString) {
-    fragments.push(`+ new\n${truncateBlock(newString, 700)}`);
-  }
-
-  return fragments.length > 0 ? fragments.join("\n") : undefined;
-}
-
-function buildEditBatchPreview(value: unknown[]): string | undefined {
-  const fragments: string[] = [];
-  const maxInspectedEdits = 8;
-
-  for (const entry of value.slice(0, maxInspectedEdits)) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      continue;
-    }
-
-    const record = entry as Record<string, unknown>;
-    const oldString = readStringField(record, "old_string");
-    const newString = readStringField(record, "new_string");
-    const preview = buildReplacementPreview(oldString, newString);
-    if (preview) {
-      fragments.push(preview);
-    }
-  }
-
-  if (fragments.length === 0) {
-    return undefined;
-  }
-
-  const firstPreview = fragments[0]!;
-  const inspectedRemaining = Math.max(0, fragments.length - 1);
-  const omittedRemaining = Math.max(0, value.length - maxInspectedEdits);
-  const remaining = inspectedRemaining + omittedRemaining;
-  return remaining > 0
-    ? `${firstPreview}\n\n... (${remaining} more edit(s))`
-    : firstPreview;
 }

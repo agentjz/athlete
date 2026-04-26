@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fsSync from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -100,10 +100,10 @@ test("runtime observability records recovery runtime stats and survives reload",
     createProviderRecoveryTransition({
       consecutiveFailures: 1,
       error: new Error("temporary upstream timeout"),
-      configuredModel: "deepseek-reasoner",
-      requestModel: "deepseek-reasoner",
+      configuredModel: "deepseek-v4-flash",
+      requestModel: "deepseek-v4-flash",
       requestConfig: {
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
         contextWindowMessages: 30,
         maxContextChars: 48_000,
         contextSummaryChars: 8_000,
@@ -484,7 +484,7 @@ test("runtime observability local command prints a product-style summary that ex
         },
       } as any,
       config: {
-        model: "deepseek-reasoner",
+        model: "deepseek-v4-flash",
         mode: "agent",
         baseUrl: "https://api.deepseek.com",
         contextWindowMessages: 16,

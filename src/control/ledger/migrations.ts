@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 
 import { currentTimestamp } from "./shared.js";
 
-const LEDGER_SCHEMA_VERSION = 3;
+const LEDGER_SCHEMA_VERSION = 4;
 
 export function applyLedgerMigrations(db: Database.Database): void {
   const userVersion = readUserVersion(db);
@@ -22,6 +22,10 @@ export function applyLedgerMigrations(db: Database.Database): void {
     rebuildExecutionSchemaWithoutInline(db);
   }
 
+  if (userVersion > 0 && userVersion < 4) {
+    addExecutionObjectiveColumns(db);
+  }
+
   db.pragma(`user_version = ${LEDGER_SCHEMA_VERSION}`);
   ensureLedgerMetaRow(db, "schema_version", String(LEDGER_SCHEMA_VERSION));
 }
@@ -37,6 +41,8 @@ function createExecutionSchema(db: Database.Database): void {
       actor_name TEXT NOT NULL,
       actor_role TEXT,
       task_id INTEGER,
+      objective_key TEXT,
+      objective_text TEXT,
       cwd TEXT NOT NULL,
       status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'paused', 'completed', 'failed', 'aborted')),
       worktree_policy TEXT NOT NULL CHECK (worktree_policy IN ('none', 'task')),
@@ -92,6 +98,8 @@ function rebuildExecutionSchemaWithoutInline(db: Database.Database): void {
       actor_name,
       actor_role,
       task_id,
+      objective_key,
+      objective_text,
       cwd,
       status,
       worktree_policy,
@@ -121,6 +129,8 @@ function rebuildExecutionSchemaWithoutInline(db: Database.Database): void {
       actor_name,
       actor_role,
       task_id,
+      NULL,
+      NULL,
       cwd,
       status,
       worktree_policy,
@@ -145,6 +155,18 @@ function rebuildExecutionSchemaWithoutInline(db: Database.Database): void {
 
     DROP TABLE executions_old;
   `);
+}
+
+function addExecutionObjectiveColumns(db: Database.Database): void {
+  const columns = new Set(
+    db.prepare(`PRAGMA table_info(executions)`).all().map((row) => String((row as { name?: unknown }).name ?? "")),
+  );
+  if (!columns.has("objective_key")) {
+    db.exec(`ALTER TABLE executions ADD COLUMN objective_key TEXT`);
+  }
+  if (!columns.has("objective_text")) {
+    db.exec(`ALTER TABLE executions ADD COLUMN objective_text TEXT`);
+  }
 }
 function readUserVersion(db: Database.Database): number {
   const value = db.pragma("user_version", { simple: true });
