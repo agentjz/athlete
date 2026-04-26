@@ -10,7 +10,7 @@ Deadmouse 的正式主线是：
 
 1. **Lead 是唯一总指挥**：只由 Lead 负责全局目标理解、动作选择、等待/合流/收口裁决。
 2. **用户新输入就是新目标边界**：用户突然换题、打断、重新发任务时，系统要围绕最新目标重新开 current objective frame，旧任务只留账，不准把 Lead 拉回上一轮。
-3. **执行通道由用户前缀打开**：默认不派队友、不派子代理；`@team` 打开队友，`@subagent` 打开子代理，`@allpeople` 允许 teammate 和 subagent 各启动一条。
+3. **执行通道由用户前缀打开**：默认不派队友、不派子代理；`@team` 打开队友通道，`@subagent` 打开子代理通道，`@allpeople` 允许 teammate 和 subagent 各启动一条。
 4. **执行通道是能力，不是主控**：`teammate`、`subagent`、`background` 只负责执行，不负责改写全局裁决。
 5. **控制面负责记账**：任务、执行、队友、工作区等状态必须落在正式账本。
 6. **Lead 持续读账本调度直到收口**：委派后仍要回到 Lead 做复核，再决定下一步，不允许无边界连续深挖。
@@ -20,7 +20,7 @@ Deadmouse 的正式主线是：
 1. 输入进入统一宿主边界。
 2. 如果这是普通新输入，它就是新的当前目标；旧 todo、旧 checkpoint、旧任务板和旧 execution 只作为 carryover 留账。
 3. 如果没有 `@team`、`@subagent`、`@allpeople` 前缀，Lead 默认单兵执行；上一目标的显式前缀不能继承到这个新目标。
-4. 如果用户加了 `@team`，Lead 可以派队友；加了 `@subagent`，Lead 可以派子代理；加了 `@allpeople`，teammate 和 subagent 两条 agent 通道都可以各启动一条。
+4. 如果用户加了 `@team`，Lead 可以派队友，但队友叫什么、是什么角色、派几个、任务怎么拆，仍由 Lead 判断；加了 `@subagent`，Lead 可以派子代理；加了 `@allpeople`，teammate 和 subagent 两条 agent 通道都可以各启动一条。
 5. 执行通道只交结果、失败和状态；最终是否完成、是否继续、是否合流，只能 Lead 根据证据判断。
 6. Lead 根据账本变化继续调度，直到验证与验收条件满足并收口。
 
@@ -29,6 +29,7 @@ Deadmouse 的正式主线是：
 - 宿主是外壳，不是主控。
 - 执行通道不替代 Lead。
 - 机器不能因为“看起来复杂”“提到了队友”“提到了 subagent”就自动开执行通道。
+- 机器不能因为用户写了 `@team` 就自动生成一个默认队友；`@team` 只是开门，真正派谁、派几个、派去做什么，必须由 Lead 通过正式工具调用表达。
 - 没有对应显式前缀时，Lead 可以建议用户下一轮用 `@team` 或 `@subagent`，但不能自己悄悄派；`@team` 不打开 subagent，`@subagent` 不打开 teammate，`@allpeople` 只补齐 teammate+subagent 各一条，不代表无限开人。
 - 用户突然换题时，新目标优先；旧目标状态、旧 execution 和旧委派授权不能继续压住当前目标。
 - 运行时 prompt 只暴露当前目标工单：当前目标、当前阻塞、当前目标相关 todo、必要证据路标、当前目标相关 execution 和真实模型配置。旧目标细节必须留在账本里，不能作为当前 Objective、checkpoint、todo、任务板正文或聊天尾巴出现。
@@ -45,5 +46,6 @@ Deadmouse 的正式主线是：
 - 控制面没有承担正式记账
 - 委派结束后没有回到 Lead 复核
 - 没有显式前缀却启动了 teammate / subagent
+- `@team` 被机器直接翻译成默认 teammate，而不是先回 Lead 决策队友配置
 - 新用户目标仍被旧 todo、旧 checkpoint、旧任务板、旧 execution 或旧委派授权阻塞
 - 未经过验证就收口

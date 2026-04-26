@@ -19,16 +19,20 @@ export function buildLeadExecutionInput(input: {
     `Objective: ${task.meta.objective}`,
     `Reason: ${input.decision.reason}`,
     `Lifecycle: ${lifecycle.stage} (${lifecycle.reasonCode})`,
-    stageInstruction(task.meta.kind, lifecycle.illegal),
+    stageInstruction(task.meta.kind, lifecycle.illegal, task.meta.executor),
     "<base-input>",
     input.fallbackInput,
     "</base-input>",
   ].join("\n"));
 }
 
-function stageInstruction(kind: OrchestratorTaskKind, illegal: boolean): string {
+function stageInstruction(kind: OrchestratorTaskKind, illegal: boolean, executor: string | undefined): string {
   if (illegal) {
     return "Reconcile the control-plane conflict on this task before doing any other work.";
+  }
+
+  if (kind === "implementation" && executor === "teammate") {
+    return "The current objective opened the team lane. Decide the teammate configuration yourself: name, role, assignment, count, and whether to call spawn_teammate; if the user explicitly asked for a teammate, normally spawn at least one unless a real boundary blocks it. Do not rely on a machine-generated teammate.";
   }
 
   switch (kind) {

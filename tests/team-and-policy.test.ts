@@ -113,7 +113,18 @@ test("shutdown_request is blocked by active teammate state instead of a policy a
 
 test("spawn and send_message expose explicit collaboration surface contracts", async (t) => {
   const root = await createTempWorkspace("team-collaboration-surface", t);
-  const leadContext = makeToolContext(root) as any;
+  const dispatchEvents: Array<{ profile: string; actorName: string; pid?: number }> = [];
+  const leadContext = makeToolContext(root, root, {
+    callbacks: {
+      onDispatch(event: { profile: string; actorName: string; pid?: number }) {
+        dispatchEvents.push({
+          profile: event.profile,
+          actorName: event.actorName,
+          pid: event.pid,
+        });
+      },
+    },
+  }) as any;
 
   const spawned = await spawnTeammateTool.execute(
     JSON.stringify({
@@ -130,6 +141,13 @@ test("spawn and send_message expose explicit collaboration surface contracts", a
   assert.equal(spawnCollaboration.action, "spawn");
   assert.equal(spawnCollaboration.actor, "alpha");
   assert.equal(typeof spawnCollaboration.executionId, "string");
+  assert.deepEqual(dispatchEvents, [
+    {
+      profile: "teammate",
+      actorName: "alpha",
+      pid: process.pid,
+    },
+  ]);
 
   const sent = await sendMessageTool.execute(
     JSON.stringify({

@@ -181,6 +181,40 @@ test("runManagedAgentTurn waits silently in the machine layer for active delegat
   assert.match(String(seenInputs[0]), /Run the validation suite in the background/i);
 });
 
+test("runManagedAgentTurn lets the lead configure teammates after @team opens the lane", async (t) => {
+  const root = await createTempWorkspace("orchestrator-team-lane-lead-decision", t);
+  await initGitRepo(root);
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(root);
+  let sliceCalls = 0;
+  const seenInputs: string[] = [];
+
+  const result = await runManagedAgentTurn({
+    input: "@team 请派一个队友浏览一个中文网页并向我报告。",
+    cwd: root,
+    config: createTestRuntimeConfig(root),
+    session,
+    sessionStore,
+    runSlice: async (options) => {
+      sliceCalls += 1;
+      seenInputs.push(options.input);
+      return {
+        session: options.session,
+        changedPaths: [],
+        verificationAttempted: false,
+        yielded: false,
+      };
+    },
+  });
+
+  const executions = await new ExecutionStore(root).list();
+  assert.equal(sliceCalls, 1);
+  assert.notEqual(result.paused, true);
+  assert.equal(executions.some((execution) => execution.profile === "teammate"), false);
+  assert.match(String(seenInputs[0]), /opened the team lane/i);
+  assert.match(String(seenInputs[0]), /spawn_teammate/i);
+});
+
 test("runManagedAgentTurn does not precreate merge before delegated results exist", async (t) => {
   const root = await createTempWorkspace("orchestrator-merge-stage", t);
   await initGitRepo(root);

@@ -67,7 +67,8 @@ export const spawnTeammateTool: RegisteredTool = {
     let pid: number;
     let executionId = "";
     try {
-      const execution = await new ExecutionStore(context.projectContext.stateRootDir).create({
+      const executionStore = new ExecutionStore(context.projectContext.stateRootDir);
+      const execution = await executionStore.create({
         lane: "agent",
         profile: "teammate",
         launch: "worker",
@@ -88,6 +89,7 @@ export const spawnTeammateTool: RegisteredTool = {
         executionId,
         actorName: name,
       });
+      await executionStore.start(executionId, { pid });
     } catch (error) {
       if (taskId) {
         await taskStore.update(taskId, {
@@ -100,6 +102,14 @@ export const spawnTeammateTool: RegisteredTool = {
     const member = await teamStore.upsertMember(name, role, "working", {
       pid,
       sessionId: existing?.sessionId,
+    });
+    context.callbacks?.onDispatch?.({
+      profile: "teammate",
+      actorName: name,
+      executionId,
+      taskId: reservedTaskId,
+      pid,
+      summary: `role=${role}`,
     });
     const collaboration = {
       action: "spawn" as const,

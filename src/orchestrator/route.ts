@@ -106,13 +106,9 @@ export function routeOrchestratorAction(input: {
     : undefined;
   if (explicitTeammateTask) {
     return {
-      action: "delegate_teammate",
-      reason: `User explicitly requested a teammate for Task #${explicitTeammateTask.record.id}.`,
+      action: "self_execute",
+      reason: `User opened the teammate lane for Task #${explicitTeammateTask.record.id}; the lead must decide teammate name, role, assignment, and whether to call spawn_teammate.`,
       task: explicitTeammateTask,
-      teammate: {
-        name: `teammate-task-${explicitTeammateTask.record.id}`,
-        role: "Explicit user-requested execution teammate",
-      },
     };
   }
 

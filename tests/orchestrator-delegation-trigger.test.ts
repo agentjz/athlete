@@ -42,6 +42,26 @@ test("explicit @subagent prefix reaches routing and may launch the subagent lane
   assert.equal(decision.action, "delegate_subagent");
 });
 
+test("explicit @team prefix opens the lane but leaves teammate configuration to the lead", async (t) => {
+  const root = await createTempWorkspace("delegation-trigger-explicit-team", t);
+  const sessionStore = new MemorySessionStore();
+  const session = await sessionStore.create(root);
+
+  const prepared = await prepareLeadTurn({
+    input: "@team 请派一个队友浏览一个中文网页并向我报告。",
+    cwd: root,
+    config: createTestRuntimeConfig(root),
+    session,
+    sessionStore,
+    deps: {
+      spawnExecutionWorker: () => 9999,
+    },
+  });
+
+  assert.equal(prepared.decision.action, "self_execute");
+  assert.match(prepared.decision.reason, /lead must decide teammate name, role, assignment/i);
+});
+
 async function decide(
   root: string,
   sessionStore: MemorySessionStore,
