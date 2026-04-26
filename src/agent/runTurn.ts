@@ -77,7 +77,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       if (shouldYieldTurn(options.yieldAfterToolSteps, iteration)) {
         const transition = createYieldTransition(iteration, options.yieldAfterToolSteps);
         session = await persistYieldedTurn(session, options.sessionStore, transition);
-        options.callbacks?.onStatus?.(`Yielding after ${iteration} tool steps so background work can poll inbox and tasks.`);
+        options.callbacks?.onStatus?.(`Yielding after ${iteration} tool steps so the managed runtime can reconcile state.`);
         return buildRunTurnResult({
           session,
           changedPaths,

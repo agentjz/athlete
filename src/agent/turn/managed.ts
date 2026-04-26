@@ -5,6 +5,7 @@ import { runLeadOrchestrationLoop } from "../../orchestrator/leadLoop.js";
 import { persistCheckpointTransition } from "./persistence.js";
 import { evaluateManagedSliceBudget, resolveManagedSliceBudget } from "./managedBudget.js";
 import { hasUnfinishedLeadWork } from "./leadReturnGate.js";
+import { hasActiveDelegatedWork, waitForDelegatedWorkToSettle } from "./delegatedWorkWait.js";
 import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "../types.js";
 
 export interface ManagedTurnYieldContext {
@@ -22,6 +23,7 @@ export interface ManagedTurnOptions extends RunTurnOptions {
     context: ManagedTurnYieldContext,
   ) => Promise<ManagedTurnYieldDecision | void> | ManagedTurnYieldDecision | void;
   runSlice?: (options: RunTurnOptions) => Promise<RunTurnResult>;
+  delegatedWaitPollIntervalMs?: number;
 }
 
 export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<RunTurnResult> {
@@ -48,6 +50,16 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
       });
       if (orchestrated.kind === "return") {
         return orchestrated.result;
+      }
+      if (orchestrated.kind === "wait_for_delegated_work") {
+        await waitForDelegatedWorkToSettle({
+          cwd: options.cwd,
+          objectiveText: orchestrated.session.taskState?.objective,
+          abortSignal: options.abortSignal,
+          pollIntervalMs: options.delegatedWaitPollIntervalMs,
+        });
+        session = orchestrated.session;
+        continue;
       }
 
       nextInput = orchestrated.input;
@@ -86,6 +98,16 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         };
       }
 
+      if (isLead && await hasActiveDelegatedWork(options.cwd, session.taskState?.objective)) {
+        await waitForDelegatedWorkToSettle({
+          cwd: options.cwd,
+          objectiveText: session.taskState?.objective,
+          abortSignal: options.abortSignal,
+          pollIntervalMs: options.delegatedWaitPollIntervalMs,
+        });
+        continue;
+      }
+
       if (isLead && await hasUnfinishedLeadWork(options.cwd, session.taskState?.objective)) {
         managedWindowSlicesUsed += 1;
         const budgetDecision = evaluateManagedSliceBudget({
@@ -103,7 +125,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
           nextInput = buildLeadHardBoundaryReviewInput(options.identity, session.checkpoint, budgetDecision.snapshot);
           continue;
         }
-        nextInput = buildDelegatedWorkReconciliationInput(options.identity, session.checkpoint);
+        nextInput = buildUnfinishedLeadReviewInput(options.identity, session.checkpoint);
         continue;
       }
 
@@ -191,14 +213,14 @@ function buildContinuationInput(
   return buildCheckpointContinuationInput(identity, checkpoint);
 }
 
-function buildDelegatedWorkReconciliationInput(
+function buildUnfinishedLeadReviewInput(
   identity: AgentIdentity | undefined,
   checkpoint: RunTurnOptions["session"]["checkpoint"],
 ): string {
   return [
-    "[internal] Active delegated work is still running; do not wait idly.",
-    "Prepare reconciliation now: inspect current task state, collect available evidence, identify non-conflicting checks, and get ready to merge results when they return.",
-    "Do not make up delegated results, do not declare completion, and do not block on idle waiting if there is any safe lead-side work to do.",
+    "[internal] Unfinished lead-side control-plane work is still pending.",
+    "Review the unresolved protocol or control-plane state and choose the next concrete action.",
+    "Do not declare completion until the machine state is reconciled.",
     buildCheckpointContinuationInput(identity, checkpoint),
   ].join("\n");
 }

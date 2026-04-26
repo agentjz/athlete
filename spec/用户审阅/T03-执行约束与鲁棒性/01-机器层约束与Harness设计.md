@@ -71,7 +71,7 @@ Deadmouse 当前仍然只有两种正式模式：
 
 协调 policy 不再作为审批总开关。Lead 处理发给自己的 plan request 不应被 policy 拦住；shutdown 只有在队友仍有活跃状态、未合流任务或会丢现场时才由机器层状态锁拦住。
 
-当已有后台、队友或子代理工作仍在运行时，Lead 不应被机器层带入空等。机器层必须提示“已有工作未回”，同时逼 Lead 做不冲突的合流准备、状态检查、证据整理和下一步预案。
+当已有后台、队友或子代理工作仍在运行时，Lead 不应被机器层带入模型空转。机器层只静默等待 execution 账本、pid 和 closeout 事实变化；结果未回时不喂 prompt，结果回来后再唤醒 Lead 合流。
 
 当已有委派执行或协议请求仍未完成时，这不是普通提醒，而是 Lead 返回前的硬门槛。只要 shutdown、plan、队友、子代理或后台通道仍是 pending / running，且没有真正需要用户判断的新取舍，Lead 就不能把“是否继续盯”抛回用户，必须继续追踪、换检查路径、合流证据。
 
@@ -108,7 +108,7 @@ Deadmouse 当前仍然只有两种正式模式：
 - 子代理、队友、后台执行必须共享统一边界协议，执行到边界回 Lead 复盘
 - 任务规划不能预设 executor，不能在未发生委派前预判 merge
 - coordination policy 不能作为审批开关，只能让位给真实状态冲突锁
-- 已有委派工作未返回时，不应让 Lead 空等；Lead 可以用一个工具批次查委派状态，然后必须先准备合流和非冲突检查，下一轮才能再查委派状态
+- 已有委派工作未返回时，不应让 Lead 用模型轮次反复查状态；机器层静默轮询 execution 事实，状态变化后再交回 Lead
 - 未完成的委派执行或协议请求不能作为可交付状态返回给用户；pending 只能触发继续追踪、合流或到硬边界后回 Lead 复盘
 - 当前目标 prompt 不应整块暴露旧目标的 task、todo、checkpoint、execution、background job 或 protocol request 正文
 - 循环守卫只拦截“同动作、同参数、同结果、无新进展”的重复；`read_inbox / list_teammates / background_check` 等活状态轮询不能仅因同参重复被硬拦

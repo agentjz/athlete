@@ -98,7 +98,7 @@ test("runManagedAgentTurn returns teammate-suitable work to the lead instead of 
   assert.match(String(seenInputs[0]), /lead-owned stage/i);
 });
 
-test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly waiting for active delegated work", async (t) => {
+test("runManagedAgentTurn waits silently in the machine layer for active delegated work", async (t) => {
   const root = await createTempWorkspace("orchestrator-active-wait", t);
   await initGitRepo(root);
   const config = createTestRuntimeConfig(root);
@@ -147,6 +147,13 @@ test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly 
   });
   let sliceCalls = 0;
   const seenInputs: string[] = [];
+  setTimeout(() => {
+    void backgroundStore.complete(job.id, {
+      status: "completed",
+      exitCode: 0,
+      output: "background validation complete",
+    });
+  }, 5);
 
   const result = await runManagedAgentTurn({
     input: objectiveText,
@@ -154,16 +161,10 @@ test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly 
     config,
     session,
     sessionStore,
+    delegatedWaitPollIntervalMs: 1,
     runSlice: async (options) => {
       sliceCalls += 1;
       seenInputs.push(options.input);
-      if (sliceCalls === 2) {
-        await backgroundStore.complete(job.id, {
-          status: "completed",
-          exitCode: 0,
-          output: "background validation complete",
-        });
-      }
       return {
         session: options.session,
         changedPaths: [],
@@ -173,11 +174,11 @@ test("runManagedAgentTurn pushes lead to prepare reconciliation instead of idly 
     },
   });
 
-  assert.equal(sliceCalls, 2);
+  assert.equal(sliceCalls, 1);
   assert.notEqual(result.paused, true);
-  assert.match(String(seenInputs[1]), /active delegated work/i);
-  assert.match(String(seenInputs[1]), /prepare reconciliation/i);
-  assert.match(String(seenInputs[1]), /do not wait idly/i);
+  assert.doesNotMatch(seenInputs.join("\n"), /active delegated work/i);
+  assert.doesNotMatch(seenInputs.join("\n"), /prepare reconciliation/i);
+  assert.match(String(seenInputs[0]), /Run the validation suite in the background/i);
 });
 
 test("runManagedAgentTurn does not precreate merge before delegated results exist", async (t) => {
@@ -236,7 +237,7 @@ test("runManagedAgentTurn does not precreate merge before delegated results exis
   assert.equal(String(seenInputs[0]), objectiveText);
 });
 
-test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated teammate work", async (t) => {
+test("runManagedAgentTurn waits silently when a lead slice spawns delegated teammate work", async (t) => {
   const root = await createTempWorkspace("orchestrator-slice-spawned-delegation", t);
   await initGitRepo(root);
   const config = createTestRuntimeConfig(root);
@@ -252,6 +253,7 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
     config,
     session,
     sessionStore,
+    delegatedWaitPollIntervalMs: 1,
     runSlice: async (options) => {
       sliceCalls += 1;
       seenInputs.push(options.input);
@@ -272,8 +274,9 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
         await executionStore.start(execution.id, {
           pid: process.pid,
         });
-      } else if (sliceCalls === 2) {
-        await closeActiveTeammateExecutions(root);
+        setTimeout(() => {
+          void closeActiveTeammateExecutions(root);
+        }, 250);
       }
 
       return {
@@ -287,8 +290,8 @@ test("runManagedAgentTurn keeps orchestrating when a lead slice spawns delegated
 
   assert.notEqual(result.paused, true);
   assert.equal(sliceCalls, 2);
-  assert.match(String(seenInputs[1]), /active delegated work/i);
-  assert.match(String(seenInputs[1]), /prepare reconciliation/i);
+  assert.doesNotMatch(seenInputs.join("\n"), /active delegated work/i);
+  assert.doesNotMatch(seenInputs.join("\n"), /prepare reconciliation/i);
 });
 
 async function closeActiveTeammateExecutions(rootDir: string): Promise<void> {
