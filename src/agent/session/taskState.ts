@@ -1,5 +1,6 @@
 import type { SessionRecord, StoredMessage, TaskState } from "../../types.js";
-import { normalizeDelegationDirective, parseDelegationDirective } from "./delegationDirective.js";
+import type { AgentLane } from "../../types.js";
+import { delegationCapabilitiesFromLane, normalizeDelegationCapabilities, normalizeDelegationDirective } from "./delegationDirective.js";
 import { collectActiveFiles, collectBlockers, collectCompletedActions, collectPlannedActions, oneLine, truncate } from "./taskStateHistory.js";
 
 const MAX_ACTIVE_FILES = 12;
@@ -11,6 +12,7 @@ const INTERNAL_PREFIX = "[internal]";
 export function createEmptyTaskState(timestamp = new Date().toISOString()): TaskState {
   return {
     delegationDirective: normalizeDelegationDirective(undefined),
+    delegationCapabilities: normalizeDelegationCapabilities(undefined),
     activeFiles: [],
     plannedActions: [],
     completedActions: [],
@@ -23,7 +25,8 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   const now = new Date().toISOString();
   const currentTurn = findCurrentTurn(messages);
   const objective = currentTurn?.objective ?? previous?.objective;
-  const delegationDirective = currentTurn?.delegationDirective ?? normalizeDelegationDirective(previous?.delegationDirective);
+  const delegationDirective = normalizeDelegationDirective(previous?.delegationDirective ?? currentTurn?.delegationDirective);
+  const delegationCapabilities = normalizeDelegationCapabilities(previous?.delegationCapabilities);
   const frameMessages = currentTurn ? messages.slice(currentTurn.startIndex) : messages;
   const objectiveChanged =
     typeof previous?.objective === "string" &&
@@ -34,6 +37,7 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
     return {
       objective,
       delegationDirective,
+      delegationCapabilities,
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
@@ -46,6 +50,7 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   return {
     objective,
     delegationDirective,
+    delegationCapabilities,
     activeFiles: takeLastUnique(collectActiveFiles(frameMessages), MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(collectPlannedActions(frameMessages), MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(collectCompletedActions(frameMessages), MAX_COMPLETED_ACTIONS),
@@ -63,6 +68,7 @@ export function normalizeTaskState(taskState: TaskState | undefined): TaskState 
   return {
     objective: typeof taskState.objective === "string" ? taskState.objective : undefined,
     delegationDirective: normalizeDelegationDirective(taskState.delegationDirective),
+    delegationCapabilities: normalizeDelegationCapabilities(taskState.delegationCapabilities),
     activeFiles: takeLastUnique(taskState.activeFiles ?? [], MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(taskState.plannedActions ?? [], MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(taskState.completedActions ?? [], MAX_COMPLETED_ACTIONS),
@@ -108,7 +114,7 @@ export function isContinuationDirective(content: string | null | undefined): boo
   return (
     /^(continue|resume|go on|keep going|carry on|proceed|continue please|resume please)$/.test(normalized) ||
     /^(continue|resume)\b.*\b(current|same|existing|task|checkpoint|where you left off)\b/.test(normalized) ||
-    /^(继续|继续吧|接着|接着做|继续做|继续处理|继续执行|恢复)$/.test(normalized)
+    /^(continue|resume|keep going|proceed)$/.test(normalized)
   );
 }
 
@@ -128,6 +134,7 @@ export function normalizeSessionRecord(session: SessionRecord): SessionRecord {
 export function applyCurrentTurnFrame(
   session: SessionRecord,
   input: string,
+  agentLane: AgentLane = "lead",
   timestamp = new Date().toISOString(),
 ): SessionRecord {
   if (isInternalMessage(input) || isContinuationDirective(input)) {
@@ -137,14 +144,14 @@ export function applyCurrentTurnFrame(
     };
   }
 
-  const parsed = parseDelegationDirective(input);
-  const objective = truncate(oneLine(parsed.input || input), 240);
+  const objective = truncate(oneLine(input), 240);
   return {
     ...session,
     todoItems: [],
     taskState: {
       objective,
-      delegationDirective: parsed.directive,
+      delegationDirective: normalizeDelegationDirective(undefined),
+      delegationCapabilities: delegationCapabilitiesFromLane(agentLane),
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
@@ -154,7 +161,9 @@ export function applyCurrentTurnFrame(
   };
 }
 
-function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective" | "delegationDirective"> & { startIndex: number }) | undefined {
+function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective" | "delegationDirective"> & {
+  startIndex: number;
+}) | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message?.role !== "user" || isInternalMessage(message.content) || isContinuationDirective(message.content)) {
@@ -163,10 +172,9 @@ function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective
 
     const normalized = oneLine(message.content ?? "");
     if (normalized) {
-      const parsed = parseDelegationDirective(normalized);
       return {
-        objective: truncate(oneLine(parsed.input || normalized), 240),
-        delegationDirective: parsed.directive,
+        objective: truncate(oneLine(normalized), 240),
+        delegationDirective: normalizeDelegationDirective(undefined),
         startIndex: index,
       };
     }

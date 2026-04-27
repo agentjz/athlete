@@ -32,7 +32,7 @@ function stageInstruction(kind: OrchestratorTaskKind, illegal: boolean, executor
   }
 
   if (kind === "implementation" && executor === "teammate") {
-    return "The current objective opened the team lane. Decide the teammate configuration yourself: name, role, assignment, count, and whether to call spawn_teammate; if the user explicitly asked for a teammate, normally spawn at least one unless a real boundary blocks it. Do not rely on a machine-generated teammate.";
+    return "This task is teammate-suitable, but only the lead model may decide whether to call spawn_teammate and how to configure the teammate. Do not rely on a machine-generated teammate.";
   }
 
   switch (kind) {

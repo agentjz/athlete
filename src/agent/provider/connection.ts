@@ -58,7 +58,7 @@ export async function probeProviderConnection(
     if (response.status === 404) {
       lastFailure = {
         kind: "user",
-        message: `用户可修复错误：${endpoint} 返回 404。请检查 \`DEADMOUSE_BASE_URL\` 是否是正确的 OpenAI-compatible API 根地址。`,
+        message: `User-fixable error: ${endpoint} returned 404. Check whether \`DEADMOUSE_BASE_URL\` is the correct OpenAI-compatible API base URL.`,
         probeTimeoutMs,
       };
       continue;
@@ -67,7 +67,7 @@ export async function probeProviderConnection(
     if (response.status === 401 || response.status === 403) {
       return {
         kind: "user",
-        message: "用户可修复错误：Provider 认证失败。请检查 `DEADMOUSE_API_KEY` 是否正确，或确认当前 key 对这个 base URL 有权限。",
+        message: "User-fixable error: provider authentication failed. Check `DEADMOUSE_API_KEY`, or confirm this key is authorized for the base URL.",
         probeTimeoutMs,
       };
     }
@@ -75,7 +75,7 @@ export async function probeProviderConnection(
     if (response.status >= 500) {
       return {
         kind: "provider",
-        message: `Provider 错误：服务返回 ${response.status}。请稍后重试，或确认当前 provider 服务是否正常。`,
+        message: `Provider error: service returned ${response.status}. Retry later or confirm the provider service is healthy.`,
         probeTimeoutMs,
       };
     }
@@ -83,7 +83,7 @@ export async function probeProviderConnection(
     if (!response.ok) {
       return {
         kind: "provider",
-        message: `Provider 错误：服务返回 ${response.status}。这不是本地 runtime 初始化问题，请检查 provider 响应或配置。`,
+        message: `Provider error: service returned ${response.status}. This is not a local runtime initialization issue; check provider response or configuration.`,
         probeTimeoutMs,
       };
     }
@@ -130,7 +130,7 @@ export function buildModelsEndpoint(baseUrl: string): string {
     return new URL("models", ensureTrailingSlash(baseUrl)).toString();
   } catch {
     throw new Error(
-      `用户可修复错误：\`DEADMOUSE_BASE_URL\` 不是合法 URL：${baseUrl}。请修复它后再重新运行 \`deadmouse doctor\`。`,
+      `User-fixable error: \`DEADMOUSE_BASE_URL\` is not a valid URL: ${baseUrl}. Fix it and rerun \`deadmouse doctor\`.`,
     );
   }
 }
@@ -152,12 +152,12 @@ function buildNetworkErrorMessage(baseUrl: string, error: unknown): string {
   const code = String((error as { code?: unknown }).code ?? "");
   const detail = error instanceof Error ? error.message : String(error);
   if (["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "ECONNRESET"].includes(code)) {
-    return `环境错误：无法连接到 ${baseUrl}。请检查网络、代理设置，或确认 \`DEADMOUSE_BASE_URL\` 当前可达。`;
+    return `Environment error: unable to connect to ${baseUrl}. Check network, proxy settings, or whether \`DEADMOUSE_BASE_URL\` is reachable.`;
   }
 
-  if (/fetch failed|network|timeout|socket hang up/i.test(detail)) {
-    return `环境错误：连接 ${baseUrl} 失败。请检查网络、代理设置，或确认 provider 入口当前可达。`;
+  if (/fetch failed|network|timeout|socket hang up|econnrefused|enotfound|etimedout/i.test(detail)) {
+    return `Environment error: connection to ${baseUrl} failed. Check network, proxy settings, or whether the provider endpoint is reachable.`;
   }
 
-  return `环境错误：连接 ${baseUrl} 失败。底层异常：${detail}`;
+  return `Environment error: connection to ${baseUrl} failed. Cause: ${detail}`;
 }

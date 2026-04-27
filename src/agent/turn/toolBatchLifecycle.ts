@@ -51,6 +51,7 @@ export interface ProcessToolCallBatchResult {
   requiresVerification: boolean;
   validationReminderInjected: boolean;
   roundsSinceTodoWrite: number;
+  leadShouldYieldForDelegatedWork: boolean;
 }
 
 export async function processToolCallBatch(input: ProcessToolCallBatchInput): Promise<ProcessToolCallBatchResult> {
@@ -62,6 +63,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
   let requiresVerification = input.requiresVerification;
   let validationReminderInjected = input.validationReminderInjected;
   let roundsSinceTodoWrite = input.roundsSinceTodoWrite;
+  let leadShouldYieldForDelegatedWork = false;
   const { response, options, identity, skillRuntimeState, toolRegistry, projectContext, changeStore, loopGuard } = input;
 
   if (response.content && !response.streamedAssistantContent) {
@@ -134,6 +136,9 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     let result = item.result;
     throwIfAborted(options.abortSignal, "Turn aborted by user.");
     let metadata = "metadata" in result ? result.metadata : undefined;
+    if (result.ok && metadata?.collaboration?.yieldLeadUntilCloseout) {
+      leadShouldYieldForDelegatedWork = true;
+    }
     if (metadata?.changedPaths?.length) {
       changedPaths = new Set([...changedPaths, ...metadata.changedPaths]);
       metadata.changedPaths.forEach((changedPath) => batchChangedPaths.add(changedPath));
@@ -246,5 +251,6 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     requiresVerification,
     validationReminderInjected,
     roundsSinceTodoWrite,
+    leadShouldYieldForDelegatedWork,
   };
 }

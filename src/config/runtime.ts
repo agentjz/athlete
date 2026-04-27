@@ -9,10 +9,7 @@ import {
   parseThinkingEnv,
   readMineruRuntimeConfig,
 } from "./runtimeEnv.js";
-import {
-  normalizeConfig,
-  parseAgentMode,
-} from "./schema.js";
+import { normalizeConfig } from "./schema.js";
 import { readRuntimeAgentModelOverrides, resolveRuntimeAgentModels } from "./agentModels.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
 import {
@@ -72,7 +69,6 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       thinking: parseThinkingEnv(process.env.DEADMOUSE_THINKING) ?? fileConfig.thinking,
       reasoningEffort: parseReasoningEffortEnv(process.env.DEADMOUSE_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
       baseUrl: process.env.DEADMOUSE_BASE_URL ?? fileConfig.baseUrl,
-      mode: parseAgentMode(process.env.DEADMOUSE_MODE) ?? overrides.mode ?? fileConfig.mode,
       mcp: {
         ...fileConfig.mcp,
         enabled: parseBooleanEnv(process.env.DEADMOUSE_MCP_ENABLED) ?? fileConfig.mcp.enabled,
@@ -102,6 +98,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
 
   return {
     ...merged,
+    agentLane: overrides.agentLane ?? "lead",
     apiKey: process.env.DEADMOUSE_API_KEY ?? "",
     agentModelOverrides,
     agentModels: resolveRuntimeAgentModels({

@@ -1,14 +1,14 @@
-export type DelegationDirectiveSource = "none" | "user_prefix";
+import type { AgentLane } from "../../types.js";
 
 export interface DelegationDirective {
   teammate: boolean;
   subagent: boolean;
-  source: DelegationDirectiveSource;
+  source: "none" | "model_decision";
 }
 
-export interface ParsedDelegationDirective {
-  directive: DelegationDirective;
-  input: string;
+export interface DelegationCapabilities {
+  teammate: boolean;
+  subagent: boolean;
 }
 
 const NONE: DelegationDirective = {
@@ -17,24 +17,35 @@ const NONE: DelegationDirective = {
   source: "none",
 };
 
-export function parseDelegationDirective(input: string | null | undefined): ParsedDelegationDirective {
-  const text = String(input ?? "").trim();
-  const match = text.match(/^@(allpeople|team|subagent)(?:\s+|$)([\s\S]*)$/i);
-  if (!match) {
-    return {
-      directive: NONE,
-      input: text,
-    };
+export function delegationCapabilitiesFromLane(lane: AgentLane | undefined): DelegationCapabilities {
+  if (lane === "team") {
+    return { teammate: true, subagent: false };
   }
+  if (lane === "subagent") {
+    return { teammate: false, subagent: true };
+  }
+  if (lane === "allpeople") {
+    return { teammate: true, subagent: true };
+  }
+  return { teammate: false, subagent: false };
+}
 
-  const prefix = match[1]!.toLowerCase();
+export function delegationDirectiveFromLane(lane: AgentLane | undefined): DelegationDirective {
+  const capabilities = delegationCapabilitiesFromLane(lane);
+  if (capabilities.teammate || capabilities.subagent) {
+    return { ...capabilities, source: "model_decision" };
+  }
+  return NONE;
+}
+
+export function normalizeDelegationCapabilities(value: unknown): DelegationCapabilities {
+  if (!value || typeof value !== "object") {
+    return { teammate: false, subagent: false };
+  }
+  const record = value as Partial<DelegationCapabilities>;
   return {
-    directive: {
-      teammate: prefix === "team" || prefix === "allpeople",
-      subagent: prefix === "subagent" || prefix === "allpeople",
-      source: "user_prefix",
-    },
-    input: String(match[2] ?? "").trim(),
+    teammate: Boolean(record.teammate),
+    subagent: Boolean(record.subagent),
   };
 }
 
@@ -44,14 +55,11 @@ export function normalizeDelegationDirective(value: unknown): DelegationDirectiv
   }
 
   const record = value as Partial<DelegationDirective>;
+  const teammate = Boolean(record.teammate);
+  const subagent = Boolean(record.subagent);
   return {
-    teammate: Boolean(record.teammate),
-    subagent: Boolean(record.subagent),
-    source: record.source === "user_prefix" ? "user_prefix" : "none",
+    teammate,
+    subagent,
+    source: teammate || subagent ? "model_decision" : "none",
   };
-}
-
-export function hasDelegationDirective(directive: DelegationDirective | undefined): boolean {
-  const normalized = normalizeDelegationDirective(directive);
-  return normalized.teammate || normalized.subagent;
 }

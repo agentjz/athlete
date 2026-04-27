@@ -1,6 +1,5 @@
-import { setTimeout as sleep } from "node:timers/promises";
-
 import { loadProjectContext } from "../../context/projectContext.js";
+import { snapshotExecutionEventCursor, waitForExecutionEventAfter } from "../../execution/events.js";
 import { reconcileActiveExecutions } from "../../execution/reconcile.js";
 import { ExecutionStore } from "../../execution/store.js";
 import type { ExecutionRecord } from "../../execution/types.js";
@@ -9,34 +8,40 @@ import type { OrchestratorTaskSnapshot } from "../../orchestrator/types.js";
 import { TaskStore } from "../../tasks/store.js";
 import { throwIfAborted } from "../../utils/abort.js";
 
-export const DEFAULT_DELEGATED_WAIT_POLL_INTERVAL_MS = 15_000;
-
 export async function waitForDelegatedWorkToSettle(input: {
   cwd: string;
   objectiveText?: string;
   abortSignal?: AbortSignal;
-  pollIntervalMs?: number;
 }): Promise<void> {
-  const pollIntervalMs = normalizePollInterval(input.pollIntervalMs);
+  const context = await loadProjectContext(input.cwd);
 
   for (;;) {
     throwIfAborted(input.abortSignal, "Delegated work wait was aborted.");
-    if (!await hasActiveDelegatedWork(input.cwd, input.objectiveText)) {
+    const cursor = await snapshotExecutionEventCursor(context.stateRootDir);
+    if (!await hasActiveDelegatedWork(input.cwd, input.objectiveText, context.stateRootDir)) {
       return;
     }
-    await sleep(pollIntervalMs, undefined, { signal: input.abortSignal });
+    await waitForExecutionEventAfter({
+      rootDir: context.stateRootDir,
+      cursor,
+      abortSignal: input.abortSignal,
+    });
   }
 }
 
-export async function hasActiveDelegatedWork(cwd: string, objectiveText?: string): Promise<boolean> {
-  const context = await loadProjectContext(cwd);
-  await reconcileActiveExecutions(context.stateRootDir);
+export async function hasActiveDelegatedWork(
+  cwd: string,
+  objectiveText?: string,
+  stateRootDir?: string,
+): Promise<boolean> {
+  const rootDir = stateRootDir ?? (await loadProjectContext(cwd)).stateRootDir;
+  await reconcileActiveExecutions(rootDir);
   const [executions, tasks] = await Promise.all([
-    new ExecutionStore(context.stateRootDir).listRelevant({
+    new ExecutionStore(rootDir).listRelevant({
       requestedBy: "lead",
       statuses: ["queued", "running"],
     }),
-    new TaskStore(context.stateRootDir).list(),
+    new TaskStore(rootDir).list(),
   ]);
   const objective = objectiveText ? buildOrchestratorObjective(objectiveText) : undefined;
   const relevantTasks = objective
@@ -72,10 +77,3 @@ function isExecutionRelevantToObjective(
     task.meta.executionId === execution.id || task.meta.jobId === execution.id);
 }
 
-function normalizePollInterval(value: number | undefined): number {
-  if (!Number.isFinite(value) || typeof value !== "number") {
-    return DEFAULT_DELEGATED_WAIT_POLL_INTERVAL_MS;
-  }
-
-  return Math.max(1, Math.trunc(value));
-}

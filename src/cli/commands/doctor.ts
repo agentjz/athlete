@@ -33,11 +33,11 @@ export function registerDoctorCommand(
       ui.info(`leadProvider: ${runtime.config.agentModels.lead.provider}`);
       ui.info(`leadModel: ${runtime.config.agentModels.lead.model}`);
       ui.info(`leadBaseUrl: ${runtime.config.agentModels.lead.baseUrl}`);
-      ui.info(`mode: ${runtime.config.mode}`);
+      ui.info(`agentLane: ${runtime.config.agentLane}`);
 
       if (!runtime.config.agentModels.lead.apiKey.trim()) {
         throw new Error(
-          "用户可修复错误：未找到 Lead API key。请先在当前项目的 `.deadmouse/.env` 里设置 `DEADMOUSE_LEAD_API_KEY` 或 `DEADMOUSE_API_KEY`，再重新运行 `deadmouse doctor`。",
+          "User-fixable error: Lead API key not found. Set `DEADMOUSE_LEAD_API_KEY` or `DEADMOUSE_API_KEY` in the current project `.deadmouse/.env`, then rerun `deadmouse doctor`.",
         );
       }
 

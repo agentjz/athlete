@@ -116,6 +116,7 @@ export const spawnTeammateTool: RegisteredTool = {
       actor: name,
       executionId,
       taskId: reservedTaskId,
+      yieldLeadUntilCloseout: true,
     };
     const metadata: ToolExecutionMetadata = {
       collaboration,

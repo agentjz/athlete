@@ -72,6 +72,10 @@ export interface RuntimeYieldToolStepLimitReason {
   limit?: number;
 }
 
+export interface RuntimeYieldDelegationDispatchReason {
+  code: "yield.delegation_dispatch";
+}
+
 export interface RuntimePauseVerificationAwaitingUserReason {
   code: "pause.verification_awaiting_user";
   pendingPaths: string[];
@@ -129,7 +133,7 @@ export type RuntimeRecoverReason =
   | RuntimeRecoverProviderRequestReason
   | RuntimeRecoverPostCompactionDegradationReason;
 
-export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason;
+export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason | RuntimeYieldDelegationDispatchReason;
 
 export type RuntimePauseReason =
   | RuntimePauseVerificationAwaitingUserReason

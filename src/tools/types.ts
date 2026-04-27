@@ -4,7 +4,6 @@ import type { ChangeStore } from "../changes/store.js";
 import type { AgentCallbacks, AgentIdentity } from "../agent/types.js";
 import type { OrchestratorObjective } from "../orchestrator/types.js";
 import type {
-  AgentMode,
   ProjectContext,
   RuntimeConfig,
   ToolExecutionProtocolMetadata,
@@ -137,7 +136,7 @@ export type ToolRegistryPreparation =
       result: ToolExecutionResult;
     };
 
-export type ToolRegistryFactory = (mode: AgentMode, options?: ToolRegistryOptions) => ToolRegistry;
+export type ToolRegistryFactory = (options?: ToolRegistryOptions) => ToolRegistry;
 
 export interface ToolContext {
   config: RuntimeConfig;

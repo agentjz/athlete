@@ -189,6 +189,16 @@ function normalizeYieldTransition(
   reason: RuntimeYieldTransition["reason"],
   timestamp: string,
 ): RuntimeYieldTransition | undefined {
+  if (reason.code === "yield.delegation_dispatch") {
+    return {
+      action: "yield",
+      reason: {
+        code: reason.code,
+      },
+      timestamp,
+    };
+  }
+
   if (reason.code !== "yield.tool_step_limit") {
     return undefined;
   }

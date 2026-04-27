@@ -2,6 +2,7 @@ import { launchSubagentWorkerExecution } from "../../subagent/launch.js";
 import { buildSubagentTypeSummary, listSubagentTypes } from "../../subagent/profiles.js";
 import { okResult, parseArgs, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
+import type { ToolExecutionMetadata } from "../../types.js";
 
 const SUBAGENT_TYPES = listSubagentTypes();
 
@@ -57,6 +58,15 @@ export const taskTool: RegisteredTool = {
       worktreePolicy: agentType === "code" ? "task" : "none",
     });
 
+    const metadata: ToolExecutionMetadata = {
+      collaboration: {
+        action: "spawn",
+        actor: description,
+        executionId: execution.id,
+        yieldLeadUntilCloseout: true,
+      },
+    };
+
     return okResult(JSON.stringify({
       ok: true,
       status: "launched",
@@ -67,6 +77,6 @@ export const taskTool: RegisteredTool = {
       nextAction: "Lead must monitor the execution closeout/inbox and reconcile the result before declaring completion.",
       boundary: execution.boundary,
       preview: `Launched subagent execution '${execution.id}' (${agentType}) pid=${pid}.`,
-    }, null, 2));
+    }, null, 2), metadata);
   },
 };

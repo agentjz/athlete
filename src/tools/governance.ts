@@ -164,11 +164,11 @@ function normalizeToolGovernance(name: string, partial: Partial<ToolGovernance>)
   };
 
   if (governance.mutation === "read" && governance.destructive) {
-    throw new Error(`Tool governance for ${name} is invalid: read-only tools cannot be destructive.`);
+    throw new Error(`Tool governance for ${name} is invalid: read tools cannot be destructive.`);
   }
 
   if (governance.mutation === "read" && governance.changeSignal !== "none") {
-    throw new Error(`Tool governance for ${name} is invalid: read-only tools cannot require change signals.`);
+    throw new Error(`Tool governance for ${name} is invalid: read tools cannot require change signals.`);
   }
 
   return governance;

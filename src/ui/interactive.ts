@@ -1,7 +1,9 @@
 import type { SessionStoreLike } from "../agent/session.js";
+import { loadProjectContext } from "../context/projectContext.js";
 import { InteractiveSessionDriver } from "../interaction/sessionDriver.js";
 import type { InteractiveSessionDriverOptions } from "../interaction/sessionDriver.js";
 import type { InteractionShell } from "../interaction/shell.js";
+import { createTerminalLogWriter, mirrorInteractionShellToTerminalLog } from "../observability/terminalLog.js";
 import { writeCliInteractiveIntro } from "../shell/cli/intro.js";
 import {
   createCliInteractionShell,
@@ -34,6 +36,11 @@ export async function startInteractiveChat(
   dependencies: StartInteractiveChatDependencies = {},
 ): Promise<void> {
   const shell = resolveInteractiveShell(dependencies);
+  const projectContext = await loadProjectContext(options.cwd);
+  const terminalShell = mirrorInteractionShellToTerminalLog(
+    shell,
+    createTerminalLogWriter(projectContext.stateRootDir, options.session.id),
+  );
   (dependencies.writeIntro ?? ((context) => {
     writeCliInteractiveIntro({
       cwd: context.cwd,
@@ -45,23 +52,23 @@ export async function startInteractiveChat(
     cwd: options.cwd,
     config: options.config,
     session: options.session,
-    shell,
+    shell: terminalShell,
   });
 
   const driver =
     dependencies.createDriver?.({
       ...options,
-      shell,
+      shell: terminalShell,
     }) ??
     new InteractiveSessionDriver({
       ...options,
-      shell,
+      shell: terminalShell,
     });
 
   try {
     await driver.run();
   } finally {
-    shell.dispose?.();
+    terminalShell.dispose?.();
   }
 }
 

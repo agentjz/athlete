@@ -1,4 +1,4 @@
-import { Command, InvalidOptionArgumentError } from "commander";
+import { Command } from "commander";
 
 import packageJson from "../../package.json";
 import { extractCliOverrides } from "./configValues.js";
@@ -9,7 +9,6 @@ import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerSessionCommands } from "./commands/session.js";
 import { registerWorkerCommands } from "./commands/worker.js";
-import { parseAgentMode } from "../config/schema.js";
 import { writeStderr, writeStdout, writeStdoutLine } from "../utils/stdio.js";
 import { registerTelegramCommands } from "../telegram/cli.js";
 
@@ -36,18 +35,9 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
       },
     })
     .option("-m, --model <model>", "Override the configured model")
-    .option(
-      "--mode <mode>",
-      "Mode: read-only | agent",
-      (value: string) => {
-        const parsed = parseAgentMode(value);
-        if (!parsed) {
-          throw new InvalidOptionArgumentError(`Invalid mode: ${value}`);
-        }
-
-        return parsed;
-      },
-    )
+    .option("--team", "Open teammate execution lane for this CLI session")
+    .option("--subagent", "Open subagent execution lane for this CLI session")
+    .option("--allpeople", "Open teammate and subagent execution lanes for this CLI session")
     .option("-C, --cwd <path>", "Working directory for this run");
 
   program

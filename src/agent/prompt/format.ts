@@ -19,12 +19,6 @@ export function appendPromptMemory(
 }
 
 export function renderPromptLayers(promptLayers: PromptLayers): string {
-  /*
-  中文翻译：
-  - Static operating layer: = 静态操作层：
-  - Dynamic runtime layer: = 动态运行时层：
-  - Compressed conversation memory: = 压缩后的对话记忆：
-  */
   const sections = [
     "Static operating layer:",
     joinBlocks(promptLayers.staticBlocks),

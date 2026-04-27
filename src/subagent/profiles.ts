@@ -1,11 +1,8 @@
-import type { AgentMode } from "../types.js";
-
 export type SubagentType = "explore" | "plan" | "code";
 
 export interface SubagentProfile {
   type: SubagentType;
   description: string;
-  mode: AgentMode;
   toolNames: readonly string[];
   assignmentPreamble: string;
 }
@@ -38,16 +35,14 @@ const CODE_SUBAGENT_TOOLS = [
 export const SUBAGENT_PROFILES: Record<SubagentType, SubagentProfile> = {
   explore: {
     type: "explore",
-    description: "Read-only exploration for finding files, tracing behavior, and reporting concrete facts.",
-    mode: "read-only",
+    description: "Exploration for finding files, tracing behavior, and reporting concrete facts.",
     toolNames: READ_ONLY_SUBAGENT_TOOLS,
     assignmentPreamble:
-      "Explore the codebase in read-only mode. Gather the minimum concrete evidence needed, stay narrow, and avoid proposing unrelated changes.",
+      "Explore the codebase. Gather the minimum concrete evidence needed, stay narrow, and avoid proposing unrelated changes.",
   },
   plan: {
     type: "plan",
-    description: "Read-only design analysis for implementation planning and dependency discovery.",
-    mode: "read-only",
+    description: "Design analysis for implementation planning and dependency discovery.",
     toolNames: READ_ONLY_SUBAGENT_TOOLS,
     assignmentPreamble:
       "Analyze the current code and produce an implementation-ready plan grounded in existing architecture. Do not modify files.",
@@ -55,7 +50,6 @@ export const SUBAGENT_PROFILES: Record<SubagentType, SubagentProfile> = {
   code: {
     type: "code",
     description: "Implementation-focused coding agent with edit and validation tools, but no coordination tools.",
-    mode: "agent",
     toolNames: CODE_SUBAGENT_TOOLS,
     assignmentPreamble:
       "Implement the delegated change directly and keep the solution surgical. Validate targeted behavior when feasible before handing back the result.",
@@ -74,14 +68,6 @@ export function getSubagentProfile(agentType: string): SubagentProfile {
   }
 
   return profile;
-}
-
-export function resolveSubagentMode(profile: SubagentProfile, parentMode: AgentMode): AgentMode {
-  if (profile.mode === "agent" && parentMode !== "agent") {
-    throw new Error(`The '${profile.type}' subagent requires agent mode.`);
-  }
-
-  return profile.mode;
 }
 
 export function buildSubagentAssignment(

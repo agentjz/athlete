@@ -92,7 +92,7 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
     baseUrl: "https://api.deepseek.com",
     model: "deepseek-v4-flash",
     thinking: "enabled",
-    mode: "agent",
+    agentLane: "lead",
     yieldAfterToolSteps: 5,
     contextWindowMessages: 30,
     maxContextChars: 48_000,

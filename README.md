@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.zh.md">中文 README</a>
+  <a href="./README.zh.md">Chinese README</a>
 </p>
 
 <p align="center">

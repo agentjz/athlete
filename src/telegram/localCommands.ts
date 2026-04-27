@@ -10,8 +10,8 @@ import {
   TELEGRAM_HELP_TEXT,
 } from "./helpText.zh.js";
 
-const RESET_COMMANDS = new Set(["reset", "/reset", "重置", "/重置"]);
-const HELP_COMMANDS = new Set(["/help", "/帮助"]);
+const RESET_COMMANDS = new Set(["reset", "/reset"]);
+const HELP_COMMANDS = new Set(["/help"]);
 
 export async function handleTelegramLocalCommand(
   input: string,

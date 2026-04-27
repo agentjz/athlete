@@ -1,113 +1,115 @@
-# Deadmouse 仓库级工作方式
+# Deadmouse Repository Working Rules
 
-本文件定义进入本仓库后应默认遵守的长期规则。
+Always communicate with the user in Simplified Chinese throughout the whole task.
 
-它不是人格提示词，也不是一次性任务说明，而是本仓库的开发方式、边界和收口标准。
+This file defines long-lived development rules for this repository.
 
-## 1. 真相源
+It is not a personality prompt or a one-off task note. It records the default workflow, boundaries, and closeout standards for this codebase.
 
-- 已确认通过的 `spec` 是任务真相源。
-- `spec/用户审阅/宪法原则/` 是仓库级长期原则的上游来源。
-- 当文档、测试、代码冲突时，先检查 `spec` 与宪法原则，再让三者重新一致。
-- 不接受“代码先改，文档以后再补”。
+## 1. Source Of Truth
 
-## 2. 默认主路径
+- Accepted `spec` documents are the task source of truth.
+- Reviewed constitutional principle specs are the upstream source for repository-level principles.
+- When docs, tests, and code conflict, check `spec` and the constitutional principles first, then realign all three.
+- Do not accept "code first, docs later".
 
-本仓库默认按下面顺序推进：
+## 2. Default Path
+
+Default workflow:
 
 `spec -> test -> implementation -> verification -> closeout`
 
-具体要求：
+Requirements:
 
-- 先完整理解目标、范围、约束、验收标准、失败标准、边界条件和范围外事项，再开始实现。
-- 先抓主路径、主约束、主风险、主验收，再处理枝节。
-- 优先把“会不会被改坏”写成失败测试、检查脚本或等价验证，再写实现。
-- 没有真实验证通过，不能判定为完成。
+- Understand objective, scope, constraints, acceptance criteria, failure criteria, boundaries, and out-of-scope items before implementing.
+- Prioritize the main path, main constraints, main risks, and main acceptance before details.
+- Prefer turning regression risk into a failing test, check script, or equivalent verification before implementation.
+- Do not call work complete without real verification.
 
-## 3. 设计原则
+## 3. Design Principles
 
-- 一个文件只做一件事。
-- 简单优先，边界优先，解耦优先。
-- 简单不是保守，简单是可靠性、可维护性和长期演进的前提。
-- 不要为了拆而拆，也不要把本应独立的职责硬塞回一个大文件。
-- 主循环只保留调度职责，不吞模块细节。
-- 新功能优先长在明确模块、目录或正式扩展口，不优先堆进已有大文件。
+- One file should do one thing.
+- Prefer simplicity, boundaries, and decoupling.
+- Simplicity is not conservatism; it is the basis for reliability, maintainability, and long-term evolution.
+- Do not split for splitting's sake, and do not force truly independent responsibilities back into a large file.
+- Main loops keep scheduling responsibility only; they must not absorb module details.
+- New features should grow in clear modules, directories, or formal extension points, not inside existing large files by default.
 
-参考来源：
+References:
 
-- `ref/prd/一个文件只做一件事.md`
-- `spec/用户审阅/宪法原则/18-主循环和文件都不能长胖.md`
+- The one-file-one-job product note.
+- Constitutional principle 18 about keeping main loops and files small.
 
-## 4. 扩展原则
+## 4. Extension Principles
 
-- 新扩展优先走正式扩展口，不优先靠继续堆 prompt 文案。
-- 工具能力走 `src/tools/`
-- 技能能力走 `src/skills/`
-- MCP 能力走 `src/mcp/`
-- 宿主注入与运行时边界走 `src/host/`
-- 不允许宿主逻辑绕进核心内部模块形成散装胶水。
+- New extensions should use formal extension points instead of adding more prompt prose.
+- Tool capabilities live under `src/tools/`.
+- Skill capabilities live under `src/skills/`.
+- MCP capabilities live under `src/mcp/`.
+- Host injection and runtime boundaries live under `src/host/`.
+- Host logic must not bypass into core internals as loose glue.
 
-参考来源：
+Reference:
 
-- `spec/用户审阅/宪法原则/17-扩展靠事件生长.md`
+- Constitutional principle 17 about growing through events.
 
-## 5. Prompt 相关规则
+## 5. Prompt Rules
 
-- system prompt 是正式结构，不是散装长文。
-- 静态层与动态层的正式边界在：
+- The system prompt is a formal structure, not loose long-form prose.
+- Static and dynamic prompt boundaries live in:
   - `src/agent/prompt/`
   - `src/agent/promptSections.ts`
-- 人格、架构思维、执行契约、运行时状态应按块组织，不要揉成一坨。
-- 修改 prompt 结构、静态块、动态块或 contract 文案时，必须同步检查并更新对应测试。
+- Personality, architecture thinking, execution contract, and runtime state must be organized by section.
+- When prompt structure, static blocks, dynamic blocks, or contract text changes, update related tests.
 
-最低要求：
+Minimum check:
 
-- `tests/system-prompt-contract.test.ts`
+- `tests/agent/system-prompt-contract.test.ts`
 
-必要时继续检查：
+Also check when relevant:
 
-- `tests/runtime-lightweight-context.test.ts`
-- 其他直接依赖 prompt 文案或 prompt 指标的测试
+- `tests/agent/runtime-lightweight-context.test.ts`
+- Other tests that directly depend on prompt text or metrics.
 
-## 6. 验证与收口
+## 6. Verification And Closeout
 
-- “写了文件”不等于“做成了”。
-- 收口必须依赖真实产物、真实命令、真实状态、真实验证，不依赖模型自述。
-- 只要关键验证没过、关键文件缺失、关键行为不可用、关键结果不可读，就不能 finalize。
-- 如果任务显式给出了 acceptance / closeout 契约，必须按契约继续检查。
+- Writing files is not the same as finishing the task.
+- Closeout must depend on real artifacts, commands, state, and verification, not model self-report.
+- If key verification fails, key files are missing, key behavior is unavailable, or key output is unreadable, do not finalize.
+- If the task gives an explicit acceptance or closeout contract, keep checking against it.
 
-参考来源：
+References:
 
-- `spec/用户审阅/宪法原则/19-先写失败测试再写实现.md`
-- `spec/用户审阅/宪法原则/21-没验过就不能收口.md`
+- Constitutional principle 19 about writing failure tests before implementation.
+- Constitutional principle 21 about not closing out without verification.
 
-## 7. 实施偏好
+## 7. Implementation Preferences
 
-- 优先复用现有实现、现有模块、现有工具和成熟方案。
-- 小步推进，分块修改，逐块验证。
-- 不把大量不相关改动糊成一个大 patch。
-- 不把计划当结果，不把解释当完成，不把猜测当事实。
-- 任何阶段都要维护文档、实现、测试的一致性。
+- Reuse existing implementation, modules, tools, and mature patterns first.
+- Move in small steps, modify by blocks, and verify each block.
+- Do not bundle many unrelated changes into one large patch.
+- Do not treat plans as results, explanations as completion, or guesses as facts.
+- Keep docs, implementation, and tests aligned at every stage.
 
-## 8. runtime-docs 维护规则
+## 8. Runtime Docs Rules
 
-- `runtime-docs/` 只写运行故事和核心机制解释，不写代码实现说明书。
-- 当 Lead、team、subagent、tool、skill、MCP、后台、账本、循环守卫、验证或收口语义发生变化时，必须同步检查 `runtime-docs/` 是否需要更新。
-- `runtime-docs/` 的写法要用“运行时会发生什么”的例子讲清楚，不要把某次可能的执行路线写成固定规则。
-- 例子必须反映真实机制：Lead 掌方向盘，执行通道回 Lead，机器层守状态、证据、边界和收口。
-- 不允许把 `runtime-docs/` 写成营销文案、接口清单、源码路径索引或抽象口号合集。
-- 如果实现、spec、README 和 `runtime-docs/` 对同一机制说法冲突，先以 spec 与代码现实为准，再同步修正文档。
+- `runtime-docs/` records runtime stories and core mechanism explanations, not source-code manuals.
+- When Lead, team, subagent, tool, skill, MCP, background, ledger, loop guard, verification, or closeout semantics change, check whether `runtime-docs/` needs updates.
+- Explain runtime behavior through examples of what happens at runtime.
+- Examples must reflect the real mechanism: Lead steers, execution channels return to Lead, and the machine layer guards state, evidence, boundaries, and closeout.
+- Do not turn `runtime-docs/` into marketing copy, API listings, source path indexes, or slogans.
+- If implementation, spec, README, and `runtime-docs/` conflict, align docs with spec and code reality.
 
-## 9. 与项目 Owner 的沟通方式
+## 9. Communication With The Project Owner
 
-- 和项目 Owner 讨论设计、约束和问题时，优先用“运行时会发生什么”的方式讲清楚，不要先讲代码。
-- 先给具体场景，再说明当前可能发生什么，最后说明理想状态应该怎样。
-- 不把源码路径、接口名、测试名作为第一解释；这些可以作为后续证据。
-- 详细语言风格和例子维护在 `runtime-docs/07-与用户和开发者交互的语言风格.md`。
+- When discussing design, constraints, and issues with the owner, explain what happens at runtime first.
+- Start with a concrete scenario, then describe current behavior, then describe the ideal state.
+- Do not use source paths, interface names, or test names as the first explanation; use them later as evidence.
+- Detailed style guidance lives in `runtime-docs/07-user-and-developer-communication-style.md`.
 
-## 10. 本文件的定位
+## 10. Positioning
 
-- 本文件只写仓库级长期有效规则。
-- 一次性任务要求放到任务 prompt 或对应 spec。
-- 具体模块细节放到 `spec/技术实现/` 或模块内局部文档。
-- 人格、语气和单次任务口号不写进本文件。
+- This file only contains long-lived repository rules.
+- One-off task requirements belong in task prompts or related specs.
+- Module details belong in technical implementation specs or local module docs.
+- Personality, tone, and one-off slogans do not belong here.

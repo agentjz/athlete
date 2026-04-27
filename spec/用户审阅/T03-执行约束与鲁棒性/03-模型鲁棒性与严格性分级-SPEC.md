@@ -6,8 +6,8 @@
 
 - 该严的严：高风险路径继续 fail-closed。
 - 该松的松：低风险路径仅对 unknown args 做可控宽容。
-- 该截断就截断：provider recover 与 managed continuation 都必须受预算上限约束，并在 Lead 主路径上回主控复核。
-- 该收就收：委派链路必须受显式入口、建议评估、机器硬约束、硬预算与回主复核约束。
+- 该截断就截断：provider recover 与 managed continuation 都必须受资源上限约束，并在 Lead 主路径上回主控复核。
+- 该收就收：委派链路必须受显式入口、建议评估、机器硬约束、执行边界、事件唤醒与回主复核约束。
 
 目标不是“整体放松”，而是“正确性优先下的可用性与可收口性”。
 
@@ -25,7 +25,7 @@
 - L1：`mutation=state && risk=medium && destructive=false`
 - L0：其余路径
 
-## 3. 停机与恢复预算
+## 3. 停机与资源治理
 
 ### 3.1 Provider recover 预算
 
@@ -44,15 +44,14 @@
 - Lead 主路径：命中后写入结构化记录并回主调度复核，再决定下一轮动作；不以预算命中直接终止主循环
 - 非 Lead 执行：保持正式 `pause` 收口
 
-### 3.3 Subagent 委派预算（增加）
+### 3.3 Subagent 资源治理（替代旧式工具次数预算）
 
-- 委派档位：`快 / 均衡 / 深度`
-- 默认档位：`均衡`
-- 默认预算：
-  - 快：`maxToolCalls=4`、`maxModelTurns=3`、`maxElapsedMs=120000`
-  - 均衡：`maxToolCalls=10`、`maxModelTurns=8`、`maxElapsedMs=360000`
-  - 深度：`maxToolCalls=20`、`maxModelTurns=16`、`maxElapsedMs=900000`
-- 超限动作：subagent 强制停止并返回 Lead，写入结构化 `subagent_budget_exhausted` 原因（含维度与快照）
+- Subagent 正常停止原因只有：任务完成、执行边界命中、用户中断、工具/Provider 真实失败、上下文需要压缩后仍不可继续。
+- 不再用低工具调用次数或低模型轮次作为正常研究任务的硬预算；工具调用次数只允许作为异常级死循环保护，不能在常规路径上误杀任务。
+- 执行边界由 execution boundary 统一管理：runtime boundary、idle boundary、worker command timeout/stall。
+- 成本治理应通过 provider usage / token / 金额统计接入正式 cost boundary；没有真实成本数据时，不允许伪造“成本预算”作为停机真相源。
+- 上下文治理通过 context window、summary、compaction 处理；上下文接近危险区时优先压缩，不直接把 subagent 判定为失败。
+- Subagent 被边界暂停时必须写入结构化 boundary reason，并回 Lead 复核；事实来源是 execution closeout，不是 wake signal。
 
 ### 3.4 委派评估、机器硬约束与回主复核（增加）
 
@@ -63,8 +62,9 @@
 ### 3.5 委派等待语义（增加）
 
 - Lead 主路径：命中 `wait_for_existing_work` 时不把 turn 终止为对外 `paused`。
-- 运行节奏：Lead 派出后台、队友或子代理后，等待期间不再进入模型旁路；机器层静默检查 execution 账本、pid 和 closeout 事实。
-- 等待期间的理想体感不是“总指挥停机”，也不是“总指挥反复查状态”，而是“机器静默等事实变化；有完成、失败、超时或 worker 退出后再唤醒 Lead 合流复核”。
+- 运行节奏：Lead 派出后台、队友或子代理后，等待期间不再进入模型旁路；机器层挂起等待 execution closeout 事件。
+- Wake signal 只负责唤醒，不是真相源；Lead 醒来后必须读取 execution closeout、inbox、任务板等事实再判断下一步。
+- 等待期间的理想体感不是“总指挥停机”，也不是“总指挥反复查状态”，而是“Lead 挂起；worker 完成、失败、超时或被边界暂停后发出事件；机器层再唤醒 Lead 合流复核”。
 
 ## 4. 幂等 terminate 语义
 
@@ -79,8 +79,8 @@
 ## 5. 可观测与可测试要求
 
 - strictness 分层结果写入协议元数据：tier 与 unknown 剥离 warning。
-- budget 命中必须通过结构化 reason 可读可审计；Lead 路径还必须可追溯“回主复核”。
-- subagent 超限必须通过结构化 budget reason 可读可审计。
+- resource boundary 命中必须通过结构化 reason 可读可审计；Lead 路径还必须可追溯“回主复核”。
+- subagent 不得因低工具调用次数或低模型轮次提前停止；只有真实执行边界、成本边界、上下文边界或错误 closeout 可以让它回主复核。
 - 委派闸门拒绝必须可结构化解释（拒绝码 + 拒绝原因）。
 - 关键断言优先结构化字段（`reason.code`、预算计数字段、状态字段），不依赖文案碎片。
 
@@ -92,7 +92,7 @@
 - strictness 分层符合 L0/L1/L2 契约，且 L0 仅放松 unknown。
 - `background_terminate` 对终态对象幂等成功且不改写真相。
 - 委派不再由关键词单点触发，必须先有用户显式入口，再经过 evaluator 建议记录与 policy gate 硬约束检查。
-- subagent 任一预算超限都会强制返回 Lead 且可结构化审计。
+- subagent 不再受旧式工具次数预算误杀；执行边界命中会强制返回 Lead 且可结构化审计。
 - 委派后必须先回主控复核，不能同链路无限深挖。
 - 委派进行中时，Lead 不对外停机，也不消耗模型轮次做旁路工作；机器层静默等 execution 事实变化，状态变化后再合流复核。
 - 文档、测试、实现三者一致，无“代码先改文档后补”尾巴。

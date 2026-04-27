@@ -1,4 +1,4 @@
-# 机器层约束与 Harness 设计
+﻿# 机器层约束与 Harness 设计
 
 ## 这份文档回答什么问题
 
@@ -21,7 +21,7 @@
 Deadmouse 当前仍然只有两种正式模式：
 
 - `agent`
-- `read-only`
+- 单一 `agent` 运行模式
 
 ## 适用范围
 
@@ -108,7 +108,7 @@ Deadmouse 当前仍然只有两种正式模式：
 - 子代理、队友、后台执行必须共享统一边界协议，执行到边界回 Lead 复盘
 - 任务规划不能预设 executor，不能在未发生委派前预判 merge
 - coordination policy 不能作为审批开关，只能让位给真实状态冲突锁
-- 已有委派工作未返回时，不应让 Lead 用模型轮次反复查状态；机器层静默轮询 execution 事实，状态变化后再交回 Lead
+- 已有委派工作未返回时，不应让 Lead 用模型轮次反复查状态；机器层挂起等待 execution closeout 事件，完成或边界信号后再交回 Lead
 - 未完成的委派执行或协议请求不能作为可交付状态返回给用户；pending 只能触发继续追踪、合流或到硬边界后回 Lead 复盘
 - 当前目标 prompt 不应整块暴露旧目标的 task、todo、checkpoint、execution、background job 或 protocol request 正文
 - 循环守卫只拦截“同动作、同参数、同结果、无新进展”的重复；`read_inbox / list_teammates / background_check` 等活状态轮询不能仅因同参重复被硬拦

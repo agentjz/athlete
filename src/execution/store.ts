@@ -1,5 +1,6 @@
 import { withProjectLedger } from "../control/ledger/open.js";
 import { ExecutionLedgerRepo } from "../control/ledger/executionRepo.js";
+import { publishExecutionClosedEvent } from "./events.js";
 import type { ExecutionCloseInput, ExecutionRecord, ExecutionStartInput } from "./types.js";
 
 export class ExecutionStore {
@@ -39,7 +40,9 @@ export class ExecutionStore {
   }
 
   async close(executionId: string, input: ExecutionCloseInput): Promise<ExecutionRecord> {
-    return withProjectLedger(this.rootDir, ({ db }) => new ExecutionLedgerRepo(db).close(executionId, input));
+    const closed = await withProjectLedger(this.rootDir, ({ db }) => new ExecutionLedgerRepo(db).close(executionId, input));
+    await publishExecutionClosedEvent(this.rootDir, closed);
+    return closed;
   }
 
   async list(): Promise<ExecutionRecord[]> {

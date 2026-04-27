@@ -8,7 +8,7 @@ import { noteRuntimeCompression, noteRuntimeModelRequests, type ModelRequestMetr
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
 import { hasIncompleteTodos } from "./session/todos.js";
 import { buildSystemPromptLayers } from "./systemPrompt.js";
-import { buildRunTurnResult, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
+import { buildRunTurnResult, createDelegationDispatchYieldTransition, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "./toolPriority.js";
 import { filterToolDefinitionsForCloseout } from "./turn/closeout.js";
 import { clearCompactionRecovery, noteCompactionObserved, notePostCompactionNoText } from "./turn/compactionRecovery.js";
@@ -52,7 +52,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   if (!modelConfig.apiKey) {
     throw new Error(`Missing API key for ${identity.kind} model profile. Open the project's .env file and add the matching DEADMOUSE_${identity.kind.toUpperCase()}_API_KEY or DEADMOUSE_API_KEY.`);
   }
-  let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
+  let session = await initializeTurnSession(options.session, options.input, options.sessionStore, options.config.agentLane);
   const client = createProviderClientPool(modelConfig);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
@@ -296,6 +296,18 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       requiresVerification = batchResult.requiresVerification;
       validationReminderInjected = batchResult.validationReminderInjected;
       roundsSinceTodoWrite = batchResult.roundsSinceTodoWrite;
+      if (identity.kind === "lead" && batchResult.leadShouldYieldForDelegatedWork) {
+        const transition = createDelegationDispatchYieldTransition();
+        session = await persistYieldedTurn(session, options.sessionStore, transition);
+        options.callbacks?.onStatus?.("Lead yielded after delegation dispatch; machine runtime will wait for execution closeout before resuming.");
+        return buildRunTurnResult({
+          session,
+          changedPaths,
+          verificationAttempted: validationAttempted,
+          verificationPassed: validationPassed,
+          transition,
+        });
+      }
     }
   } catch (error) {
     const timestamp = new Date().toISOString();

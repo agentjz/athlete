@@ -10,17 +10,10 @@ export type DelegationDecisionAction =
 
 export type DelegationEvaluationConfidence = "low" | "medium" | "high";
 
-export interface DelegationSubagentBudget {
-  maxToolCalls: number;
-  maxModelTurns: number;
-  maxElapsedMs: number;
-}
-
 export interface DelegationModeProfile {
   mode: DelegationMode;
   necessityScoreThreshold: number;
   maxConcurrentDelegations: number;
-  subagentBudget: DelegationSubagentBudget;
 }
 
 export interface DelegationEvaluation {

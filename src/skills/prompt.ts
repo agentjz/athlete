@@ -4,15 +4,7 @@ export function formatSkillPromptBlock(
   discoveredSkills: LoadedSkill[],
   runtimeState: SkillRuntimeState,
 ): string {
-  /*
-  中文翻译：
-  - 当前已加载：{skills}
-  - 本轮匹配：{skill}
-  - 本轮匹配：另外还有 {n} 个相关 skill
-  - 缺失的必需项：{skills}
-  - 在使用该工作流之前，先用 load_skill 加载缺失的必需 skill。
-  - 这一轮没有 skill 被加载或被选中。相关的项目 skill 仍然可以按需加载。
-  */
+  
   if (discoveredSkills.length === 0) {
     return "- No project skills discovered.";
   }
@@ -57,14 +49,7 @@ export function formatSkillPromptBlock(
 }
 
 function describeTurnSkill(skill: LoadedSkill, runtimeState: SkillRuntimeState): string {
-  /*
-  中文翻译：
-  - required = 必需
-  - suggested = 建议
-  - named = 被点名
-  - loaded = 已加载
-  - via {reasons} = 通过 {reasons} 匹配
-  */
+  
   const tags: string[] = [];
   const match = runtimeState.matches.find((entry) => entry.skill.name === skill.name);
 

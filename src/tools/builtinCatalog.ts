@@ -1,4 +1,3 @@
-import type { AgentMode } from "../types.js";
 import { applyPatchTool } from "./files/applyPatchTool.js";
 import { backgroundCheckTool } from "./background/backgroundCheckTool.js";
 import { backgroundRunTool } from "./background/backgroundRunTool.js";
@@ -60,76 +59,67 @@ import {
 } from "./governancePresets.js";
 import type { RegisteredTool, ToolGovernance } from "./types.js";
 
-interface BuiltinCatalogEntry {
-  modes: readonly AgentMode[];
-  tool: RegisteredTool;
-}
-
-const ALL_MODES = ["agent", "read-only"] as const;
-
-const BUILTIN_TOOL_CATALOG: readonly BuiltinCatalogEntry[] = [
-  defineBuiltinTool(todoWriteTool, ALL_MODES, stateTool("task")),
-  defineBuiltinTool(taskTool, ALL_MODES, stateTool("task", { risk: "medium", changeSignal: "optional", verificationSignal: "optional" })),
-  defineBuiltinTool(listFilesTool, ALL_MODES, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(findFilesTool, ALL_MODES, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(readFileTool, ALL_MODES, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(searchFilesTool, ALL_MODES, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(mineruPdfReadTool, ALL_MODES, documentReadTool("pdf")),
-  defineBuiltinTool(mineruImageReadTool, ALL_MODES, documentReadTool("image")),
-  defineBuiltinTool(mineruDocReadTool, ALL_MODES, documentReadTool("doc")),
-  defineBuiltinTool(mineruPptReadTool, ALL_MODES, documentReadTool("ppt")),
-  defineBuiltinTool(readDocxTool, ALL_MODES, documentReadTool("doc")),
-  defineBuiltinTool(readSpreadsheetTool, ALL_MODES, documentReadTool("spreadsheet")),
-  defineBuiltinTool(httpProbeTool, ALL_MODES, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(httpRequestTool, ALL_MODES, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(httpSessionTool, ALL_MODES, stateTool("external", { risk: "medium" })),
-  defineBuiltinTool(httpSuiteTool, ALL_MODES, readTool("external", { verificationSignal: "optional" })),
-  defineBuiltinTool(networkTraceTool, ALL_MODES, writeTool("external", { changeSignal: "required", verificationSignal: "optional" })),
-  defineBuiltinTool(openapiInspectTool, ALL_MODES, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(openapiLintTool, ALL_MODES, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(loadSkillTool, ALL_MODES, stateTool("task")),
-  defineBuiltinTool(worktreeListTool, ALL_MODES, readTool("worktree", { concurrencySafe: true })),
-  defineBuiltinTool(worktreeGetTool, ALL_MODES, readTool("worktree", { concurrencySafe: true })),
-  defineBuiltinTool(worktreeEventsTool, ALL_MODES, readTool("worktree", { concurrencySafe: true })),
-  defineBuiltinTool(taskCreateTool, ["agent"], stateTool("task")),
-  defineBuiltinTool(coordinationPolicyTool, ["agent"], stateTool("team", { risk: "medium" })),
-  defineBuiltinTool(taskGetTool, ["agent"], readTool("task", { concurrencySafe: true })),
-  defineBuiltinTool(taskListTool, ["agent"], readTool("task", { concurrencySafe: true })),
-  defineBuiltinTool(taskUpdateTool, ["agent"], stateTool("task")),
-  defineBuiltinTool(claimTaskTool, ["agent"], stateTool("task")),
-  defineBuiltinTool(worktreeCreateTool, ["agent"], stateTool("worktree", { risk: "medium" })),
-  defineBuiltinTool(worktreeKeepTool, ["agent"], stateTool("worktree", { risk: "medium" })),
-  defineBuiltinTool(worktreeRemoveTool, ["agent"], stateTool("worktree", { risk: "high", destructive: true })),
-  defineBuiltinTool(backgroundRunTool, ["agent"], writeTool("background", { risk: "high", changeSignal: "none", fallbackOnlyInWorkflows: WEB_WORKFLOWS })),
-  defineBuiltinTool(backgroundCheckTool, ["agent"], readTool("background", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(backgroundTerminateTool, ["agent"], stateTool("background", { risk: "high", destructive: true })),
-  defineBuiltinTool(spawnTeammateTool, ["agent"], stateTool("team", { risk: "high" })),
-  defineBuiltinTool(listTeammatesTool, ["agent"], readTool("team", { concurrencySafe: true })),
-  defineBuiltinTool(sendMessageTool, ["agent"], stateTool("messaging", { risk: "medium" })),
-  defineBuiltinTool(readInboxTool, ["agent"], readTool("team", { concurrencySafe: true })),
-  defineBuiltinTool(broadcastTool, ["agent"], stateTool("messaging", { risk: "medium" })),
-  defineBuiltinTool(shutdownRequestTool, ["agent"], stateTool("team", { risk: "high", destructive: true })),
-  defineBuiltinTool(shutdownResponseTool, ["agent"], stateTool("team", { risk: "high" })),
-  defineBuiltinTool(planApprovalTool, ["agent"], stateTool("team", { risk: "medium" })),
-  defineBuiltinTool(idleTool, ["agent"], stateTool("task")),
-  defineBuiltinTool(writeFileTool, ["agent"], writeTool("filesystem", { changeSignal: "required" })),
-  defineBuiltinTool(writeDocxTool, ["agent"], writeTool("document", { changeSignal: "required" })),
-  defineBuiltinTool(editDocxTool, ["agent"], writeTool("document", { changeSignal: "required" })),
-  defineBuiltinTool(editFileTool, ["agent"], writeTool("filesystem", { changeSignal: "required" })),
-  defineBuiltinTool(applyPatchTool, ["agent"], writeTool("filesystem", { changeSignal: "required" })),
-  defineBuiltinTool(undoLastChangeTool, ["agent"], writeTool("filesystem", { risk: "high", destructive: true, changeSignal: "required" })),
-  defineBuiltinTool(downloadUrlTool, ["agent"], writeTool("external", { changeSignal: "required" })),
-  defineBuiltinTool(runShellTool, ["agent"], writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", fallbackOnlyInWorkflows: WEB_WORKFLOWS })),
+const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
+  defineBuiltinTool(todoWriteTool, stateTool("task")),
+  defineBuiltinTool(taskTool, stateTool("task", { risk: "medium", changeSignal: "optional", verificationSignal: "optional" })),
+  defineBuiltinTool(listFilesTool, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(findFilesTool, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(readFileTool, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(searchFilesTool, readTool("filesystem", { fallbackOnlyInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(mineruPdfReadTool, documentReadTool("pdf")),
+  defineBuiltinTool(mineruImageReadTool, documentReadTool("image")),
+  defineBuiltinTool(mineruDocReadTool, documentReadTool("doc")),
+  defineBuiltinTool(mineruPptReadTool, documentReadTool("ppt")),
+  defineBuiltinTool(readDocxTool, documentReadTool("doc")),
+  defineBuiltinTool(readSpreadsheetTool, documentReadTool("spreadsheet")),
+  defineBuiltinTool(httpProbeTool, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
+  defineBuiltinTool(httpRequestTool, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
+  defineBuiltinTool(httpSessionTool, stateTool("external", { risk: "medium" })),
+  defineBuiltinTool(httpSuiteTool, readTool("external", { verificationSignal: "optional" })),
+  defineBuiltinTool(networkTraceTool, writeTool("external", { changeSignal: "required", verificationSignal: "optional" })),
+  defineBuiltinTool(openapiInspectTool, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
+  defineBuiltinTool(openapiLintTool, readTool("external", { concurrencySafe: true, verificationSignal: "optional" })),
+  defineBuiltinTool(loadSkillTool, stateTool("task")),
+  defineBuiltinTool(worktreeListTool, readTool("worktree", { concurrencySafe: true })),
+  defineBuiltinTool(worktreeGetTool, readTool("worktree", { concurrencySafe: true })),
+  defineBuiltinTool(worktreeEventsTool, readTool("worktree", { concurrencySafe: true })),
+  defineBuiltinTool(taskCreateTool, stateTool("task")),
+  defineBuiltinTool(coordinationPolicyTool, stateTool("team", { risk: "medium" })),
+  defineBuiltinTool(taskGetTool, readTool("task", { concurrencySafe: true })),
+  defineBuiltinTool(taskListTool, readTool("task", { concurrencySafe: true })),
+  defineBuiltinTool(taskUpdateTool, stateTool("task")),
+  defineBuiltinTool(claimTaskTool, stateTool("task")),
+  defineBuiltinTool(worktreeCreateTool, stateTool("worktree", { risk: "medium" })),
+  defineBuiltinTool(worktreeKeepTool, stateTool("worktree", { risk: "medium" })),
+  defineBuiltinTool(worktreeRemoveTool, stateTool("worktree", { risk: "high", destructive: true })),
+  defineBuiltinTool(backgroundRunTool, writeTool("background", { risk: "high", changeSignal: "none", fallbackOnlyInWorkflows: WEB_WORKFLOWS })),
+  defineBuiltinTool(backgroundCheckTool, readTool("background", { concurrencySafe: true, verificationSignal: "optional" })),
+  defineBuiltinTool(backgroundTerminateTool, stateTool("background", { risk: "high", destructive: true })),
+  defineBuiltinTool(spawnTeammateTool, stateTool("team", { risk: "high" })),
+  defineBuiltinTool(listTeammatesTool, readTool("team", { concurrencySafe: true })),
+  defineBuiltinTool(sendMessageTool, stateTool("messaging", { risk: "medium" })),
+  defineBuiltinTool(readInboxTool, readTool("team", { concurrencySafe: true })),
+  defineBuiltinTool(broadcastTool, stateTool("messaging", { risk: "medium" })),
+  defineBuiltinTool(shutdownRequestTool, stateTool("team", { risk: "high", destructive: true })),
+  defineBuiltinTool(shutdownResponseTool, stateTool("team", { risk: "high" })),
+  defineBuiltinTool(planApprovalTool, stateTool("team", { risk: "medium" })),
+  defineBuiltinTool(idleTool, stateTool("task")),
+  defineBuiltinTool(writeFileTool, writeTool("filesystem", { changeSignal: "required" })),
+  defineBuiltinTool(writeDocxTool, writeTool("document", { changeSignal: "required" })),
+  defineBuiltinTool(editDocxTool, writeTool("document", { changeSignal: "required" })),
+  defineBuiltinTool(editFileTool, writeTool("filesystem", { changeSignal: "required" })),
+  defineBuiltinTool(applyPatchTool, writeTool("filesystem", { changeSignal: "required" })),
+  defineBuiltinTool(undoLastChangeTool, writeTool("filesystem", { risk: "high", destructive: true, changeSignal: "required" })),
+  defineBuiltinTool(downloadUrlTool, writeTool("external", { changeSignal: "required" })),
+  defineBuiltinTool(runShellTool, writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", fallbackOnlyInWorkflows: WEB_WORKFLOWS })),
 ] as const;
 
 const BUILTIN_GOVERNANCE_BY_NAME = new Map(
-  BUILTIN_TOOL_CATALOG.map((entry) => [entry.tool.definition.function.name, cloneGovernance(entry.tool.governance as ToolGovernance)]),
+  BUILTIN_TOOL_CATALOG.map((tool) => [tool.definition.function.name, cloneGovernance(tool.governance as ToolGovernance)]),
 );
 
-export function getBuiltinToolsForMode(mode: AgentMode): RegisteredTool[] {
-  return BUILTIN_TOOL_CATALOG
-    .filter((entry) => entry.modes.includes(mode))
-    .map((entry) => entry.tool);
+export function getBuiltinTools(): RegisteredTool[] {
+  return [...BUILTIN_TOOL_CATALOG];
 }
 
 export function getBuiltinToolGovernance(name: string): ToolGovernance | null {
@@ -139,18 +129,14 @@ export function getBuiltinToolGovernance(name: string): ToolGovernance | null {
 
 function defineBuiltinTool(
   tool: RegisteredTool,
-  modes: readonly AgentMode[],
   governance: ToolGovernance,
-): BuiltinCatalogEntry {
+): RegisteredTool {
   return {
-    modes: [...modes],
-    tool: {
-      ...tool,
-      governance: cloneGovernance(governance),
-      origin: {
-        kind: "builtin",
-        sourceId: "builtin:catalog",
-      },
+    ...tool,
+    governance: cloneGovernance(governance),
+    origin: {
+      kind: "builtin",
+      sourceId: "builtin:catalog",
     },
   };
 }

@@ -1,5 +1,5 @@
 import { hasIncompleteTodos } from "../session/todos.js";
-import { normalizeDelegationDirective } from "../session/delegationDirective.js";
+import { normalizeDelegationCapabilities } from "../session/delegationDirective.js";
 import type { AgentIdentity } from "../types.js";
 import type { SessionRecord } from "../../types.js";
 import { classifyCommand } from "../../utils/commandPolicy.js";
@@ -33,8 +33,8 @@ export function getPlanBlockedResult(
       output: JSON.stringify(
         {
           ok: false,
-          error: "Delegation requires an explicit user prefix.",
-          code: "DELEGATION_PREFIX_REQUIRED",
+          error: "Delegation lane is closed for this runtime.",
+          code: "DELEGATION_LANE_CLOSED",
           hint: delegationBlock.hint,
           next_step: delegationBlock.nextStep,
         },
@@ -86,18 +86,18 @@ function getDelegationToolBlock(
     return null;
   }
 
-  const directive = normalizeDelegationDirective(session.taskState?.delegationDirective);
-  if (toolName === "spawn_teammate" && directive.teammate) {
+  const capabilities = normalizeDelegationCapabilities(session.taskState?.delegationCapabilities);
+  if (toolName === "spawn_teammate" && capabilities.teammate) {
     return null;
   }
-  if (toolName === "task" && directive.subagent) {
+  if (toolName === "task" && capabilities.subagent) {
     return null;
   }
 
-  const requiredPrefix = toolName === "task" ? "@subagent or @allpeople" : "@team or @allpeople";
+  const requiredLane = toolName === "task" ? "--subagent or --allpeople" : "--team or --allpeople";
   return {
-    hint: `Run the task directly as Lead, or ask the user to start the next request with ${requiredPrefix}.`,
-    nextStep: `Do not call ${toolName} for this turn unless the current user objective opens that exact delegation lane.`,
+    hint: `Run the work directly as Lead, or restart the runtime with ${requiredLane}.`,
+    nextStep: `Do not call ${toolName} unless this runtime opened that exact delegation lane.`,
   };
 }
 

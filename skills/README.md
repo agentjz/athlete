@@ -1,31 +1,31 @@
 # Skills
 
-当前 skill 命名规范：
+Current skill naming rules:
 
-- 用稳定的 `kebab-case`
-- 优先 2 个词，必要时 3 个词
-- 名字像“能力 ID”，不是自然语言句子
-- 缩写只保留通用领域词，例如 `pdf`
-- 详细解释放在 `description` 和正文标题里，不塞进 `name`
+- Use stable `kebab-case` names.
+- Prefer two words; use three words only when needed.
+- Treat the name as a capability ID, not a natural-language sentence.
+- Keep abbreviations only for common domain terms such as `pdf`.
+- Put detailed explanation in `description` and body headings, not in `name`.
 
-当前保留的官方 skill：
+Currently retained official skills:
 
 - `test-guardrails`
-  作用：测试优先、回归保护、缩小改动范围
+  Purpose: test-first work, regression protection, and smaller change scope.
 - `spec-alignment`
-  作用：实现与 SPEC / docs 对齐
+  Purpose: align implementation with SPEC and docs.
 - `mineru-pdf-reading`
-  作用：PDF 走 `mineru_pdf_read` / MinerU 提取链路
+  Purpose: route PDF work through `mineru_pdf_read` and the MinerU extraction path.
 - `mineru-image-reading`
-  作用：图片文档走 `mineru_image_read` / MinerU 提取链路
+  Purpose: route image document work through `mineru_image_read` and the MinerU extraction path.
 - `mineru-doc-reading`
-  作用：`.doc` / `.docx` 走 `mineru_doc_read`，`.docx` 失败时明确降级到 `read_docx`
+  Purpose: route `.doc` and `.docx` through `mineru_doc_read`; explicitly fall back to `read_docx` when `.docx` extraction fails.
 - `mineru-ppt-reading`
-  作用：`.ppt` / `.pptx` 走 `mineru_ppt_read` / MinerU 提取链路
+  Purpose: route `.ppt` and `.pptx` through `mineru_ppt_read` and the MinerU extraction path.
 
-下一阶段推荐的联网相关 skill：
+Recommended future network-related skills:
 
 - `web-research`
-  作用：公开网页检索、抓取、阅读、总结
+  Purpose: public web search, fetch, reading, and summarization.
 - `browser-automation`
-  作用：真实浏览器交互、登录态页面、表单与点击流程
+  Purpose: real browser interaction, authenticated pages, forms, and click flows.

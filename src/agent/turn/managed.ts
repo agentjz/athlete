@@ -23,7 +23,6 @@ export interface ManagedTurnOptions extends RunTurnOptions {
     context: ManagedTurnYieldContext,
   ) => Promise<ManagedTurnYieldDecision | void> | ManagedTurnYieldDecision | void;
   runSlice?: (options: RunTurnOptions) => Promise<RunTurnResult>;
-  delegatedWaitPollIntervalMs?: number;
 }
 
 export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<RunTurnResult> {
@@ -56,7 +55,6 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
           cwd: options.cwd,
           objectiveText: orchestrated.session.taskState?.objective,
           abortSignal: options.abortSignal,
-          pollIntervalMs: options.delegatedWaitPollIntervalMs,
         });
         session = orchestrated.session;
         continue;
@@ -103,7 +101,6 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
           cwd: options.cwd,
           objectiveText: session.taskState?.objective,
           abortSignal: options.abortSignal,
-          pollIntervalMs: options.delegatedWaitPollIntervalMs,
         });
         continue;
       }
@@ -133,6 +130,16 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         ...result,
         session,
       };
+    }
+
+    if (isLead && result.transition?.action === "yield" && result.transition.reason.code === "yield.delegation_dispatch") {
+      await waitForDelegatedWorkToSettle({
+        cwd: options.cwd,
+        objectiveText: session.taskState?.objective,
+        abortSignal: options.abortSignal,
+      });
+      nextInput = buildCheckpointContinuationInput(options.identity, session.checkpoint);
+      continue;
     }
 
     managedWindowSlicesUsed += 1;

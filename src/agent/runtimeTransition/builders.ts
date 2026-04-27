@@ -192,6 +192,18 @@ export function createYieldTransition(
   };
 }
 
+export function createDelegationDispatchYieldTransition(
+  timestamp = new Date().toISOString(),
+): RuntimeYieldTransition {
+  return {
+    action: "yield",
+    reason: {
+      code: "yield.delegation_dispatch",
+    },
+    timestamp,
+  };
+}
+
 export function createVerificationPauseTransition(
   state: VerificationState | undefined,
   timestamp = new Date().toISOString(),
@@ -311,7 +323,9 @@ export function buildRunTurnResult(input: {
     yielded: input.transition.action === "yield",
     yieldReason:
       input.transition.action === "yield"
-        ? `tool_steps_${input.transition.reason.toolSteps}`
+        ? input.transition.reason.code === "yield.tool_step_limit"
+          ? `tool_steps_${input.transition.reason.toolSteps}`
+          : "delegation_dispatch"
         : undefined,
     paused: input.transition.action === "pause",
     pauseReason:

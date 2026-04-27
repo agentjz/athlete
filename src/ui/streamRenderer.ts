@@ -168,7 +168,7 @@ export function createStreamRenderer(
         const task = typeof event.taskId === "number" ? ` task=${event.taskId}` : "";
         const pid = typeof event.pid === "number" ? ` pid=${event.pid}` : "";
         const summary = event.summary ? ` ${event.summary}` : "";
-        ui.dispatch(`${event.profile} ${event.actorName} 已启动${task}${pid}${summary}`);
+        ui.dispatch(`${event.profile} ${event.actorName} started${task}${pid}${summary}`);
       },
       onToolCall(name, args) {
         if (isAborted()) {
@@ -190,7 +190,7 @@ export function createStreamRenderer(
         flush();
         const display = buildToolResultDisplay(name, output, options.cwd);
         if (display.summary) {
-          const resultStatus = display.ok === false ? "失败" : "成功";
+          const resultStatus = display.ok === false ? "failed" : "ok";
           const tracked = display.tracked ? " tracked" : "";
           const summary = `[result] ${display.summary} ${resultStatus}${tracked}`.trim();
           if (display.ok === false) {
@@ -218,7 +218,7 @@ export function createStreamRenderer(
         flush();
         const display = buildToolResultDisplay(name, error, options.cwd);
         const detail = summarizeToolFailure(display.preview ?? error);
-        ui.warn(`[result] ${name} 失败${detail ? `: ${detail}` : ""}`);
+        ui.warn(`[result] ${name} failed${detail ? `: ${detail}` : ""}`);
       },
       onStatus(text) {
         if (isAborted()) {

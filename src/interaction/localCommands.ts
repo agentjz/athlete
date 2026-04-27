@@ -21,19 +21,19 @@ export interface LocalCommandContext {
 
 export type LocalCommandResult = "continue" | "handled" | "quit" | "multiline";
 
-const EXIT_COMMANDS = new Set(["q", "quit", "exit", "/q", "/quit", "/exit", "退出", "/退出"]);
-const RESET_COMMANDS = new Set(["reset", "/reset", "重置", "/重置"]);
-const HELP_COMMANDS = new Set(["/help", "/帮助"]);
-const SESSION_COMMANDS = new Set(["/session", "/会话"]);
-const CONFIG_COMMANDS = new Set(["/config", "/配置"]);
-const TODOS_COMMANDS = new Set(["/todos", "/待办"]);
-const RUNTIME_COMMANDS = new Set(["/runtime", "/stats", "/仪表盘"]);
-const TASKS_COMMANDS = new Set(["/tasks", "/任务"]);
-const TEAM_COMMANDS = new Set(["/team", "/队友"]);
-const BACKGROUND_COMMANDS = new Set(["/background", "/后台"]);
-const INBOX_COMMANDS = new Set(["/inbox", "/收件箱"]);
-const WORKTREES_COMMANDS = new Set(["/worktrees", "/工作区"]);
-const MULTILINE_COMMANDS = new Set(["/multi", "/多行"]);
+const EXIT_COMMANDS = new Set(["q", "quit", "exit", "/q", "/quit", "/exit"]);
+const RESET_COMMANDS = new Set(["reset", "/reset"]);
+const HELP_COMMANDS = new Set(["/help"]);
+const SESSION_COMMANDS = new Set(["/session"]);
+const CONFIG_COMMANDS = new Set(["/config"]);
+const TODOS_COMMANDS = new Set(["/todos"]);
+const RUNTIME_COMMANDS = new Set(["/runtime", "/stats"]);
+const TASKS_COMMANDS = new Set(["/tasks"]);
+const TEAM_COMMANDS = new Set(["/team"]);
+const BACKGROUND_COMMANDS = new Set(["/background"]);
+const INBOX_COMMANDS = new Set(["/inbox"]);
+const WORKTREES_COMMANDS = new Set(["/worktrees"]);
+const MULTILINE_COMMANDS = new Set(["/multi"]);
 
 export function isExplicitExitCommand(input: string): boolean {
   return EXIT_COMMANDS.has(input.trim().toLowerCase());
@@ -67,23 +67,23 @@ export async function handleLocalCommand(
   if (HELP_COMMANDS.has(normalized)) {
     output.plain(
       [
-        "/help /帮助        查看帮助",
-        "/session /会话     查看当前会话 ID",
-        "/config /配置      查看当前运行配置",
-        "/todos /待办       查看当前 todo 状态",
-        "/runtime /stats    查看当前 session 运行仪表盘摘要",
-        "/tasks /任务       查看持久化任务板",
-        "/team /队友        查看队友状态",
-        "/background /后台  查看后台任务",
-        "/worktrees /工作区 查看隔离工作区",
-        "/inbox /收件箱     查看 lead 收件箱（不清空）",
-        "/multi /多行       进入多行输入模式，用 ::end 提交，::cancel 取消",
-        "/reset /重置      清空当前项目运行时状态并退出会话",
-        "quit / 退出        退出会话",
-        "q                  退出会话",
-        "/quit / /exit      退出会话",
+        "/help        Show help",
+        "/session     Show current session ID",
+        "/config      Show current runtime config",
+        "/todos       Show current todo state",
+        "/runtime     Show current session runtime summary",
+        "/tasks       Show persistent task board",
+        "/team        Show teammate state",
+        "/background  Show background jobs",
+        "/worktrees   Show isolated worktrees",
+        "/inbox       Show Lead inbox without clearing it",
+        "/multi       Enter multiline input; use ::end to submit and ::cancel to cancel",
+        "/reset       Clear current project runtime state and exit",
+        "quit         Exit the session",
+        "q            Exit the session",
+        "/quit /exit  Exit the session",
         "",
-        "其他输入会直接发送给 Deadmouse。",
+        "Any other input is sent directly to Deadmouse.",
       ].join("\n"),
     );
     return "handled";
@@ -99,7 +99,7 @@ export async function handleLocalCommand(
   }
 
   if (CONFIG_COMMANDS.has(normalized)) {
-    output.info(`model=${context.config.model} mode=${context.config.mode} baseUrl=${context.config.baseUrl}`);
+    output.info(`model=${context.config.model} lane=${context.config.agentLane} baseUrl=${context.config.baseUrl}`);
     return "handled";
   }
 

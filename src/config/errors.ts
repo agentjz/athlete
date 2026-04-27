@@ -21,9 +21,9 @@ export function createInvalidConfigJsonError(configFile: string, cause?: unknown
     "invalid_json",
     configFile,
     [
-      `配置错误：无法解析 ${configFile}。`,
-      "这个文件不是合法 JSON。",
-      "请修复它，或 delete / rebuild 这个文件后重新运行 `deadmouse config set ...`。",
+      `Config error: unable to parse ${configFile}.`,
+      "This file is not valid JSON.",
+      "Fix it, or delete/rebuild this file and run `deadmouse config set ...` again.",
     ].join(" "),
     { cause },
   );
@@ -34,8 +34,8 @@ export function createInvalidConfigShapeError(configFile: string): ConfigFileErr
     "invalid_shape",
     configFile,
     [
-      `配置错误：${configFile} 必须是一个 JSON object。`,
-      "请修复它，或 delete / rebuild 这个文件后重新运行 `deadmouse config set ...`。",
+      `Config error: ${configFile} must be a JSON object.`,
+      "Fix it, or delete/rebuild this file and run `deadmouse config set ...` again.",
     ].join(" "),
   );
 }
@@ -45,8 +45,8 @@ export function createUnsupportedConfigSchemaError(configFile: string, receivedV
     "unsupported_schema",
     configFile,
     [
-      `配置错误：${configFile} 的 schemaVersion=${String(receivedVersion)}，当前 CLI 只支持 schemaVersion=${expectedVersion}。`,
-      "请 delete / rebuild 这个文件，再重新运行 `deadmouse config set ...`。",
+      `Config error: ${configFile} has schemaVersion=${String(receivedVersion)}, but the current CLI only supports schemaVersion=${expectedVersion}.`,
+      "Delete/rebuild this file, then run `deadmouse config set ...` again.",
     ].join(" "),
   );
 }

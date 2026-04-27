@@ -2,7 +2,7 @@ import { spawnExecutionWorker as defaultSpawnExecutionWorker } from "../executio
 import { ExecutionStore } from "../execution/store.js";
 import type { ExecutionRecord, ExecutionWorktreePolicy } from "../execution/types.js";
 import type { RuntimeConfig } from "../types.js";
-import { buildSubagentAssignment, getSubagentProfile, resolveSubagentMode } from "./profiles.js";
+import { buildSubagentAssignment, getSubagentProfile } from "./profiles.js";
 
 type SpawnExecutionWorker = typeof defaultSpawnExecutionWorker;
 
@@ -35,7 +35,6 @@ export async function launchSubagentWorkerExecution(
   deps: LaunchSubagentWorkerExecutionDependencies = {},
 ): Promise<LaunchSubagentWorkerExecutionResult> {
   const profile = getSubagentProfile(options.agentType);
-  resolveSubagentMode(profile, options.config.mode);
 
   const executionStore = new ExecutionStore(options.rootDir);
   const execution = await executionStore.create({

@@ -1,5 +1,4 @@
-import type { AgentMode } from "../types.js";
-import { getBuiltinToolsForMode } from "./builtinCatalog.js";
+import { getBuiltinTools } from "./builtinCatalog.js";
 import { resolveToolRegistryEntries } from "./governance.js";
 import { sortToolRegistryEntriesForExposure } from "./order.js";
 import { register } from "./shared.js";
@@ -16,8 +15,8 @@ import type {
 
 export { createToolSource } from "./sources.js";
 
-export function createToolRegistry(mode: AgentMode, options: ToolRegistryOptions = {}): ToolRegistry {
-  const selectedTools = collectSelectedTools(mode, options);
+export function createToolRegistry(options: ToolRegistryOptions = {}): ToolRegistry {
+  const selectedTools = collectSelectedTools(options);
   assertNoDuplicateToolNames(selectedTools);
   const { entries: rawEntries, blocked } = resolveToolRegistryEntries(selectedTools.map((entry) => entry.tool));
   const resolved = sortToolRegistryEntriesForExposure(rawEntries);
@@ -103,14 +102,11 @@ export function createToolRegistry(mode: AgentMode, options: ToolRegistryOptions
   };
 }
 
-function collectSelectedTools(
-  mode: AgentMode,
-  options: ToolRegistryOptions,
-): Array<{
+function collectSelectedTools(options: ToolRegistryOptions): Array<{
   source: ToolRegistrySource;
   tool: RegisteredTool;
 }> {
-  const builtinSource = createToolSource("builtin", "builtin:catalog", getBuiltinToolsForMode(mode));
+  const builtinSource = createToolSource("builtin", "builtin:catalog", getBuiltinTools());
   const allSources = [builtinSource, ...(options.sources ?? [])];
   const onlyNames = options.onlyNames ? new Set(options.onlyNames) : null;
   const excludeNames = new Set(options.excludeNames ?? []);

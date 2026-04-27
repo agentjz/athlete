@@ -116,7 +116,7 @@ export function registerTelegramCommands(
         config: runtime.config,
       });
       console.log(
-        `[telegram] 正在启动私聊服务 allowed=${runtime.config.telegram.allowedUserIds.join(",")} state=${runtime.config.telegram.stateDir} proxy=${runtime.config.telegram.proxyUrl || "direct"}`,
+        `[telegram] starting private chat service allowed=${runtime.config.telegram.allowedUserIds.join(",")} state=${runtime.config.telegram.stateDir} proxy=${runtime.config.telegram.proxyUrl || "direct"}`,
       );
       const controller = new AbortController();
       const releaseSignals = bindShutdownSignals(() => {

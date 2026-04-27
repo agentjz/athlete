@@ -41,47 +41,47 @@ function describeTelegramEvent(event: string, context: TelegramLogContext): stri
 
   switch (event) {
     case "service online":
-      return joinFragments("服务已启动", context.detail ?? "");
+      return joinFragments("service started", context.detail ?? "");
     case "polling failure":
-      return joinFragments("轮询失败", context.detail ?? "");
+      return joinFragments("poll failed", context.detail ?? "");
     case "ignored inbound update":
-      return joinFragments("已忽略更新", identity, context.detail ?? "");
+      return joinFragments("ignored update", identity, context.detail ?? "");
     case "received inbound message":
-      return joinFragments(`收到${labelTelegramInputKind(context.inputKind)}消息`, identity, fileName);
+      return joinFragments(`received ${labelTelegramInputKind(context.inputKind)} message`, identity, fileName);
     case "session ready":
-      return joinFragments("会话已就绪", identity, session);
+      return joinFragments("session ready", identity, session);
     case "starting turn":
-      return joinFragments("开始处理请求", identity, session, input, fileName);
+      return joinFragments("starting turn", identity, session, input, fileName);
     case "phase":
-      return joinFragments("处理中", identity, session, context.detail ?? "");
+      return joinFragments("processing", identity, session, context.detail ?? "");
     case "tool call":
-      return joinFragments("调用工具", tool, session, summarizePreview(context.detail, 72));
+      return joinFragments("tool call", tool, session, summarizePreview(context.detail, 72));
     case "tool finished":
-      return joinFragments("工具完成", tool, session, context.detail ?? "");
+      return joinFragments("tool complete", tool, session, context.detail ?? "");
     case "tool failed":
-      return joinFragments("工具失败", tool, session, context.detail ?? "");
+      return joinFragments("tool failed", tool, session, context.detail ?? "");
     case "queued text reply":
-      return joinFragments("已排队文本回复", context.chatId ? `chat=${context.chatId}` : "", summarizePreviewField(context.detail));
+      return joinFragments("queued text reply", context.chatId ? `chat=${context.chatId}` : "", summarizePreviewField(context.detail));
     case "delivery sent":
-      return joinFragments(`已发送${labelOutgoingKind(context.detail, context.fileName)}`, context.chatId ? `chat=${context.chatId}` : "", fileName);
+      return joinFragments(`sent ${labelOutgoingKind(context.detail, context.fileName)}`, context.chatId ? `chat=${context.chatId}` : "", fileName);
     case "delivery failed":
-      return joinFragments("发送失败", context.chatId ? `chat=${context.chatId}` : "", fileName, context.detail ?? "");
+      return joinFragments("send failed", context.chatId ? `chat=${context.chatId}` : "", fileName, context.detail ?? "");
     case "background task failure":
-      return joinFragments("后台任务失败", identity, session, context.detail ?? "");
+      return joinFragments("background task failed", identity, session, context.detail ?? "");
     case "delivery flush failure":
-      return joinFragments("投递刷新失败", identity, session, context.detail ?? "");
+      return joinFragments("delivery flush failed", identity, session, context.detail ?? "");
     case "stop requested":
-      return joinFragments("已请求停止当前任务", identity, session);
+      return joinFragments("stop requested", identity, session);
     case "stop armed for queued turn":
-      return joinFragments("已标记停止排队中的任务", identity);
+      return joinFragments("queued turn marked stopped", identity);
     case "stop requested with no active turn":
-      return joinFragments("当前没有可停止的任务", identity);
+      return joinFragments("no active turn to stop", identity);
     case "turn completed":
-      return joinFragments("本轮处理完成", identity, session, context.detail ?? "");
+      return joinFragments("turn complete", identity, session, context.detail ?? "");
     case "turn stopped":
-      return joinFragments("本轮已停止", identity, session);
+      return joinFragments("turn stopped", identity, session);
     case "turn failed":
-      return joinFragments("本轮处理失败", identity, session, context.detail ?? "");
+      return joinFragments("turn failed", identity, session, context.detail ?? "");
     default:
       return joinFragments(event, identity, session, input, fileName, tool, context.detail ?? "");
   }
@@ -90,19 +90,19 @@ function describeTelegramEvent(event: string, context: TelegramLogContext): stri
 function labelTelegramInputKind(inputKind: TelegramLogContext["inputKind"]): string {
   switch (inputKind) {
     case "file":
-      return "文件";
+      return "file";
     case "text":
     default:
-      return "文本";
+      return "text";
   }
 }
 
 function labelOutgoingKind(detail: string | undefined, fileName: string | undefined): string {
   if (fileName || detail?.includes("type=file")) {
-    return "文件";
+    return "file";
   }
 
-  return "文本回复";
+  return "text reply";
 }
 
 function summarizePreview(value: string | undefined, maxChars: number): string {

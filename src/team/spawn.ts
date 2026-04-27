@@ -16,7 +16,6 @@ export function buildTeammateWorkerEnv(options: BuildTeammateWorkerEnvOptions): 
     DEADMOUSE_API_KEY: options.config.apiKey,
     DEADMOUSE_BASE_URL: options.config.baseUrl,
     DEADMOUSE_MODEL: options.config.model,
-    DEADMOUSE_MODE: options.config.mode,
     DEADMOUSE_PROVIDER: options.config.provider,
     DEADMOUSE_THINKING: options.config.thinking,
     DEADMOUSE_LEAD_API_KEY: options.config.agentModels.lead.apiKey,

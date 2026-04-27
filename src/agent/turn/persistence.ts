@@ -11,6 +11,7 @@ import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "../
 import { clearVerificationPause } from "../verification/state.js";
 import type { SessionStoreLike } from "../session/store.js";
 import type {
+  AgentLane,
   RuntimeRecoverTransition,
   RuntimeTransition,
   RuntimeYieldTransition,
@@ -30,6 +31,7 @@ export async function initializeTurnSession(
   session: SessionRecord,
   input: string,
   sessionStore: SessionStoreLike,
+  agentLane: AgentLane = "lead",
 ): Promise<SessionRecord> {
   const appended = await sessionStore.appendMessages(session, [
     createMessage("user", input),
@@ -38,7 +40,7 @@ export async function initializeTurnSession(
   const framed = applyCurrentTurnFrame({
     ...appended,
     verificationState: clearVerificationPause(appended.verificationState),
-  }, input);
+  }, input, agentLane);
 
   return sessionStore.save(noteRuntimeTurnInput(noteCheckpointTurnInput(framed, input), input));
 }

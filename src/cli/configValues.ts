@@ -1,5 +1,4 @@
-import { parseAgentMode } from "../config/schema.js";
-import type { AgentMode, AppConfig, CliOverrides } from "../types.js";
+import type { AgentLane, AppConfig, CliOverrides } from "../types.js";
 import { tryParseJson } from "../utils/json.js";
 
 export const APP_CONFIG_KEYS = [
@@ -9,7 +8,6 @@ export const APP_CONFIG_KEYS = [
   "model",
   "thinking",
   "reasoningEffort",
-  "mode",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
@@ -35,7 +33,6 @@ const MUTABLE_CONFIG_KEYS = new Set<keyof AppConfig>([
   "model",
   "thinking",
   "reasoningEffort",
-  "mode",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
@@ -88,14 +85,6 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
 
       return parsed as AppConfig[keyof AppConfig];
     }
-    case "mode": {
-      const parsed = parseAgentMode(rawValue);
-      if (!parsed) {
-        throw new Error(`Invalid mode: ${rawValue}`);
-      }
-
-      return parsed as AppConfig[keyof AppConfig];
-    }
     case "provider":
       return rawValue.trim() as AppConfig[keyof AppConfig];
     case "mcp":
@@ -116,7 +105,7 @@ export function extractCliOverrides(options: Record<string, unknown>): CliOverri
   return {
     cwd: typeof options.cwd === "string" ? options.cwd : undefined,
     model: typeof options.model === "string" ? options.model : undefined,
-    mode: normalizeModeOverride(typeof options.mode === "string" ? options.mode : (options.mode as AgentMode | undefined)),
+    agentLane: normalizeAgentLaneOverride(options),
   };
 }
 
@@ -128,6 +117,18 @@ export function truncateCliValue(value: string, maxChars: number): string {
   return `${value.slice(0, maxChars)}...`;
 }
 
-function normalizeModeOverride(value: string | AgentMode | undefined): AgentMode | undefined {
-  return typeof value === "string" ? parseAgentMode(value) : value;
+function normalizeAgentLaneOverride(options: Record<string, unknown>): AgentLane | undefined {
+  if (options.allpeople === true) {
+    return "allpeople";
+  }
+  if (options.team === true && options.subagent === true) {
+    return "allpeople";
+  }
+  if (options.team === true) {
+    return "team";
+  }
+  if (options.subagent === true) {
+    return "subagent";
+  }
+  return undefined;
 }

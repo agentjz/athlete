@@ -1,10 +1,9 @@
 import path from "node:path";
 
 import { resolveRuntimeConfig } from "../config/store.js";
-import { parseAgentMode } from "../config/schema.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
 import { installCrashRecorder } from "../observability/crashRecorder.js";
-import type { AgentMode, CliOverrides, RuntimeConfig } from "../types.js";
+import type { CliOverrides, RuntimeConfig } from "../types.js";
 
 export async function resolveCliRuntime(overrides: CliOverrides): Promise<{
   cwd: string;
@@ -20,7 +19,7 @@ export async function resolveCliRuntime(overrides: CliOverrides): Promise<{
   const config = await resolveRuntimeConfig({
     cwd,
     model: overrides.model,
-    mode: normalizeModeOverride(overrides.mode),
+    agentLane: overrides.agentLane,
   });
   installCrashRecorder({
     rootDir: projectRoots.stateRootDir,
@@ -33,8 +32,4 @@ export async function resolveCliRuntime(overrides: CliOverrides): Promise<{
     paths: config.paths,
     overrides,
   };
-}
-
-function normalizeModeOverride(value: string | AgentMode | undefined): AgentMode | undefined {
-  return typeof value === "string" ? parseAgentMode(value) : value;
 }

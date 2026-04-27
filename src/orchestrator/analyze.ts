@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage, normalizeDelegationDirective, parseDelegationDirective } from "../agent/session.js";
+import { isContinuationDirective, isInternalMessage, normalizeDelegationDirective } from "../agent/session.js";
 import type { SessionRecord } from "../types.js";
 import { normalizeBackgroundCommand } from "./commandNormalization.js";
 import { buildOrchestratorObjective } from "./metadata.js";
@@ -10,7 +10,7 @@ export function analyzeOrchestratorInput(input: {
   progress?: Partial<Pick<OrchestratorProgressSnapshot, "relevantTasks" | "runningBackgroundJobs" | "teammates">>;
 }): OrchestratorAnalysis {
   const objective = buildOrchestratorObjective(resolveObjectiveText(input.input, input.session));
-  const delegationDirective = resolveDelegationDirective(input.input, input.session);
+  const delegationDirective = resolveDelegationDirective(input.session, input.input);
   const text = objective.text;
   const backgroundCommand = normalizeBackgroundCommand(extractBackgroundCommand(text));
   const wantsBackground = Boolean(backgroundCommand);
@@ -50,19 +50,18 @@ export function analyzeOrchestratorInput(input: {
   };
 }
 
-function resolveDelegationDirective(input: string, session: SessionRecord) {
+function resolveDelegationDirective(session: SessionRecord, input: string) {
   const normalizedInput = String(input ?? "").trim();
   if (normalizedInput && !isInternalMessage(normalizedInput) && !isContinuationDirective(normalizedInput)) {
-    return normalizeDelegationDirective(parseDelegationDirective(normalizedInput).directive);
+    return normalizeDelegationDirective(undefined);
   }
-
   return normalizeDelegationDirective(session.taskState?.delegationDirective);
 }
 
 function resolveObjectiveText(input: string, session: SessionRecord): string {
   const normalizedInput = String(input ?? "").trim();
   if (normalizedInput && !isInternalMessage(normalizedInput) && !isContinuationDirective(normalizedInput)) {
-    return parseDelegationDirective(normalizedInput).input || normalizedInput;
+    return normalizedInput;
   }
 
   if (session.taskState?.objective && !isInternalMessage(session.taskState.objective)) {

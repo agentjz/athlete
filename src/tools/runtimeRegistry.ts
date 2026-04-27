@@ -19,7 +19,7 @@ export async function createRuntimeToolRegistry(
   const mcpSources = dependencies.collectMcpSources
     ? await dependencies.collectMcpSources(config.mcp)
     : createLazyMcpToolSources(config.mcp, manager);
-  const registry = createToolRegistry(config.mode, {
+  const registry = createToolRegistry({
     ...options,
     sources: [...(options.sources ?? []), ...mcpSources],
   });
