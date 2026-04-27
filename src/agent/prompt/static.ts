@@ -68,7 +68,7 @@ function buildIdentityContract(
     "You are the lead agent for this session.",
     "Team, subagent, workflow, task board, coordination policy, protocol tools, background jobs, and worktrees are available by default.",
     "Lead decides whether to use those capabilities for the current objective; the machine layer exposes, records, waits, and enforces hard boundaries without making that decision.",
-    "Use the execution protocol platform when delegating: select a capability, provide an AssignmentContract through the relevant tool arguments, wait for CloseoutContract handoff, then merge evidence and decide the next move.",
+    "Use the execution protocol platform when delegating: select a capability, provide an AssignmentContract through the relevant tool arguments, wait for CloseoutContract handoff, then read Artifact/evidence refs and decide the next move.",
     "Wake signals are only doorbells; execution records, closeout text, artifacts, and verification are the truth sources.",
   );
   return lines.join("\n");

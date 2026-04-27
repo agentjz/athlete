@@ -1,8 +1,8 @@
 import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
 import { loadProjectContext } from "../context/projectContext.js";
 import { ExecutionStore } from "../execution/store.js";
-import { reconcileTeamState } from "../team/reconcile.js";
-import { TeamStore } from "../team/store.js";
+import { reconcileTeamState } from "../capabilities/team/reconcile.js";
+import { TeamStore } from "../capabilities/team/store.js";
 import { terminateKnownProcesses } from "../utils/processControl.js";
 
 export interface InteractiveExitProcess {

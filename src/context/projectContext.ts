@@ -4,7 +4,7 @@ import path from "node:path";
 import fg from "fast-glob";
 
 import { resolveProjectRoots } from "./repoRoots.js";
-import { discoverSkills } from "../skills/catalog.js";
+import { discoverSkills } from "../capabilities/skills/catalog.js";
 import type { LoadedInstructionFile, LoadedSkill, ProjectContext } from "../types.js";
 import { isPathIgnored, loadProjectIgnoreRules } from "../utils/ignore.js";
 

@@ -1,7 +1,7 @@
 import type { AssignmentContract } from "./assignment.js";
 import type { CapabilityKind } from "./capability.js";
 
-export const EXECUTION_PROTOCOL = "deadmouse.execution.v1" as const;
+export const EXECUTION_PROTOCOL = "deadmouse.execution" as const;
 
 export type ProtocolExecutionStatus = "queued" | "running" | "paused" | "completed" | "failed" | "aborted";
 

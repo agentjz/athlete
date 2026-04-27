@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { discoverSkills } from "../../src/skills/discovery.js";
+import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
 import { createTempWorkspace } from "../helpers.js";
 
 async function writeSkill(root: string, relativePath: string, metadata: string[], body: string[]): Promise<void> {
@@ -21,6 +21,18 @@ test("discoverSkills keeps supported skill locations while returning normalized 
   const cwd = path.join(root, "packages", "app");
   await fs.mkdir(cwd, { recursive: true });
 
+  await writeSkill(
+    root,
+    "src/capabilities/skills/packages/builtin-visible/SKILL.md",
+    [
+      "schema_version: skill.v1",
+      "name: builtin-visible",
+      "description: Built-in capability skill",
+      "load_mode: suggested",
+      "trigger_keywords: builtin",
+    ],
+    ["Built-in body"],
+  );
   await writeSkill(
     root,
     "SKILL.md",
@@ -71,6 +83,7 @@ test("discoverSkills keeps supported skill locations while returning normalized 
 
   const skills = await discoverSkills(root, cwd, []);
   assert.deepEqual(skills.map((skill) => skill.name), [
+    "builtin-visible",
     "local-app",
     "root-hidden",
     "root-standalone",

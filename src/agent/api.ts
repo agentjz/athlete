@@ -17,7 +17,7 @@ import type { ProviderMessage, ProviderWireAdapter } from "./provider/contract.j
 import { chatCompletionsAdapter } from "./provider/chatCompletionsAdapter.js";
 import { responsesAdapter } from "./provider/responsesAdapter.js";
 import { isProviderClientPool, type ProviderClientPool } from "./provider/client.js";
-import type { FunctionToolDefinition } from "../tools/index.js";
+import type { FunctionToolDefinition } from "../capabilities/tools/index.js";
 import type { ModelReasoningEffort, ModelThinkingMode } from "../types.js";
 
 export async function fetchAssistantResponse(

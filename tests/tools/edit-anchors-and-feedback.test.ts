@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { createToolRegistry } from "../../src/tools/registry.js";
+import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("read_file returns fine-grained anchors and edit_file uses them to disambiguate repeated matches", async (t) => {

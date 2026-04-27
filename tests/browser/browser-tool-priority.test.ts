@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { buildGenericContinuationInput } from "../../src/agent/checkpoint.js";
 import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
-import type { FunctionToolDefinition } from "../../src/tools/index.js";
+import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
 function createTool(name: string): FunctionToolDefinition {
   return {

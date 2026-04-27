@@ -29,8 +29,8 @@ import { readVerificationProgress } from "./verification/signals.js";
 import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "./types.js";
 import { ChangeStore } from "../changes/store.js";
 import { loadProjectContext } from "../context/projectContext.js";
-import { buildSkillRuntimeState } from "../skills/state.js";
-import { createRuntimeToolRegistry } from "../tools/runtimeRegistry.js";
+import { buildSkillRuntimeState } from "../capabilities/skills/state.js";
+import { createRuntimeToolRegistry } from "../capabilities/tools/core/runtimeRegistry.js";
 import { throwIfAborted } from "../utils/abort.js";
 import { resolveAgentModelConfig } from "../config/agentModels.js";
 
@@ -97,6 +97,11 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         identity,
         options.cwd,
         session.taskState?.objective,
+        {
+          skills: projectContext.skills,
+          toolEntries: toolRegistry.entries,
+          mcpConfig: options.config.mcp,
+        },
       );
       const skillRuntimeState = buildSkillRuntimeState({
         skills: projectContext.skills,

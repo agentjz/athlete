@@ -4,14 +4,14 @@ import path from "node:path";
 import test from "node:test";
 
 import { getDefaultConfig, resolveRuntimeConfig } from "../../src/config/store.js";
-import { McpClientManager } from "../../src/mcp/clientManager.js";
-import { normalizeMcpConfig, resolveMcpServerDefinitions } from "../../src/mcp/config.js";
-import { getDefaultPlaywrightMcpConfig } from "../../src/mcp/playwright/config.js";
-import { normalizePlaywrightToolInput } from "../../src/mcp/playwright/invoke.js";
-import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/mcp/toolAdapter.js";
-import { buildTeammateWorkerEnv } from "../../src/team/spawn.js";
-import { createToolSource } from "../../src/tools/registry.js";
-import { createRuntimeToolRegistry } from "../../src/tools/runtimeRegistry.js";
+import { McpClientManager } from "../../src/capabilities/mcp/clientManager.js";
+import { normalizeMcpConfig, resolveMcpServerDefinitions } from "../../src/capabilities/mcp/config.js";
+import { getDefaultPlaywrightMcpConfig } from "../../src/capabilities/mcp/playwright/config.js";
+import { normalizePlaywrightToolInput } from "../../src/capabilities/mcp/playwright/invoke.js";
+import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/capabilities/mcp/toolAdapter.js";
+import { buildTeammateWorkerEnv } from "../../src/capabilities/team/spawn.js";
+import { createToolSource } from "../../src/capabilities/tools/core/registry.js";
+import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("agent-visible runtime tool definitions include Playwright MCP browser tools", async () => {

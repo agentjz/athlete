@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { SessionStore } from "../../src/agent/session.js";
-import type { FunctionToolDefinition, ToolRegistry } from "../../src/tools/index.js";
+import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
 import { createTestRuntimeConfig, createTempWorkspace } from "../helpers.js";
 import { readObservabilityEvents, startFakeChatCompletionServer } from "../observability.helpers.js";
 

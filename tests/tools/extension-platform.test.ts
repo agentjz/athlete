@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createHostToolRegistry } from "../../src/host/toolRegistry.js";
-import { McpClientManager } from "../../src/mcp/clientManager.js";
-import { normalizeMcpConfig } from "../../src/mcp/config.js";
-import { collectMcpToolSources } from "../../src/mcp/registryIntegration.js";
-import type { McpClient } from "../../src/mcp/types.js";
-import { createToolRegistry, createToolSource } from "../../src/tools/registry.js";
-import type { RegisteredTool, ToolRegistrySource } from "../../src/tools/types.js";
+import { McpClientManager } from "../../src/capabilities/mcp/clientManager.js";
+import { normalizeMcpConfig } from "../../src/capabilities/mcp/config.js";
+import { collectMcpToolSources } from "../../src/capabilities/mcp/registryIntegration.js";
+import type { McpClient } from "../../src/capabilities/mcp/types.js";
+import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
+import type { RegisteredTool, ToolRegistrySource } from "../../src/capabilities/tools/core/types.js";
 import { createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("a formally described extension source can register a new governed tool without editing shared registry wiring", async () => {

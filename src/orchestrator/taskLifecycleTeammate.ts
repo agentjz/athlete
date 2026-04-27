@@ -1,4 +1,4 @@
-import type { TeamMemberRecord } from "../team/types.js";
+import type { TeamMemberRecord } from "../capabilities/team/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";
 import type { OrchestratorTaskLifecycle, OrchestratorTaskSnapshot } from "./types.js";
 import { buildTaskHandoff, buildTaskLifecycle, teammateActor } from "./taskLifecycleShared.js";

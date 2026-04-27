@@ -1,5 +1,5 @@
 import { isAbortError } from "../abort.js";
-import { createShellOutputCapture } from "../../tools/shell/outputCapture.js";
+import { createShellOutputCapture } from "../../capabilities/tools/packages/shell/outputCapture.js";
 import { launchCommand } from "./launch.js";
 import { normalizeCommandForPlatform } from "./platform.js";
 

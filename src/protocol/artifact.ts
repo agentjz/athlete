@@ -1,4 +1,4 @@
-export const ARTIFACT_PROTOCOL = "deadmouse.artifact.v1" as const;
+export const ARTIFACT_PROTOCOL = "deadmouse.artifact" as const;
 
 export type ArtifactKind = "file" | "command" | "log" | "observation" | "execution";
 

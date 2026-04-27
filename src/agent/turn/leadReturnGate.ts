@@ -3,8 +3,8 @@ import type { ExecutionRecord } from "../../execution/types.js";
 import { ExecutionStore } from "../../execution/store.js";
 import { buildOrchestratorObjective, readOrchestratorTask } from "../../orchestrator/metadata.js";
 import type { OrchestratorTaskSnapshot } from "../../orchestrator/types.js";
-import { ProtocolRequestStore } from "../../team/requestStore.js";
-import { TeamStore } from "../../team/store.js";
+import { ProtocolRequestStore } from "../../capabilities/team/requestStore.js";
+import { TeamStore } from "../../capabilities/team/store.js";
 import { TaskStore } from "../../tasks/store.js";
 
 export async function hasUnfinishedLeadWork(cwd: string, objectiveText?: string): Promise<boolean> {

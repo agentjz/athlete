@@ -4,20 +4,20 @@ import type { PromptRuntimeState } from "./systemPrompt.js";
 import type { AgentIdentity, RunTurnOptions } from "./types.js";
 import type { SessionRecord } from "../types.js";
 import { getProjectStatePaths } from "../project/statePaths.js";
-import { MessageBus } from "../team/messageBus.js";
-import { CoordinationPolicyStore } from "../team/policyStore.js";
-import { ProtocolRequestStore } from "../team/requestStore.js";
-import { reconcileTeamState } from "../team/reconcile.js";
-import { TeamStore } from "../team/store.js";
+import { MessageBus } from "../capabilities/team/messageBus.js";
+import { CoordinationPolicyStore } from "../capabilities/team/policyStore.js";
+import { ProtocolRequestStore } from "../capabilities/team/requestStore.js";
+import { reconcileTeamState } from "../capabilities/team/reconcile.js";
+import { TeamStore } from "../capabilities/team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { BackgroundJobStore, reconcileBackgroundJobs } from "../execution/background.js";
 import { summarizeAgentExecutionsForPrompt } from "../execution/promptSummary.js";
 import { buildOrchestratorObjective } from "../orchestrator/metadata.js";
 import { WorktreeStore } from "../worktrees/store.js";
-import { formatCapabilityRegistryForLead } from "../protocol/registry.js";
-import { listSubagentCapabilityProfiles } from "../subagent/profiles.js";
-import { getTeamCapabilityProfile } from "../team/profiles.js";
-import { listWorkflowProfiles } from "../workflows/registry.js";
+import { formatRuntimeCapabilityRegistryForLead } from "../capabilities/registry.js";
+import type { LoadedSkill } from "../capabilities/skills/types.js";
+import type { ToolRegistryEntry } from "../capabilities/tools/core/types.js";
+import type { RuntimeConfig } from "../types.js";
 
 export function shouldYieldTurn(yieldAfterToolSteps: number | undefined, iteration: number): boolean {
   return typeof yieldAfterToolSteps === "number" && Number.isFinite(yieldAfterToolSteps) && yieldAfterToolSteps > 0
@@ -59,6 +59,11 @@ export async function loadPromptRuntimeState(
   identity: AgentIdentity,
   cwd?: string,
   objectiveText?: string,
+  capabilityInput: {
+    skills?: readonly LoadedSkill[];
+    toolEntries?: readonly ToolRegistryEntry[];
+    mcpConfig?: RuntimeConfig["mcp"];
+  } = {},
 ): Promise<PromptRuntimeState> {
   await reconcileTeamState(rootDir).catch(() => null);
   await reconcileBackgroundJobs(rootDir).catch(() => null);
@@ -95,10 +100,8 @@ export async function loadPromptRuntimeState(
     backgroundSummary,
     protocolSummary,
     coordinationPolicySummary,
-    capabilitySummary: identity.kind === "lead" ? formatCapabilityRegistryForLead([
-      { listCapabilityProfiles: listSubagentCapabilityProfiles },
-      { listCapabilityProfiles: () => [getTeamCapabilityProfile()] },
-      { listCapabilityProfiles: listWorkflowProfiles },
-    ]) : undefined,
+    capabilitySummary: identity.kind === "lead"
+      ? formatRuntimeCapabilityRegistryForLead(capabilityInput, { maxPerKind: 4 })
+      : undefined,
   };
 }

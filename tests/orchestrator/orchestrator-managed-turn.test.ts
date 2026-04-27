@@ -6,7 +6,7 @@ import { MemorySessionStore } from "../../src/agent/session.js";
 import { BackgroundJobStore } from "../../src/execution/background.js";
 import { ExecutionStore } from "../../src/execution/store.js";
 import { buildOrchestratorObjective, readOrchestratorMetadata, writeOrchestratorMetadata } from "../../src/orchestrator/metadata.js";
-import { TeamStore } from "../../src/team/store.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { ensureTaskPlan } from "../../src/orchestrator/taskPlanning.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "../helpers.js";

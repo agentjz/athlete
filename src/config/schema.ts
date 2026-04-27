@@ -1,4 +1,4 @@
-import { getDefaultMcpConfig, normalizeMcpConfig } from "../mcp/config.js";
+import { getDefaultMcpConfig, normalizeMcpConfig } from "../capabilities/mcp/config.js";
 import {
   DEFAULT_TELEGRAM_CONFIG,
   normalizeTelegramConfig,

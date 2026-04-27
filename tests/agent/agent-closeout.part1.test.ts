@@ -11,7 +11,7 @@ import { MemorySessionStore } from "../../src/agent/session.js";
 import { createEmptyVerificationState, markVerificationRequired, recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
-import type { FunctionToolDefinition, ToolRegistry } from "../../src/tools/index.js";
+import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
 import type { ToolExecutionResult } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 

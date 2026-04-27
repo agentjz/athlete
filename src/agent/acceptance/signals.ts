@@ -1,5 +1,5 @@
 import type { StoredMessage } from "../../types.js";
-import { getToolGovernanceForName, isBrowserGovernedTool, isDocumentReadGovernedTool } from "../../tools/governance.js";
+import { getToolGovernanceForName, isBrowserGovernedTool, isDocumentReadGovernedTool } from "../../capabilities/tools/core/governance.js";
 
 export type AcceptanceSignal =
   | {

@@ -8,7 +8,7 @@ import {
   renderPromptLayers,
 } from "../../src/agent/promptSections.js";
 import { buildRequestContext } from "../../src/agent/context.js";
-import { formatSkillPromptBlock } from "../../src/skills/prompt.js";
+import { formatSkillPromptBlock } from "../../src/capabilities/skills/prompt.js";
 import type { LoadedSkill, ProjectContext, SkillRuntimeState } from "../../src/types.js";
 import { createMessage } from "../../src/agent/session.js";
 import { createTestRuntimeConfig } from "../helpers.js";
@@ -143,6 +143,7 @@ test("system prompt keeps orchestration guidance at the principle level instead 
   assert.match(prompt, /Team, subagent, workflow, task board, coordination policy, protocol tools, background jobs, and worktrees are available by default/i);
   assert.match(prompt, /Lead decides whether to use those capabilities for the current objective/i);
   assert.match(prompt, /machine layer exposes, records, waits, and enforces hard boundaries without making that decision/i);
+  assert.match(prompt, /read Artifact\/evidence refs and decide the next move/i);
   assert.doesNotMatch(prompt, /delegate-first/i);
   assert.doesNotMatch(prompt, /delegate_subagent|delegate_teammate|run_in_background/);
   assert.doesNotMatch(prompt, /ready\.teammate_reserved|blocked\.missing_background_job|active\.background_running/);

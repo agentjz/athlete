@@ -3,7 +3,7 @@ import type { BackgroundJobRecord } from "../execution/background.js";
 import type { ExecutionRecord } from "../execution/types.js";
 import type { AgentCallbacks } from "../agent/types.js";
 import type { DelegationDirective } from "../agent/session.js";
-import type { CoordinationPolicyRecord, ProtocolRequestRecord, TeamMemberRecord } from "../team/types.js";
+import type { CoordinationPolicyRecord, ProtocolRequestRecord, TeamMemberRecord } from "../capabilities/team/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import type { TaskRecord } from "../tasks/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";

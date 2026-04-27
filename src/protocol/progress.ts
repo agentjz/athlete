@@ -1,4 +1,4 @@
-export const PROGRESS_PROTOCOL = "deadmouse.progress.v1" as const;
+export const PROGRESS_PROTOCOL = "deadmouse.progress" as const;
 
 export type ProgressEventType = "started" | "progress" | "artifact" | "warning" | "blocked" | "heartbeat";
 

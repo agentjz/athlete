@@ -6,9 +6,9 @@ import test from "node:test";
 
 import { SessionStore } from "../../src/agent/session.js";
 import { BackgroundJobStore } from "../../src/execution/background.js";
-import { CoordinationPolicyStore } from "../../src/team/policyStore.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
-import { TeamStore } from "../../src/team/store.js";
+import { CoordinationPolicyStore } from "../../src/capabilities/team/policyStore.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { handleLocalCommand } from "../../src/ui/localCommands.js";
 import { WorktreeStore } from "../../src/worktrees/store.js";

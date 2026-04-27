@@ -6,7 +6,7 @@ import test from "node:test";
 import { SessionStore } from "../../src/agent/session.js";
 import { ChangeStore } from "../../src/changes/store.js";
 import { loadProjectContext } from "../../src/context/projectContext.js";
-import { createToolRegistry } from "../../src/tools/index.js";
+import { createToolRegistry } from "../../src/capabilities/tools/index.js";
 import { TelegramDeliveryQueue } from "../../src/telegram/deliveryQueue.js";
 import { FileTelegramOffsetStore } from "../../src/telegram/offsetStore.js";
 import { FileTelegramSessionMapStore } from "../../src/telegram/sessionMapStore.js";

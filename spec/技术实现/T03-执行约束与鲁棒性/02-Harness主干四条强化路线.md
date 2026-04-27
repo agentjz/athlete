@@ -21,18 +21,18 @@
 
 主要文件：
 
-- `src/tools/files/editAnchor.ts`
-- `src/tools/files/editAnchorMatch.ts`
-- `src/tools/files/readFileAnchors.ts`
-- `src/tools/files/readFileTool.ts`
-- `src/tools/files/editFileTool.ts`
+- `src/capabilities/tools/packages/files/editAnchor.ts`
+- `src/capabilities/tools/packages/files/editAnchorMatch.ts`
+- `src/capabilities/tools/packages/files/readFileAnchors.ts`
+- `src/capabilities/tools/packages/files/readFileTool.ts`
+- `src/capabilities/tools/packages/files/editFileTool.ts`
 
 ### 2. 写后反馈
 
 主要文件：
 
-- `src/tools/files/writeDiagnostics.ts`
-- `src/tools/files/toolChangeFeedback.ts`
+- `src/capabilities/tools/packages/files/writeDiagnostics.ts`
+- `src/capabilities/tools/packages/files/toolChangeFeedback.ts`
 - `src/agent/session/sessionDiff.ts`
 - `src/changes/`
 
@@ -53,8 +53,8 @@
 - `src/agent/turn/toolBatch.ts`
 - `src/agent/turn/pendingToolCalls.ts`
 - `src/agent/turn/toolHooks.ts`
-- `src/tools/registry.ts`
-- `src/tools/runtimeRegistry.ts`
+- `src/capabilities/tools/core/registry.ts`
+- `src/capabilities/tools/core/runtimeRegistry.ts`
 
 ## 状态与真相源
 

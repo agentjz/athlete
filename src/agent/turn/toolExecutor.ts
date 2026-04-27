@@ -1,8 +1,8 @@
 import type { ChangeStore } from "../../changes/store.js";
-import { ToolExecutionError } from "../../tools/errors.js";
-import { readToolExecutionProtocol } from "../../tools/toolFinalize.js";
-import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../tools/routing.js";
-import { createToolRegistry } from "../../tools/index.js";
+import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
+import { readToolExecutionProtocol } from "../../capabilities/tools/core/toolFinalize.js";
+import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../capabilities/tools/core/routing.js";
+import { createToolRegistry } from "../../capabilities/tools/index.js";
 import type { ProjectContext, ToolCallRecord, ToolExecutionResult } from "../../types.js";
 import type { RunTurnOptions } from "../types.js";
 import { isAbortError } from "../../utils/abort.js";

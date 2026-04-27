@@ -1,5 +1,5 @@
 import { normalizeCheckpoint } from "../checkpoint.js";
-import { formatSkillPromptBlock } from "../../skills/prompt.js";
+import { formatSkillPromptBlock } from "../../capabilities/skills/prompt.js";
 import { formatPromptBlock } from "./format.js";
 import {
   buildFieldBlock,

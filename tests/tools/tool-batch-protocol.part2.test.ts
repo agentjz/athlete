@@ -5,8 +5,8 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { createToolRegistry, createToolSource } from "../../src/tools/registry.js";
-import type { RegisteredTool, ToolRegistry } from "../../src/tools/types.js";
+import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
+import type { RegisteredTool, ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 import type { AgentCallbacks } from "../../src/agent/types.js";
 import type { SessionRecord, ToolExecutionResult } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";

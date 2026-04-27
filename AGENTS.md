@@ -105,11 +105,22 @@ Deadmouse is Lead-centered.
 
 Team, subagent, workflow, tool, skill, MCP, background execution, and future extension systems must enter through formal capability surfaces and return through formal handoff surfaces.
 
+Protocol sets the rules. Capability collects the ecosystem. Lead reads the unified surface.
+
+Keep this directory boundary strict:
+
+- `src/protocol/` is the generic constitution and must not import concrete ecosystems.
+- `src/capabilities/` is the capability ecosystem root and owns all concrete capability surfaces.
+- `src/capabilities/registry.ts` is the unified capability assembly point for Lead-facing runtime summaries.
+- Concrete capability families live under `src/capabilities/<family>/`, not as scattered top-level source directories.
+- Built-in skill packages live under `src/capabilities/skills/packages/`.
+- Tool framework code lives under `src/capabilities/tools/core/`; concrete tool packages live under `src/capabilities/tools/packages/`.
+
 Build the general platform before building special cases. Concrete extensions such as development loops, audit loops, debate loops, verification loops, role packs, skill packs, and external agent adapters are specializations. They must be added on top of the general protocol platform, not baked into the core. The core must stay abstract enough to accept future extension ecosystems without redesign.
 
 The generic execution chain is:
 
-`Capability -> Assignment -> Execution -> Progress -> Closeout -> WakeSignal -> Lead`
+`Capability -> Assignment -> Execution -> Progress -> Artifact -> Closeout -> WakeSignal -> Lead`
 
 This chain is a protocol boundary, not a strategy engine.
 
@@ -117,6 +128,7 @@ This chain is a protocol boundary, not a strategy engine.
 - `Assignment` states what Lead explicitly asked to execute.
 - `Execution` records what the machine actually created and ran.
 - `Progress` records runtime facts without stealing strategy.
+- `Artifact` records durable evidence references produced during execution.
 - `Closeout` hands results, evidence, verification, risks, and next suggestions back to Lead.
 - `WakeSignal` wakes Lead; it is only a doorbell, never a truth source.
 - `Lead` reads facts and decides the next move.
@@ -225,6 +237,8 @@ When explaining design, start with runtime behavior in plain language:
 4. Only then cite files, types, tests, or implementation details.
 
 The owner cares about runtime truth, not decorative abstractions. Be direct, concrete, and concise.
+
+After closeout, do not spend extra tokens collecting or presenting key line numbers just to help the owner inspect code. Unless the owner explicitly asks for code locations, only state that the work is complete, what changed, and the verification result.
 
 ## 11. Final Rule
 

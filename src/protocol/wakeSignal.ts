@@ -2,7 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 
-export const WAKE_SIGNAL_PROTOCOL = "deadmouse.wake-signal.v1" as const;
+export const WAKE_SIGNAL_PROTOCOL = "deadmouse.wake-signal" as const;
 
 export type WakeSignalReason = "completed" | "failed" | "budget_exhausted" | "aborted" | "paused";
 

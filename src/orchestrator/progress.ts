@@ -2,10 +2,10 @@ import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/backgr
 import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { ExecutionStore } from "../execution/store.js";
 import type { ExecutionRecord } from "../execution/types.js";
-import { CoordinationPolicyStore } from "../team/policyStore.js";
-import { ProtocolRequestStore } from "../team/requestStore.js";
-import { reconcileTeamState } from "../team/reconcile.js";
-import { TeamStore } from "../team/store.js";
+import { CoordinationPolicyStore } from "../capabilities/team/policyStore.js";
+import { ProtocolRequestStore } from "../capabilities/team/requestStore.js";
+import { reconcileTeamState } from "../capabilities/team/reconcile.js";
+import { TeamStore } from "../capabilities/team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { readOrchestratorTask } from "./metadata.js";

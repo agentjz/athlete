@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { SessionStore, createMessage } from "../../src/agent/session.js";
-import type { ToolRegistry } from "../../src/tools/types.js";
+import type { ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 
 test("post-compaction degradation keeps checkpoint state and eventually pauses instead of silently looping forever", { concurrency: false }, async (t) => {

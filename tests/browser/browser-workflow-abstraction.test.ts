@@ -3,8 +3,8 @@ import test from "node:test";
 
 import { createMessage, createToolMessage } from "../../src/agent/session.js";
 import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
-import { getWorkflowToolGateResult } from "../../src/skills/workflowGuards.js";
-import type { FunctionToolDefinition } from "../../src/tools/index.js";
+import { getWorkflowToolGateResult } from "../../src/capabilities/skills/workflowGuards.js";
+import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 import type { SkillRuntimeState } from "../../src/types.js";
 
 function createTool(name: string, description = name): FunctionToolDefinition {

@@ -10,7 +10,7 @@ import { routeOrchestratorAction } from "../../src/orchestrator/route.js";
 import { BackgroundJobStore } from "../../src/execution/background.js";
 import { ExecutionStore } from "../../src/execution/store.js";
 import { TaskStore } from "../../src/tasks/store.js";
-import { TeamStore } from "../../src/team/store.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 
 test("dispatchOrchestratorAction launches delegated subagent work through execution worker", async (t) => {

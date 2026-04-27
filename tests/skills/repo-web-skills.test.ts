@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { discoverSkills } from "../../src/skills/discovery.js";
-import { loadSkillTool } from "../../src/tools/skills/loadSkillTool.js";
+import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
+import { loadSkillTool } from "../../src/capabilities/tools/packages/skills/loadSkillTool.js";
 import { makeToolContext } from "../helpers.js";
 
 test("repo skill catalog includes web-research and browser-automation workflow skills", async () => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { parseSkillSource } from "../../src/skills/schema.js";
+import { parseSkillSource } from "../../src/capabilities/skills/schema.js";
 
 const ROOT = path.join("C:", "repo");
 

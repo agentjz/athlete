@@ -16,7 +16,7 @@
     "dist",
     "README.md",
     "spec",
-    "skills",
+    "src/capabilities/skills/packages",
     "scripts/postinstall-playwright.mjs"
   ],
   "publishConfig": {

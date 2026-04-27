@@ -1,6 +1,6 @@
 import { normalizeProtocolId } from "./capability.js";
 
-export const ASSIGNMENT_PROTOCOL = "deadmouse.assignment.v1" as const;
+export const ASSIGNMENT_PROTOCOL = "deadmouse.assignment" as const;
 
 export interface AssignmentBudget {
   maxRuntimeMs?: number;

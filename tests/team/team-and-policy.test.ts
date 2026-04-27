@@ -5,16 +5,16 @@ import test from "node:test";
 
 import { injectInboxMessagesIfNeeded } from "../../src/agent/runtimeState.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { MessageBus } from "../../src/team/messageBus.js";
-import { CoordinationPolicyStore } from "../../src/team/policyStore.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
-import { TeamStore } from "../../src/team/store.js";
-import { coordinationPolicyTool } from "../../src/tools/team/coordinationPolicyTool.js";
-import { planApprovalTool } from "../../src/tools/team/planApprovalTool.js";
-import { sendMessageTool } from "../../src/tools/team/sendMessageTool.js";
-import { shutdownRequestTool } from "../../src/tools/team/shutdownRequestTool.js";
-import { spawnTeammateTool } from "../../src/tools/team/spawnTeammateTool.js";
-import { todoWriteTool } from "../../src/tools/tasks/todoWriteTool.js";
+import { MessageBus } from "../../src/capabilities/team/messageBus.js";
+import { CoordinationPolicyStore } from "../../src/capabilities/team/policyStore.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
+import { coordinationPolicyTool } from "../../src/capabilities/tools/packages/team/coordinationPolicyTool.js";
+import { planApprovalTool } from "../../src/capabilities/tools/packages/team/planApprovalTool.js";
+import { sendMessageTool } from "../../src/capabilities/tools/packages/team/sendMessageTool.js";
+import { shutdownRequestTool } from "../../src/capabilities/tools/packages/team/shutdownRequestTool.js";
+import { spawnTeammateTool } from "../../src/capabilities/tools/packages/team/spawnTeammateTool.js";
+import { todoWriteTool } from "../../src/capabilities/tools/packages/tasks/todoWriteTool.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 

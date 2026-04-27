@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { createStoredToolMessage } from "../../src/agent/context.js";
-import { readFileTool } from "../../src/tools/files/readFileTool.js";
+import { readFileTool } from "../../src/capabilities/tools/packages/files/readFileTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 const LARGE_ARTIFACT_MARKER = "ROUND1-ARTIFACT::" + "Z".repeat(24_000);

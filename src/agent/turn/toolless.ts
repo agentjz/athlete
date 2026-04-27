@@ -3,7 +3,7 @@ import { createInternalReminder } from "../session/taskState.js";
 import { createMissingSkillTransition } from "../runtimeTransition.js";
 import { handleCompletedAssistantResponse } from "./finalize.js";
 import { persistCheckpointTransition } from "./persistence.js";
-import { formatMissingRequiredSkillReminder } from "../../skills/state.js";
+import { formatMissingRequiredSkillReminder } from "../../capabilities/skills/state.js";
 import type { SkillRuntimeState } from "../../types.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "../types.js";
 import type { RuntimeContinueTransition, SessionRecord } from "../../types.js";

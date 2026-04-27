@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { selectSkillsForTurn } from "../../src/skills/matching.js";
+import { selectSkillsForTurn } from "../../src/capabilities/skills/matching.js";
 import type { LoadedSkill } from "../../src/types.js";
 
 function createSkill(overrides: Partial<LoadedSkill> = {}): LoadedSkill {

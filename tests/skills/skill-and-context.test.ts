@@ -5,8 +5,8 @@ import test from "node:test";
 
 import { buildRequestContext } from "../../src/agent/context.js";
 import { createMessage } from "../../src/agent/session.js";
-import { discoverSkills } from "../../src/skills/catalog.js";
-import { loadSkillTool } from "../../src/tools/skills/loadSkillTool.js";
+import { discoverSkills } from "../../src/capabilities/skills/catalog.js";
+import { loadSkillTool } from "../../src/capabilities/tools/packages/skills/loadSkillTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 test("discoverSkills + load_skill load skill bodies on demand", async (t) => {

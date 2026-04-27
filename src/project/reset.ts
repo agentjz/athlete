@@ -4,7 +4,7 @@ import path from "node:path";
 import type { ChangeRecord, RuntimeConfig, SessionRecord } from "../types.js";
 import { BackgroundJobStore } from "../execution/background.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
-import { TeamStore } from "../team/store.js";
+import { TeamStore } from "../capabilities/team/store.js";
 import { terminateKnownProcesses } from "../utils/processControl.js";
 import { getProjectStatePaths } from "./statePaths.js";
 import { isSameOrDescendant, waitForRemovedPaths } from "./resetSupport.js";

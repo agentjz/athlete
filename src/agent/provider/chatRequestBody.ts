@@ -1,4 +1,4 @@
-import type { FunctionToolDefinition } from "../../tools/index.js";
+import type { FunctionToolDefinition } from "../../capabilities/tools/index.js";
 import { resolveProviderCapabilities } from "../provider.js";
 import type { ProviderMessage } from "./contract.js";
 import { toChatCompletionMessages } from "./chatCompletionsAdapter.js";

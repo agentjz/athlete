@@ -6,7 +6,7 @@ import {
   isPlaywrightInstallLocationAvailable,
   parsePlaywrightInstallLocation,
   resolvePlaywrightInstallTarget,
-} from "../../src/mcp/playwright/browserInstall.js";
+} from "../../src/capabilities/mcp/playwright/browserInstall.js";
 
 test("resolvePlaywrightInstallTarget maps runtime browser config to install targets", () => {
   assert.equal(resolvePlaywrightInstallTarget("chromium"), "chromium");

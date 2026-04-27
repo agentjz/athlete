@@ -20,23 +20,23 @@
 
 当前主要代码边界如下：
 
-- `src/tools/files/editIdentity.ts`
-- `src/tools/files/readFileAnchors.ts`
-- `src/tools/files/editAnchor.ts`
-- `src/tools/files/editAnchorMatch.ts`
-- `src/tools/files/writeExistingFileGuard.ts`
-- `src/tools/files/writeDiagnostics.ts`
-- `src/tools/blockingResult.ts`
-- `src/tools/shell/runShellTool.ts`
-- `src/tools/toolArgumentContract.ts`
-- `src/tools/shell/outputCapture.ts`
-- `src/tools/background/backgroundTerminateTool.ts`
+- `src/capabilities/tools/packages/files/editIdentity.ts`
+- `src/capabilities/tools/packages/files/readFileAnchors.ts`
+- `src/capabilities/tools/packages/files/editAnchor.ts`
+- `src/capabilities/tools/packages/files/editAnchorMatch.ts`
+- `src/capabilities/tools/packages/files/writeExistingFileGuard.ts`
+- `src/capabilities/tools/packages/files/writeDiagnostics.ts`
+- `src/capabilities/tools/core/blockingResult.ts`
+- `src/capabilities/tools/packages/shell/runShellTool.ts`
+- `src/capabilities/tools/core/toolArgumentContract.ts`
+- `src/capabilities/tools/packages/shell/outputCapture.ts`
+- `src/capabilities/tools/packages/background/backgroundTerminateTool.ts`
 - `src/utils/commandRunner/run.ts`
 - `src/execution/processProtocol.ts`
 - `src/execution/boundary.ts`
 - `src/execution/agentBoundary.ts`
-- `src/subagent/launch.ts`
-- `src/tools/tasks/taskTool.ts`
+- `src/capabilities/subagent/launch.ts`
+- `src/capabilities/tools/packages/tasks/taskTool.ts`
 - `src/agent/turn/toolBatch.ts`
 - `src/agent/turn/loopGuard.ts`
 - `src/agent/turn/pendingToolCalls.ts`
@@ -44,7 +44,7 @@
 - `src/agent/runtimeTransition/`
 - `src/agent/session/snapshot.ts`
 
-这些模块都挂在现有 `src/agent/` 与 `src/tools/` 边界内，没有另造额外的 harness 超级目录。
+这些模块都挂在现有 `src/agent/` 与 `src/capabilities/tools/` 边界内，没有另造额外的 harness 超级目录。
 
 ## 术语
 

@@ -1,7 +1,7 @@
 import type { ChangeStore } from "../../changes/store.js";
 import { buildOrchestratorObjective } from "../../orchestrator/metadata.js";
-import { createToolRegistry } from "../../tools/index.js";
-import type { PreparedToolRegistryCall, ToolRegistry } from "../../tools/types.js";
+import { createToolRegistry } from "../../capabilities/tools/index.js";
+import type { PreparedToolRegistryCall, ToolRegistry } from "../../capabilities/tools/core/types.js";
 import type {
   ProjectContext,
   SessionRecord,

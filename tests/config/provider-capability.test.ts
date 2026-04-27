@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { FunctionToolDefinition } from "../../src/tools/index.js";
+import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 import { resolveProviderCapabilities } from "../../src/agent/provider.js";
 import { buildProviderRequestBody } from "../../src/agent/provider/chatRequestBody.js";
 

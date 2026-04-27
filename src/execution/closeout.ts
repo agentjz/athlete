@@ -1,5 +1,5 @@
-import { MessageBus } from "../team/messageBus.js";
-import { TeamStore } from "../team/store.js";
+import { MessageBus } from "../capabilities/team/messageBus.js";
+import { TeamStore } from "../capabilities/team/store.js";
 import { recordObservabilityEvent } from "../observability/writer.js";
 import { ExecutionStore } from "./store.js";
 import type { ExecutionCloseInput, ExecutionRecord } from "./types.js";

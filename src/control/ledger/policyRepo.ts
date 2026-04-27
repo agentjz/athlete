@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-import type { CoordinationPolicyRecord } from "../../team/types.js";
+import type { CoordinationPolicyRecord } from "../../capabilities/team/types.js";
 import { currentTimestamp } from "./shared.js";
 
 export class CoordinationPolicyLedgerRepo {

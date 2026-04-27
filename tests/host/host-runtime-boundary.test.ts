@@ -7,7 +7,7 @@ import { AgentTurnError } from "../../src/agent/errors.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
 import { createPersistedSession, ensureBoundSession } from "../../src/host/session.js";
 import { runHostTurn } from "../../src/host/turn.js";
-import type { RegisteredTool, ToolRegistry } from "../../src/tools/types.js";
+import type { RegisteredTool, ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 import { createTestRuntimeConfig } from "../helpers.js";
 
 async function readSource(relativePath: string): Promise<string> {

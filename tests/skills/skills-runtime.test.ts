@@ -6,9 +6,9 @@ import test from "node:test";
 import { createMessage, createToolMessage } from "../../src/agent/session.js";
 import { SessionStore } from "../../src/agent/session.js";
 import { createInternalReminder } from "../../src/agent/session.js";
-import { discoverSkills } from "../../src/skills/discovery.js";
-import { buildSkillRuntimeState, getSkillToolGateResult } from "../../src/skills/state.js";
-import { loadSkillTool } from "../../src/tools/skills/loadSkillTool.js";
+import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
+import { buildSkillRuntimeState, getSkillToolGateResult } from "../../src/capabilities/skills/state.js";
+import { loadSkillTool } from "../../src/capabilities/tools/packages/skills/loadSkillTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 async function writeSkill(root: string): Promise<void> {

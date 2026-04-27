@@ -6,8 +6,8 @@ import test from "node:test";
 
 import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
 import { executeToolCallWithRecovery } from "../../src/agent/turn.js";
-import { discoverSkills } from "../../src/skills/discovery.js";
-import { selectSkillsForTurn } from "../../src/skills/matching.js";
+import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
+import { selectSkillsForTurn } from "../../src/capabilities/skills/matching.js";
 import { createStreamRenderer } from "../../src/ui/streamRenderer.js";
 import { createTestRuntimeConfig } from "../helpers.js";
 
@@ -23,7 +23,7 @@ test("repo skill catalog contains MinerU document skills and removes the legacy 
   assert.equal(names.has("mineru-ppt-reading"), true);
   assert.equal(names.has("pdf-reading"), false);
   await assert.rejects(
-    () => fsPromises.stat(path.join(REPO_ROOT, "skills", "pdf-reading", "SKILL.md")),
+    () => fsPromises.stat(path.join(REPO_ROOT, "src", "capabilities", "skills", "packages", "pdf-reading", "SKILL.md")),
     /ENOENT/,
   );
 });
@@ -204,7 +204,10 @@ test("stream renderer shows MinerU document tool calls with file paths", async (
 
 test("README exposes the MinerU verification command while spec and skills docs describe the document chain", async () => {
   const readme = await fsPromises.readFile(path.join(REPO_ROOT, "README.md"), "utf8");
-  const skillsReadme = await fsPromises.readFile(path.join(REPO_ROOT, "skills", "README.md"), "utf8");
+  const skillsReadme = await fsPromises.readFile(
+    path.join(REPO_ROOT, "src", "capabilities", "skills", "packages", "README.md"),
+    "utf8",
+  );
   const spec = await fsPromises.readFile(
     path.join(REPO_ROOT, "spec", "\u6280\u672f\u5b9e\u73b0", "T04-\u6269\u5c55\u4e0e\u63a5\u5165", "02-\u6269\u5c55\u673a\u5236.md"),
     "utf8",

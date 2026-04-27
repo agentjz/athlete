@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import test from "node:test";
 
-import { httpProbeTool } from "../../src/tools/network/httpProbeTool.js";
+import { httpProbeTool } from "../../src/capabilities/tools/packages/network/httpProbeTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 test("http_probe verifies a local endpoint and returns a readable preview", async (t) => {

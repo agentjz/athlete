@@ -8,12 +8,12 @@ import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { buildToolExecutionFailureResult } from "../../src/agent/turn/toolExecutor.js";
 import { resolveToollessTurn } from "../../src/agent/turn/toolless.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
-import type { SkillRuntimeState } from "../../src/skills/types.js";
-import { finalizeToolExecution } from "../../src/tools/toolFinalize.js";
-import { createToolRegistry } from "../../src/tools/registry.js";
-import type { ToolRegistryEntry } from "../../src/tools/types.js";
+import type { SkillRuntimeState } from "../../src/capabilities/skills/types.js";
+import { finalizeToolExecution } from "../../src/capabilities/tools/core/toolFinalize.js";
+import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
+import type { ToolRegistryEntry } from "../../src/capabilities/tools/core/types.js";
 import { BackgroundJobStore } from "../../src/execution/background.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 

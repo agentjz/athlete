@@ -5,8 +5,8 @@ import test from "node:test";
 
 import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
 import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
-import { createToolRegistry } from "../../src/tools/registry.js";
-import { createRuntimeToolRegistry } from "../../src/tools/runtimeRegistry.js";
+import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
+import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
 import type { ProjectContext } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { launchSubagentWorkerExecution } from "../../src/subagent/launch.js";
+import { launchSubagentWorkerExecution } from "../../src/capabilities/subagent/launch.js";
 import { ExecutionStore } from "../../src/execution/store.js";
-import { taskTool } from "../../src/tools/tasks/taskTool.js";
+import { taskTool } from "../../src/capabilities/tools/packages/tasks/taskTool.js";
 import { TaskStore } from "../../src/tasks/store.js";
-import type { ToolContext } from "../../src/tools/types.js";
+import type { ToolContext } from "../../src/capabilities/tools/core/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("launchSubagentWorkerExecution creates a worker-backed subagent execution", async (t) => {

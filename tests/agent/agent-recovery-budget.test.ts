@@ -11,7 +11,7 @@ import {
 } from "../../src/agent/recoveryBudget.js";
 import { createProviderRecoveryBudgetPauseTransition } from "../../src/agent/runtimeTransition.js";
 import { createTestRuntimeConfig } from "../helpers.js";
-import type { ToolRegistry } from "../../src/tools/types.js";
+import type { ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 
 test("provider recovery budget pauses when attempt count exceeds the configured ceiling", () => {
   const config = {

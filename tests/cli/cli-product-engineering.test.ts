@@ -125,12 +125,12 @@ test("config keeps dotenv loading and runtime env resolution behind one formal e
   assert.equal(configFiles.some((file) => file.endsWith(path.join("src", "config", "store.ts"))), true);
 });
 
-test("npm package allowlist includes repo skills for runtime discovery", async () => {
+test("npm package allowlist includes built-in capability skill packages for runtime discovery", async () => {
   const packageJson = JSON.parse(await fs.readFile("package.json", "utf8")) as {
     files?: string[];
   };
 
-  assert.equal(packageJson.files?.includes("skills"), true);
+  assert.equal(packageJson.files?.includes("src/capabilities/skills/packages"), true);
 });
 
 test("CLI error rendering classifies network failures instead of only echoing the raw exception", () => {

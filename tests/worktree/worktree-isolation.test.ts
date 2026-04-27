@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { TaskStore } from "../../src/tasks/store.js";
-import { claimTaskTool } from "../../src/tools/tasks/claimTaskTool.js";
+import { claimTaskTool } from "../../src/capabilities/tools/packages/tasks/claimTaskTool.js";
 import { WorktreeStore } from "../../src/worktrees/store.js";
 import { createTempWorkspace, initGitRepo, makeToolContext } from "../helpers.js";
 

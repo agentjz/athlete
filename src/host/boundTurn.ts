@@ -1,6 +1,6 @@
 import type { AgentCallbacks, RunTurnResult } from "../agent/types.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RegisteredTool } from "../tools/types.js";
+import type { RegisteredTool } from "../capabilities/tools/core/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { runHostTurn } from "./turn.js";
 import type { HostTurnDependencies } from "./types.js";

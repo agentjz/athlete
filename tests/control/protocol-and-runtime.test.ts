@@ -3,10 +3,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MessageBus } from "../../src/team/messageBus.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
-import { todoWriteTool } from "../../src/tools/tasks/todoWriteTool.js";
-import { claimTaskTool } from "../../src/tools/tasks/claimTaskTool.js";
+import { MessageBus } from "../../src/capabilities/team/messageBus.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
+import { todoWriteTool } from "../../src/capabilities/tools/packages/tasks/todoWriteTool.js";
+import { claimTaskTool } from "../../src/capabilities/tools/packages/tasks/claimTaskTool.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { WorktreeStore } from "../../src/worktrees/store.js";
 import { createTempWorkspace, initGitRepo, makeToolContext } from "../helpers.js";

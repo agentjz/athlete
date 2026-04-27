@@ -11,7 +11,7 @@ import { createMessage } from "../../src/agent/session.js";
 import { shrinkMessagesForContextLimit } from "../../src/agent/turn.js";
 import { SessionStore } from "../../src/agent/session.js";
 import { buildSystemPrompt } from "../../src/agent/systemPrompt.js";
-import type { FunctionToolDefinition, ToolRegistry } from "../../src/tools/index.js";
+import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
 import type { ProjectContext, StoredMessage, ToolExecutionResult } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 

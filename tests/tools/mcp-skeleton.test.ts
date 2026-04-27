@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { McpClientManager } from "../../src/mcp/clientManager.js";
-import { normalizeMcpConfig } from "../../src/mcp/config.js";
-import { createPlaceholderMcpClient } from "../../src/mcp/discovery.js";
-import { collectMcpToolSources } from "../../src/mcp/registryIntegration.js";
-import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/mcp/toolAdapter.js";
-import type { McpClient, McpDiscoveredTool } from "../../src/mcp/types.js";
-import { createToolRegistry, createToolSource } from "../../src/tools/registry.js";
+import { McpClientManager } from "../../src/capabilities/mcp/clientManager.js";
+import { normalizeMcpConfig } from "../../src/capabilities/mcp/config.js";
+import { createPlaceholderMcpClient } from "../../src/capabilities/mcp/discovery.js";
+import { collectMcpToolSources } from "../../src/capabilities/mcp/registryIntegration.js";
+import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/capabilities/mcp/toolAdapter.js";
+import type { McpClient, McpDiscoveredTool } from "../../src/capabilities/mcp/types.js";
+import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
 import { makeToolContext } from "../helpers.js";
 
 test("McpClientManager can still expose placeholder discovery snapshots when an explicit placeholder client factory is used", async () => {

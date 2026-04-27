@@ -2,13 +2,13 @@ import crypto from "node:crypto";
 
 import type Database from "better-sqlite3";
 
-import { PROTOCOL_REQUEST_KINDS } from "../../team/types.js";
+import { PROTOCOL_REQUEST_KINDS } from "../../capabilities/team/types.js";
 import type {
   ProtocolDecisionRecord,
   ProtocolRequestKind,
   ProtocolRequestRecord,
   ProtocolRequestStatus,
-} from "../../team/types.js";
+} from "../../capabilities/team/types.js";
 import { currentTimestamp, normalizeText } from "./shared.js";
 
 export class ProtocolRequestLedgerRepo {

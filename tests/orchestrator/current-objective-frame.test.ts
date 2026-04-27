@@ -16,11 +16,11 @@ import { dispatchOrchestratorAction } from "../../src/orchestrator/dispatch.js";
 import { buildOrchestratorObjective, writeOrchestratorMetadata } from "../../src/orchestrator/metadata.js";
 import { loadOrchestratorProgress } from "../../src/orchestrator/progress.js";
 import { routeOrchestratorAction } from "../../src/orchestrator/route.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
-import { TeamStore } from "../../src/team/store.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { TaskStore } from "../../src/tasks/store.js";
-import { taskListTool } from "../../src/tools/tasks/taskListTool.js";
-import type { ToolContext } from "../../src/tools/types.js";
+import { taskListTool } from "../../src/capabilities/tools/packages/tasks/taskListTool.js";
+import type { ToolContext } from "../../src/capabilities/tools/core/types.js";
 import type { SessionCheckpoint } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 

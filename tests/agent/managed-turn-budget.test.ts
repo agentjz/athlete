@@ -5,7 +5,7 @@ import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { createProviderRecoveryBudgetPauseTransition } from "../../src/agent/runtimeTransition.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
 import { loadProjectContext } from "../../src/context/projectContext.js";
-import { ProtocolRequestStore } from "../../src/team/requestStore.js";
+import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "../helpers.js";
 

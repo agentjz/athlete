@@ -5,7 +5,7 @@ import { loadProjectContext } from "../context/projectContext.js";
 import { reconcileBackgroundJobs } from "../execution/background.js";
 import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { runHostTurn } from "../host/turn.js";
-import { reconcileTeamState } from "../team/reconcile.js";
+import { reconcileTeamState } from "../capabilities/team/reconcile.js";
 import type { HostManagedTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";

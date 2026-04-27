@@ -10,7 +10,7 @@ import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
 import { SessionStore } from "../../src/agent/session.js";
 import { buildSystemPrompt } from "../../src/agent/systemPrompt.js";
-import type { FunctionToolDefinition, ToolRegistry } from "../../src/tools/index.js";
+import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
 import type { ProjectContext, ToolExecutionResult } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "../helpers.js";
 

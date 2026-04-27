@@ -1,7 +1,7 @@
-import { createRuntimeToolRegistry } from "../tools/runtimeRegistry.js";
-import { createToolSource } from "../tools/registry.js";
+import { createRuntimeToolRegistry } from "../capabilities/tools/core/runtimeRegistry.js";
+import { createToolSource } from "../capabilities/tools/core/registry.js";
 import type { RuntimeConfig } from "../types.js";
-import type { ToolRegistry } from "../tools/types.js";
+import type { ToolRegistry } from "../capabilities/tools/core/types.js";
 import type { HostToolRegistryOptions } from "./types.js";
 
 export async function createHostToolRegistry(

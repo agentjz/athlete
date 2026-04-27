@@ -4,8 +4,8 @@ import path from "node:path";
 import type { TelegramDeliveryQueue } from "./deliveryQueue.js";
 import type { TelegramLogger } from "./logger.js";
 import { resolveUserPath } from "../utils/fs.js";
-import { okResult, parseArgs, readString } from "../tools/shared.js";
-import type { RegisteredTool } from "../tools/types.js";
+import { okResult, parseArgs, readString } from "../capabilities/tools/core/shared.js";
+import type { RegisteredTool } from "../capabilities/tools/core/types.js";
 
 const DEFAULT_MAX_UPLOAD_BYTES = 45 * 1024 * 1024;
 const MAX_CAPTION_CHARS = 900;

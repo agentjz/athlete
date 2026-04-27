@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-import type { TeamConfigRecord, TeamMemberRecord, TeamMemberStatus } from "../../team/types.js";
+import type { TeamConfigRecord, TeamMemberRecord, TeamMemberStatus } from "../../capabilities/team/types.js";
 import { currentTimestamp, normalizeText } from "./shared.js";
 
 export class TeamLedgerRepo {

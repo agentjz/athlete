@@ -1,6 +1,6 @@
-import { getBrowserStepRank, getToolGovernanceForName, isBrowserGovernedTool } from "../tools/governance.js";
-import type { FunctionToolDefinition } from "../tools/index.js";
-import type { ToolRegistryEntry } from "../tools/types.js";
+import { getBrowserStepRank, getToolGovernanceForName, isBrowserGovernedTool } from "../capabilities/tools/core/governance.js";
+import type { FunctionToolDefinition } from "../capabilities/tools/index.js";
+import type { ToolRegistryEntry } from "../capabilities/tools/core/types.js";
 
 export interface ToolPriorityOptions {
   input?: string;

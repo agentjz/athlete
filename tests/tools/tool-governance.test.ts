@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/mcp/toolAdapter.js";
-import { createToolRegistry, createToolSource } from "../../src/tools/registry.js";
-import { createRuntimeToolRegistry } from "../../src/tools/runtimeRegistry.js";
-import type { RegisteredTool } from "../../src/tools/types.js";
+import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/capabilities/mcp/toolAdapter.js";
+import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
+import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
+import type { RegisteredTool } from "../../src/capabilities/tools/core/types.js";
 import { createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("tool registry exposes governed metadata and promotes specialized document tools ahead of generic file reads", () => {

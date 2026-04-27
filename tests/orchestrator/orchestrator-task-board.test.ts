@@ -5,7 +5,7 @@ import { ensureTaskPlan } from "../../src/orchestrator/taskPlanning.js";
 import { loadOrchestratorProgress } from "../../src/orchestrator/progress.js";
 import { readOrchestratorMetadata, resolveOrchestratorExecutor, writeOrchestratorMetadata } from "../../src/orchestrator/metadata.js";
 import { TaskStore } from "../../src/tasks/store.js";
-import { TeamStore } from "../../src/team/store.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { createTempWorkspace } from "../helpers.js";
 
 test("ensureTaskPlan uses runtime lanes to select execution lanes", async (t) => {

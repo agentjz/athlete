@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { probeProviderConnection } from "../../src/agent/provider/connection.js";
 import { fetchAssistantResponse } from "../../src/agent/api.js";
-import type { FunctionToolDefinition } from "../../src/tools/index.js";
+import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
 test("doctor provider probe reuses provider base-url candidates and resolves /v1 when the relay exposes OpenAI models there", async () => {
   const requests: string[] = [];

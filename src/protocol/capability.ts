@@ -1,7 +1,9 @@
-export const CAPABILITY_PROTOCOL = "deadmouse.capability.v1" as const;
+export const CAPABILITY_PROTOCOL = "deadmouse.capability" as const;
 
-export type CapabilityKind = "team" | "subagent" | "workflow";
-export type CapabilityCost = "low" | "medium" | "high";
+export const CAPABILITY_COSTS = ["low", "medium", "high"] as const;
+
+export type CapabilityKind = string;
+export type CapabilityCost = typeof CAPABILITY_COSTS[number];
 
 export interface CapabilityProfile {
   protocol: typeof CAPABILITY_PROTOCOL;
@@ -50,25 +52,14 @@ export function createCapabilityProfile(input: {
   };
 }
 
-export function formatCapabilityProfile(profile: CapabilityProfile): string {
-  return [
-    `- ${profile.kind}:${profile.id} (${profile.name})`,
-    `  description: ${profile.description}`,
-    `  bestFor: ${formatList(profile.bestFor)}`,
-    `  notFor: ${formatList(profile.notFor)}`,
-    `  input: ${profile.inputSchema}`,
-    `  output: ${profile.outputSchema}`,
-    `  budget: ${profile.budgetPolicy}`,
-    `  tools: ${profile.tools.length > 0 ? profile.tools.join(", ") : "runtime-selected"}`,
-    `  cost: ${profile.cost}`,
-    `  extension: ${profile.extensionPoint}`,
-  ].join("\n");
-}
-
 export function normalizeProtocolId(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "protocol-item";
 }
 
-function formatList(values: readonly string[]): string {
-  return values.length > 0 ? values.join("; ") : "not specified";
+export function isCapabilityKind(value: unknown): value is CapabilityKind {
+  return typeof value === "string" && normalizeProtocolId(value) === value.trim().toLowerCase();
+}
+
+export function isCapabilityCost(value: unknown): value is CapabilityCost {
+  return typeof value === "string" && (CAPABILITY_COSTS as readonly string[]).includes(value);
 }

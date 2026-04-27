@@ -1,8 +1,8 @@
 ﻿import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getSubagentProfile } from "../../src/subagent/profiles.js";
-import { createToolRegistry } from "../../src/tools/registry.js";
+import { getSubagentProfile } from "../../src/capabilities/subagent/profiles.js";
+import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { handleLocalCommand, isExplicitExitCommand } from "../../src/ui/localCommands.js";
 
 test("agent registry exposes the core tool surface", () => {

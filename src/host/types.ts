@@ -1,7 +1,7 @@
 import type { ManagedTurnOptions } from "../agent/turn.js";
 import type { RunTurnResult, AgentCallbacks, AgentIdentity } from "../agent/types.js";
 import type { SessionStoreLike } from "../agent/session.js";
-import type { RegisteredTool, ToolRegistry } from "../tools/types.js";
+import type { RegisteredTool, ToolRegistry } from "../capabilities/tools/core/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 
 export interface HostToolRegistryOptions {

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { readFileTool } from "../../src/tools/files/readFileTool.js";
+import { readFileTool } from "../../src/capabilities/tools/packages/files/readFileTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 test("read_file decodes UTF-16LE text files with BOM so Unicode stays readable", async (t) => {

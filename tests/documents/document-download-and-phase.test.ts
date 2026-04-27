@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { evaluateAcceptanceState } from "../../src/agent/acceptance.js";
 import { createMessage, createToolMessage, MemorySessionStore } from "../../src/agent/session.js";
-import { downloadUrlTool } from "../../src/tools/network/downloadUrlTool.js";
+import { downloadUrlTool } from "../../src/capabilities/tools/packages/network/downloadUrlTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
 function createDocumentPrompt(): string {

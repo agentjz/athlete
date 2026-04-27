@@ -4,10 +4,10 @@ import path from "node:path";
 import test from "node:test";
 
 import type { RunTurnOptions, RunTurnResult } from "../../src/agent/types.js";
-import { MessageBus } from "../../src/team/messageBus.js";
+import { MessageBus } from "../../src/capabilities/team/messageBus.js";
 import { reconcileActiveExecutions } from "../../src/execution/reconcile.js";
-import { reconcileTeamState } from "../../src/team/reconcile.js";
-import { TeamStore } from "../../src/team/store.js";
+import { reconcileTeamState } from "../../src/capabilities/team/reconcile.js";
+import { TeamStore } from "../../src/capabilities/team/store.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { initGitRepo, createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 import { closeExecution } from "../../src/execution/closeout.js";

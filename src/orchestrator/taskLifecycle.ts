@@ -1,6 +1,6 @@
 import type { BackgroundJobRecord } from "../execution/background.js";
 import type { ExecutionRecord } from "../execution/types.js";
-import type { TeamMemberRecord } from "../team/types.js";
+import type { TeamMemberRecord } from "../capabilities/team/types.js";
 import type { WorktreeRecord } from "../worktrees/types.js";
 import type { OrchestratorTaskLifecycle, OrchestratorTaskSnapshot } from "./types.js";
 import { buildTaskHandoff, buildTaskLifecycle, leadActor, normalizeActorName, teammateActor } from "./taskLifecycleShared.js";

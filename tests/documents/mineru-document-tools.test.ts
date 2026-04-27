@@ -6,12 +6,12 @@ import test from "node:test";
 import AdmZip from "adm-zip";
 
 import { extractMarkdownFromMineruArchive } from "../../src/integrations/mineru/archive.js";
-import { inspectTextFile } from "../../src/tools/fileIntrospection.js";
-import { mineruDocReadTool } from "../../src/tools/documents/mineruDocReadTool.js";
-import { mineruImageReadTool } from "../../src/tools/documents/mineruImageReadTool.js";
-import { mineruPdfReadTool } from "../../src/tools/documents/mineruPdfReadTool.js";
-import { createToolRegistry } from "../../src/tools/registry.js";
-import { writeDocxTool } from "../../src/tools/documents/writeDocxTool.js";
+import { inspectTextFile } from "../../src/capabilities/tools/core/fileIntrospection.js";
+import { mineruDocReadTool } from "../../src/capabilities/tools/packages/documents/mineruDocReadTool.js";
+import { mineruImageReadTool } from "../../src/capabilities/tools/packages/documents/mineruImageReadTool.js";
+import { mineruPdfReadTool } from "../../src/capabilities/tools/packages/documents/mineruPdfReadTool.js";
+import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
+import { writeDocxTool } from "../../src/capabilities/tools/packages/documents/writeDocxTool.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 const IMAGE_PNG_BASE64 =

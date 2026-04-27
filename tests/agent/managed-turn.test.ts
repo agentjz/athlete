@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { getDefaultPlaywrightMcpConfig } from "../../src/mcp/playwright/config.js";
+import { getDefaultPlaywrightMcpConfig } from "../../src/capabilities/mcp/playwright/config.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace } from "../helpers.js";
 

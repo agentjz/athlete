@@ -1,6 +1,6 @@
 import type OpenAI from "openai";
 
-import type { FunctionToolDefinition } from "../../tools/index.js";
+import type { FunctionToolDefinition } from "../../capabilities/tools/index.js";
 import type { ModelReasoningEffort, ToolCallRecord } from "../../types.js";
 import type { AgentCallbacks, AssistantResponse } from "../types.js";
 import type { ModelRequestMetric } from "../runtimeMetrics.js";

@@ -1,6 +1,6 @@
-import type { McpConfig } from "./mcp/types.js";
+import type { McpConfig } from "./capabilities/mcp/types.js";
 import type { AcceptanceState } from "./types/acceptance.js";
-import type { LoadedSkill } from "./skills/types.js";
+import type { LoadedSkill } from "./capabilities/skills/types.js";
 import type { TelegramConfig, TelegramRuntimeConfig } from "./telegram/config.js";
 import type { RuntimeAgentModelRuntime } from "./config/agentModelTypes.js";
 import type { RuntimeTransition } from "./types/runtimeTransitions.js";
@@ -10,7 +10,7 @@ export type {
   SkillRuntimeState,
   SkillSelectionInput,
   SkillSelectionResult,
-} from "./skills/types.js";
+} from "./capabilities/skills/types.js";
 export type {
   AcceptanceCommandRequirement,
   AcceptanceContract,
