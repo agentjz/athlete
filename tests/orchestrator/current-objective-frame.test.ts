@@ -404,34 +404,22 @@ test("runtime lanes are capabilities, not delegation intent", async (t) => {
   assert.equal(slash.wantsSubagent, false);
 });
 
-test("lead cannot spawn delegation lanes unless the runtime lane is open", async (t) => {
-  const root = await createTempWorkspace("delegation-lane-gate", t);
+test("delegation tools are available to Lead by default", async (t) => {
+  const root = await createTempWorkspace("delegation-tools-default-open", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
 
-  const blockedTeammate = getPlanBlockedResult("spawn_teammate", "{}", session, { kind: "lead", name: "lead" });
-  const blockedSubagent = getPlanBlockedResult("task", "{}", session, { kind: "lead", name: "lead" });
-  assert.ok(blockedTeammate);
-  assert.ok(blockedSubagent);
-  assert.match(blockedTeammate.output, /DELEGATION_LANE_CLOSED/);
-  assert.match(blockedSubagent.output, /DELEGATION_LANE_CLOSED/);
-
-  const teamLane = await initializeTurnSession(session, "Demonstrate teammate delegation.", sessionStore, "team");
-  assert.equal(teamLane.taskState?.delegationDirective?.source, "none");
-  assert.equal(teamLane.taskState?.delegationCapabilities?.teammate, true);
-  assert.equal(teamLane.taskState?.delegationCapabilities?.subagent, false);
-  assert.equal(getPlanBlockedResult("spawn_teammate", "{}", teamLane, { kind: "lead", name: "lead" }), null);
-  const wrongLane = getPlanBlockedResult("task", "{}", teamLane, { kind: "lead", name: "lead" });
-  assert.ok(wrongLane);
-  assert.match(wrongLane.output, /DELEGATION_LANE_CLOSED/);
+  const framed = await initializeTurnSession(session, "Demonstrate teammate delegation.", sessionStore);
+  assert.equal(framed.taskState?.delegationDirective?.source, "none");
+  assert.equal(getPlanBlockedResult("spawn_teammate", "{}", framed, { kind: "lead", name: "lead" }), null);
+  assert.equal(getPlanBlockedResult("task", "{}", framed, { kind: "lead", name: "lead" }), null);
 });
 
-test("runtime lanes do not create orchestrator delegation intent", async (t) => {
-  const root = await createTempWorkspace("delegation-lane-orchestrator", t);
+test("available delegation capabilities do not create orchestrator delegation intent", async (t) => {
+  const root = await createTempWorkspace("delegation-capability-orchestrator", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
   const config = createTestRuntimeConfig(root);
-  config.agentLane = "allpeople";
 
   const analysis = analyzeOrchestratorInput({
     input: "Please inspect this issue.",
@@ -453,6 +441,4 @@ test("runtime lanes do not create orchestrator delegation intent", async (t) => 
   assert.equal(analysis.wantsTeammate, false);
   assert.equal(analysis.wantsSubagent, false);
   assert.equal(dispatched.session.taskState?.delegationDirective?.source, "none");
-  assert.equal(dispatched.session.taskState?.delegationCapabilities?.teammate, false);
-  assert.equal(dispatched.session.taskState?.delegationCapabilities?.subagent, false);
 });

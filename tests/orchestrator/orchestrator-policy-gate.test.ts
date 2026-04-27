@@ -36,8 +36,8 @@ test("F03: policy gate can reject delegation even when evaluator says it is nece
   assert.equal(outcome.reasonCode, "policy.concurrent_delegation_limit");
 });
 
-test("allpeople lane can fill the complementary agent lane without opening unlimited delegation", () => {
-  const teammateAfterSubagent = applyDelegationPolicyGate({
+test("policy gate does not keep lane-specific exceptions", () => {
+  const teammateWhileOneDelegationRuns = applyDelegationPolicyGate({
     decisionAction: "delegate_teammate",
     evaluation: createEvaluation({
       action: "delegate_teammate",
@@ -46,11 +46,10 @@ test("allpeople lane can fill the complementary agent lane without opening unlim
     }),
     mode: getDelegationModeProfile("balanced"),
     activeDelegationCount: 1,
-    activeDelegationProfiles: ["subagent"],
     returnBarrierPending: false,
-    allowDualAgentLanes: true,
   });
-  assert.equal(teammateAfterSubagent.allow, true);
+  assert.equal(teammateWhileOneDelegationRuns.allow, false);
+  assert.equal(teammateWhileOneDelegationRuns.reasonCode, "policy.concurrent_delegation_limit");
 
   const secondSubagent = applyDelegationPolicyGate({
     decisionAction: "delegate_subagent",
@@ -61,9 +60,7 @@ test("allpeople lane can fill the complementary agent lane without opening unlim
     }),
     mode: getDelegationModeProfile("balanced"),
     activeDelegationCount: 1,
-    activeDelegationProfiles: ["subagent"],
     returnBarrierPending: false,
-    allowDualAgentLanes: true,
   });
   assert.equal(secondSubagent.allow, false);
   assert.equal(secondSubagent.reasonCode, "policy.concurrent_delegation_limit");

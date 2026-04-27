@@ -44,7 +44,6 @@ export async function startInteractiveChat(
   (dependencies.writeIntro ?? ((context) => {
     writeCliInteractiveIntro({
       cwd: context.cwd,
-      config: context.config,
       session: context.session,
       output: context.shell.output,
     });

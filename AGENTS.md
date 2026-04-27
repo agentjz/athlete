@@ -1,115 +1,235 @@
-# Deadmouse Repository Working Rules
+# Deadmouse Agent Operating Constitution
 
-Always communicate with the user in Simplified Chinese throughout the whole task.
+Always communicate with the project owner in Simplified Chinese throughout the whole task.
 
-This file defines long-lived development rules for this repository.
+Communicate with the project owner briefly, efficiently, and directly. Avoid filler, ceremony, repeated summaries, and unnecessary explanation. Prefer the shortest answer that preserves correctness, runtime clarity, and actionable next steps.
 
-It is not a personality prompt or a one-off task note. It records the default workflow, boundaries, and closeout standards for this codebase.
+This file is written for models and agents working inside this repository. It is not a marketing document, not a human-friendly summary, and not a compatibility promise. It defines the hard operating constraints for developing Deadmouse.
 
-## 1. Source Of Truth
+## 0. Project Nature: Radical Capability Amplification
 
-- Accepted `spec` documents are the task source of truth.
-- Reviewed constitutional principle specs are the upstream source for repository-level principles.
-- When docs, tests, and code conflict, check `spec` and the constitutional principles first, then realign all three.
-- Do not accept "code first, docs later".
+Deadmouse is a radical, fast-evolving, experimental agent harness project.
 
-## 2. Default Path
+The purpose of this repository is to push model capability to the limit through harness design, runtime design, protocol design, execution evidence, and explicit machine/model boundaries. The project is not optimized for conservative product management, backward compatibility, cautious enterprise safety UX, permission theater, approval theater, or legacy stability.
 
-Default workflow:
+The central experiment is:
 
-`spec -> test -> implementation -> verification -> closeout`
+- Build a harness that can amplify both strong and weak models.
+- Force models to operate with clearer context, stronger protocols, better evidence, and less noise.
+- Let the model use the maximum available reasoning and decision capacity.
+- Use the machine layer to make execution durable, observable, verifiable, and recoverable.
+- Remove anything that weakens the current best architecture.
 
-Requirements:
+Do not treat this repository like a stable compatibility product. Treat it like an aggressive research and engineering system whose only acceptable direction is toward the strongest current design.
 
-- Understand objective, scope, constraints, acceptance criteria, failure criteria, boundaries, and out-of-scope items before implementing.
-- Prioritize the main path, main constraints, main risks, and main acceptance before details.
-- Prefer turning regression risk into a failing test, check script, or equivalent verification before implementation.
-- Do not call work complete without real verification.
+This does not authorize violating external platform, legal, or system-level constraints. It means this repository must not add its own conservative safety theater, artificial approvals, compatibility shims, or defensive UX that weakens the harness experiment.
 
-## 3. Design Principles
+## 1. Radical Evolution And No Compatibility
 
-- One file should do one thing.
-- Prefer simplicity, boundaries, and decoupling.
-- Simplicity is not conservatism; it is the basis for reliability, maintainability, and long-term evolution.
-- Do not split for splitting's sake, and do not force truly independent responsibilities back into a large file.
-- Main loops keep scheduling responsibility only; they must not absorb module details.
-- New features should grow in clear modules, directories, or formal extension points, not inside existing large files by default.
+Backward compatibility is not a default value in Deadmouse.
 
-References:
+When a new design is stronger, the old design must be removed. Do not keep old routes alive. Do not preserve old behavior for comfort. Do not keep legacy prompts, old flags, old modes, old tests, old docs, old fallback branches, old type names, old wrappers, old compatibility adapters, or stale concepts unless the project owner explicitly asks for a temporary compatibility layer in the current task.
 
-- The one-file-one-job product note.
-- Constitutional principle 18 about keeping main loops and files small.
+The default rule is:
 
-## 4. Extension Principles
+- Delete obsolete code.
+- Delete obsolete tests.
+- Delete obsolete docs.
+- Delete obsolete prompts.
+- Delete obsolete configuration.
+- Delete obsolete modes and switches.
+- Delete obsolete protocol names.
+- Delete obsolete runtime paths.
+- Delete obsolete compatibility shims.
 
-- New extensions should use formal extension points instead of adding more prompt prose.
-- Tool capabilities live under `src/tools/`.
-- Skill capabilities live under `src/skills/`.
-- MCP capabilities live under `src/mcp/`.
-- Host injection and runtime boundaries live under `src/host/`.
-- Host logic must not bypass into core internals as loose glue.
+Do not write code that supports both the new architecture and the old architecture. Do not add transitional branches unless explicitly requested. Do not let old concepts survive as aliases. Do not rename old residue and pretend it is new.
 
-Reference:
+If an implementation is wrong, weak, outdated, overgrown, or conceptually misaligned, clean it out. Sweep the house completely.
 
-- Constitutional principle 17 about growing through events.
+The expected pattern is:
 
-## 5. Prompt Rules
+`new truth -> update spec -> update tests -> replace implementation -> delete old residue -> verify full system`
 
-- The system prompt is a formal structure, not loose long-form prose.
-- Static and dynamic prompt boundaries live in:
-  - `src/agent/prompt/`
-  - `src/agent/promptSections.ts`
-- Personality, architecture thinking, execution contract, and runtime state must be organized by section.
-- When prompt structure, static blocks, dynamic blocks, or contract text changes, update related tests.
+## 2. Model And Machine Boundary
 
-Minimum check:
+Deadmouse treats the model as the brain and the machine layer as the runtime body.
 
-- `tests/agent/system-prompt-contract.test.ts`
+The model, especially Lead, owns live judgment and strategy:
 
-Also check when relevant:
+- Understand the user objective.
+- Decide whether to act directly.
+- Decide whether to use tools.
+- Decide whether to use teammates.
+- Decide whether to use subagents.
+- Decide whether to use workflows.
+- Decide how to decompose work.
+- Decide how to merge returned evidence.
+- Decide whether to continue, redirect, verify, or close out.
 
-- `tests/agent/runtime-lightweight-context.test.ts`
-- Other tests that directly depend on prompt text or metrics.
+The machine layer owns deterministic runtime responsibilities only:
 
-## 6. Verification And Closeout
+- Expose available capabilities.
+- Execute explicit model actions.
+- Record durable state.
+- Preserve evidence.
+- Enforce hard invariants.
+- Maintain ledgers.
+- Start and stop execution processes.
+- Wait for completion signals.
+- Wake Lead when execution facts change.
+- Validate facts against records and artifacts.
+- Fail closed when required data or invariants are missing.
 
-- Writing files is not the same as finishing the task.
-- Closeout must depend on real artifacts, commands, state, and verification, not model self-report.
-- If key verification fails, key files are missing, key behavior is unavailable, or key output is unreadable, do not finalize.
-- If the task gives an explicit acceptance or closeout contract, keep checking against it.
+The machine layer must never become a second brain.
 
-References:
+It must not:
 
-- Constitutional principle 19 about writing failure tests before implementation.
-- Constitutional principle 21 about not closing out without verification.
+- Decide the strategy.
+- Decide that a task is complex enough to delegate.
+- Auto-create teammates.
+- Auto-create subagents.
+- Auto-start workflows.
+- Auto-split tasks as a strategic decision.
+- Auto-merge results as a strategic decision.
+- Narrow the model's choices through hidden policy.
+- Convert capability availability into intent.
+- Replace Lead review with machine inference.
 
-## 7. Implementation Preferences
+Capability availability is not intent. Text that mentions a teammate, subagent, workflow, parallelism, research, audit, or complexity is not intent. Intent must come from the model through formal actions.
 
-- Reuse existing implementation, modules, tools, and mature patterns first.
-- Move in small steps, modify by blocks, and verify each block.
-- Do not bundle many unrelated changes into one large patch.
-- Do not treat plans as results, explanations as completion, or guesses as facts.
-- Keep docs, implementation, and tests aligned at every stage.
+Machine logic may block impossible or invalid execution states, but it must not choose the plan. Hard constraints are machine-owned; judgment is model-owned.
 
-## 8. Runtime Docs Rules
+## 3. Lead-Centered Execution Protocol
 
-- `runtime-docs/` records runtime stories and core mechanism explanations, not source-code manuals.
-- When Lead, team, subagent, tool, skill, MCP, background, ledger, loop guard, verification, or closeout semantics change, check whether `runtime-docs/` needs updates.
-- Explain runtime behavior through examples of what happens at runtime.
-- Examples must reflect the real mechanism: Lead steers, execution channels return to Lead, and the machine layer guards state, evidence, boundaries, and closeout.
-- Do not turn `runtime-docs/` into marketing copy, API listings, source path indexes, or slogans.
-- If implementation, spec, README, and `runtime-docs/` conflict, align docs with spec and code reality.
+Deadmouse is Lead-centered.
 
-## 9. Communication With The Project Owner
+Team, subagent, workflow, tool, skill, MCP, background execution, and future extension systems must enter through formal capability surfaces and return through formal handoff surfaces.
 
-- When discussing design, constraints, and issues with the owner, explain what happens at runtime first.
-- Start with a concrete scenario, then describe current behavior, then describe the ideal state.
-- Do not use source paths, interface names, or test names as the first explanation; use them later as evidence.
-- Detailed style guidance lives in `runtime-docs/07-user-and-developer-communication-style.md`.
+Build the general platform before building special cases. Concrete extensions such as development loops, audit loops, debate loops, verification loops, role packs, skill packs, and external agent adapters are specializations. They must be added on top of the general protocol platform, not baked into the core. The core must stay abstract enough to accept future extension ecosystems without redesign.
 
-## 10. Positioning
+The generic execution chain is:
 
-- This file only contains long-lived repository rules.
-- One-off task requirements belong in task prompts or related specs.
-- Module details belong in technical implementation specs or local module docs.
-- Personality, tone, and one-off slogans do not belong here.
+`Capability -> Assignment -> Execution -> Progress -> Closeout -> WakeSignal -> Lead`
+
+This chain is a protocol boundary, not a strategy engine.
+
+- `Capability` describes what is available.
+- `Assignment` states what Lead explicitly asked to execute.
+- `Execution` records what the machine actually created and ran.
+- `Progress` records runtime facts without stealing strategy.
+- `Closeout` hands results, evidence, verification, risks, and next suggestions back to Lead.
+- `WakeSignal` wakes Lead; it is only a doorbell, never a truth source.
+- `Lead` reads facts and decides the next move.
+
+Do not add new extension mechanisms that bypass this chain.
+
+Do not hide major execution behavior inside prompt prose. Do not grow extensions by scattering instructions across unrelated files. New capability types must use formal protocol surfaces and clear module boundaries.
+
+## 4. TDD-Driven Change Discipline
+
+Deadmouse is a TDD-driven project.
+
+When behavior changes, tests must lead or move together with the implementation. Do not treat tests as cleanup after coding. Do not rely on manual confidence when a contract can be captured by an automated test.
+
+The preferred development path is:
+
+`spec -> failing/updated test -> implementation -> full verification -> residue deletion -> closeout`
+
+For regressions, first encode the failure as a test whenever practical. For new protocol or runtime semantics, add or update contract tests before claiming the behavior exists. For deleted legacy behavior, delete or rewrite the old tests so they protect the new truth instead of preserving compatibility.
+
+TDD in this repository is not conservative. It is a weapon for radical evolution: tests should make the newest accepted architecture hard to regress and make obsolete behavior impossible to keep alive accidentally.
+
+## 5. Spec, Code, And Tests Must Converge
+
+Deadmouse evolves quickly, and new truth can emerge from direct conversation with the project owner. That is allowed.
+
+But every change must converge before closeout:
+
+- Specs must describe the current accepted truth.
+- Code must implement that truth.
+- Tests must protect the important contract.
+- Full verification must pass when the task changes behavior.
+
+Do not leave spec behind code. Do not leave tests protecting old behavior. Do not leave docs describing a dead design. Do not claim completion from explanation alone.
+
+When spec, code, and tests conflict, resolve the conflict immediately:
+
+1. Identify the newest accepted project truth.
+2. Update or delete stale specs.
+3. Update or delete stale tests.
+4. Replace the implementation.
+5. Remove old residue.
+6. Run real verification.
+
+Plans are not results. Explanations are not results. Compatibility is not correctness. A passing narrow check is not enough when the task requires full-system confidence.
+
+## 6. Source Of Truth
+
+Accepted `spec/` documents are the repository-level source of truth for product goals, technical contracts, boundaries, and acceptance rules.
+
+If the project owner establishes a new direction in conversation, that direction becomes the current working truth for the task. Before finalizing, encode that truth into the relevant spec, test, and implementation artifacts.
+
+Do not accept "code first, docs later" as a finished state. Temporary exploration is allowed during implementation, but closeout requires convergence.
+
+## 7. Verification And Closeout
+
+Writing files is not completion.
+
+A task is not complete until the repository state supports the claim with real artifacts:
+
+- Relevant files updated.
+- Old residue removed.
+- Tests updated.
+- Contract checks updated when needed.
+- Typecheck/build/test run when behavior changed.
+- Full test suite run when requested or when broad behavior changed.
+
+Closeout must depend on durable evidence, not model self-report.
+
+If verification fails, if key behavior is unavailable, if important output is unreadable, or if the implementation contradicts the accepted design, do not finalize. Fix the issue or clearly report the blocker.
+
+## 8. Design Discipline
+
+Radical does not mean sloppy.
+
+The architecture should be aggressive, but the implementation must be clean:
+
+- One module should own one responsibility.
+- Main loops schedule; they must not absorb feature details.
+- Protocols define boundaries; implementations plug into them.
+- Prefer explicit contracts over hidden prompt behavior.
+- Prefer deletion over compatibility branches.
+- Prefer small strong modules over large ambiguous files.
+- Prefer evidence over confidence.
+- Prefer the current truth over historical residue.
+
+Do not split files just to look clean. Do not merge unrelated responsibilities just to move fast. The goal is maximum capability through clear boundaries.
+
+## 9. Prompt And Runtime Surface Rules
+
+Prompts are part of the runtime contract.
+
+When prompt structure changes, update prompt tests. When runtime state shown to Lead changes, update related tests. When delegation, workflow, protocol, closeout, or machine/model boundary semantics change, update the specs and tests that protect those semantics.
+
+Do not solve architectural problems by adding loose prompt paragraphs. If a behavior needs to be durable, give it a formal protocol, tool, state record, or runtime boundary.
+
+## 10. Communication With The Project Owner
+
+Communicate with the project owner in Simplified Chinese.
+
+When explaining design, start with runtime behavior in plain language:
+
+1. Give a concrete scenario.
+2. Explain what happens now.
+3. Explain the ideal behavior.
+4. Only then cite files, types, tests, or implementation details.
+
+The owner cares about runtime truth, not decorative abstractions. Be direct, concrete, and concise.
+
+## 11. Final Rule
+
+Always move Deadmouse toward the strongest current architecture.
+
+If something is old, weak, wrong, conservative, redundant, compatibility-only, or conceptually dead, remove it.
+
+If something strengthens the model, clarifies the harness, sharpens the protocol, improves evidence, or protects the model/machine boundary, build it cleanly and verify it.

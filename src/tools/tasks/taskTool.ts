@@ -21,9 +21,17 @@ export const taskTool: RegisteredTool = {
             type: "string",
             description: "Short task name for progress tracking.",
           },
-          prompt: {
+          objective: {
             type: "string",
-            description: "Detailed instructions for the delegated subagent.",
+            description: "AssignmentContract objective for the delegated subagent.",
+          },
+          scope: {
+            type: "string",
+            description: "AssignmentContract scope boundary.",
+          },
+          expected_output: {
+            type: "string",
+            description: "AssignmentContract expected output.",
           },
           agent_type: {
             type: "string",
@@ -31,7 +39,7 @@ export const taskTool: RegisteredTool = {
             description: "Subagent capability profile to use.",
           },
         },
-        required: ["description", "prompt", "agent_type"],
+        required: ["description", "objective", "scope", "expected_output", "agent_type"],
         additionalProperties: false,
       },
     },
@@ -43,14 +51,18 @@ export const taskTool: RegisteredTool = {
 
     const args = parseArgs(rawArgs);
     const description = readString(args.description, "description");
-    const prompt = readString(args.prompt, "prompt");
+    const objective = readString(args.objective, "objective");
+    const scope = readString(args.scope, "scope");
+    const expectedOutput = readString(args.expected_output, "expected_output");
     const agentType = readString(args.agent_type, "agent_type");
     const { execution, pid } = await launchSubagentWorkerExecution({
       rootDir: context.projectContext.stateRootDir,
       cwd: context.cwd,
       config: context.config,
       description,
-      prompt,
+      objective,
+      scope,
+      expectedOutput,
       agentType,
       requestedBy: "lead",
       objectiveKey: context.currentObjective?.key,
@@ -73,6 +85,11 @@ export const taskTool: RegisteredTool = {
       description,
       agentType,
       executionId: execution.id,
+      protocol: {
+        assignment: "deadmouse.assignment.v1",
+        closeout: "deadmouse.closeout.v1",
+        wakeSignal: "deadmouse.wake-signal.v1",
+      },
       pid,
       nextAction: "Lead must monitor the execution closeout/inbox and reconcile the result before declaring completion.",
       boundary: execution.boundary,

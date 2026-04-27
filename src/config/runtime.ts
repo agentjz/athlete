@@ -98,7 +98,6 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
 
   return {
     ...merged,
-    agentLane: overrides.agentLane ?? "lead",
     apiKey: process.env.DEADMOUSE_API_KEY ?? "",
     agentModelOverrides,
     agentModels: resolveRuntimeAgentModels({

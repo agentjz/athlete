@@ -35,9 +35,6 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
       },
     })
     .option("-m, --model <model>", "Override the configured model")
-    .option("--team", "Open teammate execution lane for this CLI session")
-    .option("--subagent", "Open subagent execution lane for this CLI session")
-    .option("--allpeople", "Open teammate and subagent execution lanes for this CLI session")
     .option("-C, --cwd <path>", "Working directory for this run");
 
   program

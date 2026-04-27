@@ -14,6 +14,10 @@ import { BackgroundJobStore, reconcileBackgroundJobs } from "../execution/backgr
 import { summarizeAgentExecutionsForPrompt } from "../execution/promptSummary.js";
 import { buildOrchestratorObjective } from "../orchestrator/metadata.js";
 import { WorktreeStore } from "../worktrees/store.js";
+import { formatCapabilityRegistryForLead } from "../protocol/registry.js";
+import { listSubagentCapabilityProfiles } from "../subagent/profiles.js";
+import { getTeamCapabilityProfile } from "../team/profiles.js";
+import { listWorkflowProfiles } from "../workflows/registry.js";
 
 export function shouldYieldTurn(yieldAfterToolSteps: number | undefined, iteration: number): boolean {
   return typeof yieldAfterToolSteps === "number" && Number.isFinite(yieldAfterToolSteps) && yieldAfterToolSteps > 0
@@ -91,5 +95,10 @@ export async function loadPromptRuntimeState(
     backgroundSummary,
     protocolSummary,
     coordinationPolicySummary,
+    capabilitySummary: identity.kind === "lead" ? formatCapabilityRegistryForLead([
+      { listCapabilityProfiles: listSubagentCapabilityProfiles },
+      { listCapabilityProfiles: () => [getTeamCapabilityProfile()] },
+      { listCapabilityProfiles: listWorkflowProfiles },
+    ]) : undefined,
   };
 }

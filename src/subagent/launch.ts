@@ -11,7 +11,9 @@ export interface LaunchSubagentWorkerExecutionOptions {
   cwd: string;
   config: RuntimeConfig;
   description: string;
-  prompt: string;
+  objective: string;
+  scope: string;
+  expectedOutput: string;
   agentType: string;
   requestedBy?: string;
   taskId?: number;
@@ -48,7 +50,10 @@ export async function launchSubagentWorkerExecution(
     objectiveKey: options.objectiveKey,
     objectiveText: options.objectiveText,
     cwd: options.cwd,
-    prompt: buildSubagentAssignment(options.description, options.prompt, profile),
+    prompt: buildSubagentAssignment(options.description, options.objective, profile, {
+      scope: options.scope,
+      expectedOutput: options.expectedOutput,
+    }),
     worktreePolicy: options.worktreePolicy ?? "none",
   });
   const spawnExecutionWorker = deps.spawnExecutionWorker ?? defaultSpawnExecutionWorker;

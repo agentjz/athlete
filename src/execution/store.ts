@@ -1,6 +1,6 @@
 import { withProjectLedger } from "../control/ledger/open.js";
 import { ExecutionLedgerRepo } from "../control/ledger/executionRepo.js";
-import { publishExecutionClosedEvent } from "./events.js";
+import { publishExecutionWakeSignal, type WakeSignalReason } from "../protocol/wakeSignal.js";
 import type { ExecutionCloseInput, ExecutionRecord, ExecutionStartInput } from "./types.js";
 
 export class ExecutionStore {
@@ -41,7 +41,10 @@ export class ExecutionStore {
 
   async close(executionId: string, input: ExecutionCloseInput): Promise<ExecutionRecord> {
     const closed = await withProjectLedger(this.rootDir, ({ db }) => new ExecutionLedgerRepo(db).close(executionId, input));
-    await publishExecutionClosedEvent(this.rootDir, closed);
+    await publishExecutionWakeSignal(this.rootDir, {
+      executionId: closed.id,
+      reason: toWakeSignalReason(closed.status),
+    });
     return closed;
   }
 
@@ -77,4 +80,20 @@ export class ExecutionStore {
       return true;
     });
   }
+}
+
+function toWakeSignalReason(status: ExecutionRecord["status"]): WakeSignalReason {
+  if (status === "completed") {
+    return "completed";
+  }
+  if (status === "failed") {
+    return "failed";
+  }
+  if (status === "aborted") {
+    return "aborted";
+  }
+  if (status === "paused") {
+    return "paused";
+  }
+  return "failed";
 }

@@ -19,7 +19,9 @@ test("launchSubagentWorkerExecution creates a worker-backed subagent execution",
     cwd: root,
     config,
     description: "survey execution model",
-    prompt: "Find the concrete execution path and report facts.",
+    objective: "Find the concrete execution path and report facts.",
+    scope: "Subagent launch path only.",
+    expectedOutput: "CloseoutContract with facts.",
     agentType: "explore",
     taskId: task.id,
     actorName: `subagent-${task.id}`,
@@ -53,7 +55,9 @@ test("task tool launches a subagent execution and returns a Lead handoff", async
   const result = await taskTool.execute(
     JSON.stringify({
       description: "inspect dispatch",
-      prompt: "Check whether dispatch is worker-backed.",
+      objective: "Check whether dispatch is worker-backed.",
+      scope: "Task tool dispatch path only.",
+      expected_output: "CloseoutContract with worker evidence.",
       agent_type: "explore",
     }),
     makeToolContext(root) as unknown as ToolContext,
@@ -79,7 +83,9 @@ test("task tool blocks non-Lead agents from spawning nested command paths", asyn
     () => taskTool.execute(
       JSON.stringify({
         description: "nested work",
-        prompt: "Try to create another execution channel.",
+        objective: "Try to create another execution channel.",
+        scope: "Nested dispatch guard only.",
+        expected_output: "CloseoutContract with guard result.",
         agent_type: "explore",
       }),
       makeToolContext(root, root, {

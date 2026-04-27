@@ -1,4 +1,4 @@
-import type { AgentLane, AppConfig, CliOverrides } from "../types.js";
+import type { AppConfig, CliOverrides } from "../types.js";
 import { tryParseJson } from "../utils/json.js";
 
 export const APP_CONFIG_KEYS = [
@@ -105,7 +105,6 @@ export function extractCliOverrides(options: Record<string, unknown>): CliOverri
   return {
     cwd: typeof options.cwd === "string" ? options.cwd : undefined,
     model: typeof options.model === "string" ? options.model : undefined,
-    agentLane: normalizeAgentLaneOverride(options),
   };
 }
 
@@ -117,18 +116,3 @@ export function truncateCliValue(value: string, maxChars: number): string {
   return `${value.slice(0, maxChars)}...`;
 }
 
-function normalizeAgentLaneOverride(options: Record<string, unknown>): AgentLane | undefined {
-  if (options.allpeople === true) {
-    return "allpeople";
-  }
-  if (options.team === true && options.subagent === true) {
-    return "allpeople";
-  }
-  if (options.team === true) {
-    return "team";
-  }
-  if (options.subagent === true) {
-    return "subagent";
-  }
-  return undefined;
-}

@@ -32,25 +32,25 @@ test("F02: keyword-only parallel wording does not auto-trigger teammate delegati
   );
 });
 
-test("runtime subagent lane alone does not launch the subagent lane", async (t) => {
-  const root = await createTempWorkspace("delegation-trigger-runtime-subagent", t);
+test("available subagent capability alone does not launch a subagent", async (t) => {
+  const root = await createTempWorkspace("delegation-trigger-subagent-available", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
 
-  const decision = await decide(root, sessionStore, session, "Inspect the runtime closeout path and report evidence.", "subagent");
+  const decision = await decide(root, sessionStore, session, "Inspect the runtime closeout path and report evidence.");
 
   assert.equal(decision.action, "self_execute");
 });
 
-test("runtime team lane alone does not create a teammate", async (t) => {
-  const root = await createTempWorkspace("delegation-trigger-runtime-team", t);
+test("available team capability alone does not create a teammate", async (t) => {
+  const root = await createTempWorkspace("delegation-trigger-team-available", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
 
   const prepared = await prepareLeadTurn({
     input: "Please ask a teammate to inspect a webpage and report back.",
     cwd: root,
-    config: { ...createTestRuntimeConfig(root), agentLane: "team" },
+    config: createTestRuntimeConfig(root),
     session,
     sessionStore,
     deps: {
@@ -67,12 +67,11 @@ async function decide(
   sessionStore: MemorySessionStore,
   session: Awaited<ReturnType<MemorySessionStore["create"]>>,
   input: string,
-  agentLane: "lead" | "team" | "subagent" | "allpeople" = "lead",
 ): Promise<OrchestratorDecision> {
   const prepared = await prepareLeadTurn({
     input,
     cwd: root,
-    config: { ...createTestRuntimeConfig(root), agentLane },
+    config: createTestRuntimeConfig(root),
     session,
     sessionStore,
     deps: {

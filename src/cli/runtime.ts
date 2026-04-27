@@ -19,7 +19,6 @@ export async function resolveCliRuntime(overrides: CliOverrides): Promise<{
   const config = await resolveRuntimeConfig({
     cwd,
     model: overrides.model,
-    agentLane: overrides.agentLane,
   });
   installCrashRecorder({
     rootDir: projectRoots.stateRootDir,

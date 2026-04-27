@@ -140,8 +140,9 @@ test("system prompt keeps orchestration guidance at the principle level instead 
     ),
   );
 
-  assert.match(prompt, /Use the task board, coordination policy, protocol tools, background jobs, and worktrees/i);
-  assert.match(prompt, /only when the current user objective or runtime state actually opens that path/i);
+  assert.match(prompt, /Team, subagent, workflow, task board, coordination policy, protocol tools, background jobs, and worktrees are available by default/i);
+  assert.match(prompt, /Lead decides whether to use those capabilities for the current objective/i);
+  assert.match(prompt, /machine layer exposes, records, waits, and enforces hard boundaries without making that decision/i);
   assert.doesNotMatch(prompt, /delegate-first/i);
   assert.doesNotMatch(prompt, /delegate_subagent|delegate_teammate|run_in_background/);
   assert.doesNotMatch(prompt, /ready\.teammate_reserved|blocked\.missing_background_job|active\.background_running/);

@@ -2,6 +2,7 @@ import { spawnExecutionWorker } from "../../execution/launch.js";
 import { ExecutionStore } from "../../execution/store.js";
 import { reconcileTeamState } from "../../team/reconcile.js";
 import { TeamStore } from "../../team/store.js";
+import { buildTeammateAssignment } from "../../team/profiles.js";
 import { TaskStore } from "../../tasks/store.js";
 import { okResult, parseArgs, readOptionalNumber, readString } from "../shared.js";
 import type { RegisteredTool } from "../types.js";
@@ -24,16 +25,24 @@ export const spawnTeammateTool: RegisteredTool = {
             type: "string",
             description: "Teammate role description.",
           },
-          prompt: {
+          objective: {
             type: "string",
-            description: "Initial teammate assignment.",
+            description: "AssignmentContract objective for the teammate.",
+          },
+          scope: {
+            type: "string",
+            description: "AssignmentContract scope boundary.",
+          },
+          expected_output: {
+            type: "string",
+            description: "AssignmentContract expected output.",
           },
           task_id: {
             type: "number",
             description: "Optional task id to reserve for this teammate before it starts running.",
           },
         },
-        required: ["name", "role", "prompt"],
+        required: ["name", "role", "objective", "scope", "expected_output"],
         additionalProperties: false,
       },
     },
@@ -46,7 +55,9 @@ export const spawnTeammateTool: RegisteredTool = {
     const args = parseArgs(rawArgs);
     const name = readString(args.name, "name");
     const role = readString(args.role, "role");
-    const prompt = readString(args.prompt, "prompt");
+    const objective = readString(args.objective, "objective");
+    const scope = readString(args.scope, "scope");
+    const expectedOutput = readString(args.expected_output, "expected_output");
     const taskId = readOptionalNumber(args.task_id);
     await reconcileTeamState(context.projectContext.stateRootDir).catch(() => null);
     const teamStore = new TeamStore(context.projectContext.stateRootDir);
@@ -79,7 +90,7 @@ export const spawnTeammateTool: RegisteredTool = {
         objectiveKey: context.currentObjective?.key,
         objectiveText: context.currentObjective?.text,
         cwd: context.cwd,
-        prompt,
+        prompt: buildTeammateAssignment({ name, role, objective, scope, expectedOutput }),
         worktreePolicy: reservedTaskId ? "task" : "none",
       });
       executionId = execution.id;
@@ -128,6 +139,11 @@ export const spawnTeammateTool: RegisteredTool = {
           ok: true,
           member,
           executionId,
+          protocol: {
+            assignment: "deadmouse.assignment.v1",
+            closeout: "deadmouse.closeout.v1",
+            wakeSignal: "deadmouse.wake-signal.v1",
+          },
           reservedTaskId,
           collaboration,
           preview: `Spawned '${name}' (${role}) pid=${pid}${reservedTaskId ? ` task=${reservedTaskId}` : ""}`,

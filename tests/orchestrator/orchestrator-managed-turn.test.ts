@@ -180,8 +180,8 @@ test("runManagedAgentTurn waits silently in the machine layer for active delegat
   assert.match(String(seenInputs[0]), /Run the validation suite in the background/i);
 });
 
-test("runManagedAgentTurn does not auto-configure teammates just because team lane is open", async (t) => {
-  const root = await createTempWorkspace("orchestrator-team-lane-no-auto-decision", t);
+test("runManagedAgentTurn does not auto-configure teammates just because capability is available", async (t) => {
+  const root = await createTempWorkspace("orchestrator-team-capability-no-auto-decision", t);
   await initGitRepo(root);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -191,7 +191,7 @@ test("runManagedAgentTurn does not auto-configure teammates just because team la
   const result = await runManagedAgentTurn({
     input: "Please ask a teammate to inspect a webpage and report back.",
     cwd: root,
-    config: { ...createTestRuntimeConfig(root), agentLane: "team" },
+    config: createTestRuntimeConfig(root),
     session,
     sessionStore,
     runSlice: async (options) => {

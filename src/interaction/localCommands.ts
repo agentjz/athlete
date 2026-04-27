@@ -99,7 +99,7 @@ export async function handleLocalCommand(
   }
 
   if (CONFIG_COMMANDS.has(normalized)) {
-    output.info(`model=${context.config.model} lane=${context.config.agentLane} baseUrl=${context.config.baseUrl}`);
+    output.info(`model=${context.config.model} baseUrl=${context.config.baseUrl}`);
     return "handled";
   }
 

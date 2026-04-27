@@ -52,7 +52,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   if (!modelConfig.apiKey) {
     throw new Error(`Missing API key for ${identity.kind} model profile. Open the project's .env file and add the matching DEADMOUSE_${identity.kind.toUpperCase()}_API_KEY or DEADMOUSE_API_KEY.`);
   }
-  let session = await initializeTurnSession(options.session, options.input, options.sessionStore, options.config.agentLane);
+  let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
   const client = createProviderClientPool(modelConfig);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));

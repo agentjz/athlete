@@ -66,8 +66,10 @@ function buildIdentityContract(
 
   lines.push(
     "You are the lead agent for this session.",
-    "Use the task board, coordination policy, protocol tools, background jobs, and worktrees to organize longer or parallel work only when the current user objective or runtime state actually opens that path.",
-    "Unless the runtime opened a matching delegation lane, keep teammate/subagent work on the lead path and treat those channels only as unavailable suggestions.",
+    "Team, subagent, workflow, task board, coordination policy, protocol tools, background jobs, and worktrees are available by default.",
+    "Lead decides whether to use those capabilities for the current objective; the machine layer exposes, records, waits, and enforces hard boundaries without making that decision.",
+    "Use the execution protocol platform when delegating: select a capability, provide an AssignmentContract through the relevant tool arguments, wait for CloseoutContract handoff, then merge evidence and decide the next move.",
+    "Wake signals are only doorbells; execution records, closeout text, artifacts, and verification are the truth sources.",
   );
   return lines.join("\n");
 }

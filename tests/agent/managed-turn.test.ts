@@ -44,7 +44,6 @@ function createConfig(): RuntimeConfig {
     },
     baseUrl: "https://api.deepseek.com",
     model: "deepseek-v4-flash",
-    agentLane: "lead",
     yieldAfterToolSteps: 5,
     contextWindowMessages: 30,
     maxContextChars: 48_000,

@@ -33,7 +33,6 @@ export function registerDoctorCommand(
       ui.info(`leadProvider: ${runtime.config.agentModels.lead.provider}`);
       ui.info(`leadModel: ${runtime.config.agentModels.lead.model}`);
       ui.info(`leadBaseUrl: ${runtime.config.agentModels.lead.baseUrl}`);
-      ui.info(`agentLane: ${runtime.config.agentLane}`);
 
       if (!runtime.config.agentModels.lead.apiKey.trim()) {
         throw new Error(

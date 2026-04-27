@@ -1,6 +1,5 @@
 import type { SessionRecord, StoredMessage, TaskState } from "../../types.js";
-import type { AgentLane } from "../../types.js";
-import { delegationCapabilitiesFromLane, normalizeDelegationCapabilities, normalizeDelegationDirective } from "./delegationDirective.js";
+import { normalizeDelegationDirective } from "./delegationDirective.js";
 import { collectActiveFiles, collectBlockers, collectCompletedActions, collectPlannedActions, oneLine, truncate } from "./taskStateHistory.js";
 
 const MAX_ACTIVE_FILES = 12;
@@ -12,7 +11,6 @@ const INTERNAL_PREFIX = "[internal]";
 export function createEmptyTaskState(timestamp = new Date().toISOString()): TaskState {
   return {
     delegationDirective: normalizeDelegationDirective(undefined),
-    delegationCapabilities: normalizeDelegationCapabilities(undefined),
     activeFiles: [],
     plannedActions: [],
     completedActions: [],
@@ -26,7 +24,6 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   const currentTurn = findCurrentTurn(messages);
   const objective = currentTurn?.objective ?? previous?.objective;
   const delegationDirective = normalizeDelegationDirective(previous?.delegationDirective ?? currentTurn?.delegationDirective);
-  const delegationCapabilities = normalizeDelegationCapabilities(previous?.delegationCapabilities);
   const frameMessages = currentTurn ? messages.slice(currentTurn.startIndex) : messages;
   const objectiveChanged =
     typeof previous?.objective === "string" &&
@@ -37,7 +34,6 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
     return {
       objective,
       delegationDirective,
-      delegationCapabilities,
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
@@ -50,7 +46,6 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   return {
     objective,
     delegationDirective,
-    delegationCapabilities,
     activeFiles: takeLastUnique(collectActiveFiles(frameMessages), MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(collectPlannedActions(frameMessages), MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(collectCompletedActions(frameMessages), MAX_COMPLETED_ACTIONS),
@@ -68,7 +63,6 @@ export function normalizeTaskState(taskState: TaskState | undefined): TaskState 
   return {
     objective: typeof taskState.objective === "string" ? taskState.objective : undefined,
     delegationDirective: normalizeDelegationDirective(taskState.delegationDirective),
-    delegationCapabilities: normalizeDelegationCapabilities(taskState.delegationCapabilities),
     activeFiles: takeLastUnique(taskState.activeFiles ?? [], MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(taskState.plannedActions ?? [], MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(taskState.completedActions ?? [], MAX_COMPLETED_ACTIONS),
@@ -134,7 +128,6 @@ export function normalizeSessionRecord(session: SessionRecord): SessionRecord {
 export function applyCurrentTurnFrame(
   session: SessionRecord,
   input: string,
-  agentLane: AgentLane = "lead",
   timestamp = new Date().toISOString(),
 ): SessionRecord {
   if (isInternalMessage(input) || isContinuationDirective(input)) {
@@ -151,7 +144,6 @@ export function applyCurrentTurnFrame(
     taskState: {
       objective,
       delegationDirective: normalizeDelegationDirective(undefined),
-      delegationCapabilities: delegationCapabilitiesFromLane(agentLane),
       activeFiles: [],
       plannedActions: [],
       completedActions: [],

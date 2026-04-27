@@ -1,10 +1,10 @@
 import { loadProjectContext } from "../../context/projectContext.js";
-import { snapshotExecutionEventCursor, waitForExecutionEventAfter } from "../../execution/events.js";
 import { reconcileActiveExecutions } from "../../execution/reconcile.js";
 import { ExecutionStore } from "../../execution/store.js";
 import type { ExecutionRecord } from "../../execution/types.js";
 import { buildOrchestratorObjective, readOrchestratorTask } from "../../orchestrator/metadata.js";
 import type { OrchestratorTaskSnapshot } from "../../orchestrator/types.js";
+import { snapshotExecutionWakeSignal, waitForExecutionWakeSignalChange } from "../../protocol/wakeSignal.js";
 import { TaskStore } from "../../tasks/store.js";
 import { throwIfAborted } from "../../utils/abort.js";
 
@@ -17,13 +17,13 @@ export async function waitForDelegatedWorkToSettle(input: {
 
   for (;;) {
     throwIfAborted(input.abortSignal, "Delegated work wait was aborted.");
-    const cursor = await snapshotExecutionEventCursor(context.stateRootDir);
+    const snapshot = await snapshotExecutionWakeSignal(context.stateRootDir);
     if (!await hasActiveDelegatedWork(input.cwd, input.objectiveText, context.stateRootDir)) {
       return;
     }
-    await waitForExecutionEventAfter({
+    await waitForExecutionWakeSignalChange({
       rootDir: context.stateRootDir,
-      cursor,
+      snapshot,
       abortSignal: input.abortSignal,
     });
   }

@@ -1,6 +1,6 @@
 export type ExecutionLane = "agent" | "command";
 
-export type ExecutionProfile = "subagent" | "teammate" | "background";
+export type ExecutionProfile = "subagent" | "teammate" | "background" | "workflow";
 
 export type ExecutionLaunchMode = "worker";
 

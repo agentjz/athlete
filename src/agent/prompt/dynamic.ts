@@ -49,6 +49,7 @@ export function buildDynamicPromptBlocks(input: DynamicPromptInput): string[] {
     buildVerificationBlock(input.verificationState),
     buildAcceptanceBlock(input.acceptanceState),
     buildCheckpointBlock(input.checkpoint),
+    isSubagent ? undefined : buildCapabilityBlock(input.runtimeState),
     isSubagent ? undefined : buildCoordinationBlock(input.runtimeState),
     buildSkillBlock(input.projectContext.skills, input.skillRuntimeState),
   ].filter((block): block is string => Boolean(block));
@@ -219,6 +220,12 @@ function buildCoordinationBlock(runtimeState: PromptRuntimeState): string | unde
   ].filter((section): section is NonNullable<typeof section> => Boolean(section));
 
   return buildSectionedListBlock("Coordination state", sections);
+}
+
+function buildCapabilityBlock(runtimeState: PromptRuntimeState): string | undefined {
+  return runtimeState.capabilitySummary
+    ? formatPromptBlock("Available capability registry", runtimeState.capabilitySummary)
+    : undefined;
 }
 
 function buildSkillBlock(

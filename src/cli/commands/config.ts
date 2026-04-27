@@ -36,7 +36,6 @@ export function registerConfigCommands(
             provider: runtime.config.provider,
             model: runtime.config.model,
             thinking: runtime.config.thinking,
-            agentLane: runtime.config.agentLane,
             baseUrl: runtime.config.baseUrl,
             pathAccess: "unrestricted",
             apiKey: runtime.config.apiKey ? "set" : "missing",

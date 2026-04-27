@@ -15,6 +15,10 @@ const DEFAULTS: Record<ExecutionProfile, { maxRuntimeMs: number; maxIdleMs: numb
     maxRuntimeMs: 120_000,
     maxIdleMs: 30_000,
   },
+  workflow: {
+    maxRuntimeMs: 900_000,
+    maxIdleMs: 180_000,
+  },
 };
 
 const MIN_RUNTIME_MS = 1_000;

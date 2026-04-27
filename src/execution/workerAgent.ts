@@ -11,6 +11,7 @@ import { createToolRegistry } from "../tools/index.js";
 import type { RuntimeConfig, StoredMessage } from "../types.js";
 import { runWithinAgentExecutionBoundary } from "./agentBoundary.js";
 import { closeExecution } from "./closeout.js";
+import { normalizeCloseoutText } from "../protocol/closeout.js";
 import { ExecutionStore } from "./store.js";
 import { prepareExecutionTaskContext } from "./taskBinding.js";
 import { recordExecutionStarted } from "./workerObservability.js";
@@ -102,7 +103,7 @@ export async function runAgentExecution(rootDir: string, config: RuntimeConfig, 
       summary: result.paused
         ? result.pauseReason || `${execution.profile} execution paused`
         : `${execution.profile} execution completed`,
-      resultText: readLatestAssistantText(result.session.messages),
+      resultText: normalizeCloseoutText(readLatestAssistantText(result.session.messages)),
       pauseReason: result.pauseReason,
     });
   } catch (error) {

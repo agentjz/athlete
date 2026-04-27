@@ -130,7 +130,9 @@ test("spawn and send_message expose explicit collaboration surface contracts", a
     JSON.stringify({
       name: "alpha",
       role: "implementer",
-      prompt: "Implement task #1",
+      objective: "Implement task #1",
+      scope: "Task #1 only.",
+      expected_output: "CloseoutContract with implementation evidence.",
     }),
     leadContext,
   );

@@ -54,7 +54,6 @@ export type {
   RuntimeYieldTransition,
 } from "./types/runtimeTransitions.js";
 export type DelegationMode = "fast" | "balanced" | "deep";
-export type AgentLane = "lead" | "team" | "subagent" | "allpeople";
 export type ModelThinkingMode = "enabled" | "disabled";
 export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -98,7 +97,6 @@ export interface AppConfig {
 }
 
 export interface RuntimeConfig extends AppConfig, RuntimeAgentModelRuntime {
-  agentLane: AgentLane;
   mineru: MineruRuntimeConfig;
   paths: AppPaths;
   telegram: TelegramRuntimeConfig;
@@ -107,7 +105,6 @@ export interface RuntimeConfig extends AppConfig, RuntimeAgentModelRuntime {
 export interface CliOverrides {
   cwd?: string;
   model?: string;
-  agentLane?: AgentLane;
 }
 
 export interface ToolCallRecord {
@@ -465,7 +462,6 @@ export interface MineruRuntimeConfig {
 export interface TaskState {
   objective?: string;
   delegationDirective?: { teammate: boolean; subagent: boolean; source: "none" | "model_decision" };
-  delegationCapabilities?: { teammate: boolean; subagent: boolean };
   activeFiles: string[];
   plannedActions: string[];
   completedActions: string[];

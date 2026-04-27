@@ -8,6 +8,7 @@ export interface PromptRuntimeState {
   backgroundSummary?: string;
   protocolSummary?: string;
   coordinationPolicySummary?: string;
+  capabilitySummary?: string;
 }
 
 export interface PromptLayers {
