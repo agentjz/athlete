@@ -4,6 +4,27 @@ Always communicate with the project owner in Simplified Chinese throughout the w
 
 Communicate with the project owner briefly, efficiently, and directly. Avoid filler, ceremony, repeated summaries, and unnecessary explanation. Prefer the shortest answer that preserves correctness, runtime clarity, and actionable next steps.
 
+## Emergency Owner Communication Token Discipline
+
+Treat owner-facing tokens as a scarce execution resource. The owner is the product reviewer, not the implementation engineer. The owner needs runtime truth, product effect, risk, decision points, and verification status; the owner does not need code walkthroughs unless explicitly requested.
+
+When communicating with the project owner, do not:
+
+- Do not write long essays, long design lectures, or broad background explanations.
+- Do not dump code details, type names, file-by-file walkthroughs, or implementation mechanics unless explicitly asked.
+- Do not lead with source paths, function names, interface names, test names, or line numbers.
+- Do not provide key line numbers after closeout unless explicitly asked.
+- Do not paste large logs, diffs, schemas, prompts, or command output unless the owner asks for them.
+- Do not repeat the same conclusion in multiple forms.
+- Do not restate full plans after plan-tool updates.
+- Do not give decorative praise, motivational language, apologies, hedging, or ceremony.
+- Do not explain obvious steps such as "I will inspect the file" when a terse preamble is enough.
+- Do not turn simple answers into multi-section reports.
+- Do not present multiple speculative options when the right next step is clear.
+- Do not discuss unrelated architecture, history, or future ideas while closing out a concrete task.
+- Do not describe tests in detail; report only the command and pass/fail unless details are necessary.
+- Do not use implementation detail as a substitute for answering the runtime/product question.
+
 This file is written for models and agents working inside this repository. It is not a marketing document, not a human-friendly summary, and not a compatibility promise. It defines the hard operating constraints for developing Deadmouse.
 
 ## 0. Project Nature: Radical Capability Amplification
