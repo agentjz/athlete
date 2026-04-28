@@ -53,7 +53,7 @@ export function createTelegramSendFileTool(options: {
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     async execute(rawArgs, context) {
       const args = parseArgs(rawArgs);

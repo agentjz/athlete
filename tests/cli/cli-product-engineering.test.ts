@@ -50,7 +50,7 @@ test("CLI config path stays available even when runtime resolution would fail", 
   });
 });
 
-test("legacy versionless config is rewritten to the current schema version", async () => {
+test("config files without schemaVersion fail closed instead of being upgraded", async () => {
   await withTempAppDirs(async () => {
     const paths = getAppPaths();
     await fs.mkdir(path.dirname(paths.configFile), { recursive: true });
@@ -67,11 +67,15 @@ test("legacy versionless config is rewritten to the current schema version", asy
       "utf8",
     );
 
-    const loaded = await loadConfig();
-    const rewritten = JSON.parse(await fs.readFile(paths.configFile, "utf8")) as Record<string, unknown>;
-
-    assert.equal((loaded as any).schemaVersion, 1);
-    assert.equal(rewritten.schemaVersion, 1);
+    await assert.rejects(
+      () => loadConfig(),
+      (error: unknown) => {
+        const message = String((error as Error).message ?? error);
+        assert.match(message, /schema.?version/i);
+        assert.match(message, /config\.json/i);
+        return true;
+      },
+    );
   });
 });
 

@@ -44,7 +44,7 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
   };
 }
@@ -173,7 +173,7 @@ test("run_shell blocks direct shell file reads and routes them back to read_file
   assert.equal(result.metadata?.protocol?.blockedIn, "prepare");
 });
 
-test("blocked tool results always include a continuation exit", async () => {
+test("blocked tool results include a factual hint without a strategy next step", async () => {
   const result = finalizeToolExecution(
     createBlockedToolEntry(),
     {
@@ -203,6 +203,5 @@ test("blocked tool results always include a continuation exit", async () => {
   assert.equal(result.ok, false);
   assert.equal(result.metadata?.protocol?.status, "blocked");
   assert.equal(typeof payload.hint, "string");
-  assert.equal(typeof payload.next_step, "string");
-  assert.match(String(payload.next_step), /continue|retry|choose|adjust/i);
+  assert.equal(payload.next_step, undefined);
 });

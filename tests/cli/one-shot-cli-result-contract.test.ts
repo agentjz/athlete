@@ -37,25 +37,22 @@ test("CLI run prints a stable one-shot closeout contract for unfinished turns", 
       closeout: {
         sessionId: session.id,
         completed: false,
-        unfinishedReason: "pause.verification_awaiting_user",
+        unfinishedReason: "pause.managed_slice_budget_exhausted",
         terminalTransition: {
           action: "pause",
           reason: {
-            code: "pause.verification_awaiting_user",
-            pendingPaths: ["report/summary.md"],
-            pauseReason: "Need a user-directed verification check.",
-            attempts: 3,
-            reminderCount: 1,
-            noProgressCount: 2,
+            code: "pause.managed_slice_budget_exhausted",
+            pauseReason: "Managed slice budget exhausted.",
+            slicesUsed: 3,
+            maxSlices: 3,
+            elapsedMs: 1000,
           },
           timestamp: "2026-04-11T00:00:00.000Z",
         },
         verification: {
-          status: "awaiting_user",
-          pendingPaths: ["report/summary.md"],
+          status: "failed",
+          observedPaths: ["report/summary.md"],
           attempts: 3,
-          reminderCount: 1,
-          noProgressCount: 2,
         },
         acceptance: {
           status: "active",
@@ -77,8 +74,8 @@ test("CLI run prints a stable one-shot closeout contract for unfinished turns", 
 
   assert.equal(typeof parsed.sessionId, "string");
   assert.equal(parsed.completed, false);
-  assert.equal(parsed.unfinishedReason, "pause.verification_awaiting_user");
-  assert.equal(parsed.terminalTransition?.reason?.code, "pause.verification_awaiting_user");
-  assert.equal(parsed.verification?.status, "awaiting_user");
+  assert.equal(parsed.unfinishedReason, "pause.managed_slice_budget_exhausted");
+  assert.equal(parsed.terminalTransition?.reason?.code, "pause.managed_slice_budget_exhausted");
+  assert.equal(parsed.verification?.status, "failed");
   assert.equal(parsed.acceptance?.phase, "verify_outputs");
 });

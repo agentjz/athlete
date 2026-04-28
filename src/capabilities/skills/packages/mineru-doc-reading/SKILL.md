@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: mineru-doc-reading
 description: Read .doc and .docx files through MinerU first, with native read_docx preserved as the explicit .docx fallback.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 task_types: research, review, extraction, documentation
 scenes: doc, docx, word

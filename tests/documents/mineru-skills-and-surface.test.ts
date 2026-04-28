@@ -7,13 +7,12 @@ import test from "node:test";
 import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
 import { executeToolCallWithRecovery } from "../../src/agent/turn.js";
 import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
-import { selectSkillsForTurn } from "../../src/capabilities/skills/matching.js";
 import { createStreamRenderer } from "../../src/ui/streamRenderer.js";
 import { createTestRuntimeConfig } from "../helpers.js";
 
 const REPO_ROOT = process.cwd();
 
-test("repo skill catalog contains MinerU document skills and removes the legacy pdf-reading skill", async () => {
+test("repo skill catalog contains MinerU document skills and removes the retired pdf-reading skill", async () => {
   const skills = await discoverSkills(REPO_ROOT, REPO_ROOT, []);
   const names = new Set(skills.map((skill) => skill.name));
 
@@ -28,59 +27,14 @@ test("repo skill catalog contains MinerU document skills and removes the legacy 
   );
 });
 
-test("MinerU skills are discoverable and match PDF, image, doc, and presentation workflows", async () => {
+test("MinerU skills are discoverable without turn-level auto routing", async () => {
   const skills = await discoverSkills(REPO_ROOT, REPO_ROOT, []);
-  const cases = [
-    {
-      input: "Please read this scanned PDF handbook and summarize it.",
-      objective: "PDF extraction",
-      taskSummary: "[>] extract handbook.pdf",
-      availableToolNames: ["load_skill", "mineru_pdf_read", "read_file"],
-      expected: "mineru-pdf-reading",
-    },
-    {
-      input: "Please extract text from this receipt image.",
-      objective: "Image extraction",
-      taskSummary: "[>] inspect receipt.png",
-      availableToolNames: ["load_skill", "mineru_image_read", "read_file"],
-      expected: "mineru-image-reading",
-    },
-    {
-      input: "Please analyze the proposal.docx and keep structure intact.",
-      objective: "Doc extraction",
-      taskSummary: "[>] inspect proposal.docx",
-      availableToolNames: ["load_skill", "mineru_doc_read", "read_docx", "edit_docx"],
-      expected: "mineru-doc-reading",
-    },
-    {
-      input: "Please summarize the deck.pptx presentation.",
-      objective: "Presentation extraction",
-      taskSummary: "[>] inspect deck.pptx",
-      availableToolNames: ["load_skill", "mineru_ppt_read", "read_file"],
-      expected: "mineru-ppt-reading",
-    },
-  ] as const;
+  const names = new Set(skills.map((skill) => skill.name));
 
-  for (const item of cases) {
-    const result = selectSkillsForTurn({
-      skills,
-      input: item.input,
-      identity: {
-        kind: "lead",
-        name: "lead",
-      },
-      objective: item.objective,
-      taskSummary: item.taskSummary,
-      availableToolNames: [...item.availableToolNames],
-      loadedSkillNames: new Set(),
-    });
-
-    assert.equal(
-      result.applicableSkills.some((skill) => skill.name === item.expected),
-      true,
-      `${item.expected} should match ${item.input}`,
-    );
-  }
+  assert.equal(names.has("mineru-pdf-reading"), true);
+  assert.equal(names.has("mineru-image-reading"), true);
+  assert.equal(names.has("mineru-doc-reading"), true);
+  assert.equal(names.has("mineru-ppt-reading"), true);
 });
 
 test("system prompt keeps document routing at the principle level instead of hardcoding the full MinerU route table", () => {
@@ -152,6 +106,9 @@ test("executeToolCallWithRecovery returns document capability hints for supporte
         session: {
           id: "session-1",
         },
+      } as any,
+      {
+        id: "session-1",
       } as any,
       {
         rootDir: REPO_ROOT,

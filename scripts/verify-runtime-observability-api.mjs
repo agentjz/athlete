@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { buildCheckpointContinuationInput } from "../.test-build/src/agent/checkpoint.js";
+import { buildInternalWakeInput } from "../.test-build/src/agent/checkpoint.js";
 import { createMessage } from "../.test-build/src/agent/messages.js";
 import { buildSessionRuntimeSummary } from "../.test-build/src/agent/runtimeMetrics.js";
 import { runManagedAgentTurn } from "../.test-build/src/agent/managedTurn.js";
@@ -67,7 +67,7 @@ async function main() {
 
   const reloaded = await sessionStore.load(phaseOneResult.session.id);
   const phaseTwoRegistry = createRound3ApiRegistry(workspace);
-  const phaseTwoInput = buildCheckpointContinuationInput(runtimeIdentity, reloaded.checkpoint);
+  const phaseTwoInput = buildInternalWakeInput(runtimeIdentity);
 
   const phaseTwoResult = await runManagedAgentTurn({ input: phaseTwoInput, cwd: workspace, config: { ...config, yieldAfterToolSteps: 6 }, session: reloaded, sessionStore, toolRegistry: phaseTwoRegistry, identity: runtimeIdentity, callbacks: { onToolCall(name) { phaseTwoToolCalls.push(name); } } });
 
@@ -196,7 +196,7 @@ function createRound3ApiRegistry(workspace) {
               output: JSON.stringify(
                 {
                   ok: false,
-                  error: "capture_round3_runtime_pack already succeeded earlier in this session. Resume from the saved session instead of repeating it.",
+                  error: "capture_round3_runtime_pack already succeeded for the current objective. Continue without repeating it.",
                 },
                 null,
                 2,

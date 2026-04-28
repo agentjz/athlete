@@ -40,11 +40,11 @@ test("session store rejects corrupted persisted snapshots instead of silently no
   );
 });
 
-test("session store upgrades versionless snapshots onto the formal schema and preserves machine state", async (t) => {
-  const root = await createTempWorkspace("session-upgrade", t);
+test("session store rejects snapshots without schemaVersion instead of upgrading them", async (t) => {
+  const root = await createTempWorkspace("session-missing-schema", t);
   const sessionsDir = path.join(root, "sessions");
   const store = new SessionStore(sessionsDir);
-  const sessionId = "session-upgrade";
+  const sessionId = "session-missing-schema";
   const timestamp = "2026-04-12T00:00:00.000Z";
 
   await fs.mkdir(sessionsDir, { recursive: true });
@@ -55,104 +55,50 @@ test("session store upgrades versionless snapshots onto the formal schema and pr
       createdAt: timestamp,
       updatedAt: timestamp,
       cwd: root,
-      title: "Legacy session snapshot",
       messageCount: 1,
       messages: [
-        createMessage("user", "Keep the durable state intact."),
+        createMessage("user", "Missing schemaVersion must not be guessed."),
       ],
-      taskState: {
-        objective: "Keep the durable state intact.",
-        activeFiles: ["src/agent/session/store.ts"],
-        plannedActions: ["Harden the session snapshot boundary"],
-        completedActions: ["Reviewed the current truth sources"],
-        blockers: ["Need a formal schema version"],
-        lastUpdatedAt: timestamp,
-      },
-      checkpoint: {
-        version: 1,
-        objective: "Keep the durable state intact.",
-        status: "active",
-        completedSteps: ["Reviewed the current truth sources"],
-        currentStep: "Upgrade the session snapshot.",
-        nextStep: "Reload it without losing machine state.",
-        flow: {
-          phase: "continuation",
-          updatedAt: timestamp,
-        },
-        priorityArtifacts: [],
-        updatedAt: timestamp,
-      },
-      verificationState: {
-        status: "required",
-        attempts: 1,
-        reminderCount: 1,
-        noProgressCount: 0,
-        maxAttempts: 3,
-        maxNoProgress: 2,
-        maxReminders: 3,
-        pendingPaths: ["src/agent/session/store.ts"],
-        updatedAt: timestamp,
-      },
-      acceptanceState: {
-        status: "active",
-        contract: {
-          kind: "product",
-          requiredFiles: [{ path: "README.md" }],
-          commandChecks: [],
-          httpChecks: [],
-        },
-        currentPhase: "build_product",
-        stalledPhaseCount: 1,
-        completedChecks: ["file:README.md"],
-        pendingChecks: ["command:smoke"],
-        lastIssueSummary: "README exists, but smoke verification is still pending.",
-        updatedAt: timestamp,
-      },
-      runtimeStats: {
-        version: 1,
-        model: {
-          requestCount: 2,
-          waitDurationMsTotal: 320,
-          usage: {
-            requestsWithUsage: 0,
-            requestsWithoutUsage: 2,
-            inputTokensTotal: 0,
-            outputTokensTotal: 0,
-            totalTokensTotal: 0,
-            reasoningTokensTotal: 0,
-          },
-        },
-        tools: {
-          callCount: 1,
-          durationMsTotal: 120,
-          byName: {},
-        },
-        events: {
-          continuationCount: 1,
-          yieldCount: 0,
-          recoveryCount: 0,
-          compressionCount: 0,
-        },
-        externalizedToolResults: {
-          count: 0,
-          byteLengthTotal: 0,
-        },
-        updatedAt: timestamp,
+    }, null, 2)}\n`,
+    "utf8",
+  );
+
+  await assert.rejects(
+    () => store.load(sessionId),
+    /schema.?version/i,
+  );
+});
+
+test("session store rejects unrecognized snapshot fields instead of sweeping them", async (t) => {
+  const root = await createTempWorkspace("session-unknown-field", t);
+  const sessionsDir = path.join(root, "sessions");
+  const store = new SessionStore(sessionsDir);
+  const sessionId = "session-unknown-field";
+
+  await fs.mkdir(sessionsDir, { recursive: true });
+  await fs.writeFile(
+    path.join(sessionsDir, `${sessionId}.json`),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      id: sessionId,
+      createdAt: "2026-04-12T00:00:00.000Z",
+      updatedAt: "2026-04-12T00:00:00.000Z",
+      cwd: root,
+      messageCount: 1,
+      messages: [
+        createMessage("user", "Unknown fields must not be normalized away."),
+      ],
+      crossTurnMemory: {
+        summary: "must not enter the runtime path",
       },
     }, null, 2)}\n`,
     "utf8",
   );
 
-  const loaded = await store.load(sessionId);
-  const rewritten = JSON.parse(await fs.readFile(path.join(sessionsDir, `${sessionId}.json`), "utf8")) as Record<string, unknown>;
-
-  assert.equal(loaded.taskState?.objective, "Keep the durable state intact.");
-  assert.equal(loaded.checkpoint?.currentStep, "Upgrade the session snapshot.");
-  assert.equal(loaded.verificationState?.status, "required");
-  assert.equal(loaded.acceptanceState?.currentPhase, "build_product");
-  assert.equal(loaded.runtimeStats?.model.requestCount, 2);
-  assert.equal(rewritten.schemaVersion, 1);
-  assert.equal((rewritten.runtimeStats as { version?: unknown })?.version, 1);
+  await assert.rejects(
+    () => store.load(sessionId),
+    /unrecognized field.*crossTurnMemory/i,
+  );
 });
 
 test("session store fails closed on unsupported session schema versions", async (t) => {

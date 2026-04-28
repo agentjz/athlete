@@ -1,5 +1,5 @@
 import { buildDynamicPromptBlocks } from "./prompt/dynamic.js";
-import { appendPromptMemory, renderPromptLayers } from "./prompt/format.js";
+import { renderPromptLayers } from "./prompt/format.js";
 import { measurePromptLayers } from "./prompt/metrics.js";
 import { buildStaticPromptBlocks } from "./prompt/static.js";
 import type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./prompt/types.js";
@@ -15,7 +15,7 @@ import type {
 } from "../types.js";
 
 export type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./prompt/types.js";
-export { appendPromptMemory, renderPromptLayers } from "./prompt/format.js";
+export { renderPromptLayers } from "./prompt/format.js";
 export { measurePromptLayers } from "./prompt/metrics.js";
 
 export function buildSystemPromptLayers(
@@ -43,7 +43,6 @@ export function buildSystemPromptLayers(
       config,
       projectContext,
       taskState,
-      todoItems,
       verificationState,
       runtimeState,
       skillRuntimeState: resolvedSkillRuntimeState,
@@ -55,12 +54,6 @@ export function buildSystemPromptLayers(
 
 function createEmptySkillRuntimeState(): SkillRuntimeState {
   return {
-    matches: [],
-    namedSkills: [],
-    applicableSkills: [],
-    suggestedSkills: [],
-    requiredSkills: [],
-    missingRequiredSkills: [],
     loadedSkills: [],
     loadedSkillNames: new Set<string>(),
   };

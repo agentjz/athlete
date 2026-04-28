@@ -18,6 +18,9 @@ export function buildProviderRequestBody(
   input: BuildProviderRequestBodyInput,
 ): Record<string, unknown> {
   const capabilities = resolveProviderCapabilities(input);
+  const thinking = capabilities.provider === "deepseek"
+    ? resolveDeepSeekThinking(input.messages, input.thinking ?? "enabled")
+    : input.thinking;
   const body: Record<string, unknown> = {
     model: input.model,
     messages: toChatCompletionMessages(input.messages),
@@ -27,7 +30,6 @@ export function buildProviderRequestBody(
   };
 
   if (capabilities.provider === "deepseek") {
-    const thinking = input.thinking ?? "enabled";
     body.thinking = { type: thinking };
     if (thinking === "enabled") {
       body.reasoning_effort = normalizeDeepSeekReasoningEffort(input.reasoningEffort ?? capabilities.defaultReasoningEffort);
@@ -37,6 +39,24 @@ export function buildProviderRequestBody(
   }
 
   return body;
+}
+
+function resolveDeepSeekThinking(
+  messages: ProviderMessage[],
+  requested: "enabled" | "disabled",
+): "enabled" | "disabled" {
+  if (requested === "disabled") {
+    return "disabled";
+  }
+
+  return hasUnreplayableAssistantReasoning(messages) ? "disabled" : "enabled";
+}
+
+function hasUnreplayableAssistantReasoning(messages: ProviderMessage[]): boolean {
+  return messages.some((message) =>
+    message.role === "assistant" &&
+    message.reasoningContent === undefined,
+  );
 }
 
 function normalizeDeepSeekReasoningEffort(

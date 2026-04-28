@@ -7,7 +7,6 @@ export async function summarizeAgentExecutionsForPrompt(
   rootDir: string,
   options: {
     objectiveKey?: string;
-    includeCarryoverCount?: boolean;
   } = {},
 ): Promise<string> {
   const executions = (await new ExecutionStore(rootDir).listRelevant({
@@ -18,10 +17,7 @@ export async function summarizeAgentExecutionsForPrompt(
     : executions;
 
   if (relevant.length === 0) {
-    const carryoverCount = countCarryover(executions, options.objectiveKey);
-    return carryoverCount > 0 && options.includeCarryoverCount
-      ? `No current objective agent executions. Carryover agent executions hidden: ${carryoverCount}.`
-      : "No teammates.";
+    return "No teammates.";
   }
 
   const lines = relevant
@@ -36,16 +32,5 @@ export async function summarizeAgentExecutionsForPrompt(
     })
     .join("\n");
 
-  const carryoverCount = countCarryover(executions, options.objectiveKey);
-  return carryoverCount > 0 && options.includeCarryoverCount
-    ? `${lines}\n- Carryover agent executions hidden: ${carryoverCount}`
-    : lines;
-}
-
-function countCarryover(executions: ExecutionRecord[], objectiveKey: string | undefined): number {
-  if (!objectiveKey) {
-    return 0;
-  }
-
-  return executions.filter((execution) => execution.objectiveKey !== objectiveKey).length;
+  return lines;
 }

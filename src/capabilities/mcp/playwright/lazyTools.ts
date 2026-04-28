@@ -13,7 +13,7 @@ const PLAYWRIGHT_BROWSER_TOOL_SPECS: Array<{
 }> = [
   {
     name: "browser_navigate",
-    description: "Navigate the browser to a URL. Use when real browser rendering or interaction is required.",
+    description: "Navigate the browser to a URL for browser rendering or interaction.",
     inputSchema: objectSchema({
       url: {
         type: "string",

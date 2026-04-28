@@ -8,7 +8,6 @@ import {
 import { createMessage } from "../session/messages.js";
 import { applyCurrentTurnFrame } from "../session/taskState.js";
 import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "../runtimeMetrics.js";
-import { clearVerificationPause } from "../verification/state.js";
 import type { SessionStoreLike } from "../session/store.js";
 import type {
   RuntimeRecoverTransition,
@@ -35,10 +34,7 @@ export async function initializeTurnSession(
     createMessage("user", input),
   ]);
 
-  const framed = applyCurrentTurnFrame({
-    ...appended,
-    verificationState: clearVerificationPause(appended.verificationState),
-  }, input);
+  const framed = applyCurrentTurnFrame(appended, input);
 
   return sessionStore.save(noteRuntimeTurnInput(noteCheckpointTurnInput(framed, input), input));
 }

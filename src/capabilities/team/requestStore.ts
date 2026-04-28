@@ -58,13 +58,4 @@ export class ProtocolRequestStore {
       .join("\n");
   }
 
-  async summarizeForCurrentPrompt(): Promise<string> {
-    const requests = await this.list();
-    const pendingCount = requests.filter((request) => request.status === "pending").length;
-    if (pendingCount === 0) {
-      return "No protocol requests.";
-    }
-
-    return `Protocol requests hidden from current prompt: ${pendingCount}. Machine gates still track unresolved protocol state.`;
-  }
 }

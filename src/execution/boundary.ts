@@ -1,6 +1,6 @@
 import type { ExecutionBoundaryProtocol, ExecutionProfile } from "./types.js";
 
-const BOUNDARY_PROTOCOL = "deadmouse.execution-boundary.v1" as const;
+const BOUNDARY_PROTOCOL = "deadmouse.execution-boundary" as const;
 
 const DEFAULTS: Record<ExecutionProfile, { maxRuntimeMs: number; maxIdleMs: number }> = {
   subagent: {

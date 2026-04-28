@@ -46,7 +46,7 @@ test("launchSubagentWorkerExecution creates a worker-backed subagent execution",
   assert.equal(stored.status, "running");
   assert.equal(stored.pid, 1357);
   assert.equal(stored.taskId, task.id);
-  assert.equal(stored.boundary.protocol, "deadmouse.execution-boundary.v1");
+  assert.equal(stored.boundary.protocol, "deadmouse.execution-boundary");
   assert.equal(stored.boundary.onBoundary, "return_to_lead_review");
 });
 
@@ -69,7 +69,7 @@ test("task tool launches a subagent execution and returns a Lead handoff", async
   assert.equal(result.ok, true);
   assert.equal(payload.status, "launched");
   assert.equal(typeof payload.content, "undefined");
-  assert.match(String(payload.nextAction ?? ""), /Lead/i);
+  assert.equal(payload.nextAction, undefined);
   assert.equal(stored.profile, "subagent");
   assert.equal(stored.launch, "worker");
   assert.equal(stored.status, "running");

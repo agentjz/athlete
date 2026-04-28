@@ -159,6 +159,10 @@ test("runtime observability persists runtime stats across model/tool/compression
     ...baseSession,
     messages: inflatedHistory,
   });
+  const currentInput = [
+    "Capture runtime metrics, keep the context compressed when needed, and continue from the persisted session.",
+    `CURRENT-RUNTIME-PROMPT ${"C".repeat(12_000)}`,
+  ].join("\n");
 
   const requests: Array<{ messages: Array<{ role?: string; content?: unknown }> }> = [];
   const server = await startFakeOpenAiServer(async (payload) => {
@@ -179,7 +183,7 @@ test("runtime observability persists runtime stats across model/tool/compression
   });
 
   const result = await runManagedAgentTurn({
-    input: "Capture runtime metrics, keep the context compressed when needed, and continue from the persisted session.",
+    input: currentInput,
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),
@@ -199,6 +203,7 @@ test("runtime observability persists runtime stats across model/tool/compression
   const stats = (saved as any).runtimeStats;
 
   assert.equal(requests.length >= 2, true);
+  assert.equal(JSON.stringify(requests[0]?.messages ?? []).includes("older-user-"), false);
   assert.equal(stats?.model?.requestCount, requests.length);
   assert.equal(stats?.tools?.callCount, 1);
   assert.equal(stats?.tools?.byName?.emit_large_runtime_pack?.callCount, 1);
@@ -355,14 +360,13 @@ test("runtime observability summary separates durable truth from derived diagnos
       completedSteps: ["Captured runtime metrics"],
       flow: {
         phase: "active",
-        reason: "continue.verification_required",
+        reason: "continue.after_tool_batch",
         lastTransition: {
           action: "continue",
           reason: {
-            code: "continue.verification_required",
-            pendingPaths: ["src/agent/runtimeMetrics/summary.ts"],
-            attempts: 1,
-            reminderCount: 2,
+            code: "continue.after_tool_batch",
+            toolNames: ["run_shell"],
+            changedPaths: ["src/agent/runtimeMetrics/summary.ts"],
           },
           timestamp: new Date().toISOString(),
         },
@@ -372,22 +376,17 @@ test("runtime observability summary separates durable truth from derived diagnos
       updatedAt: new Date().toISOString(),
     },
     verificationState: {
-      status: "required",
+      status: "failed",
       attempts: 1,
-      reminderCount: 2,
-      noProgressCount: 0,
-      maxAttempts: 3,
-      maxNoProgress: 2,
-      maxReminders: 3,
-      pendingPaths: ["src/agent/runtimeMetrics/summary.ts"],
+      observedPaths: ["src/agent/runtimeMetrics/summary.ts"],
       updatedAt: new Date().toISOString(),
     },
   } as any);
 
-  assert.equal(summary.durableTruth.checkpoint.lastTransition?.reason.code, "continue.verification_required");
-  assert.equal(summary.durableTruth.verification.status, "required");
-  assert.equal(summary.derivedDiagnostics.controlFlow.whyContinue?.reasonCode, "continue.verification_required");
-  assert.match(summary.derivedDiagnostics.controlFlow.whyContinue?.summary ?? "", /verification/i);
+  assert.equal(summary.durableTruth.checkpoint.lastTransition?.reason.code, "continue.after_tool_batch");
+  assert.equal(summary.durableTruth.verification.status, "failed");
+  assert.equal(summary.derivedDiagnostics.controlFlow.whyContinue?.reasonCode, "continue.after_tool_batch");
+  assert.match(summary.derivedDiagnostics.controlFlow.whyContinue?.summary ?? "", /tool batch/i);
   assert.match(summary.derivedDiagnostics.performance.whySlow.map((entry) => entry.summary).join("\n"), /model wait/i);
   assert.equal(summary.derivedDiagnostics.performance.flakyTools[0]?.name, "run_shell");
 });

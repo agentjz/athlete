@@ -78,10 +78,11 @@ function buildWorkLoopContract(runtimeState: PromptRuntimeState): string {
   
   const isSubagent = runtimeState.identity?.kind === "subagent";
   const lines = [
-    "Start from the current objective, runtime state, and checkpoint before taking new actions.",
+    "The current objective is the center of the turn; focus on what the user is asking for now.",
+    "Runtime facts constrain execution but do not define the goal.",
+    "Do not infer the current objective from wake signals or machine state.",
     "Follow a research -> strategy -> execution loop and update the plan when reality changes.",
-    "Reuse completed work, stored artifacts, previews, and pending paths instead of restarting solved work.",
-    "If a tool or path fails, inspect the error, choose the safest productive next step, and continue.",
+    "If a tool or path fails, inspect the error and decide from evidence whether to retry, switch route, report a blocker, or close.",
     "Once the user's goal is satisfied and supported by evidence, stop instead of churning through extra housekeeping.",
   ];
 
@@ -108,14 +109,14 @@ function buildToolUseContract(
     "Read relevant files or state before editing unless the user explicitly wants a brand-new file.",
     "When read_file returns a file identity and line anchors, carry both into edit_file instead of editing against a stale mental copy of the file.",
     "Use precise edits; prefer apply_patch for targeted multi-line source changes.",
-    "Treat runtime state, loaded skills, workflow guards, and tool results as the authority for machine-enforced constraints.",
-    "Load a relevant skill before following a specialized workflow; a skill is active only after load_skill succeeds.",
+    "Treat runtime state, loaded skills, and tool results as evidence for machine-enforced constraints.",
+    "Skills are available capabilities; a skill is active only after load_skill succeeds.",
     "Prefer specialized browser and document tools over generic file reads or shell fetching when those tools are available.",
-    "When file introspection or tool recovery points to a better specialized tool, follow that routing hint instead of forcing read_file or shell detours.",
+    "When file introspection or tool recovery points to a better specialized tool, treat that as evidence for your own routing decision.",
     "For structured document creation or section-aware updates, use the dedicated document editing tools exposed in this session.",
-    "If an acceptance gate is present in runtime state, treat it as machine-enforced closeout criteria instead of optional guidance.",
-    "After changes or mutating commands, run verification appropriate to the risk and artifact type. Targeted tests, builds, readbacks, and lightweight auto-readback are valid when sufficient.",
-    "Never finish while known verification failures remain unresolved.",
+    "Acceptance and verification runtime state are factual ledgers; decide closeout from the user objective, contract, and evidence.",
+    "After changes or mutating commands, decide what verification is appropriate to the risk and artifact type. Targeted tests, builds, and readbacks are valid when sufficient.",
+    "Known verification failures are evidence; resolve them or report the remaining blocker explicitly.",
   ];
 
 
@@ -123,7 +124,7 @@ function buildToolUseContract(
     lines.splice(
       6,
       0,
-      "If a relevant skill exists for a specialized workflow, especially web-research or browser-automation, load it before proceeding.",
+      "Choose whether to load relevant skills based on the current objective and available evidence.",
       "Use coordination_policy, protocol tools, background_run, and worktree tools when the workflow truly requires them.",
     );
   }

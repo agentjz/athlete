@@ -16,9 +16,9 @@
   <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-Deadmouse does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, verification gates, and closeout gates. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
+Deadmouse does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, and evidence records. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
 
-The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, tool failures cannot be explained away in place, nothing can be shipped without convergence, and nothing can be closed without verification. In short, Deadmouse is neither autopilot nor an approval system. It is an agent harness that pushes large-model execution toward a durable, recoverable, and verifiable runtime.
+The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, evidence cannot be faked as passing, and ledgers cannot become strategy. In short, Deadmouse is neither autopilot nor an approval system. It is an agent harness that keeps large-model execution durable, recoverable, and traceable.
 
 ## Developer commands
 

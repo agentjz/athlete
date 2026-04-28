@@ -6,16 +6,15 @@ import type {
   RuntimeYieldTransition,
   SessionRecord,
 } from "../../types.js";
-import { createEmptyCheckpoint } from "./base.js";
-import { deriveCompletedSteps, deriveCurrentStep, deriveNextStep } from "./derivation.js";
-import { normalizeSessionCheckpoint } from "./state.js";
+import { deriveCompletedSteps } from "./derivation.js";
+import { resolveCurrentObjectiveCheckpoint } from "./state.js";
 
 export function noteCheckpointTransition(
   session: SessionRecord,
   transition: RuntimeTransition,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
 
   return {
     ...session,
@@ -31,7 +30,7 @@ export function noteCheckpointTransition(
               source: "checkpoint",
             }
           : undefined,
-        fallbackPhase: checkpoint.flow.phase,
+        defaultPhase: checkpoint.flow.phase,
         timestamp,
       }),
       updatedAt: timestamp,
@@ -44,7 +43,7 @@ export function noteCheckpointRecovery(
   transition: RuntimeRecoverTransition,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
 
   if (checkpoint.status === "completed") {
     return {
@@ -57,16 +56,11 @@ export function noteCheckpointRecovery(
     ...session,
     checkpoint: {
       ...checkpoint,
-      currentStep: checkpoint.currentStep ?? deriveCurrentStep(session, checkpoint) ?? checkpoint.nextStep,
-      nextStep:
-        checkpoint.nextStep ??
-        deriveNextStep(session, checkpoint) ??
-        "Retry the next unresolved step from the latest checkpoint instead of restarting.",
       flow: buildCheckpointFlow({
         current: checkpoint.flow,
         status: checkpoint.status,
         transition,
-        fallbackPhase: "recovery",
+        defaultPhase: "recovery",
         timestamp,
       }),
       updatedAt: timestamp,
@@ -79,7 +73,7 @@ export function noteCheckpointYield(
   transition: RuntimeYieldTransition,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
 
   if (checkpoint.status === "completed") {
     return {
@@ -92,14 +86,6 @@ export function noteCheckpointYield(
     ...session,
     checkpoint: {
       ...checkpoint,
-      currentStep:
-        checkpoint.currentStep ??
-        deriveCurrentStep(session, checkpoint) ??
-        "Paused between tool batches",
-      nextStep:
-        checkpoint.nextStep ??
-        deriveNextStep(session, checkpoint) ??
-        "Continue from the latest checkpoint without repeating completed work.",
       flow: buildCheckpointFlow({
         current: checkpoint.flow,
         status: checkpoint.status,
@@ -108,7 +94,7 @@ export function noteCheckpointYield(
           status: "idle",
           source: "checkpoint",
         },
-        fallbackPhase: "continuation",
+        defaultPhase: "continuation",
         timestamp,
       }),
       updatedAt: timestamp,
@@ -121,7 +107,7 @@ export function noteCheckpointCompleted(
   transition: RuntimeFinalizeTransition | undefined,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
 
   return {
     ...session,
@@ -130,14 +116,12 @@ export function noteCheckpointCompleted(
       status: "completed",
       completedSteps:
         checkpoint.completedSteps.length > 0 ? checkpoint.completedSteps : deriveCompletedSteps(session),
-      currentStep: undefined,
-      nextStep: undefined,
       priorityArtifacts: [],
       flow: buildCheckpointFlow({
         current: checkpoint.flow,
         status: "completed",
         transition,
-        fallbackPhase: "active",
+        defaultPhase: "active",
         timestamp,
       }),
       updatedAt: timestamp,

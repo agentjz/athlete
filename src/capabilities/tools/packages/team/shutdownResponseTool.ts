@@ -39,16 +39,12 @@ export const shutdownResponseTool: RegisteredTool = {
 
     if (context.identity.kind === "lead") {
       const request = await requestStore.load(requestId);
-      const pendingNextStep = request?.status === "pending"
-        ? "Pending is not complete. Do not ask the user whether to continue; keep driving the task by checking teammate state, read inbox, wait briefly before a fresh status check, or switch to another evidence path until shutdown is approved, rejected, failed with evidence, or hits a real system boundary."
-        : undefined;
       return okResult(
         JSON.stringify(
           {
             ok: true,
             request,
             preview: request ? `${request.id}: ${request.status}` : "not found",
-            next_step: pendingNextStep,
           },
           null,
           2,

@@ -1,4 +1,4 @@
-import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "../checkpoint.js";
+import { resolveCurrentObjectiveCheckpoint } from "../checkpoint/state.js";
 import type { PendingToolCall, SessionRecord, ToolCallRecord, ToolExecutionProtocolPolicy } from "../../types.js";
 
 export function createPendingToolCalls(
@@ -19,7 +19,7 @@ export function notePendingToolCalls(
   pendingToolCalls: PendingToolCall[],
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   const pendingToolCallCount = pendingToolCalls.length;
   return {
     ...session,
@@ -45,7 +45,7 @@ export function clearPendingToolCalls(
   session: SessionRecord,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   return {
     ...session,
     checkpoint: {
@@ -71,7 +71,7 @@ export function completePendingToolCall(
   toolCallId: string,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   const remaining = (checkpoint.flow.pendingToolCalls ?? []).filter((pending) => pending.id !== toolCallId);
   const pendingToolCallCount = remaining.length;
   return {

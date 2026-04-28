@@ -32,7 +32,7 @@
     "postinstall": "node scripts/postinstall-playwright.mjs",
     "test:build": "node -e \"require('node:fs').rmSync('.test-build', { recursive: true, force: true })\" && tsc -p tsconfig.tests.json",
     "test:core": "npm run test:build && node --test .test-build/tests/**/*.test.js",
-    "verify:skills-api": "npm run test:build && node scripts/verify-skills-v1.mjs",
+    "verify:skills-api": "npm run test:build && node scripts/verify-skills-api.mjs",
     "verify:runtime-context-api": "npm run test:build && node scripts/verify-runtime-lightweight-context-api.mjs",
     "verify:runtime-checkpoint-api": "npm run test:build && node scripts/verify-runtime-checkpoint-api.mjs",
     "verify:runtime-observability-api": "npm run test:build && node scripts/verify-runtime-observability-api.mjs",

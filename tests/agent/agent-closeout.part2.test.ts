@@ -4,11 +4,11 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { filterToolDefinitionsForCloseout } from "../../src/agent/turn.js";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
+import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { createEmptyVerificationState, markVerificationRequired, recordVerificationAttempt } from "../../src/agent/verification.js";
+import { createEmptyVerificationState, recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
@@ -335,7 +335,7 @@ test("runAgentTurn yields immediately after delegation dispatch instead of letti
   assert.equal(requests, 1);
 });
 
-test("runAgentTurn stops after the terminal todo_write instead of repeating closeout writes", async (t) => {
+test("runAgentTurn leaves todo_write visible after verification and finalizes when the model answers", async (t) => {
   const root = await createTempWorkspace("closeout-todo", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -364,23 +364,7 @@ test("runAgentTurn stops after the terminal todo_write instead of repeating clos
       case 3:
         return toolCallResponse("verify_target", {});
       case 4:
-        return request.toolNames.includes("todo_write")
-          ? toolCallResponse("todo_write", {
-              items: [
-                { id: "1", text: "Write the file", status: "completed" },
-                { id: "2", text: "Verify the file", status: "completed" },
-              ],
-            })
-          : textResponse("Finished and verified.");
-      case 5:
-        return request.toolNames.includes("todo_write")
-          ? toolCallResponse("todo_write", {
-              items: [
-                { id: "1", text: "Write the file", status: "completed" },
-                { id: "2", text: "Verify the file", status: "completed" },
-              ],
-            })
-          : textResponse("Finished and verified.");
+        return textResponse("Finished and verified.");
       default:
         return textResponse("Finished and verified.");
     }
@@ -408,13 +392,12 @@ test("runAgentTurn stops after the terminal todo_write instead of repeating clos
     "todo_write",
     "write_target",
     "verify_target",
-    "todo_write",
   ]);
-  assert.equal(seenToolSets.at(-1)?.includes("todo_write"), false);
+  assert.equal(seenToolSets.at(-1)?.includes("todo_write"), true);
   assert.match(await fs.readFile(path.join(root, TARGET_FILE), "utf8"), /Helldivers 2 latest public news/);
 });
 
-test("runAgentTurn does not spin through task_list, task_get, and task_update after verified completion", async (t) => {
+test("runAgentTurn leaves task tools visible after verified completion and finalizes when the model answers", async (t) => {
   const root = await createTempWorkspace("closeout-tasks", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -439,28 +422,7 @@ test("runAgentTurn does not spin through task_list, task_get, and task_update af
       case 3:
         return toolCallResponse("verify_target", {});
       case 4:
-        return request.toolNames.includes("task_list")
-          ? toolCallResponse("task_list", {})
-          : textResponse("Finished and verified.");
-      case 5:
-        return request.toolNames.includes("task_get")
-          ? toolCallResponse("task_get", { task_id: 1 })
-          : textResponse("Finished and verified.");
-      case 6:
-        return request.toolNames.includes("task_update")
-          ? toolCallResponse("task_update", { task_id: 1, status: "completed" })
-          : textResponse("Finished and verified.");
-      case 7:
         return textResponse("Finished and verified.");
-      case 8:
-        return request.toolNames.includes("todo_write")
-          ? toolCallResponse("todo_write", {
-              items: [
-                { id: "1", text: "Write the file", status: "completed" },
-                { id: "2", text: "Verify the file", status: "completed" },
-              ],
-            })
-          : textResponse("Finished and verified.");
       default:
         return textResponse("Finished and verified.");
     }
@@ -490,12 +452,12 @@ test("runAgentTurn does not spin through task_list, task_get, and task_update af
     "verify_target",
   ]);
   assert.equal(
-    ["task_list", "task_get", "task_update"].some((toolName) => seenToolSets.at(-1)?.includes(toolName)),
-    false,
+    ["task_list", "task_get", "task_update"].every((toolName) => seenToolSets.at(-1)?.includes(toolName)),
+    true,
   );
 });
 
-test("runAgentTurn applies lead closeout gates even when identity defaults to lead", async (t) => {
+test("runAgentTurn finalizes visible output instead of using todo state as a strategy gate", async (t) => {
   const root = await createTempWorkspace("closeout-default-lead", t);
   const sessionStore = new MemorySessionStore();
   const baseSession = await sessionStore.create(root);
@@ -513,14 +475,8 @@ test("runAgentTurn applies lead closeout gates even when identity defaults to le
     switch (seenToolSets.length) {
       case 1:
         return textResponse("Done.");
-      case 2:
-        return toolCallResponse("todo_write", {
-          items: [
-            { id: "1", text: "Finish the visible result", status: "completed" },
-          ],
-        });
       default:
-        return textResponse("Finished after clearing the todo gate.");
+        return textResponse("Finished.");
     }
   });
   t.after(async () => {
@@ -528,7 +484,7 @@ test("runAgentTurn applies lead closeout gates even when identity defaults to le
   });
 
   const result = await runAgentTurn({
-    input: "continue current task",
+    input: buildInternalWakeInput({ kind: "lead", name: "lead" }),
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),
@@ -542,15 +498,15 @@ test("runAgentTurn applies lead closeout gates even when identity defaults to le
 
   assert.equal(result.yielded, false);
   assert.equal(result.transition?.reason.code, "finalize.completed");
-  assert.deepEqual(executedTools, ["todo_write"]);
-  assert.equal(seenToolSets.length, 3);
+  assert.deepEqual(executedTools, []);
+  assert.equal(seenToolSets.length, 1);
 });
 
 test("getLightweightVerificationAttempt treats a targeted read_file of a written validation markdown as passed verification", () => {
   const attempt = getLightweightVerificationAttempt({
     toolName: "read_file",
     rawArgs: JSON.stringify({ path: TARGET_FILE }),
-    pendingPaths: [TARGET_FILE],
+    observedPaths: [TARGET_FILE],
     resultOk: true,
   });
 

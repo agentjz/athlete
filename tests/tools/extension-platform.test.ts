@@ -162,7 +162,7 @@ function createGovernedTool(
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     execute,
   };

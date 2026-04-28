@@ -8,7 +8,6 @@ import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { buildToolExecutionFailureResult } from "../../src/agent/turn/toolExecutor.js";
 import { resolveToollessTurn } from "../../src/agent/turn/toolless.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
-import type { SkillRuntimeState } from "../../src/capabilities/skills/types.js";
 import { finalizeToolExecution } from "../../src/capabilities/tools/core/toolFinalize.js";
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import type { ToolRegistryEntry } from "../../src/capabilities/tools/core/types.js";
@@ -44,7 +43,7 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
   };
 }
@@ -116,10 +115,7 @@ test("handleCompletedAssistantResponse refuses to finalize an empty visible resu
       name: "lead",
     },
     changedPaths: new Set<string>(),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: false,
     verificationState: session.verificationState,
-    validationReminderInjected: false,
     options: {
       input: "Finish the task",
       cwd: process.cwd(),
@@ -136,43 +132,9 @@ test("handleCompletedAssistantResponse refuses to finalize an empty visible resu
   }
 });
 
-test("missing skill reminders push concrete action without taking over the route", async () => {
+test("toolless visible output finalizes without skill-driven continuation", async () => {
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(process.cwd());
-  const skillRuntimeState: SkillRuntimeState = {
-    matches: [],
-    namedSkills: [],
-    applicableSkills: [],
-    suggestedSkills: [],
-    requiredSkills: [],
-    missingRequiredSkills: [
-      {
-        schemaVersion: "skill.v1",
-        version: "1.0.0",
-        name: "docx-review",
-        description: "Review DOCX files.",
-        absolutePath: path.join(process.cwd(), "skills", "docx-review", "SKILL.md"),
-        body: "Review DOCX files.",
-        loadMode: "required",
-        agentKinds: [],
-        roles: [],
-        taskTypes: [],
-        scenes: [],
-        triggers: {
-          keywords: [],
-          patterns: [],
-        },
-        tools: {
-          required: [],
-          optional: [],
-          incompatible: [],
-        },
-        path: "skills/docx-review/SKILL.md",
-      },
-    ],
-    loadedSkills: [],
-    loadedSkillNames: new Set<string>(),
-  };
 
   const outcome = await resolveToollessTurn({
     session,
@@ -185,10 +147,6 @@ test("missing skill reminders push concrete action without taking over the route
       name: "lead",
     },
     changedPaths: new Set<string>(),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: false,
-    validationReminderInjected: false,
-    skillRuntimeState,
     options: {
       input: "Review proposal.docx",
       cwd: process.cwd(),
@@ -198,11 +156,8 @@ test("missing skill reminders push concrete action without taking over the route
     } as RunTurnOptions,
   });
 
-  assert.equal(outcome.kind, "continue");
-  if (outcome.kind === "continue") {
-    const reminder = outcome.session.messages.at(-1)?.content ?? "";
-    assert.match(reminder, /Choose the next concrete action now/);
-    assert.match(reminder, /load the skill, inspect files, check paths, or verify inputs/);
-    assert.match(reminder, /Do not continue with analysis-only text/);
+  assert.equal(outcome.kind, "return");
+  if (outcome.kind === "return") {
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
   }
 });

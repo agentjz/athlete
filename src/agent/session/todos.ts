@@ -1,5 +1,5 @@
 import type { SessionRecord, StoredMessage, TodoItem, TodoStatus } from "../../types.js";
-import { isContinuationDirective, isInternalMessage } from "./taskState.js";
+import { readUserInput } from "./turnFrame.js";
 
 const MAX_TODO_ITEMS = 20;
 const MAX_TODO_TEXT_CHARS = 240;
@@ -119,7 +119,7 @@ export function normalizeSessionTodos(session: SessionRecord): SessionRecord {
 function findLatestObjectiveBoundaryIndex(messages: StoredMessage[]): number {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message?.role === "user" && !isInternalMessage(message.content) && !isContinuationDirective(message.content)) {
+    if (message?.role === "user" && readUserInput(message.content)) {
       return index;
     }
   }

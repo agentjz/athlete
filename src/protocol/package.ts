@@ -35,7 +35,7 @@ export interface CapabilityPackagePolicies {
 }
 
 export interface CapabilityPackageLeadSummary {
-  selectionHint: string;
+  availability: string;
   useWhen: readonly string[];
   avoidWhen: readonly string[];
 }
@@ -73,7 +73,7 @@ export function createCapabilityPackage(input: {
   budgetPolicy?: string;
   artifactPolicy?: string;
   closeoutPolicy?: string;
-  selectionHint?: string;
+  availability?: string;
   useWhen?: readonly string[];
   avoidWhen?: readonly string[];
 }): CapabilityPackage {
@@ -119,7 +119,7 @@ export function createCapabilityPackage(input: {
       closeoutPolicy: input.closeoutPolicy?.trim() || "Return a CloseoutContract before Lead judges completion.",
     },
     leadSummary: {
-      selectionHint: input.selectionHint?.trim() || input.profile.description,
+      availability: input.availability?.trim() || input.profile.description,
       useWhen: [...(input.useWhen ?? input.profile.bestFor)],
       avoidWhen: [...(input.avoidWhen ?? input.profile.notFor)],
     },
@@ -147,7 +147,7 @@ export function assertCapabilityPackageAcceptsAssignment(
 export function formatCapabilityPackageForLead(pkg: CapabilityPackage): string {
   return [
     `- ${pkg.packageId} [${pkg.profile.kind}] ${pkg.profile.name}`,
-    `  use: ${pkg.leadSummary.selectionHint}`,
+    `  available: ${pkg.leadSummary.availability}`,
     `  cost: ${pkg.profile.cost}; runner: ${pkg.runner.runnerType}; source: ${pkg.source.kind}`,
     `  input/output: ${pkg.contracts.input} -> ${pkg.contracts.output}`,
   ].join("\n");

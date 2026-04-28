@@ -98,7 +98,7 @@ test("runManagedAgentTurn pauses when managed slice elapsed budget is exhausted"
   assert.equal(sliceCount, 1);
 });
 
-test("runManagedAgentTurn rebounds to lead orchestration when managed slice budget is exhausted", async (t) => {
+test("runManagedAgentTurn rebounds to Lead when managed slice budget is exhausted", async (t) => {
   const root = await createTempWorkspace("managed-budget-lead-rebound", t);
   await initGitRepo(root);
   const sessionStore = new MemorySessionStore();
@@ -140,7 +140,7 @@ test("runManagedAgentTurn rebounds to lead orchestration when managed slice budg
   assert.equal(result.yielded, false);
 });
 
-test("runManagedAgentTurn rebounds to lead orchestration after provider recovery budget pauses a slice", async (t) => {
+test("runManagedAgentTurn rebounds to Lead after provider recovery budget pauses a slice", async (t) => {
   const root = await createTempWorkspace("managed-provider-budget-rebound", t);
   await initGitRepo(root);
   const sessionStore = new MemorySessionStore();
@@ -188,7 +188,7 @@ test("runManagedAgentTurn rebounds to lead orchestration after provider recovery
   assert.equal(result.yielded, false);
 });
 
-test("runManagedAgentTurn returns unfinished protocol work to lead review at the hard boundary", async (t) => {
+test("runManagedAgentTurn wakes Lead with no strategy prose at the hard boundary", async (t) => {
   const root = await createTempWorkspace("managed-active-delegation-hard-gate", t);
   await initGitRepo(root);
   const projectContext = await loadProjectContext(root);
@@ -229,7 +229,6 @@ test("runManagedAgentTurn returns unfinished protocol work to lead review at the
   assert.equal(sliceCount, 3);
   assert.notEqual(result.paused, true);
   const boundaryInput = seenInputs[2] ?? "";
-  assert.match(boundaryInput, /hard boundary/i);
-  assert.match(boundaryInput, /Lead must review/i);
-  assert.match(boundaryInput, /do not ask the user whether to continue/i);
+  assert.match(boundaryInput, /^\[internal\] Wake lead runtime/i);
+  assert.doesNotMatch(boundaryInput, /hard boundary|Lead must review|do not ask the user|next strategy/i);
 });

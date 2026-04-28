@@ -16,9 +16,9 @@
   <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-Deadmouse 不是让机器层替 Lead 模型干活，也不是让机器层变成第二个总指挥。它的设计是给 Lead 配上账本、边界、循环守卫、验证门和收口门：用户给目标，Lead 负责理解目标、选路线、调工具、派 team 或 subagent、开后台、回收结果、判断下一步；机器层负责把这些执行行为变成有记录、有状态、有证据的过程。
+Deadmouse 不是让机器层替 Lead 模型干活，也不是让机器层变成第二个总指挥。它的设计是给 Lead 配上账本、边界、循环守卫和证据记录：用户给目标，Lead 负责理解目标、选路线、调工具、派 team 或 subagent、开后台、回收结果、判断下一步；机器层负责把这些执行行为变成有记录、有状态、有证据的过程。
 
-方向盘始终在 Lead 手里，但 pending 不能假装完成，执行通道不能无限跑，工具失败不能原地解释，没有合流不能交付，没有验证不能收口。简单说，Deadmouse 不是自动驾驶，也不是审批系统；它是一个把大模型执行过程逼到可持续、可恢复、可验证状态的 agent harness。
+方向盘始终在 Lead 手里，但 pending 不能假装完成，执行通道不能无限跑，证据不能伪装成通过，账本不能伪装成策略。简单说，Deadmouse 不是自动驾驶，也不是审批系统；它是一个把大模型执行过程约束到可持续、可恢复、可追溯状态的 agent harness。
 
 ## 开发指令
 

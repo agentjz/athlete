@@ -5,7 +5,7 @@ import { fetchAssistantResponse } from "../../src/agent/api.js";
 import { withApiRetries } from "../../src/agent/turn.js";
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
-test("fetchAssistantResponse does not revive legacy DeepSeek chat fallback when V4 tool use is rejected", async () => {
+test("fetchAssistantResponse does not downgrade DeepSeek when V4 tool use is rejected", async () => {
   const seenRequests: string[] = [];
   const client = {
     chat: {

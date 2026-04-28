@@ -1,6 +1,5 @@
 export {
-  buildCheckpointContinuationInput,
-  buildGenericContinuationInput,
+  buildInternalWakeInput,
 } from "./checkpoint/prompt.js";
 
 export {

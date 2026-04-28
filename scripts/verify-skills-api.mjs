@@ -3,27 +3,27 @@ import os from "node:os";
 import path from "node:path";
 
 import { runAgentTurn } from "../.test-build/src/agent/runTurn.js";
-import { MemorySessionStore } from "../.test-build/src/agent/sessionStore.js";
+import { MemorySessionStore } from "../.test-build/src/agent/session.js";
 import { resolveRuntimeConfig } from "../.test-build/src/config/store.js";
 import { loadProjectContext } from "../.test-build/src/context/projectContext.js";
-import { buildSkillRuntimeState } from "../.test-build/src/skills/state.js";
-import { createToolRegistry } from "../.test-build/src/tools/index.js";
+import { buildSkillRuntimeState } from "../.test-build/src/capabilities/skills/state.js";
+import { createToolRegistry } from "../.test-build/src/capabilities/tools/index.js";
 
 async function main() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-skills-v1-"));
-  await writeRequiredSkill(workspace);
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-skills-"));
+  await writeSkill(workspace);
 
-  const resolved = await resolveRuntimeConfig({ cwd: process.cwd(), mode: "agent" });
+  const resolved = await resolveRuntimeConfig({ cwd: process.cwd() });
   if (!resolved.apiKey) {
     throw new Error("Missing DEADMOUSE_API_KEY in .deadmouse/.env. Real API validation cannot run.");
   }
 
   const config = {
     ...resolved,
-    allowedRoots: [workspace],
     mcp: {
       enabled: false,
       servers: [],
+      playwright: resolved.mcp.playwright,
     },
   };
   const sessionStore = new MemorySessionStore();
@@ -34,24 +34,16 @@ async function main() {
   const initialRuntime = buildSkillRuntimeState({
     skills: initialProjectContext.skills,
     session,
-    input: "Please outline how to review a proposal.docx safely without editing files yet.",
-    identity: {
-      kind: "lead",
-      name: "lead",
-    },
-    objective: session.taskState?.objective,
-    taskSummary: "[>] docx review task",
-    availableToolNames: ["load_skill", "todo_write"],
   });
 
   const result = await runAgentTurn({
-    input: "Please outline how to review a proposal.docx safely without editing files yet.",
+    input: "Call load_skill for docx-review, then briefly confirm the skill body was loaded. Do not review the document yet.",
     cwd: workspace,
     config,
     session,
     sessionStore,
-    toolRegistry: createToolRegistry("agent", {
-      onlyNames: ["load_skill", "todo_write"],
+    toolRegistry: createToolRegistry({
+      onlyNames: ["load_skill"],
     }),
     callbacks: {
       onToolCall(name) {
@@ -67,32 +59,23 @@ async function main() {
   const runtime = buildSkillRuntimeState({
     skills: projectContext.skills,
     session: result.session,
-    input: "Continue the same docx review task.",
-    identity: {
-      kind: "lead",
-      name: "lead",
-    },
-    objective: result.session.taskState?.objective,
-    taskSummary: "[>] docx review task",
-    availableToolNames: ["load_skill", "todo_write"],
   });
-  const requiredReminderSeen = result.session.messages.some(
+  const machineSkillReminderSeen = result.session.messages.some(
     (message) =>
       message.role === "user" &&
       typeof message.content === "string" &&
-      message.content.includes("Required skill(s) not loaded:"),
+      message.content.startsWith("[internal]") &&
+      /skill\(s\)|load skill|required skill/i.test(message.content),
   );
 
   const summary = {
     workspace,
     model: config.model,
     baseUrl: config.baseUrl,
-    initialApplicableSkills: initialRuntime.applicableSkills.map((skill) => skill.name),
-    initialMissingRequiredSkills: initialRuntime.missingRequiredSkills.map((skill) => skill.name),
+    initialLoadedSkillNames: [...initialRuntime.loadedSkillNames],
     toolCalls,
-    requiredReminderSeen,
+    machineSkillReminderSeen,
     loadedSkillNames: [...runtime.loadedSkillNames],
-    missingRequiredSkills: runtime.missingRequiredSkills.map((skill) => skill.name),
     loadSkillToolMessageCount: result.session.messages.filter(
       (message) => message.role === "tool" && message.name === "load_skill",
     ).length,
@@ -105,23 +88,26 @@ async function main() {
     throw new Error("Real API run finished without triggering load_skill.");
   }
 
-  if (!runtime.loadedSkillNames.has("docx-review-required")) {
-    throw new Error("Required skill was not recognized as loaded after the real API run.");
+  if (machineSkillReminderSeen) {
+    throw new Error("Machine-injected skill reminder appeared in the real API run.");
+  }
+
+  if (!runtime.loadedSkillNames.has("docx-review")) {
+    throw new Error("Explicitly loaded skill was not recognized after the real API run.");
   }
 }
 
-async function writeRequiredSkill(root) {
-  const skillDir = path.join(root, "skills", "docx-review-required");
+async function writeSkill(root) {
+  const skillDir = path.join(root, "skills", "docx-review");
   await fs.mkdir(skillDir, { recursive: true });
   await fs.writeFile(
     path.join(skillDir, "SKILL.md"),
     [
       "---",
-      "schema_version: skill.v1",
-      "name: docx-review-required",
-      "description: Load this before planning any docx review workflow.",
+      "schema_version: skill",
+      "name: docx-review",
+      "description: Skill body for docx review workflow planning.",
       "version: 1.0.0",
-      "load_mode: required",
       "agent_kinds: lead",
       "task_types: review, documentation",
       "scenes: docx",

@@ -1,4 +1,4 @@
-import { createEmptyCheckpoint, normalizeSessionCheckpoint } from "../checkpoint.js";
+import { resolveCurrentObjectiveCheckpoint } from "../checkpoint/state.js";
 import {
   createCompactionDegradationPauseTransition,
   createCompactionDegradationRecoveryTransition,
@@ -17,7 +17,7 @@ export function noteCompactionObserved(
   session: SessionRecord,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   const current = checkpoint.flow.compactionRecovery;
   const nextState: CompactionRecoveryState = {
     active: true,
@@ -45,7 +45,7 @@ export function notePostCompactionNoText(
   session: SessionRecord;
   transition?: RuntimeRecoverTransition | RuntimePauseTransition;
 } {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   const current = checkpoint.flow.compactionRecovery;
   if (!current?.active) {
     return {
@@ -103,7 +103,7 @@ function withCompactionRecovery(
   recovery: CompactionRecoveryState | undefined,
   timestamp: string,
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   return {
     ...session,
     checkpoint: {

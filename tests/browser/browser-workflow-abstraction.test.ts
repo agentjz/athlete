@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createMessage, createToolMessage } from "../../src/agent/session.js";
 import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
-import { getWorkflowToolGateResult } from "../../src/capabilities/skills/workflowGuards.js";
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
-import type { SkillRuntimeState } from "../../src/types.js";
 
 function createTool(name: string, description = name): FunctionToolDefinition {
   return {
@@ -21,48 +18,6 @@ function createTool(name: string, description = name): FunctionToolDefinition {
   };
 }
 
-function createRuntimeState(loadedSkillNames: string[]): SkillRuntimeState {
-  return {
-    matches: [],
-    namedSkills: [],
-    applicableSkills: [],
-    suggestedSkills: [],
-    requiredSkills: [],
-    missingRequiredSkills: [],
-    loadedSkills: [],
-    loadedSkillNames: new Set(loadedSkillNames),
-  };
-}
-
-test("workflow guard does not block shell web fetching while preserving Playwright-independent naming", () => {
-  const blocked = getWorkflowToolGateResult(
-    "run_shell",
-    JSON.stringify({ command: "curl https://example.com -o page.html" }),
-    {
-      messages: [createMessage("user", "Research the latest public Helldivers 2 news on the web.")],
-    },
-    createRuntimeState(["web-research"]),
-  );
-
-  assert.equal(blocked, null);
-});
-
-test("workflow guard does not block shell web fetching after non-Playwright browser progress", () => {
-  const blocked = getWorkflowToolGateResult(
-    "run_shell",
-    JSON.stringify({ command: "curl https://example.com -o page.html" }),
-    {
-      messages: [
-        createMessage("user", "Research the latest public Helldivers 2 news on the web."),
-        createToolMessage("call-1", "Page URL: https://example.com", "mcp_webpilot_browser_navigate"),
-      ],
-    },
-    createRuntimeState(["web-research"]),
-  );
-
-  assert.equal(blocked, null);
-});
-
 test("tool priority recognizes browser capability tools without depending on Playwright naming", () => {
   const prioritized = prioritizeToolDefinitionsForTurn(
     [
@@ -76,7 +31,6 @@ test("tool priority recognizes browser capability tools without depending on Pla
     ],
     {
       input: "Open the website, inspect the live page in the browser, then summarize the latest public news.",
-      missingRequiredSkillNames: [],
     },
   );
 

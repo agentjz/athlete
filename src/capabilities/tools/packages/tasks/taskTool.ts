@@ -12,7 +12,7 @@ export const taskTool: RegisteredTool = {
     function: {
       name: "task",
       description:
-        "Lead-only: launch a focused subagent execution with fresh context. The tool returns an execution_id immediately; the Lead must wait for execution closeout before judging completion.\n\nAvailable agent types:\n" +
+        "Lead-only: launch a focused subagent execution with fresh context. The tool returns an execution_id, protocol refs, and execution boundary metadata.\n\nAvailable agent types:\n" +
         buildSubagentTypeSummary(),
       parameters: {
         type: "object",
@@ -91,7 +91,6 @@ export const taskTool: RegisteredTool = {
         wakeSignal: "deadmouse.wake-signal",
       },
       pid,
-      nextAction: "Lead must monitor the execution closeout/inbox and reconcile the result before declaring completion.",
       boundary: execution.boundary,
       preview: `Launched subagent execution '${execution.id}' (${agentType}) pid=${pid}.`,
     }, null, 2), metadata);

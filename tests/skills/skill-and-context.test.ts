@@ -5,9 +5,10 @@ import test from "node:test";
 
 import { buildRequestContext } from "../../src/agent/context.js";
 import { createMessage } from "../../src/agent/session.js";
+import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
 import { discoverSkills } from "../../src/capabilities/skills/catalog.js";
 import { loadSkillTool } from "../../src/capabilities/tools/packages/skills/loadSkillTool.js";
-import { createTempWorkspace, makeToolContext } from "../helpers.js";
+import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
 test("discoverSkills + load_skill load skill bodies on demand", async (t) => {
   const root = await createTempWorkspace("skills", t);
@@ -17,10 +18,9 @@ test("discoverSkills + load_skill load skill bodies on demand", async (t) => {
     path.join(skillDir, "SKILL.md"),
     [
       "---",
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: demo-skill",
       "description: Demo skill for tests",
-      "load_mode: required",
       "trigger_keywords: demo,skill",
       "---",
       "# Demo Skill",
@@ -32,7 +32,6 @@ test("discoverSkills + load_skill load skill bodies on demand", async (t) => {
   const skills = await discoverSkills(root, root, []);
   assert.equal(skills.length, 1);
   assert.equal(skills[0]?.name, "demo-skill");
-  assert.equal(skills[0]?.loadMode, "required");
 
   const output = await loadSkillTool.execute(
     JSON.stringify({ name: "demo-skill" }),
@@ -105,7 +104,7 @@ test("buildRequestContext keeps the latest tool boundary intact when histories a
   assert.equal(built.messages.at(-2)?.role, "assistant");
 });
 
-test("buildRequestContext preserves DeepSeek V4 reasoning_content only for tool-using turns", () => {
+test("buildRequestContext preserves DeepSeek V4 reasoning_content for every included assistant message", () => {
   const toolCallingAssistant = createMessage("assistant", null, {
     reasoningContent: "I need the file list before answering.",
     toolCalls: [
@@ -147,7 +146,7 @@ test("buildRequestContext preserves DeepSeek V4 reasoning_content only for tool-
 
   assert.equal(replayedToolAssistant?.reasoningContent, "I need the file list before answering.");
   assert.equal(replayedPostToolAssistant?.reasoningContent, "I can answer after the tool result.");
-  assert.equal(replayedOrdinaryAssistant?.reasoningContent, undefined);
+  assert.equal(replayedOrdinaryAssistant?.reasoningContent, "This ordinary reasoning should not be replayed.");
 });
 
 test("buildRequestContext keeps DeepSeek reasoning_content for included post-tool assistant replies", () => {
@@ -223,4 +222,51 @@ test("buildRequestContext does not carry the previous user frame into a new obje
   assert.match(requestText, /current objective: close all teammates/);
   assert.doesNotMatch(requestText, /old objective: browse Wikipedia/);
   assert.doesNotMatch(requestText, /old answer: Wikipedia report/);
+});
+
+test("buildRequestContext does not carry prior turn final output into a new objective", () => {
+  const root = process.cwd();
+  const config = createTestRuntimeConfig(root);
+  const prompt = renderPromptLayers(buildSystemPromptLayers(
+    root,
+    config,
+    {
+      rootDir: root,
+      stateRootDir: root,
+      cwd: root,
+      instructions: [],
+      instructionText: "",
+      instructionTruncated: false,
+      skills: [],
+      ignoreRules: [],
+    },
+    {
+      objective: "current objective: close teammates",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    undefined,
+    undefined,
+    undefined,
+  ));
+
+  const built = buildRequestContext(prompt, [
+    createMessage("user", "old objective: browse Wikipedia"),
+    createMessage("assistant", "old raw answer: very long Wikipedia report"),
+    createMessage("user", "current objective: close teammates"),
+  ], {
+    contextWindowMessages: 30,
+    model: "deepseek-v4-flash",
+    maxContextChars: 8_000,
+    contextSummaryChars: 1_200,
+  });
+
+  const requestText = JSON.stringify(built.messages);
+  assert.match(requestText, /current objective: close teammates/);
+  assert.doesNotMatch(requestText, /Final output: Wikipedia report was finished/);
+  assert.doesNotMatch(requestText, /old raw answer: very long Wikipedia report/);
+  assert.doesNotMatch(requestText, /old objective: browse Wikipedia/);
 });

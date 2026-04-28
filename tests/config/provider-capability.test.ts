@@ -23,7 +23,7 @@ function createTool(): FunctionToolDefinition {
   };
 }
 
-test("provider capabilities keep DeepSeek V4 on the chat completions wire without legacy model fallback", () => {
+test("provider capabilities keep DeepSeek V4 on the chat completions wire without model downgrade fallback", () => {
   const deepseek = resolveProviderCapabilities({
     provider: "deepseek",
     model: "deepseek-v4-flash",
@@ -81,6 +81,80 @@ test("buildProviderRequestBody derives provider-specific reasoning behavior from
   assert.deepEqual(deepseekNonThinkingBody.thinking, { type: "disabled" });
   assert.equal("reasoning_effort" in deepseekNonThinkingBody, false);
   assert.equal("thinking" in genericBody, false);
+});
+
+test("buildProviderRequestBody replays DeepSeek reasoning_content for included assistant messages", () => {
+  const body = buildProviderRequestBody({
+    provider: "deepseek",
+    model: "deepseek-v4-flash",
+    messages: [
+      { role: "user", content: "Inspect README.md" },
+      {
+        role: "assistant",
+        content: null,
+        reasoningContent: "I need to inspect the file first.",
+        toolCalls: [
+          {
+            id: "call-1",
+            type: "function",
+            function: {
+              name: "read_file",
+              arguments: "{\"path\":\"README.md\"}",
+            },
+          },
+        ],
+      },
+      { role: "tool", content: "README contents", toolCallId: "call-1" },
+      {
+        role: "assistant",
+        content: "README inspected.",
+        reasoningContent: "The tool result is enough to answer.",
+      },
+    ],
+    tools: [createTool()],
+    stream: false,
+    forceReasoning: false,
+    thinking: "enabled",
+    reasoningEffort: "high",
+  });
+
+  const messages = body.messages as Array<Record<string, unknown>>;
+  assert.deepEqual(body.thinking, { type: "enabled" });
+  assert.equal(messages[1]?.reasoning_content, "I need to inspect the file first.");
+  assert.equal(messages[3]?.reasoning_content, "The tool result is enough to answer.");
+});
+
+test("buildProviderRequestBody disables DeepSeek thinking when retained assistant messages cannot replay reasoning_content", () => {
+  const body = buildProviderRequestBody({
+    provider: "deepseek",
+    model: "deepseek-v4-flash",
+    messages: [
+      { role: "user", content: "Inspect README.md" },
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [
+          {
+            id: "call-1",
+            type: "function",
+            function: {
+              name: "read_file",
+              arguments: "{\"path\":\"README.md\"}",
+            },
+          },
+        ],
+      },
+      { role: "tool", content: "README contents", toolCallId: "call-1" },
+    ],
+    tools: [createTool()],
+    stream: false,
+    forceReasoning: false,
+    thinking: "enabled",
+    reasoningEffort: "high",
+  });
+
+  assert.deepEqual(body.thinking, { type: "disabled" });
+  assert.equal("reasoning_effort" in body, false);
 });
 
 test("buildProviderRequestBody rejects unsupported DeepSeek V4 reasoning efforts instead of silently remapping them", () => {

@@ -4,11 +4,10 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { filterToolDefinitionsForCloseout } from "../../src/agent/turn.js";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
-import { createEmptyVerificationState, markVerificationRequired, recordVerificationAttempt } from "../../src/agent/verification.js";
+import { createEmptyVerificationState, recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
 import type { FunctionToolDefinition, ToolRegistry } from "../../src/capabilities/tools/index.js";
@@ -286,8 +285,6 @@ test("handleCompletedAssistantResponse finalizes once verified work is done even
     ...baseSession,
     checkpoint: createCheckpointFixture("Finish the task", {
       completedSteps: ["Wrote the report"],
-      currentStep: "Running final verification",
-      nextStep: "Finalize the response",
     }),
     todoItems: [
       { id: "1", text: "Write the report", status: "completed" },
@@ -295,7 +292,7 @@ test("handleCompletedAssistantResponse finalizes once verified work is done even
       { id: "3", text: "Update the checklist", status: "pending" },
     ],
     verificationState: recordVerificationAttempt(
-      markVerificationRequired(createEmptyVerificationState()),
+      createEmptyVerificationState(),
       {
         attempted: true,
         command: "npm test",
@@ -317,10 +314,7 @@ test("handleCompletedAssistantResponse finalizes once verified work is done even
       name: "lead",
     },
     changedPaths: new Set([TARGET_FILE]),
-    hadIncompleteTodosAtStart: true,
-    hasSubstantiveToolActivity: true,
     verificationState: session.verificationState,
-    validationReminderInjected: false,
     options: {
       input: "Finish the task",
       cwd: process.cwd(),
@@ -336,12 +330,11 @@ test("handleCompletedAssistantResponse finalizes once verified work is done even
     assert.equal(outcome.result.paused, false);
     assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
     assert.equal((outcome.result.session as any).checkpoint?.status, "completed");
-    assert.equal((outcome.result.session as any).checkpoint?.nextStep, undefined);
     assert.equal((outcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "finalize.completed");
   }
 });
 
-test("handleCompletedAssistantResponse auto-verifies a lightweight validation markdown before finalizing", async (t) => {
+test("handleCompletedAssistantResponse records closeout without auto-verifying lightweight markdown", async (t) => {
   const root = await createTempWorkspace("closeout-autoverify", t);
   const targetPath = path.join(root, TARGET_FILE);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -357,11 +350,9 @@ test("handleCompletedAssistantResponse auto-verifies a lightweight validation ma
     ],
     verificationState: {
       ...(baseSession.verificationState ?? createEmptyVerificationState()),
-      status: "required",
+      status: "idle",
       attempts: 0,
-      reminderCount: 0,
-      noProgressCount: 0,
-      pendingPaths: [targetPath],
+      observedPaths: [targetPath],
     },
   });
 
@@ -376,10 +367,7 @@ test("handleCompletedAssistantResponse auto-verifies a lightweight validation ma
       name: "lead",
     },
     changedPaths: new Set([targetPath]),
-    hadIncompleteTodosAtStart: true,
-    hasSubstantiveToolActivity: true,
     verificationState: session.verificationState,
-    validationReminderInjected: false,
     options: {
       input: "Finish the task",
       cwd: root,
@@ -391,15 +379,15 @@ test("handleCompletedAssistantResponse auto-verifies a lightweight validation ma
 
   assert.equal(outcome.kind, "return");
   if (outcome.kind === "return") {
-    assert.equal(outcome.result.verificationAttempted, true);
-    assert.equal(outcome.result.verificationPassed, true);
+    assert.equal(outcome.result.verificationAttempted, false);
+    assert.equal(outcome.result.verificationPassed, false);
     assert.equal(outcome.result.paused, false);
     assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
-    assert.equal((outcome.result.transition as any)?.reason?.verificationKind, "auto_readback");
+    assert.equal((outcome.result.transition as any)?.reason?.verificationOutcome, "not_attempted");
   }
 });
 
-test("handleCompletedAssistantResponse auto-verifies lightweight markdown outputs even after reminders already paused verification", async (t) => {
+test("handleCompletedAssistantResponse does not pause on recorded verification facts", async (t) => {
   const root = await createTempWorkspace("closeout-autoverify-paused", t);
   const targetPath = path.join(root, TARGET_FILE);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -415,12 +403,9 @@ test("handleCompletedAssistantResponse auto-verifies lightweight markdown output
     ],
     verificationState: {
       ...(baseSession.verificationState ?? createEmptyVerificationState()),
-      status: "awaiting_user",
+      status: "failed",
       attempts: 0,
-      reminderCount: 3,
-      noProgressCount: 0,
-      pendingPaths: [targetPath],
-      pauseReason: "Verification was requested repeatedly, but no targeted verification command was produced.",
+      observedPaths: [targetPath],
     },
   });
 
@@ -435,10 +420,7 @@ test("handleCompletedAssistantResponse auto-verifies lightweight markdown output
       name: "lead",
     },
     changedPaths: new Set([targetPath]),
-    hadIncompleteTodosAtStart: true,
-    hasSubstantiveToolActivity: true,
     verificationState: session.verificationState,
-    validationReminderInjected: false,
     options: {
       input: "Finish the task",
       cwd: root,
@@ -450,14 +432,14 @@ test("handleCompletedAssistantResponse auto-verifies lightweight markdown output
 
   assert.equal(outcome.kind, "return");
   if (outcome.kind === "return") {
-    assert.equal(outcome.result.verificationAttempted, true);
-    assert.equal(outcome.result.verificationPassed, true);
+    assert.equal(outcome.result.verificationAttempted, false);
+    assert.equal(outcome.result.verificationPassed, false);
     assert.equal(outcome.result.paused, false);
     assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
   }
 });
 
-test("handleCompletedAssistantResponse exposes structured verification transitions when finalize is blocked", async () => {
+test("handleCompletedAssistantResponse treats verification state as fact rather than a closeout gate", async () => {
   const sessionStore = new MemorySessionStore();
   const baseSession = await sessionStore.create(process.cwd());
   const pendingPath = path.join(process.cwd(), "src", "agent", "runTurn.ts");
@@ -466,15 +448,13 @@ test("handleCompletedAssistantResponse exposes structured verification transitio
     ...baseSession,
     verificationState: {
       ...(baseSession.verificationState ?? createEmptyVerificationState()),
-      status: "required",
+      status: "idle",
       attempts: 0,
-      reminderCount: 0,
-      noProgressCount: 0,
-      pendingPaths: [pendingPath],
+      observedPaths: [pendingPath],
     },
   });
 
-  const continueOutcome = await handleCompletedAssistantResponse({
+  const outcome = await handleCompletedAssistantResponse({
     session: requiredSession,
     response: {
       content: "Finished the change.",
@@ -485,10 +465,7 @@ test("handleCompletedAssistantResponse exposes structured verification transitio
       name: "lead",
     },
     changedPaths: new Set([pendingPath]),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: true,
     verificationState: requiredSession.verificationState,
-    validationReminderInjected: false,
     options: {
       input: "Finish the change",
       cwd: process.cwd(),
@@ -498,53 +475,10 @@ test("handleCompletedAssistantResponse exposes structured verification transitio
     } as RunTurnOptions,
   });
 
-  assert.equal(continueOutcome.kind, "continue");
-  if (continueOutcome.kind === "continue") {
-    assert.equal(continueOutcome.transition.reason.code, "continue.verification_required");
-    assert.equal((continueOutcome.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "continue.verification_required");
-  }
-
-  const awaitingUserSession = await sessionStore.save({
-    ...baseSession,
-    verificationState: {
-      ...(baseSession.verificationState ?? createEmptyVerificationState()),
-      status: "awaiting_user",
-      attempts: 3,
-      reminderCount: 3,
-      noProgressCount: 2,
-      pendingPaths: [pendingPath],
-      pauseReason: "Verification is paused until the user clarifies the desired check.",
-    },
-  });
-
-  const pausedOutcome = await handleCompletedAssistantResponse({
-    session: awaitingUserSession,
-    response: {
-      content: "Finished the change.",
-      toolCalls: [],
-    },
-    identity: {
-      kind: "lead",
-      name: "lead",
-    },
-    changedPaths: new Set([pendingPath]),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: true,
-    verificationState: awaitingUserSession.verificationState,
-    validationReminderInjected: false,
-    options: {
-      input: "Finish the change",
-      cwd: process.cwd(),
-      config: createTestRuntimeConfig(process.cwd()),
-      session: awaitingUserSession,
-      sessionStore,
-    } as RunTurnOptions,
-  });
-
-  assert.equal(pausedOutcome.kind, "return");
-  if (pausedOutcome.kind === "return") {
-    assert.equal(pausedOutcome.result.paused, true);
-    assert.equal(pausedOutcome.result.transition?.reason.code, "pause.verification_awaiting_user");
-    assert.equal((pausedOutcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "pause.verification_awaiting_user");
+  assert.equal(outcome.kind, "return");
+  if (outcome.kind === "return") {
+    assert.equal(outcome.result.paused, false);
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
+    assert.equal((outcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "finalize.completed");
   }
 });

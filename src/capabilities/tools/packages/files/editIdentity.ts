@@ -39,7 +39,7 @@ export function getFileEditIdentityMismatch(
   resolvedPath: string,
 ): string | null {
   if (expected.path !== resolvedPath) {
-    return "The provided edit identity was issued for a different file path. Re-read the target file before editing.";
+    return "The provided edit identity was issued for a different file path. A fresh read_file identity for the target file is required.";
   }
 
   if (
@@ -47,7 +47,7 @@ export function getFileEditIdentityMismatch(
     expected.byteLength !== actual.byteLength ||
     expected.lineCount !== actual.lineCount
   ) {
-    return "The file changed after it was read, so the edit identity is now stale. Re-run read_file and retry with the fresh identity.";
+    return "The file changed after it was read, so the edit identity is now stale. A fresh read_file identity is required.";
   }
 
   return null;

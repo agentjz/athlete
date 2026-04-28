@@ -12,6 +12,8 @@ export class TaskStore {
     description = "",
     options: { assignee?: string } = {},
   ): Promise<TaskRecord> {
+    assertExternalTaskText(subject, "subject");
+    assertExternalTaskText(description, "description");
     return withProjectLedger(this.rootDir, ({ db }) => new TaskLedgerRepo(db).create(subject, description, options));
   }
 
@@ -73,16 +75,13 @@ export class TaskStore {
     return withProjectLedger(this.rootDir, ({ db }) => new TaskLedgerRepo(db).listClaimable(owner));
   }
 
-  async summarize(options: { objectiveKey?: string; includeCarryoverCount?: boolean } = {}): Promise<string> {
+  async summarize(options: { objectiveKey?: string } = {}): Promise<string> {
     const allTasks = await this.list();
     const tasks = options.objectiveKey
       ? allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key === options.objectiveKey)
       : allTasks;
     if (tasks.length === 0) {
-      const carryoverCount = options.objectiveKey && options.includeCarryoverCount
-        ? allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key !== options.objectiveKey).length
-        : 0;
-      return carryoverCount > 0 ? `No current objective tasks. Carryover tasks: ${carryoverCount}.` : "No tasks.";
+      return "No tasks.";
     }
 
     const lines = tasks
@@ -99,11 +98,12 @@ export class TaskStore {
         return `${marker} #${task.id}: ${task.subject}${blocked}${blocks}${checklist}${assignee}${owner}${worktree}`;
       })
       .join("\n");
-    if (!options.objectiveKey || !options.includeCarryoverCount) {
-      return lines;
-    }
+    return lines;
+  }
+}
 
-    const carryoverCount = allTasks.filter((task) => readOrchestratorMetadata(task.description)?.key !== options.objectiveKey).length;
-    return carryoverCount > 0 ? `${lines}\n- Carryover tasks hidden: ${carryoverCount}` : lines;
+function assertExternalTaskText(value: string, field: string): void {
+  if (String(value ?? "").toLowerCase().includes("[internal]")) {
+    throw new Error(`Task ${field} cannot contain internal runtime wake text.`);
   }
 }

@@ -8,7 +8,6 @@ import type {
 } from "../../types.js";
 import {
   clampWholeNumber,
-  normalizeExitCode,
   normalizeText,
   normalizeTimestamp,
   takeLastUnique,
@@ -51,12 +50,12 @@ function normalizeContinueTransition(
   timestamp: string,
 ): RuntimeContinueTransition | undefined {
   switch (reason.code) {
-    case "continue.resume_from_checkpoint":
+    case "continue.internal_wake":
       return {
         action: "continue",
         reason: {
           code: reason.code,
-          source: reason.source === "resume_directive" ? "resume_directive" : "managed_continuation",
+          source: "managed_wake",
         },
         timestamp,
       };
@@ -75,69 +74,11 @@ function normalizeContinueTransition(
         timestamp,
       };
     }
-    case "continue.required_skill_load": {
-      const missingSkills = takeLastUnique(reason.missingSkills);
-      if (missingSkills.length === 0) {
-        return undefined;
-      }
-      return {
-        action: "continue",
-        reason: {
-          code: reason.code,
-          missingSkills,
-        },
-        timestamp,
-      };
-    }
-    case "continue.incomplete_todos":
-      return {
-        action: "continue",
-        reason: {
-          code: reason.code,
-          incompleteTodoCount: clampWholeNumber(reason.incompleteTodoCount, 1, 99, 1) ?? 1,
-        },
-        timestamp,
-      };
     case "continue.empty_assistant_response":
       return {
         action: "continue",
         reason: {
           code: reason.code,
-        },
-        timestamp,
-      };
-    case "continue.verification_required":
-      return {
-        action: "continue",
-        reason: {
-          code: reason.code,
-          pendingPaths: takeLastUnique(reason.pendingPaths ?? []),
-          attempts: clampWholeNumber(reason.attempts, 0, 50, 0) ?? 0,
-          reminderCount: clampWholeNumber(reason.reminderCount, 0, 50, 0) ?? 0,
-        },
-        timestamp,
-      };
-    case "continue.verification_failed":
-      return {
-        action: "continue",
-        reason: {
-          code: reason.code,
-          attempts: clampWholeNumber(reason.attempts, 1, 50, 1) ?? 1,
-          noProgressCount: clampWholeNumber(reason.noProgressCount, 0, 50, 0) ?? 0,
-          lastCommand: normalizeText(reason.lastCommand) || undefined,
-          lastKind: normalizeText(reason.lastKind) || undefined,
-          lastExitCode: normalizeExitCode(reason.lastExitCode),
-        },
-        timestamp,
-      };
-    case "continue.acceptance_required":
-      return {
-        action: "continue",
-        reason: {
-          code: reason.code,
-          phase: normalizeText(reason.phase) || "active",
-          pendingChecks: takeLastUnique(reason.pendingChecks ?? []),
-          stalledPhaseCount: clampWholeNumber(reason.stalledPhaseCount, 0, 99, 0) ?? 0,
         },
         timestamp,
       };
@@ -218,23 +159,6 @@ function normalizePauseTransition(
   reason: RuntimePauseTransition["reason"],
   timestamp: string,
 ): RuntimePauseTransition | undefined {
-  if (reason.code === "pause.verification_awaiting_user") {
-    return {
-      action: "pause",
-      reason: {
-        code: reason.code,
-        pendingPaths: takeLastUnique(reason.pendingPaths ?? []),
-        pauseReason:
-          truncate(normalizeText(reason.pauseReason) || "Verification is awaiting user clarification.") ||
-          "Verification is awaiting user clarification.",
-        attempts: clampWholeNumber(reason.attempts, 0, 50, 0) ?? 0,
-        reminderCount: clampWholeNumber(reason.reminderCount, 0, 50, 0) ?? 0,
-        noProgressCount: clampWholeNumber(reason.noProgressCount, 0, 50, 0) ?? 0,
-      },
-      timestamp,
-    };
-  }
-
   if (reason.code === "pause.provider_recovery_budget_exhausted") {
     return {
       action: "pause",
@@ -311,7 +235,12 @@ function normalizeFinalizeTransition(
     reason: {
       code: reason.code,
       changedPaths: takeLastUnique(reason.changedPaths ?? []),
-      verificationOutcome: reason.verificationOutcome === "passed" ? "passed" : "not_required",
+      verificationOutcome:
+        reason.verificationOutcome === "passed"
+          ? "passed"
+          : reason.verificationOutcome === "failed"
+            ? "failed"
+            : "not_attempted",
       verificationKind: normalizeText(reason.verificationKind) || undefined,
     },
     timestamp,

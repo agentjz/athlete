@@ -145,7 +145,7 @@ function createStrictContractTool(input: {
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     async execute(rawArgs) {
       const args = JSON.parse(rawArgs) as Record<string, unknown>;
@@ -187,7 +187,7 @@ function createTestTool(
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     async execute() {
       events.push(`execute-start:${name}`);

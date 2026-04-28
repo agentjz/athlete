@@ -103,7 +103,7 @@ export function toChatMessage(
       tool_calls: message.tool_calls,
     };
 
-    if (options.includeReasoning && message.reasoningContent) {
+    if (options.includeReasoning && message.reasoningContent !== undefined) {
       assistantMessage.reasoning_content = message.reasoningContent;
     }
 
@@ -116,7 +116,7 @@ export function toChatMessage(
     name: message.name,
   };
 
-  if (message.role === "assistant" && options.includeReasoning && message.reasoningContent) {
+  if (message.role === "assistant" && options.includeReasoning && message.reasoningContent !== undefined) {
     baseMessage.reasoning_content = message.reasoningContent;
   }
 
@@ -163,21 +163,5 @@ export function shouldIncludeStoredAssistantReasoning(
   model: string,
 ): boolean {
   return modelUsesReasoningContent(model) &&
-    messages[index]?.role === "assistant" &&
-    Boolean(messages[index]?.reasoningContent) &&
-    isInToolUsingUserFrame(messages, index);
-}
-
-export function hasAssistantToolCalls(message: Pick<StoredMessage, "role" | "tool_calls"> | undefined): boolean {
-  return message?.role === "assistant" && Boolean(message.tool_calls?.length);
-}
-
-function isInToolUsingUserFrame(messages: StoredMessage[], index: number): boolean {
-  const message = messages[index];
-  if (hasAssistantToolCalls(message)) {
-    return true;
-  }
-
-  const previous = messages[index - 1];
-  return previous?.role === "tool";
+    messages[index]?.role === "assistant";
 }

@@ -64,7 +64,6 @@ test("turn-time tool prioritization reorders tools without reducing the visible 
 
   const prioritized = prioritizeToolDefinitionsForTurn(registry.definitions, {
     input: "Open https://example.com in the browser and inspect the page.",
-    missingRequiredSkillNames: ["browser-automation"],
   });
   const prioritizedNames = prioritized.map((tool) => tool.function.name);
 
@@ -236,7 +235,7 @@ test("read_file returns continuation metadata when a limited read truncates the 
 });
 
 test("search_files keeps the base path search flow while adding literal, context, ignoreCase, and limit", async (t) => {
-  const root = await createTempWorkspace("search-files-compat", t);
+  const root = await createTempWorkspace("search-files-base-flow", t);
   await fs.mkdir(path.join(root, "src"), { recursive: true });
   await fs.writeFile(
     path.join(root, "src", "one.ts"),
@@ -258,7 +257,7 @@ test("search_files keeps the base path search flow while adding literal, context
   );
 
   const registry = createToolRegistry();
-  const legacy = await registry.execute(
+  const baseResult = await registry.execute(
     "search_files",
     JSON.stringify({
       path: ".",
@@ -280,13 +279,13 @@ test("search_files keeps the base path search flow while adding literal, context
     makeToolContext(root, root) as never,
   );
 
-  const legacyPayload = JSON.parse(legacy.output) as Record<string, unknown>;
+  const basePayload = JSON.parse(baseResult.output) as Record<string, unknown>;
   const enhancedPayload = JSON.parse(enhanced.output) as Record<string, unknown>;
   const enhancedMatches = enhancedPayload.matches as Array<Record<string, unknown>>;
   const firstMatch = enhancedMatches[0];
 
-  assert.equal(Array.isArray(legacyPayload.matches), true);
-  assert.equal((legacyPayload.matches as unknown[]).length, 1);
+  assert.equal(Array.isArray(basePayload.matches), true);
+  assert.equal((basePayload.matches as unknown[]).length, 1);
   assert.equal(enhancedPayload.truncated, true);
   assert.equal(enhancedMatches.length, 1);
   assert.match(String(firstMatch?.path ?? ""), /src[\\/](one|two)\.ts$/);

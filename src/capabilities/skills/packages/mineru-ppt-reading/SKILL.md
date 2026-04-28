@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: mineru-ppt-reading
 description: Read .ppt and .pptx presentation files through MinerU and work from extracted Markdown artifacts.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 task_types: research, review, extraction, presentation
 scenes: ppt, pptx, slides, presentation, deck

@@ -64,16 +64,8 @@ export function formatSessionRuntimeSummary(
 
 function formatWaitingOn(summary: SessionRuntimeSummary): string {
   const transition = summary.durableTruth.checkpoint.lastTransition;
-  if (transition?.action === "pause" && transition.reason.code === "pause.verification_awaiting_user") {
-    return `verification (waiting for user on ${formatPathList(transition.reason.pendingPaths)})`;
-  }
-
   if (summary.durableTruth.checkpoint.phase === "recovery" || transition?.action === "recover") {
     return "provider recovery";
-  }
-
-  if (summary.durableTruth.verification.status === "required") {
-    return `verification (${formatPathList(summary.durableTruth.verification.pendingPaths)})`;
   }
 
   if (transition?.action === "yield") {
@@ -90,7 +82,7 @@ function formatWaitingOn(summary: SessionRuntimeSummary): string {
 function formatRecentActivity(summary: SessionRuntimeSummary): string {
   const transition = summary.durableTruth.checkpoint.lastTransition;
   if (transition?.action === "pause") {
-    return "Verification paused and is waiting for explicit user input.";
+    return "Runtime paused at a hard boundary.";
   }
 
   if (transition?.action === "recover") {

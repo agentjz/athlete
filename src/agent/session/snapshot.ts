@@ -17,9 +17,10 @@ import {
 } from "./errors.js";
 import { deriveTaskState, normalizeSessionRecord as normalizeTaskStateSessionRecord } from "./taskState.js";
 import { deriveTodoItems, normalizeTodoItems } from "./todos.js";
+import { readUserInput } from "./turnFrame.js";
 
 const CURRENT_SESSION_SCHEMA_VERSION = 1;
-const OFFICIAL_SESSION_KEYS = new Set([
+const SESSION_SNAPSHOT_KEYS = new Set([
   "schemaVersion",
   "id",
   "createdAt",
@@ -41,11 +42,6 @@ type SessionSnapshotCandidate = Partial<SessionRecord> & {
   schemaVersion?: unknown;
 };
 
-export interface ParsedSessionSnapshot {
-  session: SessionRecord;
-  shouldRewrite: boolean;
-}
-
 export function serializeSessionSnapshot(session: SessionRecord): string {
   return `${JSON.stringify({
     schemaVersion: CURRENT_SESSION_SCHEMA_VERSION,
@@ -53,7 +49,7 @@ export function serializeSessionSnapshot(session: SessionRecord): string {
   }, null, 2)}\n`;
 }
 
-export function parseSessionSnapshot(raw: string, sessionPath: string): ParsedSessionSnapshot {
+export function parseSessionSnapshot(raw: string, sessionPath: string): SessionRecord {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw) as unknown;
@@ -65,9 +61,9 @@ export function parseSessionSnapshot(raw: string, sessionPath: string): ParsedSe
   }
 
   const record = expectRecord(parsed, sessionPath, "Session snapshot");
+  rejectUnknownSessionKeys(record, sessionPath);
   const schemaVersion = record.schemaVersion;
-  const versionless = schemaVersion === undefined;
-  if (!versionless && schemaVersion !== CURRENT_SESSION_SCHEMA_VERSION) {
+  if (schemaVersion !== CURRENT_SESSION_SCHEMA_VERSION) {
     throw createUnsupportedSessionSchemaError(sessionPath, schemaVersion, CURRENT_SESSION_SCHEMA_VERSION);
   }
 
@@ -88,10 +84,7 @@ export function parseSessionSnapshot(raw: string, sessionPath: string): ParsedSe
     sessionDiff: readOptionalObject(record.sessionDiff, "sessionDiff", sessionPath) as SessionRecord["sessionDiff"],
   };
 
-  return {
-    session: normalizeLoadedSessionRecord(candidate as SessionRecord),
-    shouldRewrite: versionless || hasLegacySessionKeys(record),
-  };
+  return normalizeLoadedSessionRecord(candidate as SessionRecord);
 }
 
 export function prepareSessionRecordForSave(session: SessionRecord): SessionRecord {
@@ -111,7 +104,9 @@ export function prepareSessionRecordForSave(session: SessionRecord): SessionReco
     ),
   };
 
-  return normalizeSessionDiffState(normalizeSessionRuntimeStats(normalizeSessionCheckpoint(prepared)));
+  return normalizeSessionDiffState(normalizeSessionRuntimeStats(normalizeSessionCheckpoint({
+    ...prepared,
+  })));
 }
 
 export function normalizeLoadedSessionRecord(session: SessionRecord): SessionRecord {
@@ -128,8 +123,11 @@ export function normalizeLoadedSessionRecord(session: SessionRecord): SessionRec
   };
 }
 
-function hasLegacySessionKeys(record: Record<string, unknown>): boolean {
-  return Object.keys(record).some((key) => !OFFICIAL_SESSION_KEYS.has(key));
+function rejectUnknownSessionKeys(record: Record<string, unknown>, sessionPath: string): void {
+  const unknownKeys = Object.keys(record).filter((key) => !SESSION_SNAPSHOT_KEYS.has(key));
+  if (unknownKeys.length > 0) {
+    throw createSessionCorruptError(sessionPath, `unrecognized field(s): ${unknownKeys.join(", ")}`);
+  }
 }
 
 function readMessages(value: unknown, sessionPath: string): StoredMessage[] {
@@ -310,13 +308,15 @@ function readRequiredNumber(
 }
 
 function deriveSessionTitle(messages: StoredMessage[]): string | undefined {
-  const firstUserMessage = messages.find((message) => message.role === "user" && message.content);
-  if (!firstUserMessage?.content) {
+  const firstUserInput = messages
+    .filter((message) => message.role === "user")
+    .map((message) => readUserInput(message.content))
+    .find((content): content is string => Boolean(content));
+  if (!firstUserInput) {
     return undefined;
   }
 
-  const normalized = firstUserMessage.content.replace(/\s+/g, " ").trim();
-  return normalized.slice(0, 80);
+  return firstUserInput.slice(0, 80);
 }
 
 export { CURRENT_SESSION_SCHEMA_VERSION };

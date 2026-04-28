@@ -17,11 +17,9 @@ export function listSkillCapabilityPackages(skills: readonly LoadedSkill[]): Cap
       notFor: ["automatic route changes", "bypassing explicit load_skill", "machine-owned strategy"],
       inputSchema: "AssignmentContract plus explicit load_skill when Lead chooses the skill",
       outputSchema: "CloseoutContract through the tool or execution path that uses the skill",
-      budgetPolicy: skill.loadMode === "required"
-        ? "Required only when Lead accepts the matching specialized workflow."
-        : "Load only when Lead judges the skill relevant.",
+      budgetPolicy: "Load only when Lead judges the skill relevant.",
       tools: [...skill.tools.required, ...skill.tools.optional],
-      cost: skill.loadMode === "manual" ? "low" : "medium",
+      cost: "low",
       extensionPoint: skill.path,
     });
 
@@ -44,7 +42,7 @@ export function listSkillCapabilityPackages(skills: readonly LoadedSkill[]): Cap
         createsExecution: false,
         emitsWakeSignal: false,
       },
-      selectionHint: skill.description || `Load skill ${skill.name} when Lead chooses that specialized method.`,
+      availability: skill.description || `Skill body available through explicit load_skill: ${skill.name}.`,
     });
   });
 }

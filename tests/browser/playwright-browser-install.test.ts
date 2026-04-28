@@ -18,7 +18,7 @@ test("resolvePlaywrightInstallTarget maps runtime browser config to install targ
 
 test("parsePlaywrightInstallLocation reads the primary install location from playwright CLI dry-run output", () => {
   assert.equal(
-    parsePlaywrightInstallLocation("Chrome (playwright chrome v123)\n  Install location:    <system>\n"),
+    parsePlaywrightInstallLocation("Chrome (playwright chrome build123)\n  Install location:    <system>\n"),
     "<system>",
   );
   assert.equal(

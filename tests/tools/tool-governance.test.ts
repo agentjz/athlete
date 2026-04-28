@@ -21,7 +21,7 @@ test("tool registry exposes governed metadata and promotes specialized document 
   assert.equal(writeFileEntry.governance.risk, "medium");
   assert.equal(mineruPdfEntry.governance.mutation, "read");
   assert.equal(mineruPdfEntry.governance.specialty, "document");
-  assert.equal(mineruPdfEntry.governance.fallbackOnlyInWorkflows.length, 0);
+  assert.equal(mineruPdfEntry.governance.secondaryInWorkflows.length, 0);
 
   const names = registry.definitions.map((tool) => tool.function.name);
   assert(names.indexOf("mineru_pdf_read") >= 0);
@@ -163,7 +163,7 @@ test("tool execution fails closed when a governed write tool omits required chan
       changeSignal: "required",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     async execute() {
       return {

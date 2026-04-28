@@ -239,7 +239,7 @@ export function toChatCompletionMessages(messages: ProviderMessage[]): ChatCompl
         tool_calls: message.toolCalls,
       };
 
-      if (message.reasoningContent) {
+      if (message.reasoningContent !== undefined) {
         assistantMessage.reasoning_content = message.reasoningContent;
       }
 
@@ -252,7 +252,7 @@ export function toChatCompletionMessages(messages: ProviderMessage[]): ChatCompl
       name: message.name,
     };
 
-    if (message.role === "assistant" && message.reasoningContent) {
+    if (message.role === "assistant" && message.reasoningContent !== undefined) {
       baseMessage.reasoning_content = message.reasoningContent;
     }
 

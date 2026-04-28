@@ -4,9 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { withProjectLedger } from "../../src/control/ledger/open.js";
-import { ensureTaskPlan } from "../../src/orchestrator/taskPlanning.js";
 import { BackgroundJobStore } from "../../src/execution/background.js";
-import { loadOrchestratorProgress } from "../../src/orchestrator/progress.js";
 import { CoordinationPolicyStore } from "../../src/capabilities/team/policyStore.js";
 import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
 import { TeamStore } from "../../src/capabilities/team/store.js";
@@ -14,7 +12,7 @@ import { TaskStore } from "../../src/tasks/store.js";
 import { WorktreeStore } from "../../src/worktrees/store.js";
 import { createTempWorkspace, initGitRepo } from "../helpers.js";
 
-const LEGACY_TRUTH_SOURCE_PATHS = [
+const RETIRED_TRUTH_SOURCE_PATHS = [
   path.join(".deadmouse", "tasks"),
   path.join(".deadmouse", "team", "config.json"),
   path.join(".deadmouse", "team", "policy.json"),
@@ -23,7 +21,7 @@ const LEGACY_TRUTH_SOURCE_PATHS = [
   path.join(".deadmouse", "worktrees", "index.json"),
 ];
 
-test("control-plane stores bootstrap a sqlite ledger and reload persisted state without legacy JSON truth files", async (t) => {
+test("control-plane stores bootstrap a sqlite ledger and remove retired JSON truth files", async (t) => {
   const root = await createTempWorkspace("ledger-bootstrap", t);
   await initGitRepo(root);
 
@@ -129,7 +127,7 @@ test("control-plane stores bootstrap a sqlite ledger and reload persisted state 
 
   const ledgerFile = path.join(root, ".deadmouse", "control-plane.sqlite");
   assert.equal(await pathExists(ledgerFile), true);
-  for (const relativePath of LEGACY_TRUTH_SOURCE_PATHS) {
+  for (const relativePath of RETIRED_TRUTH_SOURCE_PATHS) {
     assert.equal(await pathExists(path.join(root, relativePath)), false, `${relativePath} should be retired`);
   }
 
@@ -199,7 +197,7 @@ test("TaskStore arbitrates concurrent claims so only one actor can successfully 
   assert.equal(finalTask.status, "in_progress");
 });
 
-test("orchestrator ignores legacy JSON shadows and cleanup does not disturb ledger-backed control-plane state", async (t) => {
+test("control-plane stores remove retired JSON shadows and keep ledger-backed state", async (t) => {
   const root = await createTempWorkspace("ledger-shadow", t);
   await initGitRepo(root);
 
@@ -223,57 +221,38 @@ test("orchestrator ignores legacy JSON shadows and cleanup does not disturb ledg
   });
   const realWorktree = await new WorktreeStore(root).create("shadow-proof", task.id);
 
-  await writeLegacyTruthSourceShadows(root);
+  await writeRetiredTruthSourceShadows(root);
 
-  const progress = await loadOrchestratorProgress({
-    rootDir: root,
-    cwd: root,
-    objective: {
-      key: "shadow-proof",
-      text: "Ignore legacy JSON shadows.",
-    },
-  });
+  const [tasks, teammates, requests, jobs, worktrees] = await Promise.all([
+    new TaskStore(root).list(),
+    new TeamStore(root).listMembers(),
+    new ProtocolRequestStore(root).list(),
+    new BackgroundJobStore(root).list(),
+    new WorktreeStore(root).list(),
+  ]);
 
-  assert.deepEqual(progress.tasks.map((record) => record.id), [task.id]);
-  assert.equal(progress.teammates.some((member) => member.name === "shadow-worker"), false);
-  assert.equal(progress.teammates.some((member) => member.name === "alpha"), true);
-  assert.equal(progress.protocolRequests.some((request) => request.id === "shadow-request"), false);
-  assert.equal(progress.protocolRequests.some((request) => request.id === realRequest.id), true);
-  assert.equal(progress.relevantBackgroundJobs.some((job) => job.id === "shadowjob"), false);
-  assert.equal(progress.relevantBackgroundJobs.some((job) => job.id === realJob.id), true);
-  assert.equal(progress.worktrees.some((worktree) => worktree.name === "shadow-lane"), false);
-  assert.equal(progress.worktrees.some((worktree) => worktree.name === realWorktree.name), true);
+  assert.deepEqual(tasks.map((record) => record.id), [task.id]);
+  assert.equal(teammates.some((member) => member.name === "shadow-worker"), false);
+  assert.equal(teammates.some((member) => member.name === "alpha"), true);
+  assert.equal(requests.some((request) => request.id === "shadow-request"), false);
+  assert.equal(requests.some((request) => request.id === realRequest.id), true);
+  assert.equal(jobs.some((job) => job.id === "shadowjob"), false);
+  assert.equal(jobs.some((job) => job.id === realJob.id), true);
+  assert.equal(worktrees.some((worktree) => worktree.name === "shadow-lane"), false);
+  assert.equal(worktrees.some((worktree) => worktree.name === realWorktree.name), true);
 
   const reloadedTask = await new TaskStore(root).load(task.id);
   const reloadedWorktree = await new WorktreeStore(root).get(realWorktree.name);
   assert.equal(reloadedTask.worktree, realWorktree.name);
   assert.equal(reloadedWorktree.taskId, task.id);
 
-  for (const relativePath of LEGACY_TRUTH_SOURCE_PATHS) {
+  for (const relativePath of RETIRED_TRUTH_SOURCE_PATHS) {
     assert.equal(await pathExists(path.join(root, relativePath)), false, `${relativePath} should be cleaned`);
   }
 });
 
-test("loadOrchestratorProgress fails closed when the control-plane teammate ledger is corrupt", async (t) => {
+test("control-plane stores fail closed when the teammate ledger is corrupt", async (t) => {
   const root = await createTempWorkspace("ledger-corrupt-team-members", t);
-  const analysis = {
-    objective: {
-      key: "objective-corrupt-team-members",
-      text: "Implement the feature in parallel with a teammate.",
-    },
-    complexity: "complex" as const,
-    wantsBackground: false,
-    wantsSubagent: false,
-    wantsTeammate: true,
-    backgroundCommand: undefined,
-  };
-
-  await ensureTaskPlan({
-    rootDir: root,
-    cwd: root,
-    analysis,
-    existingTasks: [],
-  });
   await new TeamStore(root).upsertMember("worker-1", "implementer", "idle", {
     sessionId: "session-worker-1",
     pid: 1111,
@@ -283,16 +262,12 @@ test("loadOrchestratorProgress fails closed when the control-plane teammate ledg
   });
 
   await assert.rejects(
-    () => loadOrchestratorProgress({
-      rootDir: root,
-      cwd: root,
-      objective: analysis.objective,
-    }),
+    () => new TeamStore(root).listMembers(),
     /team_members/i,
   );
 });
 
-async function writeLegacyTruthSourceShadows(root: string): Promise<void> {
+async function writeRetiredTruthSourceShadows(root: string): Promise<void> {
   const deadmouseDir = path.join(root, ".deadmouse");
   const tasksDir = path.join(deadmouseDir, "tasks");
   const teamDir = path.join(deadmouseDir, "team");

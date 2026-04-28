@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { deriveAcceptanceState, normalizeAcceptanceState, shouldForceAcceptanceRouteChange } from "./contract.js";
+import { deriveAcceptanceState, normalizeAcceptanceState } from "./contract.js";
 import { collectAcceptanceSignals } from "./signals.js";
 import { detectTextCorruption, normalizeTextForStorage } from "../../utils/text.js";
 import type {
@@ -395,12 +395,6 @@ function buildAcceptanceSummary(
     parts.push(`This phase has stalled for ${stalledPhaseCount} consecutive evaluation(s).`);
   }
 
-  if (stalledPhaseCount >= 3) {
-    parts.push(
-      "Switch strategy now: list what was already tried or verified, choose the next concrete action for the pending checks, and change tool, arguments, or route before continuing. Do not continue with explanation-only text.",
-    );
-  }
-
   return parts.join(" ");
 }
 
@@ -423,5 +417,3 @@ function takeLastUnique(values: string[], limit: number): string[] {
 
   return result;
 }
-
-export { shouldForceAcceptanceRouteChange };

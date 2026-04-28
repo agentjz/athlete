@@ -45,6 +45,6 @@ export function listWorkflowCapabilityPackages(): CapabilityPackage[] {
       description: "Adapts Lead-selected workflow methods into the generic capability package contract.",
     },
     runnerType: "workflow",
-    selectionHint: profile.description,
+    availability: profile.description,
   }));
 }

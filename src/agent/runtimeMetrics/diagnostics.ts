@@ -41,10 +41,8 @@ export interface RuntimeSummaryPromptView {
   summaryChars: number;
   staticChars: number;
   dynamicChars: number;
-  memoryChars: number;
   staticBlockCount: number;
   dynamicBlockCount: number;
-  memoryBlockCount: number;
   totalChars: number;
   hotspots: PromptBlockMetric[];
   slimmingSummary: string;
@@ -59,7 +57,7 @@ export interface RuntimeSummaryDurableTruth {
   };
   verification: {
     status: NonNullable<SessionRecord["verificationState"]>["status"] | "idle";
-    pendingPaths: string[];
+    observedPaths: string[];
   };
 }
 
@@ -89,7 +87,7 @@ export function buildDurableTruth(
     },
     verification: {
       status: session.verificationState?.status ?? "idle",
-      pendingPaths: session.verificationState?.pendingPaths ?? [],
+      observedPaths: session.verificationState?.observedPaths ?? [],
     },
   };
 }
@@ -122,10 +120,9 @@ function explainContinuation(
     return describeTransition(transition);
   }
 
-  if (verificationState?.status === "required") {
+  if (verificationState?.attempts) {
     return {
-      reasonCode: "continue.verification_required",
-      summary: `Verification required paths remain: ${formatPaths(verificationState.pendingPaths)}.`,
+      summary: `Verification facts recorded for ${formatPaths(verificationState.observedPaths)}.`,
     };
   }
 
@@ -144,7 +141,7 @@ function explainRecovery(
 
   if (stats.events.recoveryCount > 0) {
     return {
-      summary: `Provider recovery triggered ${stats.events.recoveryCount} time(s) earlier in this session, but the current checkpoint is no longer in recovery.`,
+      summary: `Provider recovery was recorded ${stats.events.recoveryCount} time(s), but no recovery is active now.`,
     };
   }
 
@@ -166,13 +163,13 @@ function explainCompression(
 
   if (promptView?.compressed) {
     return {
-      summary: `Older turns were summarized to keep the live request lean; current hotspot ${formatHotspot(promptView.hotspots[0])}.`,
+      summary: `Current turn context was compacted; current hotspot ${formatHotspot(promptView.hotspots[0])}.`,
     };
   }
 
   if (stats.events.compressionCount > 0) {
     return {
-      summary: `Compression happened ${stats.events.compressionCount} time(s) earlier in this session, but the current prompt estimate fits inside the context budget.`,
+      summary: `Compression was recorded ${stats.events.compressionCount} time(s), but the current prompt estimate fits inside the context budget.`,
     };
   }
 
@@ -223,7 +220,7 @@ function buildSlowFactors(
       score: Math.max(overflow, stats.events.compressionCount * 500),
       summary: overflow > 0
         ? `Prompt growth forced compaction from ~${promptView.initialEstimatedRequestChars} chars down to ~${promptView.estimatedRequestChars}.`
-        : `Older turns are being summarized to keep the live request near ~${promptView.estimatedRequestChars} chars.`,
+        : `Current turn context is being compacted to keep the live request near ~${promptView.estimatedRequestChars} chars.`,
     });
   } else if (stats.events.compressionCount > 0) {
     factors.push({
@@ -271,10 +268,8 @@ function buildPromptView(
     summaryChars: promptDiagnostics.contextDiagnostics.summaryChars,
     staticChars: metrics.staticChars,
     dynamicChars: metrics.dynamicChars,
-    memoryChars: metrics.memoryChars,
     staticBlockCount: metrics.staticBlockCount,
     dynamicBlockCount: metrics.dynamicBlockCount,
-    memoryBlockCount: metrics.memoryBlockCount,
     totalChars: metrics.totalChars,
     hotspots: metrics.hotspots.slice(0, 5),
     slimmingSummary: describePromptSlimming(metrics, promptDiagnostics),
@@ -294,11 +289,10 @@ function describePromptSlimming(
   return `Largest prompt hotspot is ${formatHotspot(hotspot)} with the ${dominantLayer} layer contributing the most chars.`;
 }
 
-function pickDominantLayer(metrics: PromptLayerMetrics): "static" | "dynamic" | "memory" {
-  const layers: Array<{ layer: "static" | "dynamic" | "memory"; chars: number }> = [
+function pickDominantLayer(metrics: PromptLayerMetrics): "static" | "dynamic" {
+  const layers: Array<{ layer: "static" | "dynamic"; chars: number }> = [
     { layer: "static", chars: metrics.staticChars },
     { layer: "dynamic", chars: metrics.dynamicChars },
-    { layer: "memory", chars: metrics.memoryChars },
   ];
 
   return layers.sort((left, right) => right.chars - left.chars || left.layer.localeCompare(right.layer))[0]?.layer ?? "static";
@@ -311,40 +305,15 @@ function describeTransition(transition: RuntimeTransition): RuntimeSummaryExplan
         reasonCode: transition.reason.code,
         summary: `Runtime continued after tool batch ${transition.reason.toolNames.join(", ")}.`,
       };
-    case "continue.required_skill_load":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime continued because required skills are still missing: ${transition.reason.missingSkills.join(", ")}.`,
-      };
-    case "continue.incomplete_todos":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime continued because ${transition.reason.incompleteTodoCount} todo item(s) remain incomplete.`,
-      };
     case "continue.empty_assistant_response":
       return {
         reasonCode: transition.reason.code,
         summary: "Runtime continued because the assistant returned no user-visible task result.",
       };
-    case "continue.verification_required":
+    case "continue.internal_wake":
       return {
         reasonCode: transition.reason.code,
-        summary: `Runtime continued because verification required paths remain: ${formatPaths(transition.reason.pendingPaths)}.`,
-      };
-    case "continue.verification_failed":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime continued because the last verification failed${transition.reason.lastCommand ? ` (${transition.reason.lastCommand})` : ""}.`,
-      };
-    case "continue.acceptance_required":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime continued because the acceptance gate is still in phase '${transition.reason.phase}' with pending checks: ${formatPaths(transition.reason.pendingChecks)}.`,
-      };
-    case "continue.resume_from_checkpoint":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime resumed from the persisted checkpoint via ${transition.reason.source === "resume_directive" ? "a resume directive" : "managed continuation"}.`,
+        summary: "Runtime delivered an internal wake signal without changing the current user input.",
       };
     case "recover.provider_request_retry":
       return {
@@ -360,11 +329,6 @@ function describeTransition(transition: RuntimeTransition): RuntimeSummaryExplan
       return {
         reasonCode: transition.reason.code,
         summary: `Managed continuation yielded because tool steps hit ${transition.reason.toolSteps}/${transition.reason.limit ?? transition.reason.toolSteps}.`,
-      };
-    case "pause.verification_awaiting_user":
-      return {
-        reasonCode: transition.reason.code,
-        summary: `Runtime paused because verification is awaiting user input for ${formatPaths(transition.reason.pendingPaths)}.`,
       };
     case "pause.provider_recovery_budget_exhausted":
       return {

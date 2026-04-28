@@ -22,9 +22,13 @@ session 里应该能承接：
 - todo 状态
 - verification 状态
 - task state
+- 外部化工具结果引用
+
+session 是可查询现场，不是默认注入给下一轮模型的记忆。
 
 ## 当前对应
 
 - `src/agent/session.ts`
 - `src/agent/session/taskState.ts`
 - `src/agent/verification.ts`
+- `session_list` / `session_read` / `session_search` / `session_final_output`

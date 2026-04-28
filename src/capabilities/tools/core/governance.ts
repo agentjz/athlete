@@ -158,7 +158,7 @@ function normalizeToolGovernance(name: string, partial: Partial<ToolGovernance>)
     changeSignal: requireField(name, partial.changeSignal, "changeSignal"),
     verificationSignal: requireField(name, partial.verificationSignal, "verificationSignal"),
     preferredWorkflows: [...(partial.preferredWorkflows ?? [])],
-    fallbackOnlyInWorkflows: [...(partial.fallbackOnlyInWorkflows ?? [])],
+    secondaryInWorkflows: [...(partial.secondaryInWorkflows ?? [])],
     browserStep: partial.browserStep,
     documentKind: partial.documentKind,
   };

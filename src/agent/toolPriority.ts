@@ -6,7 +6,6 @@ export interface ToolPriorityOptions {
   input?: string;
   objective?: string;
   taskSummary?: string;
-  missingRequiredSkillNames?: string[];
   activeSkillNames?: string[];
 }
 
@@ -48,12 +47,6 @@ export function prioritizeToolEntriesForTurn(
     return entries;
   }
 
-  const missingSkillNames = new Set(
-    (options.missingRequiredSkillNames ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean),
-  );
-  const shouldPreferLoadSkill =
-    entries.some((entry) => entry.name === "load_skill") &&
-    [...missingSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
   const prioritized = entries
@@ -61,7 +54,6 @@ export function prioritizeToolEntriesForTurn(
       entry,
       index,
       rank: getToolPriorityRank(entry.name, entry.governance, {
-        shouldPreferLoadSkill,
         interactiveWebIntent,
       }),
     }))
@@ -85,12 +77,6 @@ export function prioritizeToolDefinitionsForTurn(
     return definitions;
   }
 
-  const missingSkillNames = new Set(
-    (options.missingRequiredSkillNames ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean),
-  );
-  const shouldPreferLoadSkill =
-    definitions.some((tool) => tool.function.name === "load_skill") &&
-    [...missingSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
   const prioritized = definitions
@@ -101,7 +87,6 @@ export function prioritizeToolDefinitionsForTurn(
         definition.function.name,
         getToolGovernanceForName(definition.function.name),
         {
-          shouldPreferLoadSkill,
           interactiveWebIntent,
         },
       ),
@@ -192,15 +177,12 @@ function isInteractiveWebIntent(options: ToolPriorityOptions): boolean {
 
 function hasWebWorkflowSignal(options: ToolPriorityOptions): boolean {
   const activeSkillNames = normalizeSkillNames(options.activeSkillNames);
-  const missingRequiredSkillNames = normalizeSkillNames(options.missingRequiredSkillNames);
-  return [...activeSkillNames, ...missingRequiredSkillNames].some((name) => WEB_WORKFLOW_SKILLS.has(name));
+  return activeSkillNames.some((name) => WEB_WORKFLOW_SKILLS.has(name));
 }
 
 function hasInteractiveWebWorkflowSignal(options: ToolPriorityOptions): boolean {
   const activeSkillNames = normalizeSkillNames(options.activeSkillNames);
-  const missingRequiredSkillNames = normalizeSkillNames(options.missingRequiredSkillNames);
-  return [...activeSkillNames, ...missingRequiredSkillNames].some((name) =>
-    INTERACTIVE_WEB_WORKFLOW_SKILLS.has(name));
+  return activeSkillNames.some((name) => INTERACTIVE_WEB_WORKFLOW_SKILLS.has(name));
 }
 
 function normalizeSkillNames(input: string[] | undefined): string[] {
@@ -218,14 +200,9 @@ function getToolPriorityRank(
   name: string,
   governance: ReturnType<typeof getToolGovernanceForName>,
   options: {
-    shouldPreferLoadSkill: boolean;
     interactiveWebIntent: boolean;
   },
 ): number {
-  if (options.shouldPreferLoadSkill && name === "load_skill") {
-    return 170;
-  }
-
   const lightweightRank = LIGHTWEIGHT_WEB_TOOL_RANK.get(name);
   if (options.interactiveWebIntent) {
     if (governance && isBrowserGovernedTool(governance)) {
@@ -249,7 +226,7 @@ function getToolPriorityRank(
     return 220;
   }
 
-  if (governance?.fallbackOnlyInWorkflows.some((workflow) => WEB_WORKFLOW_SKILLS.has(workflow))) {
+  if (governance?.secondaryInWorkflows.some((workflow) => WEB_WORKFLOW_SKILLS.has(workflow))) {
     return 300;
   }
 

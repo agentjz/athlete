@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildGenericContinuationInput } from "../../src/agent/checkpoint.js";
+import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
 import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
@@ -37,7 +37,6 @@ test("prioritizeToolDefinitionsForTurn keeps web research lightweight before bro
     ],
     {
       input: "Please look up the latest public Helldivers 2 news on the web, summarize it in five bullets or fewer, and write it to a document.",
-      missingRequiredSkillNames: ["web-research"],
     },
   );
 
@@ -62,10 +61,9 @@ test("prioritizeToolDefinitionsForTurn keeps continuation web hints advisory ins
       createTool("write_file"),
     ],
     {
-      input: buildGenericContinuationInput(undefined),
+      input: buildInternalWakeInput(undefined),
       objective: "Research the latest public Helldivers 2 news from the web and summarize it.",
       taskSummary: "[>] browse official and news webpages, then write validation/helldivers2-latest.md",
-      missingRequiredSkillNames: [],
     },
   );
 
@@ -86,7 +84,6 @@ test("prioritizeToolDefinitionsForTurn leaves non-web turns in their original or
 
   const prioritized = prioritizeToolDefinitionsForTurn(original, {
     input: "Inspect the src directory structure and summarize the current module boundaries.",
-    missingRequiredSkillNames: [],
   });
 
   assert.deepEqual(

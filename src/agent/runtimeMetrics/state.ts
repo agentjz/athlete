@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../session/taskState.js";
+import { isInternalMessage } from "../session/turnFrame.js";
 import type {
   ExternalizedToolResultReference,
   SessionRecord,
@@ -108,7 +108,7 @@ export function noteRuntimeTurnInput(
   input: string,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  if (!isInternalMessage(input) && !isContinuationDirective(input)) {
+  if (!isInternalMessage(input)) {
     return withRuntimeStats(session, normalizeRuntimeStats(session.runtimeStats, timestamp));
   }
 

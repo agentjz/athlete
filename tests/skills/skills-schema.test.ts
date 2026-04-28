@@ -6,15 +6,14 @@ import { parseSkillSource } from "../../src/capabilities/skills/schema.js";
 
 const ROOT = path.join("C:", "repo");
 
-test("parseSkillSource normalizes V1 metadata into machine-readable skill fields", () => {
+test("parseSkillSource normalizes supported skill metadata into machine-readable fields", () => {
   const skill = parseSkillSource(
     [
       "---",
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: docx-review",
       "description: Review Word documents with section-aware tools.",
       "version: 1.2.0",
-      "load_mode: required",
       "agent_kinds: lead, teammate",
       "roles: reviewer",
       "task_types: review, documentation",
@@ -32,9 +31,8 @@ test("parseSkillSource normalizes V1 metadata into machine-readable skill fields
     },
   );
 
-  assert.equal(skill.schemaVersion, "skill.v1");
+  assert.equal(skill.schemaVersion, "skill");
   assert.equal(skill.name, "docx-review");
-  assert.equal(skill.loadMode, "required");
   assert.deepEqual(skill.agentKinds, ["lead", "teammate"]);
   assert.deepEqual(skill.roles, ["reviewer"]);
   assert.deepEqual(skill.taskTypes, ["review", "documentation"]);
@@ -51,7 +49,7 @@ test("parseSkillSource rejects invalid metadata with explicit schema failures", 
       parseSkillSource(
         [
           "---",
-          "schema_version: skill.v1",
+          "schema_version: skill",
           "description: Missing name",
           "---",
           "Body",
@@ -69,19 +67,19 @@ test("parseSkillSource rejects invalid metadata with explicit schema failures", 
       parseSkillSource(
         [
           "---",
-          "schema_version: skill.v1",
-          "name: invalid-load-mode",
-          "description: Broken load mode",
-          "load_mode: someday",
+          "schema_version: skill",
+          "name: obsolete-load-mode",
+          "description: Obsolete load mode",
+          "load_mode: required",
           "---",
           "Body",
         ].join("\n"),
         {
-          absolutePath: path.join(ROOT, "skills", "invalid-load-mode", "SKILL.md"),
+          absolutePath: path.join(ROOT, "skills", "obsolete-load-mode", "SKILL.md"),
           rootDir: ROOT,
         },
       ),
-    /load_mode/i,
+    /load_mode.*obsolete/i,
   );
 
   assert.throws(
@@ -89,7 +87,27 @@ test("parseSkillSource rejects invalid metadata with explicit schema failures", 
       parseSkillSource(
         [
           "---",
-          "schema_version: skill.v1",
+          "schema_version: skill",
+          "name: obsolete-required",
+          "description: Obsolete required flag",
+          "required: true",
+          "---",
+          "Body",
+        ].join("\n"),
+        {
+          absolutePath: path.join(ROOT, "skills", "obsolete-required", "SKILL.md"),
+          rootDir: ROOT,
+        },
+      ),
+    /required.*obsolete/i,
+  );
+
+  assert.throws(
+    () =>
+      parseSkillSource(
+        [
+          "---",
+          "schema_version: skill",
           "name: conflicting-tools",
           "description: Tool constraints conflict",
           "required_tools: read_file",

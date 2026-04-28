@@ -37,11 +37,7 @@ export class SessionStore implements SessionStoreLike {
   async load(id: string): Promise<SessionRecord> {
     const sessionPath = this.getPath(id);
     const raw = await this.readSnapshotFile(id, sessionPath);
-    const parsed = parseSessionSnapshot(raw, sessionPath);
-    if (parsed.shouldRewrite) {
-      await fs.writeFile(sessionPath, serializeSessionSnapshot(parsed.session), "utf8");
-    }
-    return parsed.session;
+    return parseSessionSnapshot(raw, sessionPath);
   }
 
   async loadLatest(): Promise<SessionRecord | null> {
@@ -59,7 +55,7 @@ export class SessionStore implements SessionStoreLike {
         .map(async (entry) => {
           const sessionPath = path.join(this.sessionsDir, entry.name);
           const raw = await fs.readFile(sessionPath, "utf8");
-          return parseSessionSnapshot(raw, sessionPath).session;
+          return parseSessionSnapshot(raw, sessionPath);
         }),
     );
 

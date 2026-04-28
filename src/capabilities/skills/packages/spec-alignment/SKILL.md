@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: spec-alignment
 description: Keep SPEC and implementation narratives aligned when behavior, interfaces, or constraints change.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 roles: reviewer, writer, implementer
 task_types: documentation, specification
@@ -18,6 +17,6 @@ Use this workflow when code changes alter contract-level behavior or documented 
 
 1. Verify which behavior changed in code, not just in intention.
 2. Update only the SPEC sections that describe the affected boundary, invariant, or workflow.
-3. Keep “current capability” separate from “future direction”.
+3. Keep current capability separate from future direction.
 4. Avoid vague roadmap language when the implementation already made a concrete choice.
 5. In the final report, call out which SPEC files were synchronized and why.

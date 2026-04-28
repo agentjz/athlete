@@ -7,7 +7,7 @@ import { createMessage, createToolMessage } from "../../src/agent/session.js";
 import { SessionStore } from "../../src/agent/session.js";
 import { createInternalReminder } from "../../src/agent/session.js";
 import { discoverSkills } from "../../src/capabilities/skills/discovery.js";
-import { buildSkillRuntimeState, getSkillToolGateResult } from "../../src/capabilities/skills/state.js";
+import { buildSkillRuntimeState } from "../../src/capabilities/skills/state.js";
 import { loadSkillTool } from "../../src/capabilities/tools/packages/skills/loadSkillTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
@@ -18,10 +18,9 @@ async function writeSkill(root: string): Promise<void> {
     path.join(skillDir, "SKILL.md"),
     [
       "---",
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: docx-review",
       "description: Review Word documents with section-aware tools.",
-      "load_mode: required",
       "agent_kinds: lead",
       "task_types: review, documentation",
       "scenes: docx",
@@ -62,32 +61,24 @@ test("load_skill output remains recognizable across later turns through the sess
   );
 
   assert.equal(result.ok, true);
-  assert.match(result.output, /"schemaVersion": "skill\.v1"/);
+  assert.match(result.output, /"schemaVersion": "skill"/);
 
   session = await sessionStore.appendMessages(session, [
     createToolMessage("call-1", result.output, "load_skill"),
-    createMessage("user", createInternalReminder("Resume the current task from the latest progress.")),
+    createMessage("user", createInternalReminder("Wake lead runtime; runtime state changed.")),
   ]);
 
   const reloaded = await sessionStore.load(session.id);
   const runtime = buildSkillRuntimeState({
     skills,
     session: reloaded,
-    input: "[internal] Resume the current task from the latest progress.",
-    identity: {
-      kind: "lead",
-      name: "lead",
-    },
-    objective: "Documentation review for proposal.docx",
-    taskSummary: "[>] review documentation task",
-    availableToolNames: ["load_skill", "read_docx", "edit_docx"],
   });
 
   assert.deepEqual(runtime.loadedSkills.map((skill) => skill.name), ["docx-review"]);
-  assert.deepEqual(runtime.missingRequiredSkills, []);
+  assert.deepEqual([...runtime.loadedSkillNames], ["docx-review"]);
 });
 
-test("getSkillToolGateResult keeps missing required skills advisory so tools can still run", async (t) => {
+test("unloaded matching-looking skills do not become runtime requirements", async (t) => {
   const root = await createTempWorkspace("skill-gate", t);
   await writeSkill(root);
   const skills = await discoverSkills(root, root, []);
@@ -99,16 +90,8 @@ test("getSkillToolGateResult keeps missing required skills advisory so tools can
   const runtime = buildSkillRuntimeState({
     skills,
     session,
-    input: "Please review and update this proposal.docx.",
-    identity: {
-      kind: "lead",
-      name: "lead",
-    },
-    objective: "Documentation review for proposal.docx",
-    taskSummary: "[>] review documentation task",
-    availableToolNames: ["load_skill", "read_docx", "edit_docx", "write_file"],
   });
 
-  assert.equal(getSkillToolGateResult("write_file", runtime), null);
-  assert.equal(getSkillToolGateResult("load_skill", runtime), null);
+  assert.deepEqual(runtime.loadedSkills, []);
+  assert.deepEqual([...runtime.loadedSkillNames], []);
 });

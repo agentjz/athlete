@@ -1,16 +1,14 @@
 import type { SessionRecord, StoredMessage, TaskState } from "../../types.js";
-import { normalizeDelegationDirective } from "./delegationDirective.js";
-import { collectActiveFiles, collectBlockers, collectCompletedActions, collectPlannedActions, oneLine, truncate } from "./taskStateHistory.js";
+import { collectActiveFiles, collectBlockers, collectCompletedActions, collectPlannedActions, truncate } from "./taskStateHistory.js";
+import { createInternalReminder, isInternalMessage, oneLine, readUserInput } from "./turnFrame.js";
 
 const MAX_ACTIVE_FILES = 12;
 const MAX_PLANNED_ACTIONS = 8;
 const MAX_COMPLETED_ACTIONS = 12;
 const MAX_BLOCKERS = 8;
-const INTERNAL_PREFIX = "[internal]";
 
 export function createEmptyTaskState(timestamp = new Date().toISOString()): TaskState {
   return {
-    delegationDirective: normalizeDelegationDirective(undefined),
     activeFiles: [],
     plannedActions: [],
     completedActions: [],
@@ -23,7 +21,6 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   const now = new Date().toISOString();
   const currentTurn = findCurrentTurn(messages);
   const objective = currentTurn?.objective ?? previous?.objective;
-  const delegationDirective = normalizeDelegationDirective(previous?.delegationDirective ?? currentTurn?.delegationDirective);
   const frameMessages = currentTurn ? messages.slice(currentTurn.startIndex) : messages;
   const objectiveChanged =
     typeof previous?.objective === "string" &&
@@ -33,24 +30,20 @@ export function deriveTaskState(messages: StoredMessage[], previous?: TaskState)
   if (objectiveChanged) {
     return {
       objective,
-      delegationDirective,
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
       blockers: [],
-      orchestratorReturnBarrier: normalizeReturnBarrier(previous?.orchestratorReturnBarrier),
       lastUpdatedAt: now,
     };
   }
 
   return {
     objective,
-    delegationDirective,
     activeFiles: takeLastUnique(collectActiveFiles(frameMessages), MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(collectPlannedActions(frameMessages), MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(collectCompletedActions(frameMessages), MAX_COMPLETED_ACTIONS),
     blockers: takeLastUnique(collectBlockers(frameMessages), MAX_BLOCKERS),
-    orchestratorReturnBarrier: normalizeReturnBarrier(previous?.orchestratorReturnBarrier),
     lastUpdatedAt: now,
   };
 }
@@ -62,12 +55,10 @@ export function normalizeTaskState(taskState: TaskState | undefined): TaskState 
 
   return {
     objective: typeof taskState.objective === "string" ? taskState.objective : undefined,
-    delegationDirective: normalizeDelegationDirective(taskState.delegationDirective),
     activeFiles: takeLastUnique(taskState.activeFiles ?? [], MAX_ACTIVE_FILES),
     plannedActions: takeLastUnique(taskState.plannedActions ?? [], MAX_PLANNED_ACTIONS),
     completedActions: takeLastUnique(taskState.completedActions ?? [], MAX_COMPLETED_ACTIONS),
     blockers: takeLastUnique(taskState.blockers ?? [], MAX_BLOCKERS),
-    orchestratorReturnBarrier: normalizeReturnBarrier(taskState.orchestratorReturnBarrier),
     lastUpdatedAt:
       typeof taskState.lastUpdatedAt === "string" && taskState.lastUpdatedAt.length > 0
         ? taskState.lastUpdatedAt
@@ -81,8 +72,7 @@ export function formatTaskStateBlock(taskState: TaskState | undefined): string {
   }
 
   const parts = [
-    taskState.objective ? `- Objective: ${taskState.objective}` : "- Objective: none",
-    `- Delegation directive: ${formatDelegationDirective(taskState.delegationDirective)}`,
+    taskState.objective ? `- Latest user input: ${taskState.objective}` : "- Latest user input: none",
     `- Planned actions: ${formatList(taskState.plannedActions)}`,
     `- Blockers: ${formatList(taskState.blockers)}`,
     `- Updated at: ${taskState.lastUpdatedAt}`,
@@ -91,30 +81,7 @@ export function formatTaskStateBlock(taskState: TaskState | undefined): string {
   return parts.join("\n");
 }
 
-export function isInternalMessage(content: string | null | undefined): boolean {
-  return typeof content === "string" && content.trim().toLowerCase().startsWith(INTERNAL_PREFIX);
-}
-
-export function isContinuationDirective(content: string | null | undefined): boolean {
-  if (typeof content !== "string") {
-    return false;
-  }
-
-  const normalized = oneLine(content).toLowerCase();
-  if (!normalized || isInternalMessage(normalized)) {
-    return false;
-  }
-
-  return (
-    /^(continue|resume|go on|keep going|carry on|proceed|continue please|resume please)$/.test(normalized) ||
-    /^(continue|resume)\b.*\b(current|same|existing|task|checkpoint|where you left off)\b/.test(normalized) ||
-    /^(continue|resume|keep going|proceed)$/.test(normalized)
-  );
-}
-
-export function createInternalReminder(text: string): string {
-  return `${INTERNAL_PREFIX} ${text}`.trim();
-}
+export { createInternalReminder, isInternalMessage };
 
 export function normalizeSessionRecord(session: SessionRecord): SessionRecord {
   return {
@@ -130,20 +97,20 @@ export function applyCurrentTurnFrame(
   input: string,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  if (isInternalMessage(input) || isContinuationDirective(input)) {
+  const userInput = readUserInput(input);
+  if (!userInput) {
     return {
       ...session,
       taskState: normalizeTaskState(session.taskState ?? createEmptyTaskState(timestamp)),
     };
   }
 
-  const objective = truncate(oneLine(input), 240);
+  const objective = truncate(userInput, 240);
   return {
     ...session,
     todoItems: [],
     taskState: {
       objective,
-      delegationDirective: normalizeDelegationDirective(undefined),
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
@@ -153,39 +120,25 @@ export function applyCurrentTurnFrame(
   };
 }
 
-function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective" | "delegationDirective"> & {
+function findCurrentTurn(messages: StoredMessage[]): (Pick<TaskState, "objective"> & {
   startIndex: number;
 }) | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message?.role !== "user" || isInternalMessage(message.content) || isContinuationDirective(message.content)) {
+    if (message?.role !== "user") {
       continue;
     }
 
-    const normalized = oneLine(message.content ?? "");
+    const normalized = readUserInput(message.content);
     if (normalized) {
       return {
-        objective: truncate(oneLine(normalized), 240),
-        delegationDirective: normalizeDelegationDirective(undefined),
+        objective: truncate(normalized, 240),
         startIndex: index,
       };
     }
   }
 
   return undefined;
-}
-
-function formatDelegationDirective(value: TaskState["delegationDirective"]): string {
-  const directive = normalizeDelegationDirective(value);
-  if (!directive.teammate && !directive.subagent) {
-    return "none";
-  }
-
-  const lanes = [
-    directive.teammate ? "team" : undefined,
-    directive.subagent ? "subagent" : undefined,
-  ].filter(Boolean);
-  return `${lanes.join("+")} (${directive.source})`;
 }
 
 function takeLastUnique(values: string[], limit: number): string[] {
@@ -210,25 +163,4 @@ function takeLastUnique(values: string[], limit: number): string[] {
 
 function formatList(values: string[]): string {
   return values.length > 0 ? values.join(" | ") : "none";
-}
-
-function normalizeReturnBarrier(
-  value: TaskState["orchestratorReturnBarrier"],
-): TaskState["orchestratorReturnBarrier"] | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-
-  const taskId = Number(value.taskId);
-  return {
-    pending: Boolean(value.pending),
-    sourceAction:
-      value.sourceAction === "delegate_subagent" ||
-      value.sourceAction === "delegate_teammate" ||
-      value.sourceAction === "run_in_background"
-        ? value.sourceAction
-        : undefined,
-    taskId: Number.isFinite(taskId) && taskId > 0 ? Math.trunc(taskId) : undefined,
-    setAt: typeof value.setAt === "string" && value.setAt.trim().length > 0 ? value.setAt.trim() : undefined,
-  };
 }

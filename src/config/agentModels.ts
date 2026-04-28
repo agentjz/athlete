@@ -29,13 +29,13 @@ export function readRuntimeAgentModelOverrides(): RuntimeAgentModelOverrides {
 }
 
 export function resolveRuntimeAgentModels(
-  fallback: RuntimeAgentModelConfig,
+  base: RuntimeAgentModelConfig,
   overrides: RuntimeAgentModelOverrides | undefined,
 ): RuntimeConfig["agentModels"] {
   return {
-    lead: resolveRoleModel(fallback, overrides?.lead),
-    teammate: resolveRoleModel(fallback, overrides?.teammate),
-    subagent: resolveRoleModel(fallback, overrides?.subagent),
+    lead: resolveRoleModel(base, overrides?.lead),
+    teammate: resolveRoleModel(base, overrides?.teammate),
+    subagent: resolveRoleModel(base, overrides?.subagent),
   };
 }
 
@@ -61,16 +61,16 @@ function readRoleModelOverride(
 }
 
 function resolveRoleModel(
-  fallback: RuntimeAgentModelConfig,
+  base: RuntimeAgentModelConfig,
   override: Partial<RuntimeAgentModelConfig> | undefined,
 ): RuntimeAgentModelConfig {
   return {
-    provider: override?.provider ?? fallback.provider,
-    apiKey: override?.apiKey ?? fallback.apiKey,
-    baseUrl: override?.baseUrl ?? fallback.baseUrl,
-    model: override?.model ?? fallback.model,
-    thinking: override?.thinking ?? fallback.thinking,
-    reasoningEffort: override?.reasoningEffort ?? fallback.reasoningEffort,
+    provider: override?.provider ?? base.provider,
+    apiKey: override?.apiKey ?? base.apiKey,
+    baseUrl: override?.baseUrl ?? base.baseUrl,
+    model: override?.model ?? base.model,
+    thinking: override?.thinking ?? base.thinking,
+    reasoningEffort: override?.reasoningEffort ?? base.reasoningEffort,
   };
 }
 

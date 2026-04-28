@@ -66,7 +66,7 @@ export function buildRecoveryStatus(
   if (reason.code === "recover.post_compaction_degradation") {
     return [
       `Detected repeated post-compaction empty responses (streak=${reason.noTextStreak}).`,
-      `Recovery attempt ${reason.recoveryAttempt}/${reason.maxRecoveryAttempts} will resume from the latest checkpoint instead of restarting.`,
+      `Recovery attempt ${reason.recoveryAttempt}/${reason.maxRecoveryAttempts} will keep the current objective frame active.`,
     ].join(" ");
   }
 

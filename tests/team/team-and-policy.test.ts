@@ -18,7 +18,7 @@ import { todoWriteTool } from "../../src/capabilities/tools/packages/tasks/todoW
 import { TaskStore } from "../../src/tasks/store.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
-test("team messaging drains inboxes and archives messages", async (t) => {
+test("team messaging keeps inbox archived until the model explicitly reads it", async (t) => {
   const root = await createTempWorkspace("team-msg", t);
   const bus = new MessageBus(root);
   const sessionStore = new MemorySessionStore();
@@ -32,8 +32,8 @@ test("team messaging drains inboxes and archives messages", async (t) => {
     root,
   );
 
-  assert.equal(injected.messages.length, 1);
-  assert.equal((await bus.peekInbox("alpha")).length, 0);
+  assert.equal(injected.messages.length, 0);
+  assert.equal((await bus.peekInbox("alpha")).length, 1);
 
   const log = await fs.readFile(path.join(root, ".deadmouse", "team", "messages.jsonl"), "utf8");
   assert.match(log, /"to":"alpha"/);

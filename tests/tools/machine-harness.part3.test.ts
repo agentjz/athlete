@@ -44,7 +44,7 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
   };
 }
@@ -133,7 +133,7 @@ test("background_run, background_check, and background_terminate expose one proc
 
   assert.equal(started.ok, true);
   assert.equal(executionId.length > 0, true);
-  assert.equal(startedProcess.protocol, "deadmouse.exec.v1");
+  assert.equal(startedProcess.protocol, "deadmouse.exec");
   assert.equal(startedProcess.state, "running");
   assert.equal((startedProcess.capabilities as Record<string, unknown>).terminate, true);
 
@@ -146,7 +146,7 @@ test("background_run, background_check, and background_terminate expose one proc
   );
   const checkedRunningPayload = JSON.parse(checkedRunning.output) as Record<string, unknown>;
   const runningProcess = checkedRunningPayload.process as Record<string, unknown>;
-  assert.equal(runningProcess.protocol, "deadmouse.exec.v1");
+  assert.equal(runningProcess.protocol, "deadmouse.exec");
   assert.equal(runningProcess.state, "running");
   assert.equal((runningProcess.events as string[]).includes("process/read"), true);
 

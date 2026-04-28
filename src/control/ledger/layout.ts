@@ -4,7 +4,7 @@ import path from "node:path";
 import { ensureProjectStateDirectories, getProjectStatePaths } from "../../project/statePaths.js";
 import type { ProjectStatePaths } from "../../project/statePaths.js";
 
-export interface LegacyControlPlanePaths {
+export interface RetiredControlPlanePaths {
   tasksDir: string;
   teamConfigFile: string;
   coordinationPolicyFile: string;
@@ -13,7 +13,7 @@ export interface LegacyControlPlanePaths {
   worktreeIndexFile: string;
 }
 
-export function getLegacyControlPlanePaths(rootDir: string): LegacyControlPlanePaths {
+export function getRetiredControlPlanePaths(rootDir: string): RetiredControlPlanePaths {
   const paths = getProjectStatePaths(rootDir);
   return {
     tasksDir: path.join(paths.deadmouseDir, "tasks"),
@@ -27,18 +27,36 @@ export function getLegacyControlPlanePaths(rootDir: string): LegacyControlPlaneP
 
 export async function prepareControlPlaneLayout(rootDir: string): Promise<ProjectStatePaths> {
   const paths = await ensureProjectStateDirectories(rootDir);
-  await cleanupLegacyControlPlaneTruth(rootDir);
+  await cleanupRetiredControlPlaneFiles(rootDir);
   return paths;
 }
 
-export async function cleanupLegacyControlPlaneTruth(rootDir: string): Promise<void> {
-  const legacyPaths = getLegacyControlPlanePaths(rootDir);
-  await Promise.all([
-    fs.rm(legacyPaths.tasksDir, { recursive: true, force: true }),
-    fs.rm(legacyPaths.requestsDir, { recursive: true, force: true }),
-    fs.rm(legacyPaths.backgroundDir, { recursive: true, force: true }),
-    fs.rm(legacyPaths.teamConfigFile, { force: true }),
-    fs.rm(legacyPaths.coordinationPolicyFile, { force: true }),
-    fs.rm(legacyPaths.worktreeIndexFile, { force: true }),
-  ]);
+export async function cleanupRetiredControlPlaneFiles(rootDir: string): Promise<void> {
+  const retiredPaths = getRetiredControlPlanePaths(rootDir);
+  for (const targetPath of [
+    retiredPaths.tasksDir,
+    retiredPaths.requestsDir,
+    retiredPaths.backgroundDir,
+    retiredPaths.teamConfigFile,
+    retiredPaths.coordinationPolicyFile,
+    retiredPaths.worktreeIndexFile,
+  ]) {
+    await removeRetiredPath(targetPath);
+  }
+}
+
+async function removeRetiredPath(targetPath: string): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await fs.rm(targetPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 80 });
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+
+  throw lastError;
 }

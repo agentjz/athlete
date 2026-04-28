@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: mineru-pdf-reading
 description: Read PDF documents through MinerU and work from Markdown artifacts instead of raw binary bytes.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 task_types: research, review, extraction, documentation
 scenes: pdf

@@ -100,8 +100,6 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
     ...(await sessionStore.create(root)),
     checkpoint: createCheckpointFixture("Ship the round2 checkpoint runtime.", {
       completedSteps: ["Persisted the first tool batch"],
-      currentStep: "Waiting for continuation",
-      nextStep: "Write validation/round2-resume-summary.md without rerunning completed setup.",
       flow: {
         phase: "continuation",
       },
@@ -137,7 +135,7 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
   assert.equal(sliceCount, 2);
   assert.deepEqual(seenYieldSteps, [5, 5]);
   assert.equal(seenInputs[0], "start task");
-  assert.match(String(seenInputs[1]), /Resume the current task/i);
+  assert.match(String(seenInputs[1]), /Wake lead runtime/i);
   assert.doesNotMatch(String(seenInputs[1]), /Objective:/i);
   assert.doesNotMatch(String(seenInputs[1]), /Persisted the first tool batch/i);
   assert.doesNotMatch(String(seenInputs[1]), /Write validation\/round2-resume-summary\.md/i);
@@ -229,7 +227,7 @@ test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config
   assert.equal(result.yielded, false);
   assert.deepEqual(seenHeadlessFlags, [false, false]);
   assert.equal(seenInputs[0], "resume browser task");
-  assert.match(String(seenInputs[1]), /Resume the current task/i);
+  assert.match(String(seenInputs[1]), /Wake lead runtime/i);
 });
 
 test("runManagedAgentTurn still auto-continues yielded turns when verification state is already passed", async (t) => {
@@ -240,7 +238,6 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
     ...initialSession,
     checkpoint: createCheckpointFixture("Resume the verified task without restarting.", {
       completedSteps: ["Finished the implementation"],
-      nextStep: "Summarize the verified result instead of rerunning the implementation tools.",
       flow: {
         phase: "continuation",
       },
@@ -249,18 +246,12 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
       ...(initialSession.verificationState ?? {
         status: "idle",
         attempts: 0,
-        reminderCount: 0,
-        noProgressCount: 0,
-        maxAttempts: 3,
-        maxNoProgress: 2,
-        maxReminders: 3,
-        pendingPaths: [],
+        observedPaths: [],
         updatedAt: new Date().toISOString(),
       }),
       status: "passed",
       attempts: 1,
-      reminderCount: 0,
-      pendingPaths: [],
+      observedPaths: [],
     },
   }) as any);
   const seenInputs: string[] = [];
@@ -288,7 +279,7 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
   assert.equal(sliceCount, 2);
   assert.equal(result.yielded, false);
   assert.equal(seenInputs[0], "resume verified task");
-  assert.match(String(seenInputs[1]), /Resume the current task/i);
+  assert.match(String(seenInputs[1]), /Wake lead runtime/i);
   assert.doesNotMatch(String(seenInputs[1]), /Objective:/i);
   assert.doesNotMatch(String(seenInputs[1]), /Finished the implementation/i);
   assert.doesNotMatch(String(seenInputs[1]), /Summarize the verified result/i);

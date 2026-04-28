@@ -3,7 +3,8 @@ import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
 import { readToolExecutionProtocol } from "../../capabilities/tools/core/toolFinalize.js";
 import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../capabilities/tools/core/routing.js";
 import { createToolRegistry } from "../../capabilities/tools/index.js";
-import type { ProjectContext, ToolCallRecord, ToolExecutionResult } from "../../types.js";
+import { buildOrchestratorObjective } from "../../orchestrator/metadata.js";
+import type { ProjectContext, SessionRecord, ToolCallRecord, ToolExecutionResult } from "../../types.js";
 import type { RunTurnOptions } from "../types.js";
 import { isAbortError } from "../../utils/abort.js";
 
@@ -11,6 +12,7 @@ export async function executeToolCallWithRecovery(
   toolRegistry: ReturnType<typeof createToolRegistry>,
   toolCall: ToolCallRecord,
   options: RunTurnOptions,
+  session: SessionRecord,
   projectContext: ProjectContext,
   changeStore: ChangeStore,
 ): Promise<ToolExecutionResult> {
@@ -18,7 +20,7 @@ export async function executeToolCallWithRecovery(
     return await toolRegistry.execute(toolCall.function.name, toolCall.function.arguments, {
       config: options.config,
       cwd: options.cwd,
-      sessionId: options.session.id,
+      sessionId: session.id,
       identity: options.identity ?? {
         kind: "lead",
         name: "lead",
@@ -26,6 +28,9 @@ export async function executeToolCallWithRecovery(
       callbacks: options.callbacks,
       abortSignal: options.abortSignal,
       projectContext,
+      currentObjective: session.taskState?.objective
+        ? buildOrchestratorObjective(session.taskState.objective)
+        : undefined,
       changeStore,
       createToolRegistry,
     });
@@ -47,8 +52,6 @@ export function buildToolExecutionFailureResult(
     ok: false,
     error: message,
     hint: buildToolRecoveryHint(toolCall.function.name, toolCall.function.arguments, message),
-    next_step:
-      "Choose exactly one route-changing action now: change the arguments, choose a different tool, or switch route based on the error. Do not continue with explanation-only text.",
   };
 
   if (error instanceof ToolExecutionError) {
@@ -96,26 +99,26 @@ function buildToolRecoveryHint(toolName: string, rawArgs: string, message: strin
   }
 
   if (lower.includes("enoent") || lower.includes("no such file") || lower.includes("file not found")) {
-    return `The path used by ${toolName} does not exist. Use list_files, find_files, or search_files, inspect suggestions, and retry with the exact path.`;
+    return `The path used by ${toolName} does not exist. Filesystem discovery evidence is available from list_files, find_files, search_files, and path suggestions.`;
   }
 
   if (lower.includes("unsupported binary") || lower.includes("binary file detected")) {
-    return `The target is not a readable text file. Skip raw content reading and reason from metadata, filenames, or other text files instead.`;
+    return "The target is not readable text. Available evidence is limited to metadata, filenames, specialized readers, or other text files.";
   }
 
   if (lower.includes("unknown tool")) {
-    return `The ${toolName} tool is unavailable in the current mode. Use the tools exposed now, or switch to agent mode if you need editing or shell access.`;
+    return `The ${toolName} tool is unavailable in the current mode. The exposed tool list is the active capability boundary.`;
   }
 
   if (lower.includes("invalid tool arguments")) {
-    return `The arguments for ${toolName} were malformed. Re-read the tool schema and retry with valid JSON arguments.`;
+    return `The arguments for ${toolName} were malformed. The tool schema is the argument contract.`;
   }
 
   if (lower.includes("failed to apply patch")) {
-    return "The patch did not match the current file contents. Read the file again and generate a smaller, more accurate patch.";
+    return "The patch did not match the current file contents. The current file content is the source of truth for any later edit.";
   }
 
-  return `The ${toolName} tool failed. Inspect the error, verify assumptions, and retry using a narrower and safer operation.`;
+  return `The ${toolName} tool failed. The error payload is the available runtime evidence.`;
 }
 
 function readRouteHint(rawArgs: string, message: string) {

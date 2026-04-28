@@ -25,7 +25,7 @@ test("read_file returns a compact artifact view for externalized tool-result fil
   assert.equal(result.ok, true);
   const payload = JSON.parse(result.output) as Record<string, unknown>;
   assert.equal(payload.artifactType, "externalized_tool_result");
-  assert.match(String(payload.note ?? ""), /Use the summary and preview first/i);
+  assert.match(String(payload.note ?? ""), /Summary and preview are the compact evidence/i);
   assert.match(String(payload.summary ?? ""), /entries=120/);
   assert.match(String(payload.preview ?? ""), /src\/feature-0\.ts|src\\feature-0\.ts/);
   assert.equal(String(payload.content ?? "").includes("ROUND1-ARTIFACT::"), false);

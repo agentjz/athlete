@@ -12,7 +12,7 @@ import type {
   SessionRecord,
   VerificationState,
 } from "../../types.js";
-import { clampWholeNumber, normalizeExitCode, normalizeText, takeLastUnique, truncate } from "./shared.js";
+import { clampWholeNumber, normalizeText, takeLastUnique, truncate } from "./shared.js";
 
 export function createToolBatchTransition(
   input: {
@@ -32,34 +32,6 @@ export function createToolBatchTransition(
   };
 }
 
-export function createMissingSkillTransition(
-  missingSkills: string[],
-  timestamp = new Date().toISOString(),
-): RuntimeContinueTransition {
-  return {
-    action: "continue",
-    reason: {
-      code: "continue.required_skill_load",
-      missingSkills: takeLastUnique(missingSkills),
-    },
-    timestamp,
-  };
-}
-
-export function createIncompleteTodoTransition(
-  incompleteTodoCount: number,
-  timestamp = new Date().toISOString(),
-): RuntimeContinueTransition {
-  return {
-    action: "continue",
-    reason: {
-      code: "continue.incomplete_todos",
-      incompleteTodoCount: Math.max(1, Math.trunc(incompleteTodoCount)),
-    },
-    timestamp,
-  };
-}
-
 export function createEmptyAssistantResponseTransition(
   timestamp = new Date().toISOString(),
 ): RuntimeContinueTransition {
@@ -67,60 +39,6 @@ export function createEmptyAssistantResponseTransition(
     action: "continue",
     reason: {
       code: "continue.empty_assistant_response",
-    },
-    timestamp,
-  };
-}
-
-export function createVerificationRequiredTransition(
-  state: VerificationState | undefined,
-  timestamp = new Date().toISOString(),
-): RuntimeContinueTransition {
-  return {
-    action: "continue",
-    reason: {
-      code: "continue.verification_required",
-      pendingPaths: takeLastUnique(state?.pendingPaths ?? []),
-      attempts: clampWholeNumber(state?.attempts, 0, 50, 0) ?? 0,
-      reminderCount: clampWholeNumber(state?.reminderCount, 0, 50, 0) ?? 0,
-    },
-    timestamp,
-  };
-}
-
-export function createVerificationFailedTransition(
-  state: VerificationState | undefined,
-  timestamp = new Date().toISOString(),
-): RuntimeContinueTransition {
-  return {
-    action: "continue",
-    reason: {
-      code: "continue.verification_failed",
-      attempts: clampWholeNumber(state?.attempts, 1, 50, 1) ?? 1,
-      noProgressCount: clampWholeNumber(state?.noProgressCount, 0, 50, 0) ?? 0,
-      lastCommand: normalizeText(state?.lastCommand) || undefined,
-      lastKind: normalizeText(state?.lastKind) || undefined,
-      lastExitCode: normalizeExitCode(state?.lastExitCode),
-    },
-    timestamp,
-  };
-}
-
-export function createAcceptanceRequiredTransition(
-  input: {
-    phase?: string;
-    pendingChecks?: string[];
-    stalledPhaseCount?: number;
-  },
-  timestamp = new Date().toISOString(),
-): RuntimeContinueTransition {
-  return {
-    action: "continue",
-    reason: {
-      code: "continue.acceptance_required",
-      phase: normalizeText(input.phase) || "active",
-      pendingChecks: takeLastUnique(input.pendingChecks ?? []),
-      stalledPhaseCount: clampWholeNumber(input.stalledPhaseCount, 0, 99, 0) ?? 0,
     },
     timestamp,
   };
@@ -204,26 +122,6 @@ export function createDelegationDispatchYieldTransition(
   };
 }
 
-export function createVerificationPauseTransition(
-  state: VerificationState | undefined,
-  timestamp = new Date().toISOString(),
-): RuntimePauseTransition {
-  return {
-    action: "pause",
-    reason: {
-      code: "pause.verification_awaiting_user",
-      pendingPaths: takeLastUnique(state?.pendingPaths ?? []),
-      pauseReason:
-        normalizeText(state?.pauseReason) ||
-        "Verification is awaiting user clarification before finalize can proceed.",
-      attempts: clampWholeNumber(state?.attempts, 0, 50, 0) ?? 0,
-      reminderCount: clampWholeNumber(state?.reminderCount, 0, 50, 0) ?? 0,
-      noProgressCount: clampWholeNumber(state?.noProgressCount, 0, 50, 0) ?? 0,
-    },
-    timestamp,
-  };
-}
-
 export function createProviderRecoveryBudgetPauseTransition(
   snapshot: ProviderRecoveryBudgetSnapshot,
   timestamp = new Date().toISOString(),
@@ -278,7 +176,7 @@ export function createCompactionDegradationPauseTransition(
     reason: {
       code: "pause.degradation_recovery_exhausted" as const,
       pauseReason:
-        "Repeated post-compaction empty responses exhausted formal recovery attempts. Resume from the latest checkpoint instead of restarting from scratch.",
+        "Repeated post-compaction empty responses exhausted formal recovery attempts. Current objective frame was preserved.",
       noTextStreak: Math.max(1, Math.trunc(input.noTextStreak)),
       recoveryAttempts: Math.max(1, Math.trunc(input.recoveryAttempts)),
       maxRecoveryAttempts: Math.max(1, Math.trunc(input.maxRecoveryAttempts)),
@@ -294,7 +192,12 @@ export function createFinalizeTransition(
   },
   timestamp = new Date().toISOString(),
 ): RuntimeFinalizeTransition {
-  const verificationOutcome = input.verificationState?.status === "passed" ? "passed" : "not_required";
+  const verificationOutcome =
+    input.verificationState?.status === "passed"
+      ? "passed"
+      : input.verificationState?.status === "failed"
+        ? "failed"
+        : "not_attempted";
   return {
     action: "finalize",
     reason: {

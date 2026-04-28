@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import {
-  buildCheckpointContinuationInput,
+  buildInternalWakeInput,
 } from "../.test-build/src/agent/checkpoint.js";
 import { runManagedAgentTurn } from "../.test-build/src/agent/managedTurn.js";
 import { runAgentTurn } from "../.test-build/src/agent/runTurn.js";
@@ -69,10 +69,7 @@ async function main() {
     role: "checkpoint_runtime",
     teamName: "verification",
   };
-  const phaseTwoInput = buildCheckpointContinuationInput(
-    runtimeIdentity,
-    checkpoint,
-  );
+  const phaseTwoInput = buildInternalWakeInput(runtimeIdentity);
 
   const phaseTwoResult = await runManagedAgentTurn({
     input: phaseTwoInput,
@@ -176,7 +173,7 @@ function createRound2ApiRegistry(workspace) {
               output: JSON.stringify(
                 {
                   ok: false,
-                  error: "capture_round2_checkpoint already completed earlier in this session. Resume from the checkpoint instead of repeating it.",
+                  error: "capture_round2_checkpoint already completed for the current objective. Continue without repeating it.",
                 },
                 null,
                 2,

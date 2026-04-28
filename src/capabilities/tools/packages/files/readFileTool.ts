@@ -60,7 +60,7 @@ export const readFileTool: RegisteredTool = {
     let inspected;
 
     if ((startLine !== undefined || endLine !== undefined) && (offset !== undefined || limit !== undefined)) {
-      throw new Error('Use either "start_line/end_line" or "offset/limit" in read_file, not both.');
+      throw new Error('read_file accepts either "start_line/end_line" or "offset/limit", not both.');
     }
 
     try {

@@ -170,7 +170,7 @@ function buildAgentExecutionInput(
   }
   sections.push(
     [
-      "<execution-boundary protocol=\"deadmouse.execution-boundary.v1\">",
+      "<execution-boundary protocol=\"deadmouse.execution-boundary\">",
       `Return control to lead review when this execution reaches ${execution.boundary.maxRuntimeMs}ms runtime or ${execution.boundary.maxIdleMs}ms idle boundary.`,
       "Do not claim the parent task is complete; hand back concrete status, evidence, blockers, and recommended next options.",
       "</execution-boundary>",

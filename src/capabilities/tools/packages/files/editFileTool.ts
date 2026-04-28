@@ -225,7 +225,7 @@ function buildEditPlan(before: string, request: RequestedEdit[], resolvedPath: s
     validateAnchorAgainstSource(before, edit.anchor, resolvedPath);
     const matches = findAnchoredOccurrences(before, edit.oldString, edit.anchor);
     if (matches.length === 0) {
-      throw new ToolExecutionError(`edit_file could not find edit ${sourceIndex + 1} at anchored line ${edit.anchor.line}. Re-read the file and retry with a fresh anchor.`, {
+      throw new ToolExecutionError(`edit_file could not find edit ${sourceIndex + 1} at anchored line ${edit.anchor.line}. A fresh read_file anchor is required.`, {
         code: "EDIT_NOT_FOUND",
         details: {
           editIndex: sourceIndex,
@@ -247,7 +247,7 @@ function buildEditPlan(before: string, request: RequestedEdit[], resolvedPath: s
 
     const match = matches[0];
     if (!match) {
-      throw new ToolExecutionError(`edit_file lost its anchored match for edit ${sourceIndex + 1}. Re-read the file and retry.`, {
+      throw new ToolExecutionError(`edit_file lost its anchored match for edit ${sourceIndex + 1}. A fresh read_file anchor is required.`, {
         code: "EDIT_NOT_FOUND",
         details: {
           editIndex: sourceIndex,

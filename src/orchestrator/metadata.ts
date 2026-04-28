@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 
 import type { TaskRecord } from "../tasks/types.js";
 import type {
-  OrchestratorAnalysis,
   OrchestratorExecutorKind,
   OrchestratorObjective,
   OrchestratorTaskMeta,
@@ -60,7 +59,7 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
       key: normalizeText(parsed.key),
       kind: parsed.kind,
       objective: normalizeText(parsed.objective),
-      executor: normalizeExecutor(parsed.executor, parsed),
+      executor: normalizeExecutor(parsed.executor),
       backgroundCommand: normalizeOptionalText(parsed.backgroundCommand),
       delegatedTo: normalizeOptionalText(parsed.delegatedTo),
       jobId: normalizeOptionalText(parsed.jobId),
@@ -78,7 +77,7 @@ export function writeOrchestratorMetadata(description: string, meta: Orchestrato
       key: normalizeText(meta.key),
       kind: meta.kind,
       objective: normalizeText(meta.objective),
-      executor: normalizeExecutor(meta.executor, meta),
+      executor: normalizeExecutor(meta.executor),
       backgroundCommand: normalizeOptionalText(meta.backgroundCommand),
       delegatedTo: normalizeOptionalText(meta.delegatedTo),
       jobId: normalizeOptionalText(meta.jobId),
@@ -108,10 +107,7 @@ function normalizeOptionalText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeExecutor(
-  value: unknown,
-  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId" | "executionId">>,
-): OrchestratorExecutorKind {
+function normalizeExecutor(value: unknown): OrchestratorExecutorKind | undefined {
   const normalized = normalizeText(value).toLowerCase();
   if (
     normalized === "lead" ||
@@ -122,45 +118,5 @@ function normalizeExecutor(
     return normalized;
   }
 
-  return inferExecutorFromMetadata(meta);
-}
-
-function inferExecutorFromMetadata(
-  meta: Partial<Pick<OrchestratorTaskMeta, "kind" | "backgroundCommand" | "delegatedTo" | "jobId" | "executionId">>,
-): OrchestratorExecutorKind {
-  if (meta.kind === "merge") {
-    return "lead";
-  }
-
-  if (meta.jobId || meta.backgroundCommand) {
-    return "background";
-  }
-
-  if (meta.delegatedTo) {
-    return "teammate";
-  }
-
-  return "lead";
-}
-
-export function resolveOrchestratorExecutor(
-  task: Pick<OrchestratorTaskSnapshot, "meta">,
-  analysis?: Pick<OrchestratorAnalysis, "wantsBackground" | "backgroundCommand" | "wantsSubagent" | "wantsTeammate">,
-): OrchestratorExecutorKind {
-  if (task.meta.executor) {
-    return task.meta.executor;
-  }
-
-  switch (task.meta.kind) {
-    case "merge":
-      return "lead";
-    case "survey":
-      return analysis?.wantsSubagent ? "subagent" : "lead";
-    case "validation":
-      return analysis?.wantsBackground && analysis.backgroundCommand ? "background" : inferExecutorFromMetadata(task.meta);
-    case "implementation":
-      return analysis?.wantsTeammate ? "teammate" : inferExecutorFromMetadata(task.meta);
-    default:
-      return inferExecutorFromMetadata(task.meta);
-  }
+  return undefined;
 }

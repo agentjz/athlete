@@ -5,7 +5,6 @@ export function measurePromptLayers(promptLayers: PromptLayers): PromptLayerMetr
   const blockMetrics = [
     ...measureBlocks("static", promptLayers.staticBlocks),
     ...measureBlocks("dynamic", promptLayers.dynamicBlocks),
-    ...measureBlocks("memory", promptLayers.memoryBlocks ?? []),
   ];
   const hotspots = [...blockMetrics].sort((left, right) =>
     right.chars - left.chars ||
@@ -17,10 +16,8 @@ export function measurePromptLayers(promptLayers: PromptLayers): PromptLayerMetr
   return {
     staticBlockCount: promptLayers.staticBlocks.length,
     dynamicBlockCount: promptLayers.dynamicBlocks.length,
-    memoryBlockCount: (promptLayers.memoryBlocks ?? []).length,
     staticChars: sumChars(promptLayers.staticBlocks),
     dynamicChars: sumChars(promptLayers.dynamicBlocks),
-    memoryChars: sumChars(promptLayers.memoryBlocks ?? []),
     totalChars: renderedChars,
     renderedChars,
     blockMetrics,

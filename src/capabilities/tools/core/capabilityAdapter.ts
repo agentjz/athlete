@@ -38,7 +38,7 @@ export function listToolCapabilityPackages(entries: readonly ToolRegistryEntry[]
         createsExecution: false,
         emitsWakeSignal: false,
       },
-      selectionHint: `Use when Lead needs ${group.specialty} ${group.mutation} tools.`,
+      availability: `${group.specialty} ${group.mutation} tool surface from ${group.sourceKind}.`,
     });
   });
 }

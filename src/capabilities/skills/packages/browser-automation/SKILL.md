@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: browser-automation
 description: Drive real browser interaction for dynamic pages, forms, and visual evidence after lightweight web probing is insufficient.
 version: 1.1.0
-load_mode: required
 agent_kinds: lead, teammate
 roles: implementer, reviewer, writer
 task_types: implementation, validation, research

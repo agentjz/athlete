@@ -123,19 +123,13 @@ export class BackgroundJobStore {
     cwd?: string;
     requestedBy?: string;
     objectiveKey?: string;
-    includeCarryoverCount?: boolean;
   } = {}): Promise<string> {
     const allJobs = await this.listRelevant(options);
     const jobs = options.objectiveKey
       ? allJobs.filter((job) => job.objectiveKey === options.objectiveKey)
       : allJobs;
     if (jobs.length === 0) {
-      const carryoverCount = options.objectiveKey && options.includeCarryoverCount
-        ? allJobs.filter((job) => job.objectiveKey !== options.objectiveKey).length
-        : 0;
-      return carryoverCount > 0
-        ? `No current objective background jobs. Carryover background jobs hidden: ${carryoverCount}.`
-        : "No background jobs.";
+      return "No background jobs.";
     }
 
     const lines = jobs
@@ -155,12 +149,7 @@ export class BackgroundJobStore {
       })
       .join("\n");
 
-    if (!options.objectiveKey || !options.includeCarryoverCount) {
-      return lines;
-    }
-
-    const carryoverCount = allJobs.filter((job) => job.objectiveKey !== options.objectiveKey).length;
-    return carryoverCount > 0 ? `${lines}\n- Carryover background jobs hidden: ${carryoverCount}` : lines;
+    return lines;
   }
 }
 

@@ -1,24 +1,16 @@
 import { noteSessionDiff } from "../session/sessionDiff.js";
-import { createInternalReminder } from "../session/taskState.js";
 import { createMessage } from "../session/messages.js";
 import { createStoredToolMessage } from "../toolResults/storage.js";
 import { noteRuntimeToolExecution } from "../runtimeMetrics.js";
-import { noteSubstantiveToolActivity } from "./closeout.js";
-import { shouldInjectTodoReminder } from "./finalize.js";
-import { getPlanBlockedResult, readCommandFromArgs } from "./planGate.js";
 import { persistToolBatchCheckpoint } from "./persistence.js";
 import { executeToolBatch } from "./toolBatch.js";
 import { getLightweightVerificationAttempt, readVerificationProgress } from "../verification/signals.js";
-import { markVerificationRequired, noteVerificationReminder, recordVerificationAttempt } from "../verification/state.js";
-import { getSkillToolGateResult } from "../../capabilities/skills/state.js";
-import { getWorkflowToolGateResult } from "../../capabilities/skills/workflowGuards.js";
+import { recordVerificationAttempt, recordVerificationObservedPaths } from "../verification/state.js";
 import { recordObservabilityEvent } from "../../observability/writer.js";
 import { throwIfAborted } from "../../utils/abort.js";
-import { classifyCommand } from "../../utils/commandPolicy.js";
 import type { ChangeStore } from "../../changes/store.js";
 import type { ProjectContext, SessionRecord, StoredMessage, ToolExecutionResult } from "../../types.js";
 import type { ToolRegistry } from "../../capabilities/tools/core/types.js";
-import type { SkillRuntimeState } from "../../capabilities/skills/types.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions } from "../types.js";
 import type { ToolLoopGuard } from "./loopGuard.js";
 import { readToolFailureError } from "./toolFailure.js";
@@ -28,28 +20,21 @@ export interface ProcessToolCallBatchInput {
   response: AssistantResponse;
   options: RunTurnOptions;
   identity: AgentIdentity;
-  skillRuntimeState: SkillRuntimeState;
   toolRegistry: ToolRegistry;
   projectContext: ProjectContext;
   changeStore: ChangeStore;
   loopGuard: ToolLoopGuard;
   changedPaths: Set<string>;
-  hasSubstantiveToolActivity: boolean;
   validationAttempted: boolean;
   validationPassed: boolean;
-  requiresVerification: boolean;
-  validationReminderInjected: boolean;
   roundsSinceTodoWrite: number;
 }
 
 export interface ProcessToolCallBatchResult {
   session: SessionRecord;
   changedPaths: Set<string>;
-  hasSubstantiveToolActivity: boolean;
   validationAttempted: boolean;
   validationPassed: boolean;
-  requiresVerification: boolean;
-  validationReminderInjected: boolean;
   roundsSinceTodoWrite: number;
   leadShouldYieldForDelegatedWork: boolean;
 }
@@ -57,14 +42,11 @@ export interface ProcessToolCallBatchResult {
 export async function processToolCallBatch(input: ProcessToolCallBatchInput): Promise<ProcessToolCallBatchResult> {
   let session = input.session;
   let changedPaths = new Set(input.changedPaths);
-  let hasSubstantiveToolActivity = input.hasSubstantiveToolActivity;
   let validationAttempted = input.validationAttempted;
   let validationPassed = input.validationPassed;
-  let requiresVerification = input.requiresVerification;
-  let validationReminderInjected = input.validationReminderInjected;
   let roundsSinceTodoWrite = input.roundsSinceTodoWrite;
   let leadShouldYieldForDelegatedWork = false;
-  const { response, options, identity, skillRuntimeState, toolRegistry, projectContext, changeStore, loopGuard } = input;
+  const { response, options, identity, toolRegistry, projectContext, changeStore, loopGuard } = input;
 
   if (response.content && !response.streamedAssistantContent) {
     options.callbacks?.onAssistantStage?.(response.content);
@@ -84,30 +66,8 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     throwIfAborted(options.abortSignal, "Turn aborted by user.");
     options.callbacks?.onToolCall?.(toolCall.function.name, toolCall.function.arguments);
     usedTodoWrite = usedTodoWrite || toolCall.function.name === "todo_write";
-    hasSubstantiveToolActivity = noteSubstantiveToolActivity(hasSubstantiveToolActivity, toolCall.function.name);
-    const command = readCommandFromArgs(toolCall.function.arguments);
-    if (command && (toolCall.function.name === "run_shell" || toolCall.function.name === "background_run")) {
-      const classification = classifyCommand(command);
-      if (!classification.isReadOnly && !classification.validationKind) {
-        session = await options.sessionStore.save({
-          ...session,
-          verificationState: markVerificationRequired(session.verificationState),
-        });
-        ({ validationAttempted, validationPassed, requiresVerification } = readVerificationProgress(session));
-        validationReminderInjected = false;
-      }
-    }
     const blockedResult = loopGuard.getPreflightBlockedResult(toolCall);
-    const planBlockedResult = blockedResult
-      ? null
-      : getPlanBlockedResult(toolCall.function.name, toolCall.function.arguments, session, identity);
-    const skillBlockedResult = blockedResult || planBlockedResult
-      ? null
-      : getSkillToolGateResult(toolCall.function.name, skillRuntimeState);
-    const workflowBlockedResult = blockedResult || planBlockedResult || skillBlockedResult
-      ? null
-      : getWorkflowToolGateResult(toolCall.function.name, toolCall.function.arguments, session, skillRuntimeState);
-    const gatedResult = blockedResult ?? planBlockedResult ?? skillBlockedResult ?? workflowBlockedResult ?? undefined;
+    const gatedResult = blockedResult ?? undefined;
     if (gatedResult) {
       preflightBlocked.set(toolCall.id, gatedResult);
     }
@@ -145,12 +105,8 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       loopGuard.reset();
       session = await options.sessionStore.save(noteSessionDiff({
         ...session,
-        verificationState: markVerificationRequired(session.verificationState, {
-          pendingPaths: metadata.changedPaths,
-        }),
+        verificationState: recordVerificationObservedPaths(session.verificationState, metadata.changedPaths),
       }, metadata.sessionDiff));
-      ({ validationAttempted, validationPassed, requiresVerification } = readVerificationProgress(session));
-      validationReminderInjected = false;
     } else if (metadata?.sessionDiff) {
       session = await options.sessionStore.save(noteSessionDiff(session, metadata.sessionDiff));
     }
@@ -168,7 +124,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       : getLightweightVerificationAttempt({
           toolName: toolCall.function.name,
           rawArgs: toolCall.function.arguments,
-          pendingPaths: session.verificationState?.pendingPaths ?? [...changedPaths],
+          observedPaths: session.verificationState?.observedPaths ?? [...changedPaths],
           resultOk: result.ok,
         });
     if (verificationAttempt) {
@@ -176,7 +132,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
         ...session,
         verificationState: recordVerificationAttempt(session.verificationState, verificationAttempt),
       });
-      ({ validationAttempted, validationPassed, requiresVerification } = readVerificationProgress(session));
+      ({ validationAttempted, validationPassed } = readVerificationProgress(session));
     }
     await recordObservabilityEvent(projectContext.stateRootDir, {
       event: "tool.execution",
@@ -225,31 +181,12 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     changedPaths: [...batchChangedPaths],
   });
   roundsSinceTodoWrite = usedTodoWrite ? 0 : roundsSinceTodoWrite + 1;
-  if (shouldInjectTodoReminder(roundsSinceTodoWrite, response.toolCalls)) {
-    session = await options.sessionStore.appendMessages(session, [
-      createMessage(
-        "user",
-        createInternalReminder(
-          "This task is still in progress. Use todo_write now: keep the list short, mark exactly one item in_progress, and update completed items before continuing.",
-        ),
-      ),
-    ]);
-  }
-  if (requiresVerification && !validationAttempted) {
-    session = await options.sessionStore.save({
-      ...session,
-      verificationState: noteVerificationReminder(session.verificationState),
-    });
-  }
 
   return {
     session,
     changedPaths,
-    hasSubstantiveToolActivity,
     validationAttempted,
     validationPassed,
-    requiresVerification,
-    validationReminderInjected,
     roundsSinceTodoWrite,
     leadShouldYieldForDelegatedWork,
   };

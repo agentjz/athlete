@@ -50,7 +50,7 @@ export function createCloseoutContract(input: {
     changedPaths: [...(input.changedPaths ?? [])],
     verification: [...(input.verification ?? [])],
     risks: [...(input.risks ?? [])],
-    nextSuggestion: input.nextSuggestion?.trim() || "Lead should review the closeout and decide the next action.",
+    nextSuggestion: input.nextSuggestion?.trim() || "none reported",
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 }
@@ -65,7 +65,7 @@ export function formatCloseoutInstruction(): string {
     "changed_paths: changed files, or none",
     "verification: checks run and outcomes, or why not run",
     "risks: blockers, uncertainty, or none known",
-    "next_suggestion: the next decision Lead should consider",
+    "next_suggestion: optional suggestion from the executing agent, or none",
     "</closeout-contract>",
   ].join("\n");
 }
@@ -78,7 +78,7 @@ export function normalizeCloseoutText(text: string): string {
       summary: "Execution returned no final handoff text.",
       evidence: ["none reported"],
       risks: ["missing closeout text"],
-      nextSuggestion: "Lead should inspect execution state before deciding whether to continue.",
+      nextSuggestion: "none reported",
     }));
   }
 
@@ -89,7 +89,7 @@ export function normalizeCloseoutText(text: string): string {
         summary: "Execution returned unstructured handoff text.",
         evidence: [trimmed],
         risks: ["handoff did not follow CloseoutContract"],
-        nextSuggestion: "Lead should review this unstructured handoff and decide the next action.",
+        nextSuggestion: "none reported",
       }));
 }
 

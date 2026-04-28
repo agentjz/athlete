@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -145,12 +145,12 @@ test("execution creation applies one boundary protocol across all execution lane
     stallTimeoutMs: 1,
   });
 
-  assert.equal(subagent.boundary.protocol, "deadmouse.execution-boundary.v1");
+  assert.equal(subagent.boundary.protocol, "deadmouse.execution-boundary");
   assert.equal(subagent.boundary.returnTo, "lead");
   assert.equal(subagent.boundary.onBoundary, "return_to_lead_review");
   assert.equal(typeof subagent.boundary.maxRuntimeMs, "number");
   assert.equal(typeof subagent.boundary.maxIdleMs, "number");
-  assert.equal(teammate.boundary.protocol, "deadmouse.execution-boundary.v1");
+  assert.equal(teammate.boundary.protocol, "deadmouse.execution-boundary");
   assert.equal(background.boundary.maxRuntimeMs, background.timeoutMs);
   assert.equal(background.boundary.maxIdleMs, background.stallTimeoutMs);
   assert.equal(background.timeoutMs! < 999_999, true);
@@ -160,7 +160,7 @@ test("execution creation applies one boundary protocol across all execution lane
 test("agent execution boundary is enforced by the machine instead of prompt text only", async () => {
   const result = await runWithinAgentExecutionBoundary({
     boundary: {
-      protocol: "deadmouse.execution-boundary.v1",
+      protocol: "deadmouse.execution-boundary",
       returnTo: "lead",
       onBoundary: "return_to_lead_review",
       maxRuntimeMs: 10,
@@ -181,7 +181,7 @@ test("agent execution boundary is enforced by the machine instead of prompt text
 
   const idleResult = await runWithinAgentExecutionBoundary({
     boundary: {
-      protocol: "deadmouse.execution-boundary.v1",
+      protocol: "deadmouse.execution-boundary",
       returnTo: "lead",
       onBoundary: "return_to_lead_review",
       maxRuntimeMs: 1_000,

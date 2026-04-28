@@ -171,6 +171,27 @@ test("runManagedAgentTurn persists session diff into the formal session truth af
         kind: "tool",
         toolCalls: [
           {
+            id: "tool-plan",
+            name: "todo_write",
+            args: {
+              items: [
+                {
+                  id: "todo-1",
+                  text: "Create artifact.json",
+                  status: "in_progress",
+                },
+              ],
+            },
+          },
+        ],
+      };
+    }
+
+    if (requestIndex === 2) {
+      return {
+        kind: "tool",
+        toolCalls: [
+          {
             id: "tool-1",
             name: "write_file",
             args: {
@@ -192,7 +213,7 @@ test("runManagedAgentTurn persists session diff into the formal session truth af
   });
 
   const result = await runManagedAgentTurn({
-    input: "continue",
+    input: "Create artifact.json",
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),

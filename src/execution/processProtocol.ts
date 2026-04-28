@@ -7,7 +7,7 @@ export function buildForegroundProcessProtocol(input: {
   exitCode: number | null;
 }): ToolExecutionProcessMetadata {
   return {
-    protocol: "deadmouse.exec.v1",
+    protocol: "deadmouse.exec",
     processId: `foreground:${input.sessionId}`,
     lane: "foreground",
     state: readForegroundState(input.runtimeStatus),
@@ -35,7 +35,7 @@ export function buildBackgroundProcessProtocol(input: {
   }
 
   return {
-    protocol: "deadmouse.exec.v1",
+    protocol: "deadmouse.exec",
     processId: input.jobId,
     lane: "background",
     state: terminal ? "closed" : "running",

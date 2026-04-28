@@ -1,7 +1,6 @@
 import type { ToolExecutionResult } from "../../../types.js";
 
 const DEFAULT_BLOCK_HINT = "The tool call was blocked by the harness before execution.";
-const DEFAULT_BLOCK_NEXT_STEP = "Review the blocked reason, adjust the tool arguments or choose another valid action, and continue the task.";
 
 export function ensureBlockedResultHasContinuation(result: ToolExecutionResult): ToolExecutionResult {
   if (result.ok) {
@@ -16,7 +15,6 @@ export function ensureBlockedResultHasContinuation(result: ToolExecutionResult):
   const normalized = {
     ...payload,
     hint: readNonEmptyString(payload.hint) ?? DEFAULT_BLOCK_HINT,
-    next_step: readNonEmptyString(payload.next_step) ?? DEFAULT_BLOCK_NEXT_STEP,
   };
 
   return {

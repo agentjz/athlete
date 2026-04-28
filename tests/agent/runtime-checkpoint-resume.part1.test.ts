@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { buildRequestContext } from "../../src/agent/context.js";
-import { normalizeSessionCheckpoint, noteCheckpointToolBatch, noteCheckpointYield } from "../../src/agent/checkpoint.js";
+import { buildInternalWakeInput, normalizeSessionCheckpoint, noteCheckpointToolBatch, noteCheckpointYield } from "../../src/agent/checkpoint.js";
 import { createMessage } from "../../src/agent/session.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
@@ -215,7 +215,6 @@ test("runtime checkpoint persists a structured checkpoint after yield and keeps 
   assert.equal(checkpoint?.flow?.phase, "continuation");
   assert.equal(checkpoint?.flow?.lastTransition?.reason?.code, "yield.tool_step_limit");
   assert.equal(Array.isArray(checkpoint?.completedSteps), true);
-  assert.equal(typeof checkpoint?.nextStep, "string");
   assert.equal(checkpoint?.recentToolBatch?.tools?.[0], "emit_large_checkpoint");
   assert.match(String(checkpoint?.recentToolBatch?.summary ?? ""), /emit_large_checkpoint/i);
   assert.equal(checkpoint?.flow?.runState?.status, "idle");
@@ -227,7 +226,7 @@ test("runtime checkpoint persists a structured checkpoint after yield and keeps 
   );
 });
 
-test("runtime checkpoint keeps checkpoint state after disk reload when the user says continue", { concurrency: false }, async (t) => {
+test("runtime checkpoint keeps checkpoint state after disk reload on internal wake", { concurrency: false }, async (t) => {
   const root = await createTempWorkspace("round2-checkpoint-reload", t);
   await initGitRepo(root);
   const sessionStore = new SessionStore(path.join(root, "sessions"));
@@ -247,8 +246,6 @@ test("runtime checkpoint keeps checkpoint state after disk reload when the user 
     },
     checkpoint: createCheckpointFixture("Finish the persisted resume summary.", {
       completedSteps: ["Completed the first setup batch"],
-      currentStep: "Waiting for session resume",
-      nextStep: "Write validation/round2-resume-summary.md without repeating setup.",
       flow: {
         phase: "continuation",
       },
@@ -259,7 +256,7 @@ test("runtime checkpoint keeps checkpoint state after disk reload when the user 
   let seenSession: any;
 
   await runManagedAgentTurn({
-    input: "continue",
+    input: buildInternalWakeInput(RUNTIME_TEST_IDENTITY),
     cwd: root,
     config: createTestRuntimeConfig(root),
     session: reloaded,
@@ -279,13 +276,9 @@ test("runtime checkpoint keeps checkpoint state after disk reload when the user 
   assert.equal(seenSession?.taskState?.objective, "Finish the persisted resume summary.");
   assert.equal(seenSession?.checkpoint?.objective, "Finish the persisted resume summary.");
   assert.equal(seenSession?.checkpoint?.completedSteps?.includes("Completed the first setup batch"), true);
-  assert.equal(
-    seenSession?.checkpoint?.nextStep,
-    "Write validation/round2-resume-summary.md without repeating setup.",
-  );
 });
 
-test("runtime checkpoint resets the old checkpoint when the objective changes", { concurrency: false }, async (t) => {
+test("runtime checkpoint archives the old checkpoint until current-objective facts arrive", { concurrency: false }, async (t) => {
   const root = await createTempWorkspace("round2-checkpoint-reset", t);
   await initGitRepo(root);
   const sessionStore = new SessionStore(path.join(root, "sessions"));
@@ -305,8 +298,6 @@ test("runtime checkpoint resets the old checkpoint when the objective changes", 
     },
     checkpoint: createCheckpointFixture("Finish the persisted resume summary.", {
       completedSteps: ["Completed the first setup batch"],
-      currentStep: "Waiting for session resume",
-      nextStep: "Write validation/round2-resume-summary.md without repeating setup.",
       recentToolBatch: {
         tools: ["emit_large_checkpoint"],
         summary: "Stored the initial artifact",
@@ -340,11 +331,18 @@ test("runtime checkpoint resets the old checkpoint when the objective changes", 
   });
 
   assert.equal(normalized.taskState?.objective, "Start a brand new PDF extraction task.");
-  assert.equal(normalized.checkpoint?.objective, "Start a brand new PDF extraction task.");
-  assert.deepEqual(normalized.checkpoint?.completedSteps ?? [], []);
-  assert.equal(normalized.checkpoint?.currentStep, undefined);
-  assert.equal(normalized.checkpoint?.recentToolBatch, undefined);
-  assert.deepEqual(normalized.checkpoint?.priorityArtifacts ?? [], []);
+  assert.equal(normalized.checkpoint?.objective, "Finish the persisted resume summary.");
+  assert.equal(normalized.checkpoint?.recentToolBatch?.tools?.[0], "emit_large_checkpoint");
+
+  const afterCurrentToolFact = noteCheckpointToolBatch(normalized, {
+    toolNames: ["read_file"],
+    toolMessages: [],
+    changedPaths: [],
+  });
+
+  assert.equal(afterCurrentToolFact.checkpoint?.objective, "Start a brand new PDF extraction task.");
+  assert.deepEqual(afterCurrentToolFact.checkpoint?.completedSteps ?? [], []);
+  assert.equal(afterCurrentToolFact.checkpoint?.recentToolBatch?.tools?.[0], "read_file");
 });
 
 test("checkpoint runState stays busy across tool-batch persistence and only returns to idle when the turn yields", async () => {

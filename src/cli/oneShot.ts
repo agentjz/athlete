@@ -17,10 +17,8 @@ export interface OneShotCloseoutReport {
   terminalTransition: RuntimeTerminalTransition | null;
   verification: {
     status: string;
-    pendingPaths: string[];
+    observedPaths: string[];
     attempts: number;
-    reminderCount: number;
-    noProgressCount: number;
   };
   acceptance: {
     status: string;
@@ -81,14 +79,14 @@ export async function runOneShotPrompt(
 export function buildOneShotCloseoutReport(
   session: SessionRecord,
   terminalTransition: RuntimeTerminalTransition | null,
-  fallbackReason?: string,
+  defaultUnfinishedReason?: string,
 ): OneShotCloseoutReport {
   const completed = terminalTransition?.action === "finalize";
 
   return {
     sessionId: session.id,
     completed,
-    unfinishedReason: completed ? undefined : terminalTransition?.reason.code ?? fallbackReason ?? "unfinished",
+    unfinishedReason: completed ? undefined : terminalTransition?.reason.code ?? defaultUnfinishedReason ?? "unfinished",
     terminalTransition,
     verification: buildVerificationCloseout(session.verificationState),
     acceptance: buildAcceptanceCloseout(session.acceptanceState),
@@ -100,10 +98,8 @@ function buildVerificationCloseout(
 ): OneShotCloseoutReport["verification"] {
   return {
     status: state?.status ?? "idle",
-    pendingPaths: [...(state?.pendingPaths ?? [])],
+    observedPaths: [...(state?.observedPaths ?? [])],
     attempts: state?.attempts ?? 0,
-    reminderCount: state?.reminderCount ?? 0,
-    noProgressCount: state?.noProgressCount ?? 0,
   };
 }
 

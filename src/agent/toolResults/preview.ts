@@ -22,7 +22,6 @@ export function compactToolPayload(toolName: string | undefined, raw: string, ma
       pushFragment(fragments, "code", readScalar(parsed.code));
       pushFragment(fragments, "error", readScalar(parsed.error));
       pushFragment(fragments, "hint", readScalar(parsed.hint));
-      pushFragment(fragments, "next_step", readScalar(parsed.next_step));
       pushFragment(fragments, "entries", readCollectionCount(parsed.entries) ?? readScalar(parsed.entriesCount));
       pushFragment(fragments, "matches", readCollectionCount(parsed.matches) ?? readScalar(parsed.matchesCount));
       pushFragment(fragments, "sheets", readCollectionCount(parsed.sheets) ?? readScalar(parsed.sheetsCount));

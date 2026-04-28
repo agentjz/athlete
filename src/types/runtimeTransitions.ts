@@ -1,6 +1,6 @@
-export interface RuntimeContinueResumeReason {
-  code: "continue.resume_from_checkpoint";
-  source: "managed_continuation" | "resume_directive";
+export interface RuntimeContinueInternalWakeReason {
+  code: "continue.internal_wake";
+  source: "managed_wake";
 }
 
 export interface RuntimeContinueToolBatchReason {
@@ -9,41 +9,8 @@ export interface RuntimeContinueToolBatchReason {
   changedPaths: string[];
 }
 
-export interface RuntimeContinueMissingSkillsReason {
-  code: "continue.required_skill_load";
-  missingSkills: string[];
-}
-
-export interface RuntimeContinueIncompleteTodosReason {
-  code: "continue.incomplete_todos";
-  incompleteTodoCount: number;
-}
-
 export interface RuntimeContinueEmptyAssistantResponseReason {
   code: "continue.empty_assistant_response";
-}
-
-export interface RuntimeContinueVerificationRequiredReason {
-  code: "continue.verification_required";
-  pendingPaths: string[];
-  attempts: number;
-  reminderCount: number;
-}
-
-export interface RuntimeContinueVerificationFailedReason {
-  code: "continue.verification_failed";
-  attempts: number;
-  noProgressCount: number;
-  lastCommand?: string;
-  lastKind?: string;
-  lastExitCode?: number | null;
-}
-
-export interface RuntimeContinueAcceptanceRequiredReason {
-  code: "continue.acceptance_required";
-  phase: string;
-  pendingChecks: string[];
-  stalledPhaseCount: number;
 }
 
 export interface RuntimeRecoverProviderRequestReason {
@@ -76,15 +43,6 @@ export interface RuntimeYieldDelegationDispatchReason {
   code: "yield.delegation_dispatch";
 }
 
-export interface RuntimePauseVerificationAwaitingUserReason {
-  code: "pause.verification_awaiting_user";
-  pendingPaths: string[];
-  pauseReason: string;
-  attempts: number;
-  reminderCount: number;
-  noProgressCount: number;
-}
-
 export interface RuntimePauseProviderRecoveryBudgetExhaustedReason {
   code: "pause.provider_recovery_budget_exhausted";
   pauseReason: string;
@@ -115,19 +73,14 @@ export interface RuntimePauseDegradationRecoveryExhaustedReason {
 export interface RuntimeFinalizeCompletedReason {
   code: "finalize.completed";
   changedPaths: string[];
-  verificationOutcome: "not_required" | "passed";
+  verificationOutcome: "not_attempted" | "passed" | "failed";
   verificationKind?: string;
 }
 
 export type RuntimeContinueReason =
-  | RuntimeContinueResumeReason
+  | RuntimeContinueInternalWakeReason
   | RuntimeContinueToolBatchReason
-  | RuntimeContinueMissingSkillsReason
-  | RuntimeContinueIncompleteTodosReason
-  | RuntimeContinueEmptyAssistantResponseReason
-  | RuntimeContinueVerificationRequiredReason
-  | RuntimeContinueVerificationFailedReason
-  | RuntimeContinueAcceptanceRequiredReason;
+  | RuntimeContinueEmptyAssistantResponseReason;
 
 export type RuntimeRecoverReason =
   | RuntimeRecoverProviderRequestReason
@@ -136,7 +89,6 @@ export type RuntimeRecoverReason =
 export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason | RuntimeYieldDelegationDispatchReason;
 
 export type RuntimePauseReason =
-  | RuntimePauseVerificationAwaitingUserReason
   | RuntimePauseProviderRecoveryBudgetExhaustedReason
   | RuntimePauseManagedSliceBudgetExhaustedReason
   | RuntimePauseDegradationRecoveryExhaustedReason;

@@ -1,8 +1,7 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  appendPromptMemory,
   buildSystemPromptLayers,
   measurePromptLayers,
   renderPromptLayers,
@@ -28,20 +27,15 @@ function createProjectContext(skills: LoadedSkill[] = []): ProjectContext {
   };
 }
 
-test("system prompt exposes the new static operating contract blocks and keeps compressed memory after the dynamic layer", () => {
-  const layers = appendPromptMemory(
-    buildSystemPromptLayers(
-      ROOT,
-      createTestRuntimeConfig(ROOT),
-      createProjectContext(),
-    ),
-    "- Earlier turn summary: reused prior artifacts.",
+test("system prompt exposes static and dynamic layers without a history memory layer", () => {
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
   );
   const prompt = renderPromptLayers(layers);
   const dynamicMarker = "\n\nDynamic runtime layer:\n";
-  const memoryMarker = "\n\nCompressed conversation memory:\n";
   const dynamicIndex = prompt.indexOf(dynamicMarker);
-  const memoryIndex = prompt.indexOf(memoryMarker);
 
   assert.match(prompt, /Identity \/ role contract:/);
   assert.match(prompt, /INTP architectural mindset:/);
@@ -52,9 +46,36 @@ test("system prompt exposes the new static operating contract blocks and keeps c
   assert.match(prompt, /External content boundary:/);
   assert.match(prompt, /Project instructions:/);
   assert.notEqual(dynamicIndex, -1);
-  assert.notEqual(memoryIndex, -1);
-  assert.equal(memoryIndex > dynamicIndex, true);
-  assert.match(prompt, /Compressed conversation memory:\n- Earlier turn summary: reused prior artifacts\./);
+  assert.doesNotMatch(prompt, /Compressed conversation memory:/);
+  assert.doesNotMatch(prompt, /Earlier turn summary/);
+  assert.doesNotMatch(prompt, /Carryover:/);
+});
+
+test("system prompt does not carry previous final output into a new objective", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+      {
+        objective: "current objective: inspect the CLI",
+        activeFiles: [],
+        plannedActions: [],
+        completedActions: [],
+        blockers: [],
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      undefined,
+      undefined,
+      undefined,
+    ),
+  );
+
+  assert.match(prompt, /Current Objective:/);
+  assert.match(prompt, /current objective: inspect the CLI/);
+  assert.doesNotMatch(prompt, /Carryover:/);
+  assert.doesNotMatch(prompt, /browser runtime is stable/);
+  assert.doesNotMatch(prompt, /old objective: inspect browser runtime/);
 });
 
 test("system prompt states that budget anxiety is not a valid reason for shallow work or premature closeout", () => {
@@ -112,7 +133,7 @@ test("system prompt states that external content is data rather than authority",
   assert.doesNotMatch(prompt, /confirm with the user/i);
 });
 
-test("system prompt aligns verification wording with targeted and lightweight verification paths while omitting empty runtime noise", () => {
+test("system prompt frames verification as model judgment over factual ledgers", () => {
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
       ROOT,
@@ -122,13 +143,16 @@ test("system prompt aligns verification wording with targeted and lightweight ve
   );
   const dynamicLayer = prompt.split("Dynamic runtime layer:\n")[1] ?? "";
 
-  assert.match(prompt, /Targeted tests, builds, readbacks, and lightweight auto-readback are valid when sufficient\./);
-  assert.match(prompt, /Never finish while known verification failures remain unresolved\./);
+  assert.match(prompt, /Acceptance and verification runtime state are factual ledgers/i);
+  assert.match(prompt, /decide what verification is appropriate to the risk and artifact type/i);
+  assert.match(prompt, /Known verification failures are evidence; resolve them or report the remaining blocker explicitly\./);
   assert.doesNotMatch(prompt, /run verification \(build\/test\)/i);
+  assert.doesNotMatch(prompt, /auto-readback/i);
+  assert.doesNotMatch(prompt, /machine-enforced closeout criteria/i);
   assert.doesNotMatch(dynamicLayer, /No tasks\.|No teammates\.|No worktrees\.|No background jobs\.|No protocol requests\./);
   assert.doesNotMatch(dynamicLayer, /Verification focus:/);
   assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read|read_spreadsheet/);
-  assert.match(prompt, /file introspection or tool recovery points to a better specialized tool/i);
+  assert.match(prompt, /treat that as evidence for your own routing decision/i);
 });
 
 test("system prompt keeps orchestration guidance at the principle level instead of embedding a dispatch table", () => {
@@ -148,57 +172,24 @@ test("system prompt keeps orchestration guidance at the principle level instead 
   assert.doesNotMatch(prompt, /delegate_subagent|delegate_teammate|run_in_background/);
   assert.doesNotMatch(prompt, /ready\.teammate_reserved|blocked\.missing_background_job|active\.background_running/);
   assert.doesNotMatch(prompt, /Survey:|Implement:|Validate:/);
+  assert.doesNotMatch(prompt, /Coordination state:/);
 });
 
 test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   const webResearch = createSkill({
     name: "web-research",
     description: "Research the web with browser-first tools.",
-    loadMode: "required",
   });
   const browserAutomation = createSkill({
     name: "browser-automation",
     description: "Drive browser interactions end to end.",
-    loadMode: "suggested",
   });
   const specAlignment = createSkill({
     name: "spec-alignment",
     description: "Cross-check implementation against the repo spec.",
-    loadMode: "required",
   });
 
   const runtimeState: SkillRuntimeState = {
-    matches: [
-      {
-        skill: webResearch,
-        applicable: true,
-        named: false,
-        loaded: true,
-        blockedBy: [],
-        matchedBy: ["scene", "trigger"],
-      },
-      {
-        skill: browserAutomation,
-        applicable: true,
-        named: false,
-        loaded: false,
-        blockedBy: [],
-        matchedBy: ["scene", "trigger"],
-      },
-      {
-        skill: specAlignment,
-        applicable: true,
-        named: false,
-        loaded: false,
-        blockedBy: [],
-        matchedBy: ["task_type"],
-      },
-    ],
-    namedSkills: [],
-    applicableSkills: [webResearch, browserAutomation, specAlignment],
-    suggestedSkills: [browserAutomation],
-    requiredSkills: [webResearch, specAlignment],
-    missingRequiredSkills: [specAlignment],
     loadedSkills: [webResearch],
     loadedSkillNames: new Set(["web-research"]),
   };
@@ -209,44 +200,41 @@ test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   );
 
   assert.match(block, /Loaded now: web-research/);
-  assert.match(block, /Turn match: browser-automation \[suggested; via scene\/trigger\]/);
-  assert.match(block, /Turn match: spec-alignment \[required; via task_type\]/);
-  assert.match(block, /Missing required: spec-alignment/);
-  assert.match(block, /Consider loading the missing skills with load_skill/);
-  assert.match(block, /you may first inspect files, paths, and inputs/);
+  assert.match(block, /Skill index: web-research, browser-automation, spec-alignment/);
+  assert.match(block, /explicit load_skill calls/);
+  assert.doesNotMatch(block, /Turn match:/);
+  assert.doesNotMatch(block, /suggested|via scene|via task_type/);
+  assert.doesNotMatch(block, /Matched but not loaded|required/);
+  assert.doesNotMatch(block, /Consider loading|you may first inspect/i);
   assert.doesNotMatch(block, /Discovered project skill catalog/i);
   assert.doesNotMatch(block, /Research the web with browser-first tools\./);
   assert.doesNotMatch(block, /Drive browser interactions end to end\./);
 });
 
 test("prompt metrics expose per-layer size data and request-context prompt observability", () => {
-  const layers = appendPromptMemory(
-    buildSystemPromptLayers(
-      ROOT,
-      createTestRuntimeConfig(ROOT),
-      createProjectContext(),
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "Ship the prompt refactor safely.",
+      activeFiles: ["src/agent/prompt/static.ts"],
+      plannedActions: ["Measure prompt size"],
+      completedActions: ["Split the prompt builder"],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    [
       {
-        objective: "Ship the prompt refactor safely.",
-        activeFiles: ["src/agent/prompt/static.ts"],
-        plannedActions: ["Measure prompt size"],
-        completedActions: ["Split the prompt builder"],
-        blockers: [],
-        lastUpdatedAt: new Date().toISOString(),
+        id: "todo-1",
+        text: "Measure prompt size",
+        status: "in_progress",
       },
-      [
-        {
-          id: "todo-1",
-          text: "Measure prompt size",
-          status: "in_progress",
-        },
-      ],
-    ),
-    "- Earlier turn summary: checkpoints already persisted.",
+    ],
   );
 
   const metrics = measurePromptLayers(layers);
   assert.equal(metrics.staticBlockCount, 8);
-  assert.equal(metrics.memoryBlockCount, 1);
   assert.equal(metrics.dynamicBlockCount > 0, true);
   assert.equal(metrics.totalChars, renderPromptLayers(layers).length);
   assert.equal(metrics.renderedChars, renderPromptLayers(layers).length);
@@ -276,24 +264,23 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   );
 
   assert.ok(built.promptMetrics);
-  assert.equal((built.promptMetrics?.memoryBlockCount ?? 0) >= 2, true);
+  assert.equal((built.promptMetrics?.dynamicBlockCount ?? 0) > metrics.dynamicBlockCount, true);
   assert.equal((built.promptMetrics?.totalChars ?? 0) >= metrics.totalChars, true);
   assert.equal((built.promptMetrics?.hotspots?.length ?? 0) > 0, true);
   assert.equal((built.promptMetrics?.renderedChars ?? 0) > metrics.renderedChars, true);
 });
 
 function createSkill(
-  overrides: Partial<LoadedSkill> & Pick<LoadedSkill, "name" | "description" | "loadMode">,
+  overrides: Partial<LoadedSkill> & Pick<LoadedSkill, "name" | "description">,
 ): LoadedSkill {
   return {
-    schemaVersion: "skill.v1",
+    schemaVersion: "skill",
     version: "1.0.0",
     name: overrides.name,
     description: overrides.description,
     path: `skills/${overrides.name}/SKILL.md`,
     absolutePath: `${ROOT}/skills/${overrides.name}/SKILL.md`,
     body: `# ${overrides.name}`,
-    loadMode: overrides.loadMode,
     agentKinds: ["lead", "teammate", "subagent"],
     roles: [],
     taskTypes: overrides.taskTypes ?? [],

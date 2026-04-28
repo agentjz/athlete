@@ -33,11 +33,7 @@ export async function loadConfig(): Promise<AppConfig> {
     return getDefaultConfig();
   }
 
-  const normalized = normalizeStoredConfig(stored, paths.configFile);
-  if (normalized.upgradedLegacy) {
-    await saveConfig(normalized.config);
-  }
-  return normalized.config;
+  return normalizeStoredConfig(stored, paths.configFile);
 }
 
 export async function saveConfig(config: AppConfig): Promise<void> {
@@ -77,24 +73,15 @@ async function readStoredConfig(configFile: string): Promise<ParsedConfigRecord 
 function normalizeStoredConfig(
   parsed: ParsedConfigRecord,
   configFile: string,
-): {
-  config: AppConfig;
-  upgradedLegacy: boolean;
-} {
+): AppConfig {
   const schemaVersion = parsed.schemaVersion;
   if (schemaVersion === undefined) {
-    return {
-      config: normalizeConfig(mergeAppConfig(getDefaultConfig(), parsed as Partial<AppConfig>)),
-      upgradedLegacy: true,
-    };
+    throw createUnsupportedConfigSchemaError(configFile, schemaVersion, CURRENT_CONFIG_SCHEMA_VERSION);
   }
 
   if (typeof schemaVersion !== "number" || !Number.isFinite(schemaVersion) || Math.trunc(schemaVersion) !== CURRENT_CONFIG_SCHEMA_VERSION) {
     throw createUnsupportedConfigSchemaError(configFile, schemaVersion, CURRENT_CONFIG_SCHEMA_VERSION);
   }
 
-  return {
-    config: normalizeConfig(mergeAppConfig(getDefaultConfig(), parsed as Partial<AppConfig>)),
-    upgradedLegacy: false,
-  };
+  return normalizeConfig(mergeAppConfig(getDefaultConfig(), parsed as Partial<AppConfig>));
 }

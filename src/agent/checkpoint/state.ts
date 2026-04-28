@@ -9,9 +9,6 @@ import { createCheckpointForObjective, createEmptyCheckpoint, deriveCheckpointFr
 import {
   buildToolBatch,
   deriveCompletedSteps,
-  deriveCurrentStep,
-  deriveNextStep,
-  derivePendingPathArtifacts,
 } from "./derivation.js";
 import {
   fingerprintObjective,
@@ -49,8 +46,6 @@ export function normalizeCheckpoint(
       normalizeText(checkpoint.objectiveFingerprint) || (objective ? fingerprintObjective(objective) : undefined),
     status,
     completedSteps: takeLastUnique(checkpoint.completedSteps ?? [], 8),
-    currentStep: status === "completed" ? undefined : normalizeText(checkpoint.currentStep) || undefined,
-    nextStep: status === "completed" ? undefined : normalizeText(checkpoint.nextStep) || undefined,
     recentToolBatch: normalizeToolBatch(checkpoint.recentToolBatch),
     flow: normalizeCheckpointFlow(checkpoint.flow, status, timestamp),
     priorityArtifacts:
@@ -63,44 +58,18 @@ export function normalizeCheckpoint(
 
 export function normalizeSessionCheckpoint(session: SessionRecord): SessionRecord {
   const timestamp = new Date().toISOString();
-  const objective = normalizeText(session.taskState?.objective) || undefined;
-  const fingerprint = objective ? fingerprintObjective(objective) : undefined;
   const normalized = normalizeCheckpoint(session.checkpoint, timestamp);
-  const objectiveChanged =
-    Boolean(normalized?.objectiveFingerprint && fingerprint) && normalized?.objectiveFingerprint !== fingerprint;
+  const checkpoint = normalized ?? deriveCheckpointFromSession(session, timestamp);
 
-  let checkpoint = objectiveChanged
-    ? createCheckpointForObjective(objective, timestamp)
-    : normalized ?? deriveCheckpointFromSession(session, timestamp);
-
-  if (objective) {
-    checkpoint.objective = objective;
-    checkpoint.objectiveFingerprint = fingerprint;
-  } else {
-    checkpoint.objective = undefined;
-    checkpoint.objectiveFingerprint = undefined;
-  }
-
-  if (!objectiveChanged && checkpoint.completedSteps.length === 0) {
+  if (checkpoint.completedSteps.length === 0) {
     checkpoint.completedSteps = deriveCompletedSteps(session);
   }
 
-  if (checkpoint.status !== "completed" && !objectiveChanged) {
-    checkpoint.currentStep = checkpoint.currentStep ?? deriveCurrentStep(session, checkpoint);
-    checkpoint.nextStep = checkpoint.nextStep ?? deriveNextStep(session, checkpoint);
+  if (checkpoint.status !== "completed") {
     checkpoint.priorityArtifacts = mergeArtifacts(
       checkpoint.priorityArtifacts,
       checkpoint.recentToolBatch?.artifacts ?? [],
-      derivePendingPathArtifacts(session),
     );
-  }
-
-  if (objectiveChanged) {
-    checkpoint.status = "active";
-    checkpoint.currentStep = undefined;
-    checkpoint.nextStep = undefined;
-    checkpoint.recentToolBatch = undefined;
-    checkpoint.priorityArtifacts = [];
   }
 
   checkpoint.flow = normalizeCheckpointFlow(checkpoint.flow, checkpoint.status, timestamp);
@@ -137,20 +106,31 @@ export function noteCheckpointTurnInput(
               status: "busy",
               source: "turn",
             },
-        fallbackPhase: "active",
+        defaultPhase: "active",
         timestamp,
       }),
-      currentStep:
-        checkpoint.status === "completed"
-          ? undefined
-          : checkpoint.currentStep ?? deriveCurrentStep(session, checkpoint),
-      nextStep:
-        checkpoint.status === "completed"
-          ? undefined
-          : checkpoint.nextStep ?? deriveNextStep(session, checkpoint),
       updatedAt: timestamp,
     },
   };
+}
+
+export function resolveCurrentObjectiveCheckpoint(
+  session: SessionRecord,
+  timestamp = new Date().toISOString(),
+): SessionCheckpoint {
+  const objective = normalizeText(session.taskState?.objective) || undefined;
+  const fingerprint = objective ? fingerprintObjective(objective) : undefined;
+  const checkpoint = normalizeCheckpoint(session.checkpoint, timestamp) ?? createEmptyCheckpoint(timestamp);
+
+  if (!objective) {
+    return checkpoint;
+  }
+
+  if (checkpoint.objectiveFingerprint === fingerprint) {
+    return checkpoint;
+  }
+
+  return createCheckpointForObjective(objective, timestamp);
 }
 
 export function noteCheckpointToolBatch(
@@ -158,7 +138,7 @@ export function noteCheckpointToolBatch(
   input: ToolBatchUpdateInput,
   timestamp = new Date().toISOString(),
 ): SessionRecord {
-  const checkpoint = normalizeSessionCheckpoint(session).checkpoint ?? createEmptyCheckpoint(timestamp);
+  const checkpoint = resolveCurrentObjectiveCheckpoint(session, timestamp);
   const recentToolBatch = buildToolBatch(input.toolNames, input.toolMessages, input.changedPaths, timestamp);
   const phase = checkpoint.flow.phase === "recovery" ? "active" : checkpoint.flow.phase;
   const transition = createToolBatchTransition({
@@ -171,20 +151,6 @@ export function noteCheckpointToolBatch(
     checkpoint: {
       ...checkpoint,
       completedSteps: deriveCompletedSteps(session),
-      currentStep:
-        checkpoint.status === "completed"
-          ? undefined
-          : deriveCurrentStep(session, {
-              ...checkpoint,
-              recentToolBatch,
-            }),
-      nextStep:
-        checkpoint.status === "completed"
-          ? undefined
-          : deriveNextStep(session, {
-              ...checkpoint,
-              recentToolBatch,
-            }),
       recentToolBatch,
       priorityArtifacts:
         checkpoint.status === "completed"
@@ -192,13 +158,12 @@ export function noteCheckpointToolBatch(
           : mergeArtifacts(
               recentToolBatch?.artifacts ?? [],
               checkpoint.priorityArtifacts,
-              derivePendingPathArtifacts(session),
             ),
       flow: buildCheckpointFlow({
         current: checkpoint.flow,
         status: checkpoint.status,
         transition,
-        fallbackPhase: phase,
+        defaultPhase: phase,
         timestamp,
       }),
       updatedAt: timestamp,

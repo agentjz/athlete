@@ -2,13 +2,11 @@ import path from "node:path";
 
 import {
   SKILL_AGENT_KINDS,
-  SKILL_LOAD_MODES,
   SKILL_SCHEMA_VERSION,
 } from "./types.js";
 import type {
   LoadedSkill,
   SkillAgentKind,
-  SkillLoadMode,
   SkillToolConstraints,
   SkillTriggerSet,
 } from "./types.js";
@@ -38,10 +36,10 @@ export function parseSkillSource(
   const body = (match?.[2] ?? normalized).trim();
   const metadata = parseSimpleFrontmatter(frontmatter);
   const hasFrontmatter = frontmatter.trim().length > 0;
+  rejectObsoleteSkillMetadata(metadata, options.absolutePath);
   const name = readSkillName(metadata, options.absolutePath, hasFrontmatter, options.rootDir);
   const description = readSkillDescription(metadata, body, options.absolutePath);
   const schemaVersion = readSchemaVersion(metadata, options.absolutePath);
-  const loadMode = readLoadMode(metadata, options.absolutePath);
   const agentKinds = readAgentKinds(metadata, options.absolutePath);
   const roles = readNormalizedList(metadata.roles);
   const taskTypes = readNormalizedList(metadata.task_types);
@@ -60,7 +58,6 @@ export function parseSkillSource(
     path: path.relative(options.rootDir, options.absolutePath) || "SKILL.md",
     absolutePath: options.absolutePath,
     body,
-    loadMode,
     agentKinds,
     roles,
     taskTypes,
@@ -68,6 +65,17 @@ export function parseSkillSource(
     triggers,
     tools,
   };
+}
+
+function rejectObsoleteSkillMetadata(metadata: Record<string, string>, absolutePath: string): void {
+  for (const field of ["load_mode", "required"]) {
+    if (metadata[field] !== undefined) {
+      throw new SkillSchemaError(
+        `Skill metadata field "${field}" is obsolete. Skills are indexed and loaded only through explicit load_skill calls.`,
+        absolutePath,
+      );
+    }
+  }
 }
 
 function parseSimpleFrontmatter(frontmatter: string): Record<string, string> {
@@ -107,9 +115,9 @@ function readSkillName(
   }
 
   const relativeDir = path.relative(rootDir, path.dirname(absolutePath));
-  const fallback = relativeDir && relativeDir !== "." ? path.basename(relativeDir) : path.basename(rootDir);
-  if (fallback) {
-    return fallback;
+  const inferredName = relativeDir && relativeDir !== "." ? path.basename(relativeDir) : path.basename(rootDir);
+  if (inferredName) {
+    return inferredName;
   }
 
   throw new SkillSchemaError('Unable to infer skill "name".', absolutePath);
@@ -138,35 +146,6 @@ function readSchemaVersion(metadata: Record<string, string>, absolutePath: strin
     `Unsupported skill schema_version "${raw}". Expected "${SKILL_SCHEMA_VERSION}".`,
     absolutePath,
   );
-}
-
-function readLoadMode(metadata: Record<string, string>, absolutePath: string): SkillLoadMode {
-  const raw = metadata.load_mode?.trim().toLowerCase();
-  if (raw) {
-    if ((SKILL_LOAD_MODES as readonly string[]).includes(raw)) {
-      return raw as SkillLoadMode;
-    }
-
-    throw new SkillSchemaError(`Invalid skill load_mode "${raw}".`, absolutePath);
-  }
-
-  if (parseBoolean(metadata.required)) {
-    return "required";
-  }
-
-  const hasTargetingMetadata = [
-    metadata.trigger_keywords,
-    metadata.trigger_patterns,
-    metadata.triggers,
-    metadata.trigger,
-    metadata.task_types,
-    metadata.scenes,
-    metadata.agent_kinds,
-    metadata.identity_kinds,
-    metadata.roles,
-  ].some((value) => typeof value === "string" && value.trim().length > 0);
-
-  return hasTargetingMetadata ? "suggested" : "manual";
 }
 
 function readVersion(raw: string | undefined): string {
@@ -261,15 +240,6 @@ function readStringList(raw: string | undefined): string[] {
 
 function readNormalizedList(raw: string | undefined): string[] {
   return uniqueList(readStringList(raw).map((item) => item.toLowerCase()));
-}
-
-function parseBoolean(raw: string | undefined): boolean {
-  if (!raw) {
-    return false;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
 function inferDescription(body: string): string {

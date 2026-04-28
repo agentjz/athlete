@@ -6,11 +6,9 @@ import { createProviderClientPool } from "./provider/client.js";
 import { buildRecoveryRequestConfig, buildRecoveryStatus, computeRecoveryDelayMs, isRecoverableTurnError, pickRequestModel, sleep } from "./retryPolicy.js";
 import { noteRuntimeCompression, noteRuntimeModelRequests, type ModelRequestMetric } from "./runtimeMetrics.js";
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
-import { hasIncompleteTodos } from "./session/todos.js";
 import { buildSystemPromptLayers } from "./systemPrompt.js";
 import { buildRunTurnResult, createDelegationDispatchYieldTransition, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "./toolPriority.js";
-import { filterToolDefinitionsForCloseout } from "./turn/closeout.js";
 import { clearCompactionRecovery, noteCompactionObserved, notePostCompactionNoText } from "./turn/compactionRecovery.js";
 import { persistRecoveryOrPauseFromCompaction } from "./turn/compactionPersistence.js";
 import { emitAssistantFinalOutput, emitAssistantReasoning } from "./turn/finalize.js";
@@ -56,18 +54,14 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const client = createProviderClientPool(modelConfig);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
-  const availableToolNames = toolRegistry.entries?.map((entry) => entry.name) ?? toolRegistry.definitions.map((tool) => tool.function.name);
   const changeStore = new ChangeStore(options.config.paths.changesDir);
   const loopGuard = new ToolLoopGuard();
   const softToolLimit = Math.max(1, options.config.maxToolIterations);
   const continuationWindow = softToolLimit * Math.max(1, options.config.maxContinuationBatches);
   const recoveryBudget = resolveProviderRecoveryBudget(options.config);
-  const hadIncompleteTodosAtStart = identity.kind === "lead" ? hasIncompleteTodos(session.todoItems) : false;
   let compressionAnnounced = false;
   let changedPaths = new Set<string>();
-  let hasSubstantiveToolActivity = false;
-  let { validationAttempted, validationPassed, requiresVerification } = readVerificationProgress(session);
-  let validationReminderInjected = false;
+  let { validationAttempted, validationPassed } = readVerificationProgress(session);
   let consecutiveRequestFailures = 0;
   let recoveryStartedAtMs: number | undefined;
   let roundsSinceTodoWrite = 0;
@@ -106,11 +100,6 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       const skillRuntimeState = buildSkillRuntimeState({
         skills: projectContext.skills,
         session,
-        input: options.input,
-        identity,
-        objective: session.taskState?.objective,
-        taskSummary: runtimeState.taskSummary,
-        availableToolNames,
       });
       let promptLayers = buildSystemPromptLayers(
         options.cwd,
@@ -124,7 +113,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         session.checkpoint,
         session.acceptanceState,
       );
-      promptLayers = extendPromptLayersForTurnState(promptLayers, session.checkpoint, iteration, softToolLimit, consecutiveRequestFailures);
+      promptLayers = extendPromptLayersForTurnState(promptLayers, iteration, softToolLimit, consecutiveRequestFailures);
       const requestModel = pickRequestModel(modelConfig.provider, modelConfig.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
       const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
@@ -133,15 +122,15 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             input: options.input,
             objective: session.taskState?.objective,
             taskSummary: runtimeState.taskSummary,
-            missingRequiredSkillNames: skillRuntimeState.missingRequiredSkills.map((skill) => skill.name),
+            activeSkillNames: [...skillRuntimeState.loadedSkillNames],
           }).map((entry) => entry.definition)
         : prioritizeToolDefinitionsForTurn(toolRegistry.definitions, {
             input: options.input,
             objective: session.taskState?.objective,
             taskSummary: runtimeState.taskSummary,
-            missingRequiredSkillNames: skillRuntimeState.missingRequiredSkills.map((skill) => skill.name),
+            activeSkillNames: [...skillRuntimeState.loadedSkillNames],
           });
-      const turnToolDefinitions = filterToolDefinitionsForCloseout(prioritizedToolDefinitions, { session, changedPaths, hasSubstantiveToolActivity, verificationState: session.verificationState });
+      const turnToolDefinitions = prioritizedToolDefinitions;
       session = requestContext.compressed
         ? noteCompactionObserved(noteRuntimeCompression(session))
         : session;
@@ -226,13 +215,9 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           const degradation = notePostCompactionNoText(session);
           session = degradation.session;
           if (degradation.transition) {
-            const recoveryReminder = degradation.transition.action === "recover"
-              ? "Post-compaction degradation was detected. Resume from the latest checkpoint, restate the next step, and continue without restarting completed work."
-              : "Post-compaction degradation exhausted recovery attempts. Pause here and resume later from the latest checkpoint instead of restarting from scratch.";
             const persisted = await persistRecoveryOrPauseFromCompaction({
               session,
               response,
-              reminder: recoveryReminder,
               options,
               transition: degradation.transition,
             });
@@ -248,7 +233,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             }
 
             session = persisted;
-            options.callbacks?.onStatus?.("Detected repeated post-compaction empty responses. Recovering from the checkpoint instead of restarting...");
+            options.callbacks?.onStatus?.("Detected repeated post-compaction empty responses. Recovering with the current frame preserved...");
             continue;
           }
         } else {
@@ -260,15 +245,10 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           response,
           identity,
           changedPaths,
-          hadIncompleteTodosAtStart,
-          hasSubstantiveToolActivity,
-          validationReminderInjected,
-          skillRuntimeState,
           options,
         });
         if (completed.kind === "continue") {
           session = completed.session;
-          validationReminderInjected = completed.validationReminderInjected;
           continue;
         }
         emitAssistantFinalOutput(response, options);
@@ -280,26 +260,19 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         response,
         options,
         identity,
-        skillRuntimeState,
         toolRegistry,
         projectContext,
         changeStore,
         loopGuard,
         changedPaths,
-        hasSubstantiveToolActivity,
         validationAttempted,
         validationPassed,
-        requiresVerification,
-        validationReminderInjected,
         roundsSinceTodoWrite,
       });
       session = batchResult.session;
       changedPaths = batchResult.changedPaths;
-      hasSubstantiveToolActivity = batchResult.hasSubstantiveToolActivity;
       validationAttempted = batchResult.validationAttempted;
       validationPassed = batchResult.validationPassed;
-      requiresVerification = batchResult.requiresVerification;
-      validationReminderInjected = batchResult.validationReminderInjected;
       roundsSinceTodoWrite = batchResult.roundsSinceTodoWrite;
       if (identity.kind === "lead" && batchResult.leadShouldYieldForDelegatedWork) {
         const transition = createDelegationDispatchYieldTransition();

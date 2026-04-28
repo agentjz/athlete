@@ -38,7 +38,7 @@ export interface CapabilityPackageManifest {
   budgetPolicy?: string;
   artifactPolicy?: string;
   closeoutPolicy?: string;
-  selectionHint?: string;
+  availability?: string;
   tools?: readonly string[];
   cost?: CapabilityCost;
   bestFor?: readonly string[];
@@ -79,7 +79,7 @@ export function createCapabilityPackageFromManifest(manifest: CapabilityPackageM
     budgetPolicy: manifest.budgetPolicy,
     artifactPolicy: manifest.artifactPolicy,
     closeoutPolicy: manifest.closeoutPolicy,
-    selectionHint: manifest.selectionHint,
+    availability: manifest.availability,
     useWhen: manifest.bestFor,
     avoidWhen: manifest.notFor,
   });
@@ -151,7 +151,7 @@ export function parseCapabilityPackageManifest(value: unknown): CapabilityPackag
     budgetPolicy: readOptionalText(record, "budgetPolicy"),
     artifactPolicy: readOptionalText(record, "artifactPolicy"),
     closeoutPolicy: readOptionalText(record, "closeoutPolicy"),
-    selectionHint: readOptionalText(record, "selectionHint"),
+    availability: readOptionalText(record, "availability"),
     tools: readOptionalTextArray(record, "tools"),
     cost,
     bestFor: readOptionalTextArray(record, "bestFor"),

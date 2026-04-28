@@ -4,7 +4,6 @@ import {
   normalizeTelegramConfig,
 } from "../telegram/config.js";
 import type { AppConfig } from "../types.js";
-import { normalizeDelegationMode } from "../orchestrator/delegation/mode.js";
 
 export const CURRENT_CONFIG_SCHEMA_VERSION = 1 as const;
 
@@ -13,7 +12,6 @@ const DEFAULT_CONFIG: AppConfig = {
   provider: "deepseek",
   baseUrl: "https://api.deepseek.com",
   model: "deepseek-v4-flash",
-  delegationMode: "balanced",
   yieldAfterToolSteps: 12,
   contextWindowMessages: 30,
   maxContextChars: 48_000,
@@ -55,7 +53,6 @@ export function normalizeConfig(
     model: config.model?.trim() || DEFAULT_CONFIG.model,
     thinking: normalizeThinking(config.thinking),
     reasoningEffort: normalizeReasoningEffort(config.reasoningEffort),
-    delegationMode: normalizeDelegationMode(config.delegationMode),
     yieldAfterToolSteps: clampNumber(
       config.yieldAfterToolSteps,
       0,

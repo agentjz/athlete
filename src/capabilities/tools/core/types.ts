@@ -20,6 +20,7 @@ export type ToolGovernanceSpecialty =
   | "document"
   | "external"
   | "filesystem"
+  | "history"
   | "messaging"
   | "shell"
   | "task"
@@ -52,7 +53,7 @@ export interface ToolGovernance {
   changeSignal: ToolGovernanceSignal;
   verificationSignal: ToolGovernanceSignal;
   preferredWorkflows: readonly string[];
-  fallbackOnlyInWorkflows: readonly string[];
+  secondaryInWorkflows: readonly string[];
   browserStep?: ToolGovernanceBrowserStep;
   documentKind?: ToolGovernanceDocumentKind;
 }

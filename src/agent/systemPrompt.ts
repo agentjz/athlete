@@ -10,7 +10,6 @@ export type {
 } from "./promptSections.js";
 
 export {
-  appendPromptMemory,
   buildSystemPromptLayers,
   measurePromptLayers,
   renderPromptLayers,

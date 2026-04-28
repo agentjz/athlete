@@ -332,14 +332,13 @@ test("runtime observability local command prints a product-style summary that ex
           completedSteps: ["Collected runtime stats"],
           flow: {
             phase: "active",
-            reason: "continue.verification_required",
+            reason: "continue.after_tool_batch",
             lastTransition: {
               action: "continue",
               reason: {
-                code: "continue.verification_required",
-                pendingPaths: ["src/ui/runtimeSummary.ts"],
-                attempts: 1,
-                reminderCount: 1,
+                code: "continue.after_tool_batch",
+                toolNames: ["run_shell"],
+                changedPaths: ["src/ui/runtimeSummary.ts"],
               },
               timestamp: new Date().toISOString(),
             },
@@ -349,14 +348,9 @@ test("runtime observability local command prints a product-style summary that ex
           updatedAt: new Date().toISOString(),
         },
         verificationState: {
-          status: "required",
+          status: "failed",
           attempts: 1,
-          reminderCount: 1,
-          noProgressCount: 0,
-          maxAttempts: 3,
-          maxNoProgress: 2,
-          maxReminders: 3,
-          pendingPaths: ["src/ui/runtimeSummary.ts"],
+          observedPaths: ["src/ui/runtimeSummary.ts"],
           updatedAt: new Date().toISOString(),
         },
       } as any,
@@ -374,12 +368,12 @@ test("runtime observability local command prints a product-style summary that ex
   });
 
   assert.match(output, /current runtime/i);
-  assert.match(output, /waiting on: verification/i);
+  assert.match(output, /waiting on: next turn decision/i);
   assert.match(output, /recent activity:/i);
   assert.match(output, /model requests/i);
   assert.match(output, /tool calls/i);
   assert.match(output, /usage: unavailable/i);
-  assert.match(output, /verification required/i);
+  assert.match(output, /verification: failed/i);
   assert.match(output, /prompt hotspot/i);
   assert.match(output, /externalized results/i);
   assert.doesNotMatch(output, /durable truth/i);

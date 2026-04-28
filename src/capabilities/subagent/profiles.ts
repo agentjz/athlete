@@ -149,6 +149,6 @@ export function toSubagentCapabilityPackage(profile: SubagentProfile): Capabilit
       description: "Adapts a subagent profile into the generic capability package contract.",
     },
     runnerType: "worker",
-    selectionHint: profile.description,
+    availability: profile.description,
   });
 }

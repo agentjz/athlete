@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: test-guardrails
 description: Keep implementation changes anchored to failing tests, narrow fixes, and green verification.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 roles: implementer, reviewer, writer
 task_types: implementation, validation, testing

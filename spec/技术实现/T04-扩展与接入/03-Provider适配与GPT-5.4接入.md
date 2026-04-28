@@ -60,7 +60,7 @@ provider 相关正式状态当前归属如下：
 - `provider === openai` 或 `model === gpt-5.4` 时，默认走 `responses`
 - DeepSeek 官方 V4 走 `chat.completions`，模型名固定为 `deepseek-v4-flash / deepseek-v4-pro`，是否思考由 `thinking` 字段决定
 - DeepSeek 官方 V4 只在 `thinking=enabled` 时发送 `reasoning_effort=high|max`；配置成其他值时直接报错，不做跨模型兼容映射
-- DeepSeek 官方 V4 的工具调用用户轮次如果带 `reasoning_content`，后续多轮请求必须按协议回传该轮必要 reasoning；普通无 tool call 的历史 reasoning 不回传、不进摘要
+- DeepSeek 官方 V4 请求中已保留的 assistant 消息如果带 `reasoning_content`，后续多轮请求必须按协议回传；这是 provider 协议元数据，不扩大当前上下文，也不进入长期记忆
 - GPT-5.4 默认使用更长的 request timeout 与 doctor probe timeout
 - doctor 与真实请求链路共用同一套 provider 选择与 base URL 规则
 

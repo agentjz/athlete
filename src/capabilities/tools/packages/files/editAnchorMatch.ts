@@ -14,7 +14,7 @@ export function validateAnchorAgainstSource(
   resolvedPath: string,
 ): void {
   if (anchor.path !== resolvedPath) {
-    throw new ToolExecutionError("The provided edit anchor belongs to a different file. Re-run read_file for the target file.", {
+    throw new ToolExecutionError("The provided edit anchor belongs to a different file. A fresh read_file anchor for the target file is required.", {
       code: "EDIT_ANCHOR_PATH_MISMATCH",
       details: {
         expectedPath: resolvedPath,
@@ -26,7 +26,7 @@ export function validateAnchorAgainstSource(
   const lines = source.split(/\r?\n/);
   const anchoredLine = lines[anchor.line - 1];
   if (anchoredLine === undefined) {
-    throw new ToolExecutionError("The provided edit anchor no longer points to a valid line. Re-run read_file and retry with fresh anchors.", {
+    throw new ToolExecutionError("The provided edit anchor no longer points to a valid line. Fresh read_file anchors are required.", {
       code: "EDIT_ANCHOR_STALE",
       details: {
         line: anchor.line,
@@ -35,7 +35,7 @@ export function validateAnchorAgainstSource(
   }
 
   if (createLineAnchorHash(anchoredLine) !== anchor.hash) {
-    throw new ToolExecutionError("The provided edit anchor is stale because the targeted line changed. Re-run read_file and retry with fresh anchors.", {
+    throw new ToolExecutionError("The provided edit anchor is stale because the targeted line changed. Fresh read_file anchors are required.", {
       code: "EDIT_ANCHOR_STALE",
       details: {
         line: anchor.line,

@@ -57,7 +57,7 @@ export async function executeToolBatch(
     return executeFallbackToolBatch(params, policy);
   }
 
-  const toolContext = buildToolContext(params.options, params.projectContext, params.changeStore);
+  const toolContext = buildToolContext(params.options, params.session, params.projectContext, params.changeStore);
   const results = new Map<string, ToolExecutionResult>();
   const durations = new Map<string, number>();
   const runnable: RunnableBatchItem[] = [];
@@ -199,6 +199,7 @@ async function executeFallbackToolBatch(
         params.toolRegistry as ReturnType<typeof createToolRegistry>,
         toolCall,
         params.options,
+        params.session,
         params.projectContext,
         params.changeStore,
       ),
@@ -293,13 +294,14 @@ function resolveBatchExecutionPolicy(
 
 function buildToolContext(
   options: RunTurnOptions,
+  session: SessionRecord,
   projectContext: ProjectContext,
   changeStore: ChangeStore,
 ) {
   return {
     config: options.config,
     cwd: options.cwd,
-    sessionId: options.session.id,
+    sessionId: session.id,
     identity: options.identity ?? {
       kind: "lead" as const,
       name: "lead",
@@ -307,8 +309,8 @@ function buildToolContext(
     callbacks: options.callbacks,
     abortSignal: options.abortSignal,
     projectContext,
-    currentObjective: options.session.taskState?.objective
-      ? buildOrchestratorObjective(options.session.taskState.objective)
+    currentObjective: session.taskState?.objective
+      ? buildOrchestratorObjective(session.taskState.objective)
       : undefined,
     changeStore,
     createToolRegistry,

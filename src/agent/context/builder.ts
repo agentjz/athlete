@@ -1,7 +1,8 @@
 import { expandStartToToolBoundary, shouldIncludeStoredAssistantReasoning } from "../session/messages.js";
 import { createPromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
-import { appendPromptMemory, measurePromptLayers, renderPromptLayers } from "../promptSections.js";
+import { measurePromptLayers, renderPromptLayers } from "../promptSections.js";
 import { compactToolPayload } from "../toolResults/preview.js";
+import { findLatestUserInputIndex, isInternalMessage, sliceCurrentUserInputFrame } from "../session/turnFrame.js";
 import type { ProviderMessage } from "../provider/contract.js";
 import type { PromptLayerMetrics, PromptLayers } from "../promptSections.js";
 import type { RuntimeConfig, StoredMessage } from "../../types.js";
@@ -26,16 +27,16 @@ export function buildRequestContext(
   config: Pick<RuntimeConfig, "contextWindowMessages" | "model" | "maxContextChars" | "contextSummaryChars">,
 ): BuiltRequestContext {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
-  const frameMessages = sliceCurrentUserFrame(messages);
+  const frameMessages = sliceCurrentUserInputFrame(messages);
   const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, frameMessages, config.model));
   let tailCount = Math.max(1, Math.min(frameMessages.length, config.contextWindowMessages));
 
   while (true) {
     const tailMessages = sliceTailMessages(frameMessages, tailCount);
-    const olderMessages = frameMessages.slice(0, Math.max(0, frameMessages.length - tailMessages.length));
+    const compressedFrameHead = frameMessages.slice(0, Math.max(0, frameMessages.length - tailMessages.length));
     const summary =
-      olderMessages.length > 0
-        ? summarizeConversation(olderMessages, config.contextSummaryChars)
+      compressedFrameHead.length > 0
+        ? summarizeConversation(compressedFrameHead, config.contextSummaryChars)
         : undefined;
     const summaryPrompt = appendSummary(systemPrompt, summary);
 
@@ -90,28 +91,28 @@ export function buildRequestContext(
       continue;
     }
 
-    const fallbackSummary = summary
+    const lastResortSummary = summary
       ? truncate(summary, Math.max(1_200, Math.floor(config.contextSummaryChars * 0.6)))
       : undefined;
-    const fallbackTail = sliceTailMessages(frameMessages, MIN_TAIL_MESSAGES);
-    const fallbackMessages = composeChatMessages(
-      appendSummary(systemPrompt, fallbackSummary),
-      compactTailMessages(fallbackTail, true),
+    const lastResortTail = sliceTailMessages(frameMessages, MIN_TAIL_MESSAGES);
+    const lastResortMessages = composeChatMessages(
+      appendSummary(systemPrompt, lastResortSummary),
+      compactTailMessages(lastResortTail, true),
       config.model,
     );
 
     return {
-      messages: fallbackMessages,
+      messages: lastResortMessages,
       compressed: true,
-      estimatedChars: estimateChatMessagesChars(fallbackMessages),
-      summary: fallbackSummary,
-      promptMetrics: measureSystemPrompt(appendSummary(systemPrompt, fallbackSummary)),
+      estimatedChars: estimateChatMessagesChars(lastResortMessages),
+      summary: lastResortSummary,
+      promptMetrics: measureSystemPrompt(appendSummary(systemPrompt, lastResortSummary)),
       contextDiagnostics: createPromptContextDiagnostics({
         maxContextChars: safeMaxChars,
         initialEstimatedChars,
-        finalEstimatedChars: estimateChatMessagesChars(fallbackMessages),
-        summaryChars: fallbackSummary?.length,
-        tailMessageCount: fallbackTail.length,
+        finalEstimatedChars: estimateChatMessagesChars(lastResortMessages),
+        summaryChars: lastResortSummary?.length,
+        tailMessageCount: lastResortTail.length,
         compactedTail: true,
       }),
     };
@@ -211,23 +212,20 @@ function summarizeConversation(messages: StoredMessage[], maxChars: number): str
   }
 
   if (summaryLines.length === 0) {
-    return "No earlier context summary was available.";
+    return "No current turn context summary was available.";
   }
 
   return summaryLines.join("\n");
 }
 
 function pickSummaryCandidates(messages: StoredMessage[]): StoredMessage[] {
-  const currentFrameStart = findLatestUserFrameStart(messages);
+  const currentFrameStart = findLatestUserInputIndex(messages);
   const frameMessages = currentFrameStart >= 0 ? messages.slice(currentFrameStart) : messages;
-  const recent = frameMessages.slice(-MAX_SUMMARY_MESSAGE_COUNT);
+  const recent = frameMessages
+    .filter((message) => !(message.role === "user" && isInternalMessage(message.content)))
+    .slice(-MAX_SUMMARY_MESSAGE_COUNT);
 
   return recent;
-}
-
-function sliceCurrentUserFrame(messages: StoredMessage[]): StoredMessage[] {
-  const currentFrameStart = findLatestUserFrameStart(messages);
-  return currentFrameStart >= 0 ? messages.slice(currentFrameStart) : messages;
 }
 
 function summarizeStoredMessage(message: StoredMessage): string {
@@ -268,10 +266,16 @@ function appendSummary(systemPrompt: string | PromptLayers, summary: string | un
   }
 
   if (typeof systemPrompt === "string") {
-    return `${systemPrompt}\n\nCompressed conversation memory:\n${summary}`;
+    return `${systemPrompt}\n\nCurrent turn compressed context:\n${summary}`;
   }
 
-  return appendPromptMemory(systemPrompt, summary);
+  return {
+    ...systemPrompt,
+    dynamicBlocks: [
+      ...systemPrompt.dynamicBlocks,
+      `Current turn compressed context:\n${summary}`,
+    ],
+  };
 }
 
 function renderSystemPrompt(systemPrompt: string | PromptLayers): string {
@@ -289,21 +293,6 @@ function measureSystemPrompt(systemPrompt: string | PromptLayers): PromptLayerMe
 
 function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
-}
-
-function findLatestUserFrameStart(messages: StoredMessage[]): number {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message?.role === "user" && !isInternalMessage(message.content)) {
-      return index;
-    }
-  }
-
-  return -1;
-}
-
-function isInternalMessage(content: string | null | undefined): boolean {
-  return typeof content === "string" && content.trim().toLowerCase().startsWith("[internal]");
 }
 
 function truncate(value: string, maxChars: number): string {

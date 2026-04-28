@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
+import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
 import { SessionStore, createMessage } from "../../src/agent/session.js";
 import type { ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
@@ -48,8 +49,6 @@ test("post-compaction degradation keeps checkpoint state and eventually pauses i
       objective: "Recover the compressed session without restarting.",
       status: "active",
       completedSteps: ["Captured the original task context."],
-      currentStep: "Keep the degraded run resumable.",
-      nextStep: "Resume from the saved checkpoint instead of restarting.",
       flow: {
         phase: "continuation",
         updatedAt: new Date().toISOString(),
@@ -61,16 +60,11 @@ test("post-compaction degradation keeps checkpoint state and eventually pauses i
       ...(baseSession.verificationState ?? {
         status: "passed",
         attempts: 0,
-        reminderCount: 0,
-        noProgressCount: 0,
-        maxAttempts: 3,
-        maxNoProgress: 2,
-        maxReminders: 3,
-        pendingPaths: [],
+        observedPaths: [],
         updatedAt: new Date().toISOString(),
       }),
       status: "passed",
-      pendingPaths: [],
+      observedPaths: [],
       updatedAt: new Date().toISOString(),
     },
   });
@@ -81,7 +75,7 @@ test("post-compaction degradation keeps checkpoint state and eventually pauses i
   });
 
   const result = await runManagedAgentTurn({
-    input: "continue",
+    input: buildInternalWakeInput({ kind: "teammate", name: "recovery-test" }),
     cwd: root,
     config: {
       ...createTestRuntimeConfig(root),
@@ -104,8 +98,7 @@ test("post-compaction degradation keeps checkpoint state and eventually pauses i
   assert.equal(result.session.checkpoint?.objective, "Recover the compressed session without restarting.");
   assert.equal(result.session.checkpoint?.completedSteps?.includes("Captured the original task context."), true);
   assert.equal(result.session.todoItems?.[0]?.text, "Keep the degraded run resumable.");
-  assert.equal(result.session.verificationState?.status, "idle");
-  assert.equal(result.session.verificationState?.maxAttempts, 3);
+  assert.equal(result.session.verificationState?.status, "passed");
   assert.equal(result.session.checkpoint?.flow?.phase, "recovery");
 });
 

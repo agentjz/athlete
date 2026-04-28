@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../session/taskState.js";
+import { readUserInput } from "../session/turnFrame.js";
 import type {
   AcceptanceCommandRequirement,
   AcceptanceContract,
@@ -55,27 +55,15 @@ export function normalizeAcceptanceState(
   };
 }
 
-export function shouldForceAcceptanceRouteChange(state: AcceptanceState | undefined): boolean {
-  const normalized = normalizeAcceptanceState(state);
-  const candidate = normalized ?? state;
-  if (!candidate) {
-    return false;
-  }
-
-  return Boolean(
-    candidate.status !== "satisfied" &&
-    candidate.stalledPhaseCount >= 3,
-  );
-}
-
 function findAcceptanceContract(messages: StoredMessage[]): AcceptanceContract | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message?.role !== "user" || !message.content || isInternalMessage(message.content) || isContinuationDirective(message.content)) {
+    const userInput = message?.role === "user" ? readUserInput(message.content) : undefined;
+    if (!userInput) {
       continue;
     }
 
-    const match = ACCEPTANCE_CONTRACT_PATTERN.exec(message.content);
+    const match = ACCEPTANCE_CONTRACT_PATTERN.exec(userInput);
     if (!match?.[1]) {
       continue;
     }

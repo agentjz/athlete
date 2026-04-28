@@ -83,7 +83,7 @@ function buildGovernance(
     changeSignal: overrides.changeSignal ?? "none",
     verificationSignal: overrides.verificationSignal ?? "none",
     preferredWorkflows: [...(overrides.preferredWorkflows ?? [])],
-    fallbackOnlyInWorkflows: [...(overrides.fallbackOnlyInWorkflows ?? [])],
+    secondaryInWorkflows: [...(overrides.secondaryInWorkflows ?? [])],
     browserStep: overrides.browserStep,
     documentKind: overrides.documentKind,
   };

@@ -1,4 +1,4 @@
-import { isContinuationDirective, isInternalMessage } from "../session/taskState.js";
+import { isInternalMessage } from "../session/turnFrame.js";
 import type {
   CompactionRecoveryState,
   PendingToolCall,
@@ -17,7 +17,7 @@ interface BuildCheckpointFlowInput {
   current: SessionCheckpointFlow | undefined;
   status: SessionCheckpointStatus;
   transition?: RuntimeTransition;
-  fallbackPhase?: SessionCheckpointPhase;
+  defaultPhase?: SessionCheckpointPhase;
   runState?: {
     status: SessionRunState["status"];
     source?: SessionRunStateSource;
@@ -63,7 +63,7 @@ export function buildCheckpointFlow(input: BuildCheckpointFlowInput): SessionChe
   const timestamp = input.timestamp ?? new Date().toISOString();
   const transition = normalizeRuntimeTransition(input.transition, timestamp);
   const phase = normalizePhase(
-    transition ? getRuntimeTransitionPhase(transition) : input.fallbackPhase ?? input.current?.phase,
+    transition ? getRuntimeTransitionPhase(transition) : input.defaultPhase ?? input.current?.phase,
     input.status,
   );
   const pendingToolCalls = input.status === "completed"
@@ -99,19 +99,8 @@ export function getTurnInputTransition(
     return {
       action: "continue",
       reason: {
-        code: "continue.resume_from_checkpoint",
-        source: "managed_continuation",
-      },
-      timestamp,
-    };
-  }
-
-  if (isContinuationDirective(input)) {
-    return {
-      action: "continue",
-      reason: {
-        code: "continue.resume_from_checkpoint",
-        source: "resume_directive",
+        code: "continue.internal_wake",
+        source: "managed_wake",
       },
       timestamp,
     };
@@ -145,8 +134,8 @@ export function getRuntimeTransitionPhase(transition: RuntimeTransition): Sessio
     return "continuation";
   }
 
-  if (transition.action === "continue" && transition.reason.code === "continue.resume_from_checkpoint") {
-    return transition.reason.source === "managed_continuation" ? "continuation" : "resume";
+  if (transition.action === "continue" && transition.reason.code === "continue.internal_wake") {
+    return "continuation";
   }
 
   return "active";

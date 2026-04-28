@@ -8,7 +8,7 @@ export const taskListTool: RegisteredTool = {
     type: "function",
     function: {
       name: "task_list",
-      description: "List all persistent tasks in the project task board.",
+      description: "List persistent task-board items for the current objective frame.",
       parameters: {
         type: "object",
         properties: {},
@@ -23,16 +23,15 @@ export const taskListTool: RegisteredTool = {
     const tasks = context.currentObjective
       ? allTasks.filter((task) => task.description.includes(`"key": "${context.currentObjective?.key}"`))
       : allTasks;
-    const carryoverTaskCount = allTasks.length - tasks.length;
+    const otherObjectiveTaskCount = allTasks.length - tasks.length;
     return okResult(
       JSON.stringify(
         {
           ok: true,
           tasks,
-          carryoverTaskCount,
+          otherObjectiveTaskCount,
           preview: await store.summarize({
             objectiveKey: context.currentObjective?.key,
-            includeCarryoverCount: Boolean(context.currentObjective),
           }),
         },
         null,

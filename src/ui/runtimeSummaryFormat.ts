@@ -23,9 +23,9 @@ export function formatUsage(summary: ReturnType<typeof buildSessionRuntimeSummar
 }
 
 export function formatVerification(summary: SessionRuntimeSummary): string {
-  const pending = summary.durableTruth.verification.pendingPaths.slice(0, 3).join(", ");
-  return pending
-    ? `${summary.durableTruth.verification.status} (${pending})`
+  const observed = summary.durableTruth.verification.observedPaths.slice(0, 3).join(", ");
+  return observed
+    ? `${summary.durableTruth.verification.status} (${observed})`
     : summary.durableTruth.verification.status;
 }
 
@@ -40,7 +40,7 @@ export function formatPromptLayers(summary: SessionRuntimeSummary): string {
     return "unavailable";
   }
 
-  return `static=${prompt.staticChars}/${prompt.staticBlockCount}, dynamic=${prompt.dynamicChars}/${prompt.dynamicBlockCount}, memory=${prompt.memoryChars}/${prompt.memoryBlockCount}, total=${prompt.totalChars}`;
+  return `static=${prompt.staticChars}/${prompt.staticBlockCount}, dynamic=${prompt.dynamicChars}/${prompt.dynamicBlockCount}, total=${prompt.totalChars}`;
 }
 
 export function formatPromptHotspot(summary: SessionRuntimeSummary): string {

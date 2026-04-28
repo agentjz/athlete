@@ -16,7 +16,7 @@ async function writeSkill(root: string, relativePath: string, metadata: string[]
   );
 }
 
-test("discoverSkills keeps supported skill locations while returning normalized V1 entries", async (t) => {
+test("discoverSkills keeps supported skill locations while returning normalized entries", async (t) => {
   const root = await createTempWorkspace("skill-discovery", t);
   const cwd = path.join(root, "packages", "app");
   await fs.mkdir(cwd, { recursive: true });
@@ -25,10 +25,9 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     root,
     "src/capabilities/skills/packages/builtin-visible/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: builtin-visible",
       "description: Built-in capability skill",
-      "load_mode: suggested",
       "trigger_keywords: builtin",
     ],
     ["Built-in body"],
@@ -37,10 +36,9 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     root,
     "SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: root-standalone",
       "description: Root standalone skill",
-      "load_mode: manual",
     ],
     ["Standalone body"],
   );
@@ -48,10 +46,9 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     root,
     "skills/root-visible/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: root-visible",
       "description: Visible root skill",
-      "load_mode: suggested",
       "trigger_keywords: repo",
     ],
     ["Root body"],
@@ -60,10 +57,9 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     root,
     ".skills/root-hidden/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: root-hidden",
       "description: Hidden root skill",
-      "load_mode: suggested",
       "trigger_keywords: hidden",
     ],
     ["Hidden body"],
@@ -72,10 +68,9 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     cwd,
     "skills/local-app/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: local-app",
       "description: Local app skill",
-      "load_mode: required",
       "trigger_keywords: app",
     ],
     ["App body"],
@@ -89,7 +84,7 @@ test("discoverSkills keeps supported skill locations while returning normalized 
     "root-standalone",
     "root-visible",
   ]);
-  assert.equal(skills.every((skill) => skill.schemaVersion === "skill.v1"), true);
+  assert.equal(skills.every((skill) => skill.schemaVersion === "skill"), true);
 });
 
 test("discoverSkills fails clearly when duplicate skill names are discovered", async (t) => {
@@ -99,10 +94,9 @@ test("discoverSkills fails clearly when duplicate skill names are discovered", a
     root,
     "skills/alpha/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: shared-name",
       "description: Alpha",
-      "load_mode: suggested",
     ],
     ["Alpha body"],
   );
@@ -110,10 +104,9 @@ test("discoverSkills fails clearly when duplicate skill names are discovered", a
     root,
     ".skills/beta/SKILL.md",
     [
-      "schema_version: skill.v1",
+      "schema_version: skill",
       "name: shared-name",
       "description: Beta",
-      "load_mode: suggested",
     ],
     ["Beta body"],
   );
@@ -128,13 +121,11 @@ test("discoverSkills fails clearly when a skill file has invalid metadata", asyn
     root,
     "skills/broken/SKILL.md",
     [
-      "schema_version: skill.v1",
-      "name: broken-skill",
+      "schema_version: skill",
       "description: Broken",
-      "load_mode: impossible",
     ],
     ["Broken body"],
   );
 
-  await assert.rejects(() => discoverSkills(root, root, []), /broken-skill|load_mode/i);
+  await assert.rejects(() => discoverSkills(root, root, []), /name/i);
 });

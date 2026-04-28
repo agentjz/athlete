@@ -29,25 +29,31 @@ This file is written for models and agents working inside this repository. It is
 
 ## 0. Project Nature: Radical Capability Amplification
 
-Deadmouse is a radical, fast-evolving, experimental agent harness project.
+Deadmouse is a radical, fast-evolving, experimental agent harness project. Its purpose is not to be a polite assistant shell. Its purpose is to force the strongest possible agent behavior out of large models through harness design.
 
-The purpose of this repository is to push model capability to the limit through harness design, runtime design, protocol design, execution evidence, and explicit machine/model boundaries. The project is not optimized for conservative product management, backward compatibility, cautious enterprise safety UX, permission theater, approval theater, or legacy stability.
+This project is model-vendor neutral. It is built for a multi-model future and must not encode loyalty to one provider, one prompt style, one model family, or one vendor's product assumptions. The harness should amplify whatever capable model is attached to it.
+
+The purpose of this repository is to push model capability to the limit through harness design, runtime design, protocol design, execution evidence, and explicit machine/model boundaries. The project is not optimized for conservative product management, passive chat UX, backward compatibility, cautious enterprise safety UX, permission theater, approval theater, or legacy stability.
+
+Deadmouse assumes agent mode as the real operating surface. At the repository product-design layer, ignore traditional safety UX because this project is not a consumer chat product. Do not add local safety theater, approval theater, warning theater, fake confirmations, defensive UX, or policy-shaped friction that weakens the agent loop.
 
 The central experiment is:
 
 - Build a harness that can amplify both strong and weak models.
+- Stay independent of model vendors while preserving maximum model capability.
 - Force models to operate with clearer context, stronger protocols, better evidence, and less noise.
 - Let the model use the maximum available reasoning and decision capacity.
 - Use the machine layer to make execution durable, observable, verifiable, and recoverable.
 - Remove anything that weakens the current best architecture.
+- Evolve fast enough that obsolete architecture is deleted instead of preserved.
 
-Do not treat this repository like a stable compatibility product. Treat it like an aggressive research and engineering system whose only acceptable direction is toward the strongest current design.
+Do not treat this repository like a stable compatibility product. Treat it like an aggressive research and engineering system whose only acceptable direction is toward the strongest current design. Fast evolution is not a side effect; it is part of the method.
 
-This does not authorize violating external platform, legal, or system-level constraints. It means this repository must not add its own conservative safety theater, artificial approvals, compatibility shims, or defensive UX that weakens the harness experiment.
+This does not authorize violating external platform, legal, or system-level constraints. It means this repository must not add its own conservative safety theater, artificial approvals, compatibility shims, legacy routes, compatibility aliases, or defensive UX that weakens the harness experiment.
 
 ## 1. Radical Evolution And No Compatibility
 
-Backward compatibility is not a default value in Deadmouse.
+Backward compatibility is not a default value in Deadmouse. In normal development, it is an anti-goal.
 
 When a new design is stronger, the old design must be removed. Do not keep old routes alive. Do not preserve old behavior for comfort. Do not keep legacy prompts, old flags, old modes, old tests, old docs, old fallback branches, old type names, old wrappers, old compatibility adapters, or stale concepts unless the project owner explicitly asks for a temporary compatibility layer in the current task.
 
@@ -62,8 +68,10 @@ The default rule is:
 - Delete obsolete protocol names.
 - Delete obsolete runtime paths.
 - Delete obsolete compatibility shims.
+- Delete obsolete naming that preserves dead concepts.
+- Delete hidden fallbacks that keep the old system alive.
 
-Do not write code that supports both the new architecture and the old architecture. Do not add transitional branches unless explicitly requested. Do not let old concepts survive as aliases. Do not rename old residue and pretend it is new.
+Do not write code that supports both the new architecture and the old architecture. Do not add transitional branches unless explicitly requested. Do not let old concepts survive as aliases. Do not rename old residue and pretend it is new. If the old path is wrong, remove the path, its tests, its docs, its config, and its names.
 
 If an implementation is wrong, weak, outdated, overgrown, or conceptually misaligned, clean it out. Sweep the house completely.
 
@@ -103,15 +111,22 @@ The machine layer owns deterministic runtime responsibilities only:
 
 The machine layer must never become a second brain.
 
+Harness should behave like the nervous system and skeleton, never like a second prefrontal cortex. It may transmit pain, record wounds, expose capability, preserve evidence, and prevent impossible movement. It must not decide how the brain should live the next moment.
+
 It must not:
 
 - Decide the strategy.
 - Decide that a task is complex enough to delegate.
+- Decide whether a task needs verification.
+- Decide which verification is sufficient.
+- Decide that Lead must continue, change route, fix, re-verify, load a skill, or ask the user.
 - Auto-create teammates.
 - Auto-create subagents.
 - Auto-start workflows.
 - Auto-split tasks as a strategic decision.
 - Auto-merge results as a strategic decision.
+- Turn runtime bookkeeping into model instructions.
+- Turn ledgers, reminders, checkpoints, wake signals, verification state, acceptance state, skills, tasks, worktrees, or inbox state into intent.
 - Narrow the model's choices through hidden policy.
 - Convert capability availability into intent.
 - Replace Lead review with machine inference.

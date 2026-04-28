@@ -14,15 +14,7 @@ export function buildLoadedSkillPayload(skill: LoadedSkill): LoadedSkillPayload 
 
 export function readLoadedSkillName(output: string | null | undefined): string | undefined {
   if (typeof output === "string") {
-    const parsedName = readLoadedSkillNameFromJson(output);
-    if (parsedName) {
-      return parsedName;
-    }
-
-    const legacyMatch = output.match(/<skill\s+name="([^"]+)"/i);
-    if (legacyMatch?.[1]) {
-      return legacyMatch[1];
-    }
+    return readLoadedSkillNameFromJson(output);
   }
 
   return undefined;

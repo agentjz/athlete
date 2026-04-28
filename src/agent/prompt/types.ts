@@ -14,11 +14,10 @@ export interface PromptRuntimeState {
 export interface PromptLayers {
   staticBlocks: string[];
   dynamicBlocks: string[];
-  memoryBlocks?: string[];
 }
 
 export interface PromptBlockMetric {
-  layer: "static" | "dynamic" | "memory";
+  layer: "static" | "dynamic";
   title: string;
   chars: number;
   lines: number;
@@ -27,10 +26,8 @@ export interface PromptBlockMetric {
 export interface PromptLayerMetrics {
   staticBlockCount: number;
   dynamicBlockCount: number;
-  memoryBlockCount: number;
   staticChars: number;
   dynamicChars: number;
-  memoryChars: number;
   totalChars: number;
   renderedChars: number;
   blockMetrics: PromptBlockMetric[];

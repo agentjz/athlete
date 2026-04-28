@@ -65,11 +65,11 @@ export function getToolRouteHintForText(message: string): ToolRouteHint | null {
 export function buildToolRoutingHint(route: ToolRouteHint): string {
   switch (route.suggestedCapability) {
     case "spreadsheet.read":
-      return "The target looks like a spreadsheet. Use read_spreadsheet instead of read_file, then continue from the structured preview.";
+      return "Detected spreadsheet input. Structured spreadsheet-read capability is available; raw text reading is not the structured path.";
     case "document.read":
       return buildDocumentRoutingHint(route.documentKind);
     default:
-      return "Use the dedicated specialized tool for this file type.";
+      return "A specialized capability is available for this file type.";
   }
 }
 
@@ -132,14 +132,14 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
 function buildDocumentRoutingHint(kind: ToolRouteHint["documentKind"]): string {
   switch (kind) {
     case "doc":
-      return "The target is a Word document. Use a document-read capability first. If rich parsing is unavailable, fall back to read_docx.";
+      return "Detected Word document input. Document-read capability is available; read_docx is the native .docx fallback when rich parsing is unavailable.";
     case "image":
-      return "The target is an image document. Use a document-read capability so the image can be converted into structured Markdown output.";
+      return "Detected image document input. Document-read capability can convert image content into structured Markdown output.";
     case "pdf":
-      return "The target is a PDF document. Use a document-read capability so the PDF can be converted into Markdown output instead of forcing read_file.";
+      return "Detected PDF input. Document-read capability can convert PDF content into Markdown output; raw read_file is not suitable.";
     case "ppt":
-      return "The target is a presentation deck. Use a document-read capability so the slides can be extracted into Markdown artifacts.";
+      return "Detected presentation deck input. Document-read capability can extract slides into Markdown artifacts.";
     default:
-      return "Use a document-read capability for this file type before falling back to raw file reads.";
+      return "Document-read capability is available for this file type.";
   }
 }

@@ -1,6 +1,5 @@
-import { isVerificationRequired } from "../verification/state.js";
-import type { ExternalizedToolResultReference, SessionCheckpoint, SessionCheckpointArtifact, SessionCheckpointToolBatch, SessionRecord, StoredMessage } from "../../types.js";
-import { displayPath, MAX_ARTIFACTS, MAX_BATCH_PATHS, MAX_BATCH_TOOLS, MAX_COMPLETED_STEPS, MAX_LABEL_CHARS, MAX_PREVIEW_CHARS, MAX_SUMMARY_CHARS, normalizeArtifacts, normalizeText, normalizeTimestamp, oneLine, readString, safeParseObject, takeLastUnique, truncate } from "./shared.js";
+import type { ExternalizedToolResultReference, SessionCheckpointArtifact, SessionCheckpointToolBatch, SessionRecord, StoredMessage } from "../../types.js";
+import { MAX_BATCH_PATHS, MAX_BATCH_TOOLS, MAX_COMPLETED_STEPS, MAX_LABEL_CHARS, MAX_PREVIEW_CHARS, MAX_SUMMARY_CHARS, normalizeArtifacts, normalizeText, normalizeTimestamp, oneLine, readString, safeParseObject, takeLastUnique, truncate } from "./shared.js";
 
 export function deriveCompletedSteps(session: SessionRecord): string[] {
   const completedTodos = (session.todoItems ?? [])
@@ -12,69 +11,6 @@ export function deriveCompletedSteps(session: SessionRecord): string[] {
   }
   const completedActions = session.taskState?.completedActions ?? [];
   return takeLastUnique(completedActions, MAX_COMPLETED_STEPS);
-}
-
-export function deriveCurrentStep(
-  session: SessionRecord,
-  checkpoint: Pick<SessionCheckpoint, "status" | "recentToolBatch" | "flow" | "nextStep">,
-): string | undefined {
-  if (checkpoint.status === "completed") {
-    return undefined;
-  }
-
-  const inProgressTodo = (session.todoItems ?? []).find((item) => item.status === "in_progress");
-  if (inProgressTodo?.text) {
-    return normalizeText(inProgressTodo.text) || undefined;
-  }
-  if (checkpoint.flow.phase === "recovery") {
-    return checkpoint.nextStep ?? "Recover the next unresolved step from the latest checkpoint.";
-  }
-  if (checkpoint.recentToolBatch?.summary) {
-    return checkpoint.recentToolBatch.summary;
-  }
-  const firstPlannedAction = session.taskState?.plannedActions?.[0];
-  return normalizeText(firstPlannedAction) || undefined;
-}
-
-export function deriveNextStep(
-  session: SessionRecord,
-  checkpoint: Pick<SessionCheckpoint, "status" | "recentToolBatch" | "completedSteps">,
-): string | undefined {
-  if (checkpoint.status === "completed") {
-    return undefined;
-  }
-
-  const pendingTodo = (session.todoItems ?? []).find((item) => item.status === "pending");
-  if (pendingTodo?.text) {
-    return normalizeText(pendingTodo.text) || undefined;
-  }
-  if (isVerificationRequired(session.verificationState) && (session.verificationState?.pendingPaths?.length ?? 0) > 0) {
-    return `Run targeted verification for ${session.verificationState?.pendingPaths?.slice(0, 3).join(" | ")}`;
-  }
-
-  const completedSet = new Set((checkpoint.completedSteps ?? []).map((step) => step.toLowerCase()));
-  const firstPlannedAction = (session.taskState?.plannedActions ?? []).find((action) => {
-    const normalized = normalizeText(action);
-    return normalized && !completedSet.has(normalized.toLowerCase());
-  });
-  if (firstPlannedAction) {
-    return normalizeText(firstPlannedAction) || undefined;
-  }
-  if ((checkpoint.recentToolBatch?.artifacts.length ?? 0) > 0) {
-    return "Use the stored artifact previews from the recent tool batch before rereading full outputs.";
-  }
-  if ((checkpoint.recentToolBatch?.tools.length ?? 0) > 0) {
-    return `Continue from the recent tool batch without repeating ${checkpoint.recentToolBatch?.tools.join(", ")}.`;
-  }
-  return undefined;
-}
-
-export function derivePendingPathArtifacts(session: SessionRecord): SessionCheckpointArtifact[] {
-  return takeLastUnique(session.verificationState?.pendingPaths ?? [], MAX_ARTIFACTS).map((pendingPath) => ({
-    kind: "pending_path",
-    label: truncate(displayPath(session.cwd, pendingPath), MAX_LABEL_CHARS)!,
-    path: pendingPath,
-  }));
 }
 
 export function deriveRecentToolBatchFromMessages(

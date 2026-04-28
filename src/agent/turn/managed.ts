@@ -1,7 +1,6 @@
-import { buildCheckpointContinuationInput } from "../checkpoint.js";
+import { buildInternalWakeInput } from "../checkpoint.js";
 import { runAgentTurn } from "../runTurn.js";
 import { createManagedSliceBudgetPauseTransition } from "../runtimeTransition.js";
-import { runLeadOrchestrationLoop } from "../../orchestrator/leadLoop.js";
 import { persistCheckpointTransition } from "./persistence.js";
 import { evaluateManagedSliceBudget, resolveManagedSliceBudget } from "./managedBudget.js";
 import { hasUnfinishedLeadWork } from "./leadReturnGate.js";
@@ -37,33 +36,6 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
   let leadHardBoundaryReviewInFlight = false;
 
   for (let sliceIndex = 0; ; sliceIndex += 1) {
-    if (isLead) {
-      const orchestrated = await runLeadOrchestrationLoop({
-        input: nextInput,
-        cwd: options.cwd,
-        config: options.config,
-        session,
-        sessionStore: options.sessionStore,
-        abortSignal: options.abortSignal,
-        callbacks: options.callbacks,
-      });
-      if (orchestrated.kind === "return") {
-        return orchestrated.result;
-      }
-      if (orchestrated.kind === "wait_for_delegated_work") {
-        await waitForDelegatedWorkToSettle({
-          cwd: options.cwd,
-          objectiveText: orchestrated.session.taskState?.objective,
-          abortSignal: options.abortSignal,
-        });
-        session = orchestrated.session;
-        continue;
-      }
-
-      nextInput = orchestrated.input;
-      session = orchestrated.session;
-    }
-
     const result = await runSlice({
       ...options,
       input: nextInput,
@@ -114,15 +86,15 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         });
         if (budgetDecision.exhausted) {
           options.callbacks?.onStatus?.(
-            `Lead return gate reached the hard boundary (${budgetDecision.snapshot.slicesUsed}/${budgetDecision.snapshot.maxSlices}, ${budgetDecision.snapshot.elapsedMs}ms). Returning unfinished work to lead review.`,
+            `Lead return gate reached the runtime boundary (${budgetDecision.snapshot.slicesUsed}/${budgetDecision.snapshot.maxSlices}, ${budgetDecision.snapshot.elapsedMs}ms). Waking Lead.`,
           );
           managedWindowStartedAtMs = Date.now();
           managedWindowSlicesUsed = 0;
           leadHardBoundaryReviewInFlight = true;
-          nextInput = buildLeadHardBoundaryReviewInput(options.identity, session.checkpoint, budgetDecision.snapshot);
+          nextInput = buildContinuationInput(options.identity);
           continue;
         }
-        nextInput = buildUnfinishedLeadReviewInput(options.identity, session.checkpoint);
+        nextInput = buildContinuationInput(options.identity);
         continue;
       }
 
@@ -138,7 +110,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         objectiveText: session.taskState?.objective,
         abortSignal: options.abortSignal,
       });
-      nextInput = buildCheckpointContinuationInput(options.identity, session.checkpoint);
+      nextInput = buildInternalWakeInput(options.identity);
       continue;
     }
 
@@ -153,7 +125,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
       session = await persistCheckpointTransition(session, options.sessionStore, transition);
       if (isLead) {
         options.callbacks?.onStatus?.(
-          `Managed continuation reached the slice budget window (${budgetDecision.snapshot.slicesUsed}/${budgetDecision.snapshot.maxSlices}, ${budgetDecision.snapshot.elapsedMs}ms). Returning control to lead orchestration.`,
+          `Managed continuation reached the slice budget window (${budgetDecision.snapshot.slicesUsed}/${budgetDecision.snapshot.maxSlices}, ${budgetDecision.snapshot.elapsedMs}ms). Returning control to Lead.`,
         );
         managedWindowStartedAtMs = Date.now();
         managedWindowSlicesUsed = 0;
@@ -215,35 +187,8 @@ function resolveYieldAfterToolSteps(options: ManagedTurnOptions): number | undef
 
 function buildContinuationInput(
   identity: AgentIdentity | undefined,
-  checkpoint: RunTurnOptions["session"]["checkpoint"],
 ): string {
-  return buildCheckpointContinuationInput(identity, checkpoint);
-}
-
-function buildUnfinishedLeadReviewInput(
-  identity: AgentIdentity | undefined,
-  checkpoint: RunTurnOptions["session"]["checkpoint"],
-): string {
-  return [
-    "[internal] Unfinished lead-side control-plane work is still pending.",
-    "Review the unresolved protocol or control-plane state and choose the next concrete action.",
-    "Do not declare completion until the machine state is reconciled.",
-    buildCheckpointContinuationInput(identity, checkpoint),
-  ].join("\n");
-}
-
-function buildLeadHardBoundaryReviewInput(
-  identity: AgentIdentity | undefined,
-  checkpoint: RunTurnOptions["session"]["checkpoint"],
-  snapshot: { slicesUsed: number; maxSlices: number; elapsedMs: number },
-): string {
-  return [
-    "[internal] Unfinished delegated/protocol work reached a hard boundary; return to Lead review now.",
-    `Hard boundary: ${snapshot.slicesUsed}/${snapshot.maxSlices} managed slices, elapsed ${snapshot.elapsedMs}ms.`,
-    "Lead must review the unresolved work, summarize what is still pending, identify what has already been tried, and choose the next strategy: re-check with a different path, reassign, wait with a concrete reason, mark a failed/timeout state with evidence, or merge completed evidence.",
-    "Do not ask the user whether to continue unless the next step requires a real user decision such as scope change, product tradeoff, missing requirement, or external authorization.",
-    buildCheckpointContinuationInput(identity, checkpoint),
-  ].join("\n");
+  return buildInternalWakeInput(identity);
 }
 
 function normalizeContinuationInput(value: string | undefined): string | undefined {
@@ -266,14 +211,14 @@ function shouldReboundToLeadOrchestration(result: RunTurnResult): boolean {
 
 function buildLeadReboundStatus(reasonCode: string | undefined, pauseReason: string | undefined): string {
   if (reasonCode === "pause.provider_recovery_budget_exhausted") {
-    return "Provider recovery budget was reached in this slice. Returning control to lead orchestration to choose the next move.";
+    return "Provider recovery budget was reached in this slice. Returning control to Lead.";
   }
 
   if (reasonCode === "pause.degradation_recovery_exhausted") {
-    return "Post-compaction degradation recovery budget was reached in this slice. Returning control to lead orchestration for the next step.";
+    return "Post-compaction degradation recovery budget was reached in this slice. Returning control to Lead.";
   }
 
-  return pauseReason || "Slice paused. Returning control to lead orchestration.";
+  return pauseReason || "Slice paused. Returning control to Lead.";
 }
 
 async function resolveNextManagedInput(input: {
@@ -281,7 +226,7 @@ async function resolveNextManagedInput(input: {
   result: RunTurnResult;
   sliceIndex: number;
 }): Promise<string> {
-  const defaultInput = buildContinuationInput(input.options.identity, input.result.session.checkpoint);
+  const defaultInput = buildContinuationInput(input.options.identity);
   const decision = await input.options.onYield?.({
     result: input.result,
     sliceIndex: input.sliceIndex,

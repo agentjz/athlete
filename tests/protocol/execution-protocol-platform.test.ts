@@ -147,14 +147,13 @@ test("capability packages freeze machine permissions away from strategy decision
 
 test("source adapters register built-in and external surfaces as capability packages without concrete strategy", () => {
   const skill: LoadedSkill = {
-    schemaVersion: "skill.v1",
+    schemaVersion: "skill",
     version: "1.0.0",
     name: "research",
     description: "Research workflow guidance.",
     path: "skills/research/SKILL.md",
     absolutePath: "C:/repo/skills/research/SKILL.md",
     body: "# Research",
-    loadMode: "suggested",
     agentKinds: ["lead"],
     roles: [],
     taskTypes: ["research"],
@@ -188,7 +187,7 @@ test("source adapters register built-in and external surfaces as capability pack
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     origin: {
       kind: "builtin",
@@ -263,7 +262,7 @@ test("external ecosystem manifests normalize into packages without changing prot
     budgetPolicy: "Lead chooses when external CLI runtime is worth the cost.",
     artifactPolicy: "Record external CLI output as ArtifactRef.",
     closeoutPolicy: "External agent must hand back CloseoutContract.",
-    selectionHint: "Use when Lead wants an external CLI agent.",
+    availability: "External CLI agent surface.",
     bestFor: ["external agent execution"],
     notFor: ["machine-selected delegation"],
   });
@@ -370,14 +369,13 @@ test("external manifest bundles become registry adapters without custom core wir
 
 test("lead capability summary is low-noise and does not dump skill bodies or full tool schemas", () => {
   const skill: LoadedSkill = {
-    schemaVersion: "skill.v1",
+    schemaVersion: "skill",
     version: "1.0.0",
     name: "large-skill",
     description: "Large skill summary.",
     path: "skills/large-skill/SKILL.md",
     absolutePath: "C:/repo/skills/large-skill/SKILL.md",
     body: "# Large Skill\n" + "NOISY-BODY ".repeat(100),
-    loadMode: "manual",
     agentKinds: ["lead"],
     roles: [],
     taskTypes: ["analysis"],
@@ -420,7 +418,7 @@ test("lead capability summary is low-noise and does not dump skill bodies or ful
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
     origin: {
       kind: "builtin",
@@ -490,7 +488,7 @@ test("protocol core does not import concrete capability implementations", () => 
   }
 });
 
-test("legacy registry surfaces are swept out of source", () => {
+test("retired registry surfaces are swept out of source", () => {
   const sourceFiles = collectSourceFiles(path.join(process.cwd(), "src"));
   const forbidden = [
     ["format", "Capability", "Profile"].join(""),

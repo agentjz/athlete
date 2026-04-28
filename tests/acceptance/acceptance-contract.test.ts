@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
-import { evaluateAcceptanceState, shouldForceAcceptanceRouteChange } from "../../src/agent/acceptance.js";
+import { evaluateAcceptanceState } from "../../src/agent/acceptance.js";
 import { createMessage, createToolMessage, MemorySessionStore, SessionStore } from "../../src/agent/session.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
@@ -55,7 +55,7 @@ function createResearchPrompt(): string {
   ].join("\n");
 }
 
-test("acceptance evaluation blocks research closeout when evidence-bound JSON fields are missing", async (t) => {
+test("acceptance evaluation records missing evidence fields without forcing closeout strategy", async (t) => {
   const root = await createTempWorkspace("acceptance-research-missing-evidence", t);
   await fs.mkdir(path.join(root, "backend"), { recursive: true });
   await fs.writeFile(
@@ -105,10 +105,7 @@ test("acceptance evaluation blocks research closeout when evidence-bound JSON fi
       name: "lead",
     },
     changedPaths: new Set([path.join(root, "backend", "news.json")]),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: true,
     verificationState: evaluation.session.verificationState,
-    validationReminderInjected: false,
     acceptanceState: evaluation.state,
     options: {
       input: "Finish the task",
@@ -119,9 +116,9 @@ test("acceptance evaluation blocks research closeout when evidence-bound JSON fi
     } as RunTurnOptions,
   });
 
-  assert.equal(outcome.kind, "continue");
-  if (outcome.kind === "continue") {
-    assert.equal(outcome.transition.reason.code, "continue.acceptance_required");
+  assert.equal(outcome.kind, "return");
+  if (outcome.kind === "return") {
+    assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
   }
 });
 
@@ -209,10 +206,7 @@ test("acceptance evaluation allows finalize only after required files, evidence 
       name: "lead",
     },
     changedPaths: new Set([path.join(root, "backend", "news.json")]),
-    hadIncompleteTodosAtStart: false,
-    hasSubstantiveToolActivity: true,
     verificationState: evaluation.session.verificationState,
-    validationReminderInjected: false,
     acceptanceState: evaluation.state,
     options: {
       input: "Finish the task",
@@ -322,20 +316,7 @@ test("acceptance evaluation treats successful browser page evidence as a valid p
   assert.equal(evaluation.state.currentPhase, "complete");
 });
 
-test("acceptance route-change guard trips after repeated no-progress evaluations in the same phase", () => {
-  const stalled = {
-    status: "active",
-    currentPhase: "bind_evidence",
-    stalledPhaseCount: 3,
-    completedChecks: ["file:backend/news.json"],
-    pendingChecks: ["json_fields:backend/news.json"],
-    updatedAt: new Date().toISOString(),
-  };
-
-  assert.equal(shouldForceAcceptanceRouteChange(stalled as never), true);
-});
-
-test("acceptance stalled summary demands concrete route change evidence instead of gentle advice", async (t) => {
+test("acceptance stalled summary remains factual instead of demanding a route change", async (t) => {
   const root = await createTempWorkspace("acceptance-stalled-summary", t);
   const sessionStore = new SessionStore(path.join(root, "sessions"));
   const session = await sessionStore.save({
@@ -370,7 +351,6 @@ test("acceptance stalled summary demands concrete route change evidence instead 
   const evaluation = await evaluateAcceptanceState({ session, cwd: root });
 
   assert.match(evaluation.summary, /Pending checks:/);
-  assert.match(evaluation.summary, /already tried or verified/i);
-  assert.match(evaluation.summary, /next concrete action/i);
-  assert.match(evaluation.summary, /Do not continue with explanation-only text/i);
+  assert.match(evaluation.summary, /stalled for 3 consecutive evaluation/);
+  assert.doesNotMatch(evaluation.summary, /Switch strategy|next concrete action|Do not continue/i);
 });

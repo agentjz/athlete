@@ -33,7 +33,7 @@ export function getTeamCapabilityPackage(): CapabilityPackage {
       description: "Adapts Lead-selected teammates into the generic capability package contract.",
     },
     runnerType: "worker",
-    selectionHint: "Use when Lead wants a longer-running collaborator with a named role and independent context.",
+    availability: "Longer-running collaborator with a named role and independent context.",
   });
 }
 

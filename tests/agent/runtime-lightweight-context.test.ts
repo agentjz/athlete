@@ -33,7 +33,7 @@ const SMALL_RESULT = JSON.stringify(
   2,
 );
 
-test("runtime context prompt keeps a stable static layer separate from the dynamic runtime layer", { concurrency: false }, (t) => {
+test("runtime context prompt keeps static rules stable while archiving coordination ledger noise", { concurrency: false }, (t) => {
   const realDate = globalThis.Date;
   const fixedIso = "2026-04-04T00:00:00.000Z";
 
@@ -74,7 +74,14 @@ test("runtime context prompt keeps a stable static layer separate from the dynam
     process.cwd(),
     config,
     projectContext,
-    undefined,
+    {
+      objective: "Inspect alpha",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: fixedIso,
+    },
     undefined,
     undefined,
     {
@@ -90,7 +97,14 @@ test("runtime context prompt keeps a stable static layer separate from the dynam
     process.cwd(),
     config,
     projectContext,
-    undefined,
+    {
+      objective: "Inspect beta",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: fixedIso,
+    },
     undefined,
     undefined,
     {
@@ -112,8 +126,10 @@ test("runtime context prompt keeps a stable static layer separate from the dynam
   assert.match(firstLayers.staticLayer, /External content boundary:/);
   assert.equal(firstLayers.staticLayer.includes("Task board says alpha"), false);
   assert.equal(firstLayers.staticLayer.includes("Teammate bravo is active."), false);
-  assert.match(firstLayers.dynamicLayer, /Task board says alpha/);
-  assert.match(secondLayers.dynamicLayer, /Teammate bravo is active\./);
+  assert.match(firstLayers.dynamicLayer, /Inspect alpha/);
+  assert.match(secondLayers.dynamicLayer, /Inspect beta/);
+  assert.doesNotMatch(firstLayers.dynamicLayer, /Task board says alpha|plan decisions/);
+  assert.doesNotMatch(secondLayers.dynamicLayer, /Teammate bravo is active|feature\/light-pack|job-7 running|request-1 pending|plan decisions/);
 });
 
 test("runtime context externalizes large tool results for continuation and preserves them after session reload", { concurrency: false }, async (t) => {
@@ -155,6 +171,8 @@ test("runtime context externalizes large tool results for continuation and prese
 
   assert.equal(result.yielded, false);
   assert.ok(requests.length >= 2);
+  assert.equal(requests.length, 2);
+  assert.doesNotMatch(JSON.stringify(requests.at(-1)?.messages ?? []), /compress the just-finished Deadmouse turn/i);
 
   const continuationRequest = requests.slice(1).find((request) =>
     request.messages.some((message) => message.role === "tool"),
@@ -255,6 +273,39 @@ test("runtime context keeps externalized tool previews across compression and re
   assert.ok(shrunkToolMessage);
   assert.match(String(shrunkToolMessage?.content ?? ""), /"storagePath"\s*:/);
   assert.doesNotMatch(String(shrunkToolMessage?.content ?? ""), /ROUND1-LARGE-ONE::/);
+});
+
+test("recovery shrink preserves retained DeepSeek reasoning_content metadata", () => {
+  const shrunk = shrinkMessagesForContextLimit([
+    { role: "system", content: "system" },
+    { role: "user", content: "current objective" },
+    {
+      role: "assistant",
+      content: null,
+      reasoningContent: "I need to inspect the file before answering.",
+      toolCalls: [
+        {
+          id: "call-1",
+          type: "function",
+          function: {
+            name: "read_file",
+            arguments: "{\"path\":\"README.md\"}",
+          },
+        },
+      ],
+    },
+    { role: "tool", content: "{\"ok\":true}", toolCallId: "call-1" },
+    {
+      role: "assistant",
+      content: "README inspected.",
+      reasoningContent: "The result is enough.",
+    },
+  ]);
+
+  const toolAssistant = shrunk.find((message) => message.toolCalls?.length);
+  const finalAssistant = shrunk.find((message) => message.content === "README inspected.");
+  assert.equal(toolAssistant?.reasoningContent, "I need to inspect the file before answering.");
+  assert.equal(finalAssistant?.reasoningContent, "The result is enough.");
 });
 
 test("runtime context externalizes only large tool results while small results stay inline", { concurrency: false }, async (t) => {

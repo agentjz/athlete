@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: mineru-image-reading
 description: Read image documents through MinerU and work from extracted Markdown artifacts instead of raw pixels.
 version: 1.0.0
-load_mode: suggested
 agent_kinds: lead, teammate
 task_types: research, review, extraction, ocr
 scenes: image, screenshot, receipt

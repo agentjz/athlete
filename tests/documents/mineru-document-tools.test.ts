@@ -52,7 +52,7 @@ test("extractMarkdownFromMineruArchive prefers full.md and falls back to other m
   assert.match(extracted.markdown, /Hello MinerU/);
 });
 
-test("tool registry exposes MinerU document tools and removes legacy read_pdf", () => {
+test("tool registry exposes MinerU document tools and removes retired read_pdf", () => {
   const names = new Set(createToolRegistry().definitions.map((tool) => tool.function.name));
 
   for (const name of ["mineru_pdf_read", "mineru_image_read", "mineru_doc_read", "mineru_ppt_read", "read_docx"]) {

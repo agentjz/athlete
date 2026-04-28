@@ -44,12 +44,12 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
       changeSignal: "none",
       verificationSignal: "none",
       preferredWorkflows: [],
-      fallbackOnlyInWorkflows: [],
+      secondaryInWorkflows: [],
     },
   };
 }
 
-test("tool execution failures force a route-changing next action", () => {
+test("tool execution failures expose facts without forcing a route-changing next action", () => {
   const result = buildToolExecutionFailureResult(
     {
       id: "call-1",
@@ -64,14 +64,11 @@ test("tool execution failures force a route-changing next action", () => {
   const payload = JSON.parse(result.output) as Record<string, unknown>;
 
   assert.equal(result.ok, false);
-  assert.match(String(payload.next_step), /choose exactly one/i);
-  assert.match(String(payload.next_step), /change the arguments/i);
-  assert.match(String(payload.next_step), /choose a different tool/i);
-  assert.match(String(payload.next_step), /switch route/i);
-  assert.match(String(payload.next_step), /Do not continue with explanation-only text/i);
+  assert.equal(payload.next_step, undefined);
+  assert.match(String(payload.hint), /path used by read_file does not exist/i);
 });
 
-test("shutdown_response pending tells lead to keep driving instead of asking the user", async (t) => {
+test("shutdown_response pending exposes request state without a strategy next step", async (t) => {
   const root = await createTempWorkspace("machine-shutdown-pending-whip", t);
   const request = await new ProtocolRequestStore(root).create({
     kind: "shutdown",
@@ -91,9 +88,7 @@ test("shutdown_response pending tells lead to keep driving instead of asking the
 
   assert.equal(result.ok, true);
   assert.equal((payload.request as Record<string, unknown>).status, "pending");
-  assert.match(String(payload.next_step), /pending is not complete/i);
-  assert.match(String(payload.next_step), /do not ask the user whether to continue/i);
-  assert.match(String(payload.next_step), /check teammate state|read inbox|wait briefly/i);
+  assert.equal(payload.next_step, undefined);
 });
 
 test("run_shell runtime truncates long output into preview and persists full output as an artifact", async (t) => {

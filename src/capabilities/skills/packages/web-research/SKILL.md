@@ -1,9 +1,8 @@
 ---
-schema_version: skill.v1
+schema_version: skill
 name: web-research
 description: Research public web information with a layered workflow: lightweight network tools first, browser interaction when needed.
 version: 1.1.0
-load_mode: required
 agent_kinds: lead, teammate
 roles: implementer, reviewer, writer
 task_types: research, documentation, validation

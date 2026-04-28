@@ -45,7 +45,7 @@ export function createCapabilityProfile(input: {
     notFor: [...(input.notFor ?? [])],
     inputSchema: input.inputSchema?.trim() || "AssignmentContract",
     outputSchema: input.outputSchema?.trim() || "CloseoutContract",
-    budgetPolicy: input.budgetPolicy?.trim() || "Use only when Lead judges the capability worth its runtime cost.",
+    budgetPolicy: input.budgetPolicy?.trim() || "Runtime cost is recorded for Lead judgment.",
     tools: [...(input.tools ?? [])],
     cost: input.cost ?? "medium",
     extensionPoint: input.extensionPoint,

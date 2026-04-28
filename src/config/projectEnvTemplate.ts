@@ -45,7 +45,7 @@ export function buildProjectEnvTemplate(example: boolean): string {
     "MINERU_TIMEOUT_MS=300000",
     "",
     "# Provider / model settings",
-    "# Default provider is the fallback. Empty role-specific fields inherit matching DEADMOUSE_* values.",
+    "# Empty role-specific fields inherit matching default DEADMOUSE_* values.",
     "",
     "# Default profile 1: GPT-5.4",
     "DEADMOUSE_PROVIDER=openai",

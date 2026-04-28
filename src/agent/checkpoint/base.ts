@@ -1,12 +1,9 @@
 import type { SessionCheckpoint, SessionRecord } from "../../types.js";
 import {
   deriveCompletedSteps,
-  deriveCurrentStep,
-  deriveNextStep,
-  derivePendingPathArtifacts,
   deriveRecentToolBatchFromMessages,
 } from "./derivation.js";
-import { fingerprintObjective, mergeArtifacts, normalizeText } from "./shared.js";
+import { fingerprintObjective, normalizeText } from "./shared.js";
 
 export function createEmptyCheckpoint(timestamp = new Date().toISOString()): SessionCheckpoint {
   return {
@@ -48,18 +45,7 @@ export function deriveCheckpointFromSession(
   return {
     ...createCheckpointForObjective(normalizeText(session.taskState?.objective) || undefined, timestamp),
     completedSteps: deriveCompletedSteps(session),
-    currentStep: deriveCurrentStep(session, {
-      ...createEmptyCheckpoint(timestamp),
-      recentToolBatch,
-    }),
-    nextStep: deriveNextStep(session, {
-      ...createEmptyCheckpoint(timestamp),
-      recentToolBatch,
-    }),
     recentToolBatch,
-    priorityArtifacts: mergeArtifacts(
-      recentToolBatch?.artifacts ?? [],
-      derivePendingPathArtifacts(session),
-    ),
+    priorityArtifacts: recentToolBatch?.artifacts ?? [],
   };
 }

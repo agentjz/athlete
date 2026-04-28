@@ -127,10 +127,8 @@ function buildHealth(
   if (recovering) {
     reasons.push("checkpoint is currently in recovery");
   }
-  if (session.verificationState?.status === "awaiting_user") {
-    reasons.push("verification is waiting on user input");
-  } else if (session.verificationState?.status === "required") {
-    reasons.push("verification is still required");
+  if (session.verificationState?.status === "failed") {
+    reasons.push("last verification attempt failed");
   }
   if (recoveryCount > 0) {
     reasons.push(`provider recovery triggered ${recoveryCount} time(s)`);

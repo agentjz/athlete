@@ -193,7 +193,6 @@ test("runtime checkpoint reload preserves the current structured transition trut
     },
     checkpoint: createCheckpointFixture("Continue the current task.", {
       completedSteps: ["Completed the setup phase"],
-      nextStep: "Resume validation/round2-resume-summary.md",
       flow: {
         phase: "continuation",
         lastTransition: {
@@ -219,11 +218,10 @@ test("runtime checkpoint reload preserves the current structured transition trut
   assert.equal(checkpoint?.flow?.lastTransition?.reason?.code, "yield.tool_step_limit");
   assert.equal(checkpoint?.flow?.lastTransition?.reason?.toolSteps, 5);
   assert.equal(checkpoint?.completedSteps?.includes("Completed the setup phase"), true);
-  assert.equal(checkpoint?.nextStep, "Resume validation/round2-resume-summary.md");
   assert.ok(Array.isArray(checkpoint?.priorityArtifacts));
 });
 
-test("runtime checkpoint keeps a structured checkpoint block available even when histories are compressed", { concurrency: false }, () => {
+test("runtime checkpoint exposes only current-objective runtime facts when histories are compressed", { concurrency: false }, () => {
   const root = process.cwd();
   const projectContext: ProjectContext = {
     rootDir: root,
@@ -238,8 +236,6 @@ test("runtime checkpoint keeps a structured checkpoint block available even when
   const config = createTestRuntimeConfig(root);
   const checkpoint = createCheckpointFixture("Finish the round2 resume summary.", {
     completedSteps: ["Loaded the persisted setup artifact"],
-    currentStep: "Resuming after disk reload",
-    nextStep: "Write validation/round2-resume-summary.md",
     flow: {
       phase: "resume",
     },
@@ -276,12 +272,7 @@ test("runtime checkpoint keeps a structured checkpoint block available even when
     {
       status: "idle",
       attempts: 0,
-      reminderCount: 0,
-      noProgressCount: 0,
-      maxAttempts: 3,
-      maxNoProgress: 2,
-      maxReminders: 3,
-      pendingPaths: [],
+      observedPaths: [],
       updatedAt: new Date().toISOString(),
     },
     {
@@ -310,10 +301,11 @@ test("runtime checkpoint keeps a structured checkpoint block available even when
   });
 
   assert.equal(built.compressed, true);
-  assert.match(String(built.messages[0]?.content ?? ""), /Session checkpoint:/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Runtime Facts:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
-  assert.match(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
-  assert.match(String(built.messages[0]?.content ?? ""), /\.deadmouse\/tool-results\/session-a\/large\.json/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /\.deadmouse\/tool-results\/session-a\/large\.json/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /1 artifact reference\(s\) stored/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Completed actions:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Current step:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Next step:/i);

@@ -1,42 +1,17 @@
-import { isInternalMessage } from "../../agent/session.js";
-import type { SessionRecord, StoredMessage, ToolExecutionResult } from "../../types.js";
-import { selectSkillsForTurn } from "./matching.js";
+import type { SessionRecord, StoredMessage } from "../../types.js";
 import { readLoadedSkillName } from "./loading.js";
-import type { LoadedSkill, SkillIdentity, SkillRuntimeState } from "./types.js";
+import type { LoadedSkill, SkillRuntimeState } from "./types.js";
 
 export function buildSkillRuntimeState(options: {
   skills: LoadedSkill[];
   session: Pick<SessionRecord, "messages" | "taskState">;
-  input?: string;
-  identity: SkillIdentity;
-  objective?: string;
-  taskSummary?: string;
-  availableToolNames: string[];
 }): SkillRuntimeState {
   const loadedSkillNames = getLoadedSkillNames(options.session.messages);
-  const selection = selectSkillsForTurn({
-    skills: options.skills,
-    input: options.input ?? findLatestUserText(options.session.messages),
-    identity: options.identity,
-    objective: options.objective ?? options.session.taskState?.objective,
-    taskSummary: options.taskSummary,
-    availableToolNames: options.availableToolNames,
-    loadedSkillNames,
-  });
 
   return {
-    ...selection,
+    loadedSkills: options.skills.filter((skill) => loadedSkillNames.has(skill.name)),
     loadedSkillNames,
   };
-}
-
-export function getSkillToolGateResult(
-  toolName: string,
-  runtimeState: SkillRuntimeState,
-): ToolExecutionResult | null {
-  void toolName;
-  void runtimeState;
-  return null;
 }
 
 export function getLoadedSkillNames(messages: StoredMessage[]): Set<string> {
@@ -54,21 +29,4 @@ export function getLoadedSkillNames(messages: StoredMessage[]): Set<string> {
   }
 
   return loaded;
-}
-
-export function formatMissingRequiredSkillReminder(runtimeState: SkillRuntimeState): string {
-  return runtimeState.missingRequiredSkills.map((skill) => skill.name).join(", ");
-}
-
-function findLatestUserText(messages: StoredMessage[]): string {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message?.role !== "user" || !message.content || isInternalMessage(message.content)) {
-      continue;
-    }
-
-    return message.content;
-  }
-
-  return "";
 }

@@ -6,10 +6,7 @@ import type { RuntimeAgentModelRuntime } from "./config/agentModelTypes.js";
 import type { RuntimeTransition } from "./types/runtimeTransitions.js";
 export type {
   LoadedSkill,
-  SkillMatchResult,
   SkillRuntimeState,
-  SkillSelectionInput,
-  SkillSelectionResult,
 } from "./capabilities/skills/types.js";
 export type {
   AcceptanceCommandRequirement,
@@ -23,16 +20,11 @@ export type {
   AcceptanceStatus,
 } from "./types/acceptance.js";
 export type {
-  RuntimeContinueAcceptanceRequiredReason,
   RuntimeContinueEmptyAssistantResponseReason,
-  RuntimeContinueIncompleteTodosReason,
-  RuntimeContinueMissingSkillsReason,
   RuntimeContinueReason,
-  RuntimeContinueResumeReason,
+  RuntimeContinueInternalWakeReason,
   RuntimeContinueToolBatchReason,
   RuntimeContinueTransition,
-  RuntimeContinueVerificationFailedReason,
-  RuntimeContinueVerificationRequiredReason,
   RuntimeFinalizeCompletedReason,
   RuntimeFinalizeReason,
   RuntimeFinalizeTransition,
@@ -41,7 +33,6 @@ export type {
   RuntimePauseProviderRecoveryBudgetExhaustedReason,
   RuntimePauseReason,
   RuntimePauseTransition,
-  RuntimePauseVerificationAwaitingUserReason,
   RuntimeRecoverPostCompactionDegradationReason,
   RuntimeRecoverProviderRequestReason,
   RuntimeRecoverReason,
@@ -53,7 +44,6 @@ export type {
   RuntimeYieldToolStepLimitReason,
   RuntimeYieldTransition,
 } from "./types/runtimeTransitions.js";
-export type DelegationMode = "fast" | "balanced" | "deep";
 export type ModelThinkingMode = "enabled" | "disabled";
 export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -73,7 +63,6 @@ export interface AppConfig {
   model: string;
   thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
-  delegationMode?: DelegationMode;
   yieldAfterToolSteps: number;
   contextWindowMessages: number;
   maxContextChars: number;
@@ -232,8 +221,7 @@ export type SessionCheckpointPhase = "active" | "continuation" | "resume" | "rec
 
 export type SessionCheckpointArtifactKind =
   | "externalized_tool_result"
-  | "tool_preview"
-  | "pending_path";
+  | "tool_preview";
 
 export interface SessionCheckpointArtifact {
   kind: SessionCheckpointArtifactKind;
@@ -298,8 +286,6 @@ export interface SessionCheckpoint {
   objectiveFingerprint?: string;
   status: SessionCheckpointStatus;
   completedSteps: string[];
-  currentStep?: string;
-  nextStep?: string;
   recentToolBatch?: SessionCheckpointToolBatch;
   flow: SessionCheckpointFlow;
   priorityArtifacts: SessionCheckpointArtifact[];
@@ -345,7 +331,7 @@ export type ToolExecutionProcessEvent =
   | "process/closed";
 
 export interface ToolExecutionProcessMetadata {
-  protocol: "deadmouse.exec.v1";
+  protocol: "deadmouse.exec";
   processId: string;
   lane: ToolExecutionProcessLane;
   state: ToolExecutionProcessState;
@@ -461,36 +447,22 @@ export interface MineruRuntimeConfig {
 
 export interface TaskState {
   objective?: string;
-  delegationDirective?: { teammate: boolean; subagent: boolean; source: "none" | "model_decision" };
   activeFiles: string[];
   plannedActions: string[];
   completedActions: string[];
   blockers: string[];
-  orchestratorReturnBarrier?: {
-    pending: boolean;
-    sourceAction?: "delegate_subagent" | "delegate_teammate" | "run_in_background";
-    taskId?: number;
-    setAt?: string;
-  };
   lastUpdatedAt: string;
 }
 
-export type VerificationStatus = "idle" | "required" | "passed" | "awaiting_user";
+export type VerificationStatus = "idle" | "passed" | "failed";
 
 export interface VerificationState {
   status: VerificationStatus;
   attempts: number;
-  reminderCount: number;
-  noProgressCount: number;
-  maxAttempts: number;
-  maxNoProgress: number;
-  maxReminders: number;
-  pendingPaths: string[];
+  observedPaths: string[];
   lastCommand?: string;
   lastKind?: string;
   lastExitCode?: number | null;
-  lastFailureSignature?: string;
-  pauseReason?: string;
   updatedAt: string;
 }
 

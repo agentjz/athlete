@@ -1,4 +1,4 @@
-import { expandStartToToolBoundary, findLatestUserIndex } from "../session/messages.js";
+import { expandStartToToolBoundary } from "../session/messages.js";
 import { compactToolPayloadForTransport } from "../toolResults/preview.js";
 import type { ProviderMessage } from "../provider/contract.js";
 import { isAbortError, sleepWithSignal } from "../../utils/abort.js";
@@ -120,10 +120,8 @@ export function shrinkMessagesForContextLimit(
 ): ProviderMessage[] {
   const systemMessage = messages[0];
   const rest = messages.slice(1);
-  const latestUserIndex = findLatestUserIndex(rest);
   const tailStart = expandStartToToolBoundary(rest, Math.max(0, rest.length - 14));
   const trimmedTail = rest.slice(tailStart).map((message, index, array) => {
-    const globalIndex = tailStart + index;
     const detailed = index >= Math.max(0, array.length - 6);
 
     if (message.role === "tool" && typeof message.content === "string") {
@@ -140,10 +138,6 @@ export function shrinkMessagesForContextLimit(
 
       if (typeof cloned.content === "string") {
         cloned.content = compactText(cloned.content, detailed ? 1_200 : 400);
-      }
-
-      if (globalIndex <= latestUserIndex) {
-        delete cloned.reasoningContent;
       }
 
       return cloned as unknown as ProviderMessage;

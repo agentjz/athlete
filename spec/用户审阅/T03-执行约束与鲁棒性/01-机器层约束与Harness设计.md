@@ -1,126 +1,41 @@
-﻿# 机器层约束与 Harness 设计
+# 机器层约束与 Harness 设计
 
-## 这份文档回答什么问题
+## 一句话
 
-这份文档说明 Deadmouse 当前依靠哪些机器层约束来保证任务可执行、可续跑、可验证和可收口。
+机器层是身体，模型是脑。
 
-## 当前目标与状态
+机器层负责记录、执行、约束和唤醒；模型负责判断、选择、验证和收口。
 
-当前机器层已经按正式边界收口为六类约束：
+## 现在的运行方式
 
-- 稳定编辑语义
-- 工具调用协议
-- 命令执行运行时
-- 错路拦截与回退路径
-- 完成门、验证门和验收门
-- 中断恢复与续跑
-- 上下文治理与预防性压缩
+Lead 看到目标后自己决定怎么做。机器层只把可用工具、skill、队友、子代理、后台执行和账本事实摆出来。
 
-这里的“机器层”指执行正确性约束，不指审批式安全系统。
+如果工具参数非法、文件版本过期、执行超时、同一个无进展调用完全重复，机器层可以阻断，因为这些是死约束。
 
-Deadmouse 当前仍然只有两种正式模式：
+如果只是“可能需要验证”“acceptance 还 pending”“有 skill 可能相关”“刚才改了文件”“shell 不是只读”，机器层不能把这些变成继续命令。它只能记录事实，让 Lead 判断。
 
-- `agent`
-- 单一 `agent` 运行模式
+## 允许机器做的事
 
-## 适用范围
+- 暴露能力
+- 执行 Lead 显式发出的工具调用
+- 保存 checkpoint、artifact、verification、acceptance、todo 等账本
+- 阻止非法工具参数、过期编辑、无边界执行、重复无进展调用
+- 在后台、队友、子代理结果变化时唤醒 Lead
 
-这些约束直接作用于：
+## 不允许机器做的事
 
-- `read_file / edit_file / write_file / apply_patch / run_shell`
-- 共享 `runTurn` 主路径
-- 会话现场中的 checkpoint、verification、acceptance 和 runtime stats
-- 长任务的 continuation、压缩和恢复
+- 自动要求验证、修复或重新验证
+- 自动要求 change route、choose next action、不要 explanation-only
+- 自动因为 missing skill 推动加载
+- 自动从 checkpoint 推导下一步
+- 把 internal reminder 当成用户消息
+- 把旧账本默认塞进当前 prompt
+- 在工具失败或 blocked 结果里写 `next_step`
 
-## 范围外事项
+## 验收口径
 
-当前明确不包含：
+Deadmouse 要求交付有证据，但证据是否足够由模型判断。
 
-- 审批式权限流
-- 复杂安全沙箱
-- 额外的产品模式包装
-- UI、TUI、Web 产品面
+机器层只保证证据和状态可查、可追溯、不会伪造成通过。
 
-## 核心场景
-
-### 1. 改文件
-
-当前系统要求先读取文件，再基于正式 identity 和锚点发起编辑；文件已变化时，过期 identity 和过期锚点会失效。
-
-### 2. 工具走错路
-
-当前系统会在机器层拦截明显错路，例如：
-
-- 用 `write_file` 覆盖已有文件
-- 用 `run_shell` 直接读取文件内容
-- 在文档读取场景退回错误工具路径
-
-同时，工具参数现在统一走 prepare 阶段的正式参数 contract 校验。参数不是合法 JSON、缺字段、类型错误或携带未声明字段时，会在 prepare 阶段 fail closed，不会再进入 execute 阶段“碰运气”。
-
-机器层阻断必须给模型继续推进的出口。也就是说，阻断不是一堵墙，而是要说明为什么不行、下一步该补什么或换哪类合法动作继续。
-
-网页、浏览器、技能加载、后台执行、子代理和队友分工都属于模型策略空间。机器层可以提示“这个任务可能适合某条路”，但不能因为 workflow hint、命令长度、任务复杂度或关键词判断就默认替 Lead 改道。
-
-技能加载现在是强提醒，不是硬门。模型可以先查文件、看路径、确认输入，再决定是否加载技能；机器层不能因为缺少某个 skill 就拦住合法工具调用。
-
-多执行通道现在只能作为 Lead 的可见建议和状态账本。子代理、队友和后台任务可以交结果，但是否派出、派给谁、什么时候派，以及最终是否完成，必须由 Lead 根据证据统一判断。
-
-所有执行通道现在共享同一套执行边界协议。无论是子代理、队友还是后台命令，派出去时都会带上“最多运行多久、最多空闲多久、到边界回 Lead 复盘”的机器合同；这让执行不会无限跑、无限等，也不会由机器越权决定下一条路线。
-
-任务板现在只作为建议阶段和事实依赖的账本，不再预设执行人。机器可以记录 survey、implementation、validation 之间的依赖，但不能天然把某个阶段指定给子代理、队友或后台。
-
-协调 policy 不再作为审批总开关。Lead 处理发给自己的 plan request 不应被 policy 拦住；shutdown 只有在队友仍有活跃状态、未合流任务或会丢现场时才由机器层状态锁拦住。
-
-当已有后台、队友或子代理工作仍在运行时，Lead 不应被机器层带入模型空转。机器层只静默等待 execution 账本、pid 和 closeout 事实变化；结果未回时不喂 prompt，结果回来后再唤醒 Lead 合流。
-
-当已有委派执行或协议请求仍未完成时，这不是普通提醒，而是 Lead 返回前的硬门槛。只要 shutdown、plan、队友、子代理或后台通道仍是 pending / running，且没有真正需要用户判断的新取舍，Lead 就不能把“是否继续盯”抛回用户，必须继续追踪、换检查路径、合流证据。
-
-这个硬门槛也不能变成机器无限续跑。达到 managed slice 次数或时间边界后，机器必须把未完成事实交回 Lead 做复盘判断：列出 pending 项、已尝试路径和下一步策略，由 Lead 决定继续查、重派、换路、标记失败/超时或合流；不能直接问用户，也不能让机器替 Lead 选路线。
-
-机器层只守可判定事实，不把旧状态当成 prompt 记忆。当前目标帧只暴露 objectiveKey 一致的任务、执行和后台；不一致的旧状态只保留 carryover 计数。没有 objectiveKey 的 protocol request 不让模型看正文，避免旧目标内容污染当前目标；真正的 unresolved protocol 仍由机器门读取账本判断。
-
-同时，`run_shell` 已按正式 runtime 返回结构化执行状态（`completed/failed/timed_out/stalled/aborted`）、截断标记和输出落盘路径，不再只返回一段裸文本；长输出也会在执行中受正式上界控制，而不是等命令结束后再临时截断。
-
-`run_shell / background_run / background_check / background_terminate` 现在共用一套轻量 process protocol contract（`deadmouse.exec.v1`），正式暴露 start/read/terminate/exited/closed 的等价语义：前台命令是一次性 closed contract，后台命令是可 read/terminate 的运行中 contract。
-
-### 3. 空结果或错误收口
-
-当前系统不会把空 assistant 结果直接当成完成；验证、验收和状态门仍然是正式收口依据。
-
-### 4. 中断、压缩与恢复
-
-当前系统会保存现场，并在压缩或中断后沿正式恢复路径继续，而不是把任务打回从头开始。
-
-会话现场中的 `checkpoint.flow.runState` 继续承担执行中归属：显式区分 busy / idle，并与 `pendingToolCalls` 联动变更；只有在 yield、pause、completed 或异常收口时才正式回到 idle。
-
-## 验收标准
-
-当前专项按下面的结果验收：
-
-- 核心 harness 行为不依赖单一模型的临场发挥
-- 读取、编辑、写回之间有正式稳定语义
-- 常见错路会被机器层拦截并给出回退方向
-- 非法工具参数会在 prepare 阶段稳定 fail closed，且不会误入 execute
-- 机器层阻断必须带有可继续的提示，不制造无出口停滞
-- workflow hint 和后台执行建议不应变成默认硬拦截
-- 缺失技能只能提醒，不应阻断模型先确认现场或继续推进
-- 子代理、队友、后台通道只能建议和记账，不应替 Lead 自动分流
-- 子代理、队友、后台执行必须共享统一边界协议，执行到边界回 Lead 复盘
-- 任务规划不能预设 executor，不能在未发生委派前预判 merge
-- coordination policy 不能作为审批开关，只能让位给真实状态冲突锁
-- 已有委派工作未返回时，不应让 Lead 用模型轮次反复查状态；机器层挂起等待 execution closeout 事件，完成或边界信号后再交回 Lead
-- 未完成的委派执行或协议请求不能作为可交付状态返回给用户；pending 只能触发继续追踪、合流或到硬边界后回 Lead 复盘
-- 当前目标 prompt 不应整块暴露旧目标的 task、todo、checkpoint、execution、background job 或 protocol request 正文
-- 循环守卫只拦截“同动作、同参数、同结果、无新进展”的重复；`read_inbox / list_teammates / background_check` 等活状态轮询不能仅因同参重复被硬拦
-- acceptance 连续卡住时，必须要求列出已尝试路径、待完成验收项和下一步具体动作
-- 工具失败必须要求模型三选一推进：改参数、换工具或换路线
-- shell 执行具备结构化状态、截断标记和可追溯输出路径
-- shell 与 background 执行具备统一 process contract 语义（含 terminate / closed 收口）
-- 未验证、未满足验收条件时不能伪装完成
-- 长任务能基于现场续跑和恢复
-
-## 当前定稿
-
-Deadmouse 当前已经把关键执行行为从“靠模型习惯”收回到“靠机器制度”。机器层约束现在服务的是正确性、恢复性和可验证性，而不是继续增加产品层包装。
-
-工具定义和工具执行分开：Lead 先看到完整工具定义；联网、MCP 启动和外部服务连接只在工具执行时发生。Playwright MCP 不能在 Lead 上场前阻塞 turn。
+这条边界比旧的 verification gate 更强：它保留真实运行约束，同时删除机器层伪装成策略大脑的路径。

@@ -33,7 +33,7 @@ export function buildToolResultArtifactReadPayload(
     extension: inspected.extension,
     artifactType: "externalized_tool_result",
     note:
-      "This file stores an externalized tool result. Use the summary and preview first, and only reread it with a specific line range when you still need a missing detail.",
+      "This file stores an externalized tool result. Summary and preview are the compact evidence; line-range reads expose missing details.",
     summary,
     preview,
     startLine: 1,

@@ -12,9 +12,25 @@ process.env.DEADMOUSE_TEST_WORKER_MODE = "stub";
 export async function createTempWorkspace(prefix: string, t: TestContext): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), `deadmouse-test-${prefix}-`));
   t.after(async () => {
-    await fs.rm(dir, { recursive: true, force: true });
+    await removeTempWorkspace(dir);
   });
   return dir;
+}
+
+async function removeTempWorkspace(dir: string): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await fs.rm(dir, { recursive: true, force: true, maxRetries: 2, retryDelay: 80 });
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 120 * (attempt + 1)));
+    }
+  }
+
+  throw lastError;
 }
 
 export function makeToolContext(root: string, cwd = root, overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -150,8 +166,6 @@ export function createCheckpointFixture(
   overrides: {
     status?: string;
     completedSteps?: string[];
-    currentStep?: string;
-    nextStep?: string;
     recentToolBatch?: Record<string, unknown>;
     flow?: Record<string, unknown>;
     priorityArtifacts?: Array<Record<string, unknown>>;
@@ -165,8 +179,6 @@ export function createCheckpointFixture(
     objective,
     status: overrides.status ?? "active",
     completedSteps: overrides.completedSteps ?? [],
-    currentStep: overrides.currentStep,
-    nextStep: overrides.nextStep,
     recentToolBatch: overrides.recentToolBatch,
     flow: {
       phase: "active",

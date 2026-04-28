@@ -31,6 +31,6 @@ export function getBackgroundCapabilityPackage(): CapabilityPackage {
       description: "Adapts Lead-selected background command execution into the generic capability package contract.",
     },
     runnerType: "background",
-    selectionHint: "Use when Lead wants a command to continue independently and report back through execution state.",
+    availability: "Durable background command execution with progress and execution-state reporting.",
   });
 }

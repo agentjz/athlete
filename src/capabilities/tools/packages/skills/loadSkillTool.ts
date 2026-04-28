@@ -7,13 +7,13 @@ export const loadSkillTool: RegisteredTool = {
     type: "function",
     function: {
       name: "load_skill",
-      description: "Load the full content of a project skill from SKILL.md when a specialized workflow is relevant.",
+      description: "Load the full content of a project skill from SKILL.md by explicit skill name.",
       parameters: {
         type: "object",
         properties: {
           name: {
             type: "string",
-            description: "Skill name. Use a value from the available project skills list.",
+            description: "Skill name from the available project skills list.",
           },
         },
         required: ["name"],
