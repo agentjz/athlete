@@ -46,7 +46,7 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
     const completedLeadHardBoundaryReview = leadHardBoundaryReviewInFlight;
     leadHardBoundaryReviewInFlight = false;
 
-    if (isLead && shouldReboundToLeadOrchestration(result)) {
+    if (isLead && shouldReturnToLeadDecision(result)) {
       options.callbacks?.onStatus?.(buildLeadReboundStatus(result.transition?.reason.code, result.pauseReason));
       const reboundInput = await resolveNextManagedInput({
         options,
@@ -200,7 +200,7 @@ function normalizeContinuationInput(value: string | undefined): string | undefin
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function shouldReboundToLeadOrchestration(result: RunTurnResult): boolean {
+function shouldReturnToLeadDecision(result: RunTurnResult): boolean {
   if (result.paused !== true || result.transition?.action !== "pause") {
     return false;
   }

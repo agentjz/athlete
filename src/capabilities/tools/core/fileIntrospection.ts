@@ -30,12 +30,11 @@ export interface InspectedFile {
     | "skip_file_content"
     | "use_read_spreadsheet"
     | "use_document_read";
-  suggestedCapability?:
+  detectedCapability?:
     | "spreadsheet.read"
     | "document.read";
   documentKind?: ToolGovernanceDocumentKind;
   routeCode?: string;
-  suggestedPath?: string;
   size: number;
   extension: string;
 }
@@ -50,7 +49,7 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
       readable: false,
       reason: `${route.reason}: ${extension}`,
       action: route.action,
-      suggestedCapability: route.suggestedCapability,
+      detectedCapability: route.detectedCapability,
       documentKind: route.documentKind,
       routeCode: route.code,
       size: stat.size,

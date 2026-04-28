@@ -28,7 +28,7 @@ Deadmouse 的机器层是运行身体，不是第二个大脑。
 - 自动要求验证、修复、重新验证或继续
 - 因 changedPaths、shell 是否只读、工具 mutation metadata 自动判定需要验证
 - 因 acceptance pending/failed 自动要求 change route 或选择下一步
-- 因 skill missing/required/suggested 自动推进加载
+- 因 skill 缺失、索引命中或元数据匹配自动推进加载
 - 从 checkpoint、tool batch、artifact preview 推导 next step
 - 把 internal reminder 伪装成 user message
 - 把 ledger 默认注入当前注意力
@@ -105,4 +105,3 @@ prompt 可以给 Lead 看事实和能力，不能把 verification focus、accept
 - internal reminder 不进入 user goal/task/strategy 路径
 - dynamic prompt 默认只暴露当前目标相关事实
 - loop guard 文案只说明阻断事实，不要求换策略
-

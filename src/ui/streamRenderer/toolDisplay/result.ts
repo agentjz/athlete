@@ -75,7 +75,7 @@ function readPrimaryPreview(payload: Record<string, unknown>, cwd?: string): str
 }
 
 function formatFallbackObjectPreview(value: Record<string, unknown>, cwd?: string): string | undefined {
-  const keys = ["reason", "error", "hint", "action", "suggestedCapability", "documentKind", "suggestedPath", "suggestedTool"];
+  const keys = ["reason", "error", "hint", "action", "detectedCapability", "documentKind", "candidatePath", "requiredTool"];
   const fragments = keys
     .map((key) => {
       const field = value[key];

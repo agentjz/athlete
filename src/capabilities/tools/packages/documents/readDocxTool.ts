@@ -41,7 +41,7 @@ export const readDocxTool: RegisteredTool = {
             readable: false,
             reason: `Word files in ${extension} format are not supported.`,
             action: "convert_to_docx_first",
-            suggestedPath: replaceExtension(resolved, ".docx"),
+            candidatePath: replaceExtension(resolved, ".docx"),
           },
           null,
           2,

@@ -92,9 +92,8 @@ export const readFileTool: RegisteredTool = {
             extension: inspected.extension,
             routeCode: inspected.routeCode,
             action: inspected.action ?? "skip_file_content",
-            suggestedCapability: inspected.suggestedCapability,
+            detectedCapability: inspected.detectedCapability,
             documentKind: inspected.documentKind,
-            suggestedPath: inspected.suggestedPath,
           },
           null,
           2,
@@ -142,7 +141,7 @@ export const readFileTool: RegisteredTool = {
                 nextStartLine: fittedEndExclusive + 1,
                 limit: readWindow.requestedLimit ?? Math.max(1, fittedEndExclusive - readWindow.start),
                 remainingLines: lines.length - fittedEndExclusive,
-                suggestedArgs: {
+                continuationArgs: {
                   path: targetPath,
                   offset: fittedEndExclusive,
                   limit: readWindow.requestedLimit ?? Math.max(1, fittedEndExclusive - readWindow.start),

@@ -4,7 +4,6 @@ export function formatSkillPromptBlock(
   discoveredSkills: LoadedSkill[],
   runtimeState: SkillRuntimeState,
 ): string {
-  
   if (discoveredSkills.length === 0) {
     return "- No project skills discovered.";
   }

@@ -2,8 +2,8 @@ import { loadProjectContext } from "../../context/projectContext.js";
 import { reconcileActiveExecutions } from "../../execution/reconcile.js";
 import { ExecutionStore } from "../../execution/store.js";
 import type { ExecutionRecord } from "../../execution/types.js";
-import { buildOrchestratorObjective, readOrchestratorTask } from "../../orchestrator/metadata.js";
-import type { OrchestratorTaskSnapshot } from "../../orchestrator/types.js";
+import { buildObjectiveFrame, readObjectiveTask } from "../../objective/metadata.js";
+import type { ObjectiveTaskSnapshot } from "../../objective/types.js";
 import { snapshotExecutionWakeSignal, waitForExecutionWakeSignalChange } from "../../protocol/wakeSignal.js";
 import { TaskStore } from "../../tasks/store.js";
 import { throwIfAborted } from "../../utils/abort.js";
@@ -43,11 +43,11 @@ export async function hasActiveDelegatedWork(
     }),
     new TaskStore(rootDir).list(),
   ]);
-  const objective = objectiveText ? buildOrchestratorObjective(objectiveText) : undefined;
+  const objective = objectiveText ? buildObjectiveFrame(objectiveText) : undefined;
   const relevantTasks = objective
     ? tasks
-        .map((task) => readOrchestratorTask(task))
-        .filter((task): task is OrchestratorTaskSnapshot => Boolean(task && task.meta.key === objective.key))
+        .map((task) => readObjectiveTask(task))
+        .filter((task): task is ObjectiveTaskSnapshot => Boolean(task && task.meta.key === objective.key))
     : [];
 
   return executions.some((execution) =>
@@ -62,7 +62,7 @@ function isDelegatedExecution(execution: ExecutionRecord): boolean {
 function isExecutionRelevantToObjective(
   execution: ExecutionRecord,
   objectiveKey: string,
-  relevantTasks: OrchestratorTaskSnapshot[],
+  relevantTasks: ObjectiveTaskSnapshot[],
 ): boolean {
   if (execution.objectiveKey && execution.objectiveKey === objectiveKey) {
     return true;

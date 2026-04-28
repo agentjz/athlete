@@ -16,7 +16,7 @@ export interface ToolRouteHint {
     | "skip_file_content"
     | "use_read_spreadsheet"
     | "use_document_read";
-  suggestedCapability:
+  detectedCapability:
     | "spreadsheet.read"
     | "document.read";
   documentKind?: ToolGovernanceDocumentKind;
@@ -63,7 +63,7 @@ export function getToolRouteHintForText(message: string): ToolRouteHint | null {
 }
 
 export function buildToolRoutingHint(route: ToolRouteHint): string {
-  switch (route.suggestedCapability) {
+  switch (route.detectedCapability) {
     case "spreadsheet.read":
       return "Detected spreadsheet input. Structured spreadsheet-read capability is available; raw text reading is not the structured path.";
     case "document.read":
@@ -77,7 +77,7 @@ function spreadsheetRoute(): ToolRouteHint {
   return {
     code: "route.spreadsheet.read_spreadsheet",
     action: "use_read_spreadsheet",
-    suggestedCapability: "spreadsheet.read",
+    detectedCapability: "spreadsheet.read",
     reason: "Spreadsheet format detected",
   };
 }
@@ -88,7 +88,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
       return {
         code: "route.document.read.doc",
         action: "use_document_read",
-        suggestedCapability: "document.read",
+        detectedCapability: "document.read",
         documentKind: "doc",
         reason: "Word document detected",
       };
@@ -96,7 +96,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
       return {
         code: "route.document.read.image",
         action: "use_document_read",
-        suggestedCapability: "document.read",
+        detectedCapability: "document.read",
         documentKind: "image",
         reason: "Image document detected",
       };
@@ -104,7 +104,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
       return {
         code: "route.document.read.pdf",
         action: "use_document_read",
-        suggestedCapability: "document.read",
+        detectedCapability: "document.read",
         documentKind: "pdf",
         reason: "PDF document detected",
       };
@@ -112,7 +112,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
       return {
         code: "route.document.read.ppt",
         action: "use_document_read",
-        suggestedCapability: "document.read",
+        detectedCapability: "document.read",
         documentKind: "ppt",
         reason: "Presentation document detected",
       };
@@ -122,7 +122,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
       return {
         code: "route.document.read.doc",
         action: "use_document_read",
-        suggestedCapability: "document.read",
+        detectedCapability: "document.read",
         documentKind: "doc",
         reason: "Document detected",
       };

@@ -2,15 +2,15 @@ import crypto from "node:crypto";
 
 import type { TaskRecord } from "../tasks/types.js";
 import type {
-  OrchestratorExecutorKind,
-  OrchestratorObjective,
-  OrchestratorTaskMeta,
-  OrchestratorTaskSnapshot,
+  ObjectiveExecutionKind,
+  ObjectiveFrame,
+  ObjectiveTaskMetadata,
+  ObjectiveTaskSnapshot,
 } from "./types.js";
 
-const ORCHESTRATOR_MARKER = "[deadmouse-orchestrator]";
+const OBJECTIVE_METADATA_MARKER = "[deadmouse-objective]";
 
-export function buildOrchestratorObjective(text: string): OrchestratorObjective {
+export function buildObjectiveFrame(text: string): ObjectiveFrame {
   const normalized = normalizeText(text) || "current task";
   return {
     key: crypto.createHash("sha1").update(normalized.toLowerCase()).digest("hex").slice(0, 10),
@@ -18,8 +18,8 @@ export function buildOrchestratorObjective(text: string): OrchestratorObjective 
   };
 }
 
-export function readOrchestratorTask(task: TaskRecord): OrchestratorTaskSnapshot | null {
-  const meta = readOrchestratorMetadata(task.description);
+export function readObjectiveTask(task: TaskRecord): ObjectiveTaskSnapshot | null {
+  const meta = readObjectiveTaskMetadata(task.description);
   if (!meta) {
     return null;
   }
@@ -30,14 +30,15 @@ export function readOrchestratorTask(task: TaskRecord): OrchestratorTaskSnapshot
   };
 }
 
-export function readOrchestratorMetadata(description: string): OrchestratorTaskMeta | null {
-  const match = String(description ?? "").match(/\[deadmouse-orchestrator\]\s*([\s\S]+)$/);
+export function readObjectiveTaskMetadata(description: string): ObjectiveTaskMetadata | null {
+  const escapedMarker = escapeRegExp(OBJECTIVE_METADATA_MARKER);
+  const match = String(description ?? "").match(new RegExp(`${escapedMarker}\\s*([\\s\\S]+)$`));
   if (!match?.[1]) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(match[1]) as Partial<OrchestratorTaskMeta>;
+    const parsed = JSON.parse(match[1]) as Partial<ObjectiveTaskMetadata>;
     if (!parsed || typeof parsed !== "object") {
       return null;
     }
@@ -59,7 +60,7 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
       key: normalizeText(parsed.key),
       kind: parsed.kind,
       objective: normalizeText(parsed.objective),
-      executor: normalizeExecutor(parsed.executor),
+      executor: normalizeExecutionKind(parsed.executor),
       backgroundCommand: normalizeOptionalText(parsed.backgroundCommand),
       delegatedTo: normalizeOptionalText(parsed.delegatedTo),
       jobId: normalizeOptionalText(parsed.jobId),
@@ -70,14 +71,14 @@ export function readOrchestratorMetadata(description: string): OrchestratorTaskM
   }
 }
 
-export function writeOrchestratorMetadata(description: string, meta: OrchestratorTaskMeta): string {
-  const base = stripOrchestratorMetadata(description);
+export function writeObjectiveTaskMetadata(description: string, meta: ObjectiveTaskMetadata): string {
+  const base = stripObjectiveTaskMetadata(description);
   const payload = JSON.stringify(
     {
       key: normalizeText(meta.key),
       kind: meta.kind,
       objective: normalizeText(meta.objective),
-      executor: normalizeExecutor(meta.executor),
+      executor: normalizeExecutionKind(meta.executor),
       backgroundCommand: normalizeOptionalText(meta.backgroundCommand),
       delegatedTo: normalizeOptionalText(meta.delegatedTo),
       jobId: normalizeOptionalText(meta.jobId),
@@ -87,14 +88,15 @@ export function writeOrchestratorMetadata(description: string, meta: Orchestrato
     2,
   );
 
-  return [base, ORCHESTRATOR_MARKER, payload]
+  return [base, OBJECTIVE_METADATA_MARKER, payload]
     .filter((part) => part && part.trim().length > 0)
     .join("\n\n");
 }
 
-export function stripOrchestratorMetadata(description: string): string {
+export function stripObjectiveTaskMetadata(description: string): string {
+  const escapedMarker = escapeRegExp(OBJECTIVE_METADATA_MARKER);
   return String(description ?? "")
-    .replace(/\s*\[deadmouse-orchestrator\]\s*[\s\S]*$/m, "")
+    .replace(new RegExp(`\\s*${escapedMarker}\\s*[\\s\\S]*$`, "m"), "")
     .trim();
 }
 
@@ -107,7 +109,7 @@ function normalizeOptionalText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeExecutor(value: unknown): OrchestratorExecutorKind | undefined {
+function normalizeExecutionKind(value: unknown): ObjectiveExecutionKind | undefined {
   const normalized = normalizeText(value).toLowerCase();
   if (
     normalized === "lead" ||
@@ -119,4 +121,8 @@ function normalizeExecutor(value: unknown): OrchestratorExecutorKind | undefined
   }
 
   return undefined;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

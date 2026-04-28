@@ -3,7 +3,7 @@ import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
 import { readToolExecutionProtocol } from "../../capabilities/tools/core/toolFinalize.js";
 import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../capabilities/tools/core/routing.js";
 import { createToolRegistry } from "../../capabilities/tools/index.js";
-import { buildOrchestratorObjective } from "../../orchestrator/metadata.js";
+import { buildObjectiveFrame } from "../../objective/metadata.js";
 import type { ProjectContext, SessionRecord, ToolCallRecord, ToolExecutionResult } from "../../types.js";
 import type { RunTurnOptions } from "../types.js";
 import { isAbortError } from "../../utils/abort.js";
@@ -29,7 +29,7 @@ export async function executeToolCallWithRecovery(
       abortSignal: options.abortSignal,
       projectContext,
       currentObjective: session.taskState?.objective
-        ? buildOrchestratorObjective(session.taskState.objective)
+        ? buildObjectiveFrame(session.taskState.objective)
         : undefined,
       changeStore,
       createToolRegistry,

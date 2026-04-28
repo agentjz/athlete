@@ -13,7 +13,7 @@ import { ExecutionStore } from "../../src/execution/store.js";
 import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
 import { TaskStore } from "../../src/tasks/store.js";
 import { taskListTool } from "../../src/capabilities/tools/packages/tasks/taskListTool.js";
-import { buildOrchestratorObjective, writeOrchestratorMetadata } from "../../src/orchestrator/metadata.js";
+import { buildObjectiveFrame, writeObjectiveTaskMetadata } from "../../src/objective/metadata.js";
 import type { ToolContext } from "../../src/capabilities/tools/core/types.js";
 import type { SessionCheckpoint } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, initGitRepo, makeToolContext } from "../helpers.js";
@@ -73,12 +73,12 @@ test("literal continue remains the latest user input instead of restoring a chec
 
 test("task_list shows current objective tasks and counts other-objective tasks", async (t) => {
   const root = await createTempWorkspace("current-task-list", t);
-  const current = buildOrchestratorObjective("New task: demonstrate dispatch and return");
-  const old = buildOrchestratorObjective("Old task: collect Helldivers news");
+  const current = buildObjectiveFrame("New task: demonstrate dispatch and return");
+  const old = buildObjectiveFrame("Old task: collect Helldivers news");
   const store = new TaskStore(root);
   await store.create(
     `Implement: ${old.text}`,
-    writeOrchestratorMetadata("old", {
+    writeObjectiveTaskMetadata("old", {
       key: old.key,
       kind: "implementation",
       objective: old.text,
@@ -87,7 +87,7 @@ test("task_list shows current objective tasks and counts other-objective tasks",
   );
   await store.create(
     `Implement: ${current.text}`,
-    writeOrchestratorMetadata("current", {
+    writeObjectiveTaskMetadata("current", {
       key: current.key,
       kind: "implementation",
       objective: current.text,
@@ -108,12 +108,12 @@ test("task_list shows current objective tasks and counts other-objective tasks",
 
 test("prompt runtime state exposes only current objective runtime facts", async (t) => {
   const root = await createTempWorkspace("current-runtime-state", t);
-  const current = buildOrchestratorObjective("Current objective: inspect README");
-  const old = buildOrchestratorObjective("Old objective: browse stale websites");
+  const current = buildObjectiveFrame("Current objective: inspect README");
+  const old = buildObjectiveFrame("Old objective: browse stale websites");
   const taskStore = new TaskStore(root);
   await taskStore.create(
     `Implement: ${old.text}`,
-    writeOrchestratorMetadata("old", {
+    writeObjectiveTaskMetadata("old", {
       key: old.key,
       kind: "implementation",
       objective: old.text,
@@ -122,7 +122,7 @@ test("prompt runtime state exposes only current objective runtime facts", async 
   );
   await taskStore.create(
     `Implement: ${current.text}`,
-    writeOrchestratorMetadata("current", {
+    writeObjectiveTaskMetadata("current", {
       key: current.key,
       kind: "implementation",
       objective: current.text,
@@ -190,11 +190,11 @@ test("prompt runtime state exposes only current objective runtime facts", async 
 
 test("current objective gates ignore old objective executions", async (t) => {
   const root = await createTempWorkspace("current-return-gate-execution", t);
-  const current = buildOrchestratorObjective("New objective: answer a separate question");
-  const old = buildOrchestratorObjective("Old objective: delegated implementation");
+  const current = buildObjectiveFrame("New objective: answer a separate question");
+  const old = buildObjectiveFrame("Old objective: delegated implementation");
   const oldTask = await new TaskStore(root).create(
     `Implement: ${old.text}`,
-    writeOrchestratorMetadata("old implementation", {
+    writeObjectiveTaskMetadata("old implementation", {
       key: old.key,
       kind: "implementation",
       objective: old.text,

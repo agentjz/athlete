@@ -15,7 +15,7 @@ export function getShellFileReadGuardResult(command: string): ToolExecutionResul
         error: "Direct shell file reads are blocked in the harness.",
         code: "SHELL_FILE_READ_BLOCKED",
         hint: "Text-file reads have a dedicated read_file capability; PDF, image, spreadsheet, and office documents have specialized document capabilities.",
-        suggestedTool: "read_file",
+        requiredTool: "read_file",
       },
       null,
       2,

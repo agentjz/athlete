@@ -261,6 +261,8 @@ Prompts 是 runtime contract 的一部分。
 
 不要通过添加松散 prompt 段落来解决架构问题。如果某个行为需要持久，就给它正式 protocol、tool、state record 或 runtime boundary。
 
+Prompt 文本可以定义原则、证据纪律和硬边界。它不能变成隐藏的触发动作表。不要编码“如果 web 就 browser”“如果文件改了就 test”“如果存在 skill 就 load”“如果 acceptance pending 就 continue”“如果复杂就 delegate”这类规则。能力可用性、账本事实、验证事实和 skill index 都是证据，不是指令。
+
 ## 10. 与项目所有者沟通
 
 用简体中文与项目所有者沟通。

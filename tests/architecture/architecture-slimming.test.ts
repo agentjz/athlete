@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 const HOT_PATH_LIMITS = [
-  { file: "src/agent/runTurn.ts", maxLines: 420, reason: "lead turn orchestration should not absorb module details" },
+  { file: "src/agent/runTurn.ts", maxLines: 420, reason: "lead turn loop should not absorb module details" },
   { file: "src/capabilities/team/messageBus.ts", maxLines: 240, reason: "team message transport should not grow policy logic" },
   { file: "src/utils/commandRunner/platform.ts", maxLines: 320, reason: "platform command handling should stay adapter-sized" },
 ] as const;

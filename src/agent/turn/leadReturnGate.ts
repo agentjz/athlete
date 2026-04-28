@@ -1,8 +1,8 @@
 import { loadProjectContext } from "../../context/projectContext.js";
 import type { ExecutionRecord } from "../../execution/types.js";
 import { ExecutionStore } from "../../execution/store.js";
-import { buildOrchestratorObjective, readOrchestratorTask } from "../../orchestrator/metadata.js";
-import type { OrchestratorTaskSnapshot } from "../../orchestrator/types.js";
+import { buildObjectiveFrame, readObjectiveTask } from "../../objective/metadata.js";
+import type { ObjectiveTaskSnapshot } from "../../objective/types.js";
 import { ProtocolRequestStore } from "../../capabilities/team/requestStore.js";
 import { TeamStore } from "../../capabilities/team/store.js";
 import { TaskStore } from "../../tasks/store.js";
@@ -19,11 +19,11 @@ export async function hasUnfinishedLeadWork(cwd: string, objectiveText?: string)
     new TaskStore(context.stateRootDir).list(),
   ]);
   const teammateByName = new Map(teammates.map((member) => [member.name, member]));
-  const objective = objectiveText ? buildOrchestratorObjective(objectiveText) : undefined;
+  const objective = objectiveText ? buildObjectiveFrame(objectiveText) : undefined;
   const relevantTasks = objective
     ? tasks
-        .map((task) => readOrchestratorTask(task))
-        .filter((task): task is OrchestratorTaskSnapshot => Boolean(task && task.meta.key === objective.key))
+        .map((task) => readObjectiveTask(task))
+        .filter((task): task is ObjectiveTaskSnapshot => Boolean(task && task.meta.key === objective.key))
     : [];
 
   const hasActiveDelegation = executions.some((item) =>
@@ -45,7 +45,7 @@ export async function hasUnfinishedLeadWork(cwd: string, objectiveText?: string)
 function isExecutionRelevantToObjective(
   execution: ExecutionRecord,
   objectiveKey: string,
-  relevantTasks: OrchestratorTaskSnapshot[],
+  relevantTasks: ObjectiveTaskSnapshot[],
 ): boolean {
   if (execution.objectiveKey && execution.objectiveKey === objectiveKey) {
     return true;

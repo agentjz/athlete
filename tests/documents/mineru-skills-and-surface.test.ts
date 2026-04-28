@@ -56,8 +56,9 @@ test("system prompt keeps document routing at the principle level instead of har
     ),
   );
 
-  assert.match(prompt, /specialized browser and document tools/i);
-  assert.match(prompt, /file introspection or tool recovery points to a better specialized tool/i);
+  assert.match(prompt, /Browser and document tools are capability surfaces/i);
+  assert.match(prompt, /file introspection or tool recovery points to a specialized tool/i);
+  assert.match(prompt, /treat that as evidence, not a command/i);
   assert.doesNotMatch(prompt, /\bread_pdf\b/);
   assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read/);
   assert.doesNotMatch(prompt, /Skip unsupported binary documents such as \.doc and \.pptx/i);

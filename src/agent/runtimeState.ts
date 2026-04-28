@@ -8,7 +8,7 @@ import { TeamStore } from "../capabilities/team/store.js";
 import { TaskStore } from "../tasks/store.js";
 import { BackgroundJobStore, reconcileBackgroundJobs } from "../execution/background.js";
 import { summarizeAgentExecutionsForPrompt } from "../execution/promptSummary.js";
-import { buildOrchestratorObjective, readOrchestratorMetadata } from "../orchestrator/metadata.js";
+import { buildObjectiveFrame, readObjectiveTaskMetadata } from "../objective/metadata.js";
 import { WorktreeStore } from "../worktrees/store.js";
 import { formatRuntimeCapabilityRegistryForLead } from "../capabilities/registry.js";
 import type { LoadedSkill } from "../capabilities/skills/types.js";
@@ -47,7 +47,7 @@ export async function loadPromptRuntimeState(
 ): Promise<PromptRuntimeState> {
   await reconcileTeamState(rootDir).catch(() => null);
   await reconcileBackgroundJobs(rootDir).catch(() => null);
-  const objectiveKey = objectiveText ? buildOrchestratorObjective(objectiveText).key : undefined;
+  const objectiveKey = objectiveText ? buildObjectiveFrame(objectiveText).key : undefined;
   const [taskSummary, teamSummary, worktreeSummary, backgroundSummary, protocolSummary, coordinationPolicySummary] = await Promise.all([
     new TaskStore(rootDir).summarize({
       objectiveKey,
@@ -99,7 +99,7 @@ async function summarizeWorktreesForPrompt(rootDir: string, objectiveKey: string
   const taskByWorktree = new Map(tasks.filter((task) => task.worktree).map((task) => [task.worktree, task]));
   const current = worktrees.filter((worktree) => {
     const task = taskByWorktree.get(worktree.name);
-    return task ? readOrchestratorMetadata(task.description)?.key === objectiveKey : false;
+    return task ? readObjectiveTaskMetadata(task.description)?.key === objectiveKey : false;
   });
   const currentLines = current.map((worktree) => {
     const task = typeof worktree.taskId === "number" ? ` task=${worktree.taskId}` : "";

@@ -117,7 +117,7 @@ export const editDocxTool: RegisteredTool = {
         code: "DOC_CONVERSION_REQUIRED",
         details: {
           requestedPath: targetPath,
-          suggestedPath: replaceExtension(resolved, ".docx"),
+          candidatePath: replaceExtension(resolved, ".docx"),
         },
       });
     }
@@ -127,7 +127,7 @@ export const editDocxTool: RegisteredTool = {
         code: "INVALID_DOCX_OUTPUT_PATH",
         details: {
           requestedPath: targetPath,
-          suggestedPath: resolved.endsWith(".") ? `${resolved}docx` : `${resolved}.docx`,
+          candidatePath: resolved.endsWith(".") ? `${resolved}docx` : `${resolved}.docx`,
         },
       });
     }

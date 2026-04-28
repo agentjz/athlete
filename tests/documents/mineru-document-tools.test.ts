@@ -34,7 +34,7 @@ test("inspectTextFile routes supported documents toward dedicated MinerU tools",
     const inspected = await inspectTextFile(filePath, 1024);
     assert.equal(inspected.readable, false);
     assert.equal(inspected.action, item.action);
-    assert.equal(inspected.suggestedCapability, "document.read");
+    assert.equal(inspected.detectedCapability, "document.read");
     assert.equal(inspected.documentKind, item.documentKind);
   }
 });

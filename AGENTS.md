@@ -261,6 +261,8 @@ When prompt structure changes, update prompt tests. When runtime state shown to 
 
 Do not solve architectural problems by adding loose prompt paragraphs. If a behavior needs to be durable, give it a formal protocol, tool, state record, or runtime boundary.
 
+Prompt text may define principles, evidence discipline, and hard boundaries. It must not become a hidden trigger-action table. Do not encode rules such as "if web then browser", "if files changed then test", "if a skill exists then load it", "if acceptance is pending then continue", or "if complex then delegate". Capability availability, ledger facts, verification facts, and skill indexes are evidence, not instructions.
+
 ## 10. Communication With The Project Owner
 
 Communicate with the project owner in Simplified Chinese.

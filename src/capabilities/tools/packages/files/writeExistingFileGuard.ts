@@ -19,7 +19,7 @@ export async function getWriteExistingFileGuardResult(
         error: "write_file cannot overwrite an existing file in the formal harness path.",
         code: "WRITE_EXISTING_FILE_BLOCKED",
         hint: "Existing-file edits require a fresh read_file identity and the edit_file path.",
-        suggestedTool: "edit_file",
+        requiredTool: "edit_file",
       },
       null,
       2,

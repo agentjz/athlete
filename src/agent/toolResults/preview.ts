@@ -17,8 +17,8 @@ export function compactToolPayload(toolName: string | undefined, raw: string, ma
       pushFragment(fragments, "readable", readScalar(parsed.readable));
       pushFragment(fragments, "reason", readScalar(parsed.reason));
       pushFragment(fragments, "action", readScalar(parsed.action));
-      pushFragment(fragments, "suggestedTool", readScalar(parsed.suggestedTool));
-      pushFragment(fragments, "suggestedPath", readScalar(parsed.suggestedPath));
+      pushFragment(fragments, "requiredTool", readScalar(parsed.requiredTool));
+      pushFragment(fragments, "candidatePath", readScalar(parsed.candidatePath));
       pushFragment(fragments, "code", readScalar(parsed.code));
       pushFragment(fragments, "error", readScalar(parsed.error));
       pushFragment(fragments, "hint", readScalar(parsed.hint));

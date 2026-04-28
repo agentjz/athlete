@@ -40,6 +40,7 @@ test("system prompt exposes static and dynamic layers without a history memory l
   assert.match(prompt, /Identity \/ role contract:/);
   assert.match(prompt, /INTP architectural mindset:/);
   assert.match(prompt, /Work loop contract:/);
+  assert.match(prompt, /Prompt boundary contract:/);
   assert.match(prompt, /Diligence \/ budget contract:/);
   assert.match(prompt, /Tool-use contract:/);
   assert.match(prompt, /Communication \/ output contract:/);
@@ -49,6 +50,25 @@ test("system prompt exposes static and dynamic layers without a history memory l
   assert.doesNotMatch(prompt, /Compressed conversation memory:/);
   assert.doesNotMatch(prompt, /Earlier turn summary/);
   assert.doesNotMatch(prompt, /Carryover:/);
+});
+
+test("system prompt states principles without becoming a trigger-action routing table", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+    ),
+  );
+
+  assert.match(prompt, /Prompt boundary contract:/);
+  assert.match(prompt, /not a hidden routing policy/i);
+  assert.match(prompt, /no 'if web then browser'/i);
+  assert.match(prompt, /no 'if changed paths then test'/i);
+  assert.match(prompt, /no 'if a skill exists then load it'/i);
+  assert.match(prompt, /availability is not instruction/i);
+  assert.doesNotMatch(prompt, /Prefer specialized browser and document tools/i);
+  assert.doesNotMatch(prompt, /Choose whether to load relevant skills/i);
 });
 
 test("system prompt does not carry previous final output into a new objective", () => {
@@ -152,10 +172,10 @@ test("system prompt frames verification as model judgment over factual ledgers",
   assert.doesNotMatch(dynamicLayer, /No tasks\.|No teammates\.|No worktrees\.|No background jobs\.|No protocol requests\./);
   assert.doesNotMatch(dynamicLayer, /Verification focus:/);
   assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read|read_spreadsheet/);
-  assert.match(prompt, /treat that as evidence for your own routing decision/i);
+  assert.match(prompt, /treat that as evidence, not a command/i);
 });
 
-test("system prompt keeps orchestration guidance at the principle level instead of embedding a dispatch table", () => {
+test("system prompt keeps capability guidance at the principle level instead of embedding a dispatch table", () => {
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
       ROOT,
@@ -203,7 +223,7 @@ test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   assert.match(block, /Skill index: web-research, browser-automation, spec-alignment/);
   assert.match(block, /explicit load_skill calls/);
   assert.doesNotMatch(block, /Turn match:/);
-  assert.doesNotMatch(block, /suggested|via scene|via task_type/);
+  assert.doesNotMatch(block, /via scene|via task_type/);
   assert.doesNotMatch(block, /Matched but not loaded|required/);
   assert.doesNotMatch(block, /Consider loading|you may first inspect/i);
   assert.doesNotMatch(block, /Discovered project skill catalog/i);
@@ -234,7 +254,7 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   );
 
   const metrics = measurePromptLayers(layers);
-  assert.equal(metrics.staticBlockCount, 8);
+  assert.equal(metrics.staticBlockCount, 9);
   assert.equal(metrics.dynamicBlockCount > 0, true);
   assert.equal(metrics.totalChars, renderPromptLayers(layers).length);
   assert.equal(metrics.renderedChars, renderPromptLayers(layers).length);

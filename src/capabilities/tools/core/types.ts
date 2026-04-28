@@ -2,7 +2,7 @@ import type { ChatCompletionTool } from "openai/resources/chat/completions";
 
 import type { ChangeStore } from "../../../changes/store.js";
 import type { AgentCallbacks, AgentIdentity } from "../../../agent/types.js";
-import type { OrchestratorObjective } from "../../../orchestrator/types.js";
+import type { ObjectiveFrame } from "../../../objective/types.js";
 import type {
   ProjectContext,
   RuntimeConfig,
@@ -147,7 +147,7 @@ export interface ToolContext {
   callbacks?: AgentCallbacks;
   abortSignal?: AbortSignal;
   projectContext: ProjectContext;
-  currentObjective?: OrchestratorObjective;
+  currentObjective?: ObjectiveFrame;
   changeStore: ChangeStore;
   createToolRegistry: ToolRegistryFactory;
 }
