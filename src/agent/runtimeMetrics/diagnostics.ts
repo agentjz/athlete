@@ -40,9 +40,11 @@ export interface RuntimeSummaryPromptView {
   maxContextChars: number;
   summaryChars: number;
   staticChars: number;
-  dynamicChars: number;
+  profileChars: number;
+  runtimeFactChars: number;
   staticBlockCount: number;
-  dynamicBlockCount: number;
+  profileBlockCount: number;
+  runtimeFactBlockCount: number;
   totalChars: number;
   hotspots: PromptBlockMetric[];
   slimmingSummary: string;
@@ -267,9 +269,11 @@ function buildPromptView(
     maxContextChars: promptDiagnostics.contextDiagnostics.maxContextChars,
     summaryChars: promptDiagnostics.contextDiagnostics.summaryChars,
     staticChars: metrics.staticChars,
-    dynamicChars: metrics.dynamicChars,
+    profileChars: metrics.profileChars,
+    runtimeFactChars: metrics.runtimeFactChars,
     staticBlockCount: metrics.staticBlockCount,
-    dynamicBlockCount: metrics.dynamicBlockCount,
+    profileBlockCount: metrics.profileBlockCount,
+    runtimeFactBlockCount: metrics.runtimeFactBlockCount,
     totalChars: metrics.totalChars,
     hotspots: metrics.hotspots.slice(0, 5),
     slimmingSummary: describePromptSlimming(metrics, promptDiagnostics),
@@ -289,10 +293,11 @@ function describePromptSlimming(
   return `Largest prompt hotspot is ${formatHotspot(hotspot)} with the ${dominantLayer} layer contributing the most chars.`;
 }
 
-function pickDominantLayer(metrics: PromptLayerMetrics): "static" | "dynamic" {
-  const layers: Array<{ layer: "static" | "dynamic"; chars: number }> = [
+function pickDominantLayer(metrics: PromptLayerMetrics): "static" | "profile" | "runtimeFacts" {
+  const layers: Array<{ layer: "static" | "profile" | "runtimeFacts"; chars: number }> = [
     { layer: "static", chars: metrics.staticChars },
-    { layer: "dynamic", chars: metrics.dynamicChars },
+    { layer: "profile", chars: metrics.profileChars },
+    { layer: "runtimeFacts", chars: metrics.runtimeFactChars },
   ];
 
   return layers.sort((left, right) => right.chars - left.chars || left.layer.localeCompare(right.layer))[0]?.layer ?? "static";

@@ -49,6 +49,7 @@ export function buildProjectEnvTemplate(example: boolean): string {
     deadmouseApiKeyLine,
     "DEADMOUSE_BASE_URL=https://w.ciykj.cn",
     "DEADMOUSE_MODEL=gpt-5.4",
+    "DEADMOUSE_PROFILE=intp",
     "DEADMOUSE_REASONING_EFFORT=xhigh",
     "# GPT reasoning effort: minimal | low | medium | high | xhigh",
     "",
@@ -57,6 +58,7 @@ export function buildProjectEnvTemplate(example: boolean): string {
     "# DEADMOUSE_API_KEY=replace-with-your-key",
     "# DEADMOUSE_BASE_URL=https://api.deepseek.com",
     "# DEADMOUSE_MODEL=deepseek-v4-flash",
+    "# DEADMOUSE_PROFILE=intp",
     "# DEADMOUSE_THINKING=enabled",
     "# DEADMOUSE_REASONING_EFFORT=high",
     "# DeepSeek V4 model: deepseek-v4-flash | deepseek-v4-pro",
@@ -68,6 +70,7 @@ export function buildProjectEnvTemplate(example: boolean): string {
     "# DEADMOUSE_API_KEY=replace-with-your-key",
     "# DEADMOUSE_BASE_URL=https://api.siliconflow.cn/v1",
     "# DEADMOUSE_MODEL=deepseek-ai/DeepSeek-V3.2",
+    "# DEADMOUSE_PROFILE=intp",
     "",
   ].join("\n");
 }

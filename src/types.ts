@@ -60,6 +60,7 @@ export interface AppConfig {
   provider: string;
   baseUrl: string;
   model: string;
+  profile: string;
   thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
   yieldAfterToolSteps: number;

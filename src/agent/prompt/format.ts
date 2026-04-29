@@ -9,8 +9,11 @@ export function renderPromptLayers(promptLayers: PromptLayers): string {
     "Static operating layer:",
     joinBlocks(promptLayers.staticBlocks),
     "",
-    "Dynamic runtime layer:",
-    joinBlocks(promptLayers.dynamicBlocks),
+    "Profile persona layer:",
+    joinBlocks(promptLayers.profilePersonaBlocks),
+    "",
+    "Profile runtime facts layer:",
+    joinBlocks(promptLayers.runtimeFactBlocks),
   ];
 
   return sections.join("\n").trim();

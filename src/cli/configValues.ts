@@ -6,6 +6,7 @@ export const APP_CONFIG_KEYS = [
   "provider",
   "baseUrl",
   "model",
+  "profile",
   "thinking",
   "reasoningEffort",
   "yieldAfterToolSteps",
@@ -31,6 +32,7 @@ const MUTABLE_CONFIG_KEYS = new Set<keyof AppConfig>([
   "provider",
   "baseUrl",
   "model",
+  "profile",
   "thinking",
   "reasoningEffort",
   "yieldAfterToolSteps",
@@ -86,6 +88,7 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
       return parsed as AppConfig[keyof AppConfig];
     }
     case "provider":
+    case "profile":
       return rawValue.trim() as AppConfig[keyof AppConfig];
     case "mcp":
     case "telegram": {

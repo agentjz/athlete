@@ -7,11 +7,11 @@ export function extendPromptLayersForTurnState(
   softToolLimit: number,
   consecutiveRequestFailures: number,
 ): PromptLayers {
-  const nextDynamicBlocks = [...promptLayers.dynamicBlocks];
+  const nextRuntimeFactBlocks = [...promptLayers.runtimeFactBlocks];
   const shouldShowTurnState = iteration > 0 || consecutiveRequestFailures > 0;
 
   if (shouldShowTurnState) {
-    nextDynamicBlocks.push(
+    nextRuntimeFactBlocks.push(
       [
         "Turn execution state:",
         `- Tool steps completed in this request: ${iteration}/${softToolLimit}`,
@@ -22,7 +22,7 @@ export function extendPromptLayersForTurnState(
 
   return {
     ...promptLayers,
-    dynamicBlocks: nextDynamicBlocks,
+    runtimeFactBlocks: nextRuntimeFactBlocks,
   };
 }
 

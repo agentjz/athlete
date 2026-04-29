@@ -40,7 +40,7 @@ export function formatPromptLayers(summary: SessionRuntimeSummary): string {
     return "unavailable";
   }
 
-  return `static=${prompt.staticChars}/${prompt.staticBlockCount}, dynamic=${prompt.dynamicChars}/${prompt.dynamicBlockCount}, total=${prompt.totalChars}`;
+  return `static=${prompt.staticChars}/${prompt.staticBlockCount}, profile=${prompt.profileChars}/${prompt.profileBlockCount}, runtimeFacts=${prompt.runtimeFactChars}/${prompt.runtimeFactBlockCount}, total=${prompt.totalChars}`;
 }
 
 export function formatPromptHotspot(summary: SessionRuntimeSummary): string {

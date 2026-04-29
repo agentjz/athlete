@@ -1,6 +1,5 @@
 import { formatPromptBlock } from "./format.js";
 import { buildDiligenceContract, DILIGENCE_BLOCK_TITLE } from "./diligence.js";
-import { buildIntpArchitectMindset, INTP_ARCHITECTURE_BLOCK_TITLE } from "./intp.js";
 import type { PromptRuntimeState } from "./types.js";
 import type { ProjectContext, RuntimeConfig } from "../../types.js";
 
@@ -16,7 +15,6 @@ export function buildStaticPromptBlocks(input: StaticPromptInput): string[] {
       "Identity / role contract",
       buildIdentityContract(input.config, input.runtimeState),
     ),
-    formatPromptBlock(INTP_ARCHITECTURE_BLOCK_TITLE, buildIntpArchitectMindset()),
     formatPromptBlock("Work loop contract", buildWorkLoopContract(input.runtimeState)),
     formatPromptBlock("Prompt boundary contract", buildPromptBoundaryContract()),
     formatPromptBlock(DILIGENCE_BLOCK_TITLE, buildDiligenceContract()),

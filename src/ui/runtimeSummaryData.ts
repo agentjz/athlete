@@ -1,6 +1,7 @@
 import { buildRequestContext } from "../agent/context.js";
 import { loadPromptRuntimeState } from "../agent/runtimeState.js";
 import { buildSystemPromptLayers } from "../agent/systemPrompt.js";
+import { resolveAgentProfile } from "../agent/profiles/registry.js";
 import type { RuntimePromptDiagnostics } from "../agent/runtimeMetrics.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { loadProjectContext } from "../context/projectContext.js";
@@ -26,6 +27,7 @@ export async function buildRuntimePromptDiagnostics(input: {
       undefined,
       input.session.checkpoint,
       input.session.acceptanceState,
+      resolveAgentProfile(input.config.profile),
     );
     const requestContext = buildRequestContext(promptLayers, input.session.messages, input.config);
 

@@ -271,8 +271,8 @@ function appendSummary(systemPrompt: string | PromptLayers, summary: string | un
 
   return {
     ...systemPrompt,
-    dynamicBlocks: [
-      ...systemPrompt.dynamicBlocks,
+    runtimeFactBlocks: [
+      ...systemPrompt.runtimeFactBlocks,
       `Current turn compressed context:\n${summary}`,
     ],
   };
@@ -286,7 +286,8 @@ function measureSystemPrompt(systemPrompt: string | PromptLayers): PromptLayerMe
   return typeof systemPrompt === "string"
     ? measurePromptLayers({
         staticBlocks: [systemPrompt],
-        dynamicBlocks: [],
+        profilePersonaBlocks: [],
+        runtimeFactBlocks: [],
       })
     : measurePromptLayers(systemPrompt);
 }

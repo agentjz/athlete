@@ -121,15 +121,15 @@ test("runtime context prompt keeps static rules stable while archiving coordinat
   const secondLayers = splitPromptLayers(second);
 
   assert.equal(firstLayers.staticLayer, secondLayers.staticLayer);
-  assert.notEqual(firstLayers.dynamicLayer, secondLayers.dynamicLayer);
+  assert.notEqual(firstLayers.runtimeFactsLayer, secondLayers.runtimeFactsLayer);
   assert.match(firstLayers.staticLayer, /Identity \/ role contract:/);
   assert.match(firstLayers.staticLayer, /External content boundary:/);
   assert.equal(firstLayers.staticLayer.includes("Task board says alpha"), false);
   assert.equal(firstLayers.staticLayer.includes("Teammate bravo is active."), false);
-  assert.match(firstLayers.dynamicLayer, /Inspect alpha/);
-  assert.match(secondLayers.dynamicLayer, /Inspect beta/);
-  assert.doesNotMatch(firstLayers.dynamicLayer, /Task board says alpha|plan decisions/);
-  assert.doesNotMatch(secondLayers.dynamicLayer, /Teammate bravo is active|feature\/light-pack|job-7 running|request-1 pending|plan decisions/);
+  assert.match(firstLayers.runtimeFactsLayer, /Inspect alpha/);
+  assert.match(secondLayers.runtimeFactsLayer, /Inspect beta/);
+  assert.doesNotMatch(firstLayers.runtimeFactsLayer, /Task board says alpha|plan decisions/);
+  assert.doesNotMatch(secondLayers.runtimeFactsLayer, /Teammate bravo is active|feature\/light-pack|job-7 running|request-1 pending|plan decisions/);
 });
 
 test("runtime context externalizes large tool results for continuation and preserves them after session reload", { concurrency: false }, async (t) => {
@@ -386,14 +386,14 @@ test("runtime context externalizes only large tool results while small results s
 
 function splitPromptLayers(prompt: string): {
   staticLayer: string;
-  dynamicLayer: string;
+  runtimeFactsLayer: string;
 } {
-  const marker = "\n\nDynamic runtime layer:\n";
+  const marker = "\n\nProfile runtime facts layer:\n";
   const index = prompt.indexOf(marker);
-  assert.notEqual(index, -1, "Prompt should expose a distinct dynamic runtime layer marker.");
+  assert.notEqual(index, -1, "Prompt should expose a distinct profile runtime facts layer marker.");
   return {
     staticLayer: prompt.slice(0, index),
-    dynamicLayer: prompt.slice(index + marker.length),
+    runtimeFactsLayer: prompt.slice(index + marker.length),
   };
 }
 

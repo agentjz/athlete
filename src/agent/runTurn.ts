@@ -9,6 +9,7 @@ import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } 
 import { buildSystemPromptLayers } from "./systemPrompt.js";
 import { buildRunTurnResult, createDelegationDispatchYieldTransition, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "./toolPriority.js";
+import { resolveAgentProfile } from "./profiles/registry.js";
 import { clearCompactionRecovery, noteCompactionObserved, notePostCompactionNoText } from "./turn/compactionRecovery.js";
 import { persistRecoveryOrPauseFromCompaction } from "./turn/compactionPersistence.js";
 import { emitAssistantFinalOutput, emitAssistantReasoning } from "./turn/finalize.js";
@@ -37,6 +38,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const projectContext = await loadProjectContext(options.cwd);
   const identity = options.identity ?? { kind: "lead" as const, name: "lead" };
   const turnModelConfig = options.config;
+  const profile = resolveAgentProfile(options.config.profile);
   if (!turnModelConfig.apiKey) {
     throw new Error("Missing API key. Open the project's .env file and add DEADMOUSE_API_KEY.");
   }
@@ -102,6 +104,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         skillRuntimeState,
         session.checkpoint,
         session.acceptanceState,
+        profile,
       );
       promptLayers = extendPromptLayersForTurnState(promptLayers, iteration, softToolLimit, consecutiveRequestFailures);
       const requestModel = pickRequestModel(turnModelConfig.provider, turnModelConfig.model, consecutiveRequestFailures);

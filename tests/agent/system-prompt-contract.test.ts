@@ -8,6 +8,8 @@ import {
 } from "../../src/agent/promptSections.js";
 import { buildRequestContext } from "../../src/agent/context.js";
 import { formatSkillPromptBlock } from "../../src/capabilities/skills/prompt.js";
+import { getDefaultAgentProfile } from "../../src/agent/profiles/registry.js";
+import type { AgentProfile } from "../../src/agent/profiles/types.js";
 import type { LoadedSkill, ProjectContext, SkillRuntimeState } from "../../src/types.js";
 import { createMessage } from "../../src/agent/session.js";
 import { createTestRuntimeConfig } from "../helpers.js";
@@ -27,17 +29,19 @@ function createProjectContext(skills: LoadedSkill[] = []): ProjectContext {
   };
 }
 
-test("system prompt exposes static and dynamic layers without a history memory layer", () => {
+test("system prompt exposes static and profile runtime facts layers without a history memory layer", () => {
   const layers = buildSystemPromptLayers(
     ROOT,
     createTestRuntimeConfig(ROOT),
     createProjectContext(),
   );
   const prompt = renderPromptLayers(layers);
-  const dynamicMarker = "\n\nDynamic runtime layer:\n";
-  const dynamicIndex = prompt.indexOf(dynamicMarker);
+  const runtimeFactsMarker = "\n\nProfile runtime facts layer:\n";
+  const runtimeFactsIndex = prompt.indexOf(runtimeFactsMarker);
 
   assert.match(prompt, /Identity \/ role contract:/);
+  assert.match(prompt, /Profile persona layer:/);
+  assert.match(prompt, /Profile runtime facts layer:/);
   assert.match(prompt, /INTP architectural mindset:/);
   assert.match(prompt, /Work loop contract:/);
   assert.match(prompt, /Prompt boundary contract:/);
@@ -46,11 +50,80 @@ test("system prompt exposes static and dynamic layers without a history memory l
   assert.match(prompt, /Communication \/ output contract:/);
   assert.match(prompt, /External content boundary:/);
   assert.match(prompt, /Project instructions:/);
-  assert.notEqual(dynamicIndex, -1);
+  assert.notEqual(runtimeFactsIndex, -1);
   assert.doesNotMatch(prompt, /Compressed conversation memory:/);
   assert.doesNotMatch(prompt, /Earlier turn summary/);
   assert.doesNotMatch(prompt, /Carryover:/);
 });
+
+test("system prompt keeps core contracts separate from the default profile", () => {
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+  );
+  const staticLayer = layers.staticBlocks.join("\n\n");
+  const profileLayer = layers.profilePersonaBlocks.join("\n\n");
+
+  assert.match(staticLayer, /Identity \/ role contract:/);
+  assert.match(staticLayer, /Tool-use contract:/);
+  assert.doesNotMatch(staticLayer, /top-tier, ace, strongest, elegant INTP architect/i);
+  assert.match(profileLayer, /INTP architectural mindset:/);
+  assert.match(profileLayer, /top-tier, ace, strongest, elegant INTP architect/i);
+  assert.equal(getDefaultAgentProfile().id, "intp");
+});
+
+test("system prompt can inject a different profile with its own persona and runtime facts presentation", () => {
+  const customProfile: AgentProfile = {
+    id: "teacher",
+    name: "Teacher",
+    summary: "Test-only teaching profile.",
+    personaBlocks: [
+      {
+        title: "Teaching profile",
+        content: "Explain patiently without changing tools, facts, or core boundaries.",
+      },
+    ],
+    runtimeFacts: {
+      id: "teacher",
+      name: "Teacher runtime facts",
+      summary: "Test-only runtime facts presentation.",
+      buildBlocks: (input) => [
+        `Teaching runtime facts:\nObjective=${input.taskState?.objective ?? "none"}`,
+      ],
+    },
+  };
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "explain this behavior",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    customProfile,
+  );
+  const prompt = renderPromptLayers(layers);
+
+  assert.match(prompt, /Teaching profile:/);
+  assert.match(prompt, /Teaching runtime facts:/);
+  assert.match(prompt, /explain patiently/i);
+  assert.doesNotMatch(prompt, /INTP architectural mindset:/);
+  assert.doesNotMatch(prompt, /Current Objective:/);
+  assert.match(prompt, /explain this behavior/);
+  assert.match(prompt, /Tool-use contract:/);
+});
+
 
 test("system prompt states principles without becoming a trigger-action routing table", () => {
   const prompt = renderPromptLayers(
@@ -161,7 +234,7 @@ test("system prompt frames verification as model judgment over factual ledgers",
       createProjectContext(),
     ),
   );
-  const dynamicLayer = prompt.split("Dynamic runtime layer:\n")[1] ?? "";
+  const runtimeFactsLayer = prompt.split("Profile runtime facts layer:\n")[1] ?? "";
 
   assert.match(prompt, /Acceptance and verification runtime state are factual ledgers/i);
   assert.match(prompt, /decide what verification is appropriate to the risk and artifact type/i);
@@ -169,8 +242,8 @@ test("system prompt frames verification as model judgment over factual ledgers",
   assert.doesNotMatch(prompt, /run verification \(build\/test\)/i);
   assert.doesNotMatch(prompt, /auto-readback/i);
   assert.doesNotMatch(prompt, /machine-enforced closeout criteria/i);
-  assert.doesNotMatch(dynamicLayer, /No tasks\.|No teammates\.|No worktrees\.|No background jobs\.|No protocol requests\./);
-  assert.doesNotMatch(dynamicLayer, /Verification focus:/);
+  assert.doesNotMatch(runtimeFactsLayer, /No tasks\.|No teammates\.|No worktrees\.|No background jobs\.|No protocol requests\./);
+  assert.doesNotMatch(runtimeFactsLayer, /Verification focus:/);
   assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read|read_spreadsheet/);
   assert.match(prompt, /treat that as evidence, not a command/i);
 });
@@ -254,13 +327,15 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   );
 
   const metrics = measurePromptLayers(layers);
-  assert.equal(metrics.staticBlockCount, 9);
-  assert.equal(metrics.dynamicBlockCount > 0, true);
+  assert.equal(metrics.staticBlockCount, 8);
+  assert.equal(metrics.profileBlockCount, 1);
+  assert.equal(metrics.runtimeFactBlockCount > 0, true);
   assert.equal(metrics.totalChars, renderPromptLayers(layers).length);
   assert.equal(metrics.renderedChars, renderPromptLayers(layers).length);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "External content boundary"), true);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "Diligence / budget contract"), true);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "INTP architectural mindset"), true);
+  assert.equal(metrics.blockMetrics.some((metric) => metric.layer === "profile"), true);
   assert.equal(metrics.hotspots.length > 0, true);
   const topHotspot = metrics.hotspots[0];
   assert.ok(topHotspot);
@@ -284,7 +359,7 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   );
 
   assert.ok(built.promptMetrics);
-  assert.equal((built.promptMetrics?.dynamicBlockCount ?? 0) > metrics.dynamicBlockCount, true);
+  assert.equal((built.promptMetrics?.runtimeFactBlockCount ?? 0) > metrics.runtimeFactBlockCount, true);
   assert.equal((built.promptMetrics?.totalChars ?? 0) >= metrics.totalChars, true);
   assert.equal((built.promptMetrics?.hotspots?.length ?? 0) > 0, true);
   assert.equal((built.promptMetrics?.renderedChars ?? 0) > metrics.renderedChars, true);

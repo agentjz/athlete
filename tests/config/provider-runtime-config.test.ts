@@ -21,6 +21,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
       "DEADMOUSE_API_KEY=project-key",
       "DEADMOUSE_BASE_URL=https://relay.example.test/v1",
       "DEADMOUSE_MODEL=gpt-5.4",
+      "DEADMOUSE_PROFILE=intp",
       "DEADMOUSE_REASONING_EFFORT=medium",
     ].join("\n"),
     "utf8",
@@ -50,6 +51,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
     "DEADMOUSE_API_KEY",
     "DEADMOUSE_BASE_URL",
     "DEADMOUSE_MODEL",
+    "DEADMOUSE_PROFILE",
     "DEADMOUSE_THINKING",
     "DEADMOUSE_REASONING_EFFORT",
   ]);
@@ -60,6 +62,7 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
       DEADMOUSE_API_KEY: undefined,
       DEADMOUSE_BASE_URL: undefined,
       DEADMOUSE_MODEL: undefined,
+      DEADMOUSE_PROFILE: undefined,
       DEADMOUSE_THINKING: undefined,
       DEADMOUSE_REASONING_EFFORT: undefined,
     });
@@ -69,8 +72,38 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
     assert.equal(runtime.apiKey, "project-key");
     assert.equal(runtime.baseUrl, "https://relay.example.test/v1");
     assert.equal(runtime.model, "gpt-5.4");
+    assert.equal(runtime.profile, "intp");
     assert.equal(runtime.thinking, undefined);
     assert.equal(runtime.reasoningEffort, "medium");
+  } finally {
+    restoreEnv(previous);
+  }
+});
+
+test("resolveRuntimeConfig lets DEADMOUSE_PROFILE override the project env file", async (t) => {
+  const root = await createTempWorkspace("profile-runtime-config", t);
+  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, ".deadmouse", ".env"),
+    [
+      "DEADMOUSE_PROVIDER=deepseek",
+      "DEADMOUSE_API_KEY=project-key",
+      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
+      "DEADMOUSE_MODEL=deepseek-v4-flash",
+      "DEADMOUSE_PROFILE=intp",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = snapshotEnv(["DEADMOUSE_PROFILE"]);
+
+  try {
+    restoreEnv({
+      DEADMOUSE_PROFILE: "runtime-profile",
+    });
+
+    const runtime = await resolveRuntimeConfig({ cwd: root });
+    assert.equal(runtime.profile, "runtime-profile");
   } finally {
     restoreEnv(previous);
   }

@@ -65,6 +65,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       ...fileConfig,
       provider: process.env.DEADMOUSE_PROVIDER ?? fileConfig.provider,
       model: process.env.DEADMOUSE_MODEL ?? overrides.model ?? fileConfig.model,
+      profile: process.env.DEADMOUSE_PROFILE ?? fileConfig.profile,
       thinking: parseThinkingEnv(process.env.DEADMOUSE_THINKING) ?? fileConfig.thinking,
       reasoningEffort: parseReasoningEffortEnv(process.env.DEADMOUSE_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
       baseUrl: process.env.DEADMOUSE_BASE_URL ?? fileConfig.baseUrl,

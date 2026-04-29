@@ -35,6 +35,7 @@ export function registerConfigCommands(
             schemaVersion: runtime.config.schemaVersion,
             provider: runtime.config.provider,
             model: runtime.config.model,
+            profile: runtime.config.profile,
             thinking: runtime.config.thinking,
             baseUrl: runtime.config.baseUrl,
             pathAccess: "unrestricted",

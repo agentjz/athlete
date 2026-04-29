@@ -12,6 +12,7 @@ const DEFAULT_CONFIG: AppConfig = {
   provider: "deepseek",
   baseUrl: "https://api.deepseek.com",
   model: "deepseek-v4-flash",
+  profile: "intp",
   yieldAfterToolSteps: 12,
   contextWindowMessages: 30,
   maxContextChars: 48_000,
@@ -51,6 +52,7 @@ export function normalizeConfig(
     provider: String(config.provider ?? DEFAULT_CONFIG.provider).trim() || DEFAULT_CONFIG.provider,
     baseUrl: config.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     model: config.model?.trim() || DEFAULT_CONFIG.model,
+    profile: String(config.profile ?? DEFAULT_CONFIG.profile).trim() || DEFAULT_CONFIG.profile,
     thinking: normalizeThinking(config.thinking),
     reasoningEffort: normalizeReasoningEffort(config.reasoningEffort),
     yieldAfterToolSteps: clampNumber(

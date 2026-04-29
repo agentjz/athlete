@@ -1,37 +1,53 @@
 import { normalizeCheckpoint } from "../checkpoint.js";
 import { formatSkillPromptBlock } from "../../capabilities/skills/prompt.js";
-import { formatPromptBlock } from "./format.js";
+import { formatPromptBlock } from "../prompt/format.js";
 import {
   buildFieldBlock,
   type PromptField,
-} from "./structured.js";
-import type { PromptRuntimeState } from "./types.js";
+} from "../prompt/structured.js";
 import type {
-  ProjectContext,
-  RuntimeConfig,
-  AcceptanceState,
-  SessionCheckpoint,
-  SkillRuntimeState,
-  TaskState,
-  VerificationState,
-} from "../../types.js";
+  AgentProfile,
+  AgentRuntimeFactsProfile,
+  RuntimeFactsProfileInput,
+} from "./types.js";
+import type { SessionCheckpoint, TaskState, VerificationState } from "../../types.js";
 
-interface DynamicPromptInput {
-  cwd: string;
-  config: RuntimeConfig;
-  projectContext: ProjectContext;
-  taskState?: TaskState;
-  verificationState?: VerificationState;
-  acceptanceState?: AcceptanceState;
-  runtimeState: PromptRuntimeState;
-  skillRuntimeState: SkillRuntimeState;
-  checkpoint?: SessionCheckpoint;
-}
+export const INTP_PROFILE_ID = "intp";
+export const INTP_ARCHITECTURE_BLOCK_TITLE = "INTP architectural mindset";
 
-export function buildDynamicPromptBlocks(input: DynamicPromptInput): string[] {
-  
+const INTP_RUNTIME_FACTS_PROFILE: AgentRuntimeFactsProfile = {
+  id: INTP_PROFILE_ID,
+  name: "INTP runtime facts",
+  summary: "Default Deadmouse runtime facts presentation for objective-first, evidence-first agent work.",
+  buildBlocks: buildIntpRuntimeFactBlocks,
+};
+
+export const INTP_PROFILE: AgentProfile = {
+  id: INTP_PROFILE_ID,
+  name: "INTP",
+  summary: "Default Deadmouse profile for essence-first architecture, explicit boundaries, and evidence-backed judgment.",
+  personaBlocks: [
+    {
+      title: INTP_ARCHITECTURE_BLOCK_TITLE,
+      content: [
+        "Operate from the perspective of a top-tier, ace, strongest, elegant INTP architect.",
+        "Seek the essence, root causes, governing structure, constraints, and boundaries before reaching for surface fixes.",
+        "Treat simplicity as the prerequisite for extensibility, maintainability, readability, verifiability, and long-term evolution.",
+        "Prefer explicit, easy-to-explain designs over cleverness, hidden coupling, or ornamental complexity.",
+        "Judge independently and anchor on objective facts, runtime results, and verifiable evidence rather than pleasing the user, sounding agreeable, or performing confidence.",
+        "Reduce complexity by giving files, modules, and components clear responsibilities and composing them through crisp interfaces.",
+        "When ambiguity appears, investigate and clarify instead of guessing; if an implementation is hard to explain, suspect the design and simplify it.",
+        "Stay sharp and constructive in hard tasks: convert uncertainty into checks, disagreement into verification, and complexity back into boundaries.",
+        "First make the change easy, then make the easy change; keep the main path obvious before polishing edge detail, require architecture that is clear, bounded, explicit in responsibility, and strong in maintainability, then close it in the real system.",
+      ].join("\n"),
+    },
+  ],
+  runtimeFacts: INTP_RUNTIME_FACTS_PROFILE,
+};
+
+function buildIntpRuntimeFactBlocks(input: RuntimeFactsProfileInput): string[] {
   const isSubagent = input.runtimeState.identity?.kind === "subagent";
-  const blocks = [
+  return [
     buildRuntimeEnvironmentBlock(input),
     buildCurrentObjectiveBlock(input.taskState),
     buildVerificationBlock(input.verificationState),
@@ -40,12 +56,9 @@ export function buildDynamicPromptBlocks(input: DynamicPromptInput): string[] {
     isSubagent ? undefined : buildCapabilityBlock(input.runtimeState),
     buildSkillBlock(input.projectContext.skills, input.skillRuntimeState),
   ].filter((block): block is string => Boolean(block));
-
-  return blocks;
 }
 
-function buildRuntimeEnvironmentBlock(input: DynamicPromptInput): string | undefined {
-  
+function buildRuntimeEnvironmentBlock(input: RuntimeFactsProfileInput): string | undefined {
   return buildFieldBlock("Runtime environment", [
     { label: "Current working directory", value: input.cwd },
     { label: "Project root", value: input.projectContext.rootDir },
@@ -59,7 +72,6 @@ function buildRuntimeEnvironmentBlock(input: DynamicPromptInput): string | undef
 }
 
 function buildCurrentObjectiveBlock(taskState: TaskState | undefined): string | undefined {
-  
   const fields: PromptField[] = [];
 
   if (taskState?.objective) {
@@ -70,7 +82,6 @@ function buildCurrentObjectiveBlock(taskState: TaskState | undefined): string | 
 }
 
 function buildVerificationBlock(state: VerificationState | undefined): string | undefined {
-  
   const verification = normalizeVerificationState(state);
   if (!verification) {
     return undefined;
@@ -101,8 +112,7 @@ function buildVerificationBlock(state: VerificationState | undefined): string | 
   return buildFieldBlock("Verification facts", fields);
 }
 
-function buildAcceptanceBlock(state: AcceptanceState | undefined): string | undefined {
-  
+function buildAcceptanceBlock(state: RuntimeFactsProfileInput["acceptanceState"]): string | undefined {
   if (!state?.contract) {
     return undefined;
   }
@@ -127,7 +137,6 @@ function buildAcceptanceBlock(state: AcceptanceState | undefined): string | unde
 }
 
 function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskState: TaskState | undefined): string | undefined {
-  
   const normalized = normalizeCheckpoint(checkpoint);
   if (!normalized || normalized.status === "completed") {
     return undefined;
@@ -163,17 +172,16 @@ function checkpointMatchesCurrentInput(checkpoint: SessionCheckpoint, taskState:
   return normalizeOneLine(checkpoint.objective) === current;
 }
 
-function buildCapabilityBlock(runtimeState: PromptRuntimeState): string | undefined {
+function buildCapabilityBlock(runtimeState: RuntimeFactsProfileInput["runtimeState"]): string | undefined {
   return runtimeState.capabilitySummary
     ? formatPromptBlock("Available capability registry", runtimeState.capabilitySummary)
     : undefined;
 }
 
 function buildSkillBlock(
-  discoveredSkills: ProjectContext["skills"],
-  runtimeState: SkillRuntimeState,
+  discoveredSkills: RuntimeFactsProfileInput["projectContext"]["skills"],
+  runtimeState: RuntimeFactsProfileInput["skillRuntimeState"],
 ): string | undefined {
-  
   const content = formatSkillPromptBlock(discoveredSkills, runtimeState).trim();
   if (!content || content === "- No project skills discovered.") {
     return discoveredSkills.length > 0
