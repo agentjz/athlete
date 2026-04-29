@@ -1,13 +1,13 @@
 {
   "name": "@jun133/deadmouse",
   "version": "0.1.1",
-  "description": "A problem-solving agent focused on durable task execution.",
+  "description": "An agent harness for durable execution.",
   "keywords": [
     "deadmouse",
     "agent",
     "automation",
     "runtime",
-    "problem-solving"
+    "harness"
   ],
   "bin": {
     "deadmouse": "dist/cli.js"

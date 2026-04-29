@@ -183,11 +183,13 @@ When behavior changes, tests must lead or move together with the implementation.
 
 The preferred development path is:
 
-`spec -> failing/updated test -> implementation -> full verification -> residue deletion -> closeout`
+`spec -> failing/updated test -> implementation -> full test suite -> sync spec to the verified truth -> residue deletion -> closeout`
 
 For regressions, first encode the failure as a test whenever practical. For new protocol or runtime semantics, add or update contract tests before claiming the behavior exists. For deleted legacy behavior, delete or rewrite the old tests so they protect the new truth instead of preserving compatibility.
 
 TDD in this repository is not conservative. It is a weapon for radical evolution: tests should make the newest accepted architecture hard to regress and make obsolete behavior impossible to keep alive accidentally.
+
+After every repository change, run the full test suite before closeout. Once the full test suite passes, synchronize the relevant `spec/` documents to the verified runtime truth before claiming the task is complete.
 
 ## 5. Spec, Code, And Tests Must Converge
 
@@ -198,7 +200,8 @@ But every change must converge before closeout:
 - Specs must describe the current accepted truth.
 - Code must implement that truth.
 - Tests must protect the important contract.
-- Full verification must pass when the task changes behavior.
+- The full test suite must pass after every repository change.
+- Relevant `spec/` documents must be synchronized after the full test suite passes.
 
 Do not leave spec behind code. Do not leave tests protecting old behavior. Do not leave docs describing a dead design. Do not claim completion from explanation alone.
 
@@ -209,7 +212,8 @@ When spec, code, and tests conflict, resolve the conflict immediately:
 3. Update or delete stale tests.
 4. Replace the implementation.
 5. Remove old residue.
-6. Run real verification.
+6. Run the full test suite.
+7. Synchronize relevant `spec/` documents to the verified truth.
 
 Plans are not results. Explanations are not results. Compatibility is not correctness. A passing narrow check is not enough when the task requires full-system confidence.
 
@@ -231,8 +235,8 @@ A task is not complete until the repository state supports the claim with real a
 - Old residue removed.
 - Tests updated.
 - Contract checks updated when needed.
-- Typecheck/build/test run when behavior changed.
-- Full test suite run when requested or when broad behavior changed.
+- Full test suite run after every repository change.
+- Relevant `spec/` documents synchronized after the full test suite passes.
 
 Closeout must depend on durable evidence, not model self-report.
 

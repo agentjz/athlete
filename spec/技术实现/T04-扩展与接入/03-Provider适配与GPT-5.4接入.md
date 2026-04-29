@@ -78,7 +78,7 @@ provider 相关正式状态当前归属如下：
 当前主要由以下测试保护：
 
 - `tests/provider-capability.test.ts`
-- `tests/provider-runtime-config.test.ts`
+- `tests/config/provider-runtime-config.test.ts`
 - `tests/doctor-provider-probe.test.ts`
 - `tests/provider-and-tool-observability.test.ts`
 

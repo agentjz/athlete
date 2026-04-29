@@ -99,11 +99,41 @@ test("resolveRuntimeConfig lets DEADMOUSE_PROFILE override the project env file"
 
   try {
     restoreEnv({
-      DEADMOUSE_PROFILE: "runtime-profile",
+      DEADMOUSE_PROFILE: "grok",
     });
 
     const runtime = await resolveRuntimeConfig({ cwd: root });
-    assert.equal(runtime.profile, "runtime-profile");
+    assert.equal(runtime.profile, "grok");
+  } finally {
+    restoreEnv(previous);
+  }
+});
+
+test("resolveRuntimeConfig fails closed when no agent profile is explicitly configured", async (t) => {
+  const root = await createTempWorkspace("missing-profile-runtime-config", t);
+  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, ".deadmouse", ".env"),
+    [
+      "DEADMOUSE_PROVIDER=deepseek",
+      "DEADMOUSE_API_KEY=project-key",
+      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
+      "DEADMOUSE_MODEL=deepseek-v4-flash",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = snapshotEnv(["DEADMOUSE_PROFILE"]);
+
+  try {
+    restoreEnv({
+      DEADMOUSE_PROFILE: undefined,
+    });
+
+    await assert.rejects(
+      () => resolveRuntimeConfig({ cwd: root }),
+      /Missing agent profile/i,
+    );
   } finally {
     restoreEnv(previous);
   }

@@ -88,6 +88,7 @@ test("resolveRuntimeConfig reads Playwright MCP settings from the nearest projec
     path.join(root, ".deadmouse", ".env"),
     [
       "DEADMOUSE_API_KEY=test-key",
+      "DEADMOUSE_PROFILE=intp",
       "DEADMOUSE_MCP_ENABLED=1",
       "DEADMOUSE_MCP_PLAYWRIGHT_ENABLED=1",
       "DEADMOUSE_MCP_PLAYWRIGHT_BROWSER=chromium",
@@ -98,6 +99,7 @@ test("resolveRuntimeConfig reads Playwright MCP settings from the nearest projec
 
   const previous = {
     DEADMOUSE_API_KEY: process.env.DEADMOUSE_API_KEY,
+    DEADMOUSE_PROFILE: process.env.DEADMOUSE_PROFILE,
     DEADMOUSE_MCP_ENABLED: process.env.DEADMOUSE_MCP_ENABLED,
     DEADMOUSE_MCP_PLAYWRIGHT_ENABLED: process.env.DEADMOUSE_MCP_PLAYWRIGHT_ENABLED,
     DEADMOUSE_MCP_PLAYWRIGHT_BROWSER: process.env.DEADMOUSE_MCP_PLAYWRIGHT_BROWSER,
@@ -115,6 +117,7 @@ test("resolveRuntimeConfig reads Playwright MCP settings from the nearest projec
   });
 
   delete process.env.DEADMOUSE_API_KEY;
+  delete process.env.DEADMOUSE_PROFILE;
   delete process.env.DEADMOUSE_MCP_ENABLED;
   delete process.env.DEADMOUSE_MCP_PLAYWRIGHT_ENABLED;
   delete process.env.DEADMOUSE_MCP_PLAYWRIGHT_BROWSER;

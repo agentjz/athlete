@@ -2,7 +2,7 @@ import { renderPromptLayers } from "./prompt/format.js";
 import { measurePromptLayers } from "./prompt/metrics.js";
 import { buildStaticPromptBlocks } from "./prompt/static.js";
 import type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./prompt/types.js";
-import { buildProfilePersonaPromptBlocks, getDefaultAgentProfile } from "./profiles/registry.js";
+import { buildProfilePersonaPromptBlocks, resolveAgentProfile } from "./profiles/registry.js";
 import type { AgentProfile } from "./profiles/types.js";
 import type {
   ProjectContext,
@@ -30,9 +30,10 @@ export function buildSystemPromptLayers(
   skillRuntimeState?: SkillRuntimeState,
   checkpoint?: SessionCheckpoint,
   acceptanceState?: AcceptanceState,
-  profile: AgentProfile = getDefaultAgentProfile(),
+  profile?: AgentProfile,
 ): PromptLayers {
   const resolvedSkillRuntimeState = skillRuntimeState ?? createEmptySkillRuntimeState();
+  const resolvedProfile = profile ?? resolveAgentProfile(config.profile);
 
   return {
     staticBlocks: buildStaticPromptBlocks({
@@ -40,8 +41,8 @@ export function buildSystemPromptLayers(
       projectContext,
       runtimeState,
     }),
-    profilePersonaBlocks: buildProfilePersonaPromptBlocks(profile),
-    runtimeFactBlocks: profile.runtimeFacts.buildBlocks({
+    profilePersonaBlocks: buildProfilePersonaPromptBlocks(resolvedProfile),
+    runtimeFactBlocks: resolvedProfile.runtimeFacts.buildBlocks({
       cwd,
       config,
       projectContext,

@@ -10,6 +10,7 @@ import {
   readMineruRuntimeConfig,
 } from "./runtimeEnv.js";
 import { normalizeConfig } from "./schema.js";
+import { resolveAgentProfile } from "../agent/profiles/registry.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
 import {
   parseTelegramAllowedUserIds,
@@ -93,6 +94,11 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       stateRootDir: projectRoots.stateRootDir,
     },
   );
+
+  if (!merged.profile) {
+    throw new Error("Missing agent profile. Set DEADMOUSE_PROFILE explicitly in the project's .deadmouse/.env file.");
+  }
+  resolveAgentProfile(merged.profile);
 
   return {
     ...merged,

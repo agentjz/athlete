@@ -21,7 +21,7 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
 
   program
     .name("deadmouse")
-    .description("Deadmouse - a problem-solving agent focused on durable task execution.")
+    .description("Deadmouse - an agent harness for durable execution.")
     .version(packageJson.version, "-v, --version", "Print the current Deadmouse version.")
     .configureOutput({
       writeOut: (text) => {

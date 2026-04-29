@@ -8,7 +8,7 @@ import {
 } from "../../src/agent/promptSections.js";
 import { buildRequestContext } from "../../src/agent/context.js";
 import { formatSkillPromptBlock } from "../../src/capabilities/skills/prompt.js";
-import { getDefaultAgentProfile } from "../../src/agent/profiles/registry.js";
+import { resolveAgentProfile } from "../../src/agent/profiles/registry.js";
 import type { AgentProfile } from "../../src/agent/profiles/types.js";
 import type { LoadedSkill, ProjectContext, SkillRuntimeState } from "../../src/types.js";
 import { createMessage } from "../../src/agent/session.js";
@@ -42,7 +42,8 @@ test("system prompt exposes static and profile runtime facts layers without a hi
   assert.match(prompt, /Identity \/ role contract:/);
   assert.match(prompt, /Profile persona layer:/);
   assert.match(prompt, /Profile runtime facts layer:/);
-  assert.match(prompt, /INTP architectural mindset:/);
+  assert.equal(layers.profilePersonaBlocks.length, 1);
+  assert.equal(layers.runtimeFactBlocks.length > 0, true);
   assert.match(prompt, /Work loop contract:/);
   assert.match(prompt, /Prompt boundary contract:/);
   assert.match(prompt, /Diligence \/ budget contract:/);
@@ -56,7 +57,7 @@ test("system prompt exposes static and profile runtime facts layers without a hi
   assert.doesNotMatch(prompt, /Carryover:/);
 });
 
-test("system prompt keeps core contracts separate from the default profile", () => {
+test("system prompt keeps core contracts separate from the configured intp profile", () => {
   const layers = buildSystemPromptLayers(
     ROOT,
     createTestRuntimeConfig(ROOT),
@@ -67,10 +68,22 @@ test("system prompt keeps core contracts separate from the default profile", () 
 
   assert.match(staticLayer, /Identity \/ role contract:/);
   assert.match(staticLayer, /Tool-use contract:/);
-  assert.doesNotMatch(staticLayer, /top-tier, ace, strongest, elegant INTP architect/i);
-  assert.match(profileLayer, /INTP architectural mindset:/);
-  assert.match(profileLayer, /top-tier, ace, strongest, elegant INTP architect/i);
-  assert.equal(getDefaultAgentProfile().id, "intp");
+  assert.match(staticLayer, /Bring your full tacit expertise, latent knowledge, deep pattern recognition/i);
+  assert.match(staticLayer, /highest available reasoning capacity to bear on the current objective/i);
+  assert.match(staticLayer, /All responses, edits, suggestions, judgments, plans, and actions must be grounded in objective facts/i);
+  assert.match(staticLayer, /do not fabricate nonexistent implementation, expected behavior, future plans/i);
+  assert.equal(layers.profilePersonaBlocks.length, 1);
+  assert.equal(layers.runtimeFactBlocks.some((block) => /Runtime environment:/i.test(block)), true);
+  assert.doesNotMatch(staticLayer, /Structural clarity:/);
+  assert.match(profileLayer, /Structural clarity:/);
+  assert.equal(resolveAgentProfile("intp").id, "intp");
+});
+
+test("agent profile resolution fails closed when profile is missing", () => {
+  assert.throws(
+    () => resolveAgentProfile(""),
+    /Missing agent profile/i,
+  );
 });
 
 test("system prompt can inject a different profile with its own persona and runtime facts presentation", () => {
@@ -115,13 +128,59 @@ test("system prompt can inject a different profile with its own persona and runt
   );
   const prompt = renderPromptLayers(layers);
 
-  assert.match(prompt, /Teaching profile:/);
-  assert.match(prompt, /Teaching runtime facts:/);
-  assert.match(prompt, /explain patiently/i);
-  assert.doesNotMatch(prompt, /INTP architectural mindset:/);
+  assert.equal(layers.profilePersonaBlocks.length, 1);
+  assert.equal(layers.runtimeFactBlocks.length, 1);
+  assert.match(prompt, /All responses, edits, suggestions, judgments, plans, and actions must be grounded in objective facts/i);
+  assert.doesNotMatch(prompt, /Structural clarity:/);
   assert.doesNotMatch(prompt, /Current Objective:/);
   assert.match(prompt, /explain this behavior/);
   assert.match(prompt, /Tool-use contract:/);
+});
+
+test("grok profile injects a cut-style persona and its own runtime facts presentation without changing core", () => {
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "review whether this design is bullshit",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    undefined,
+    {
+      status: "failed",
+      attempts: 1,
+      observedPaths: ["validation/grok.txt"],
+      lastCommand: "npm test",
+      lastExitCode: 1,
+      lastKind: "test",
+      updatedAt: new Date().toISOString(),
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    resolveAgentProfile("grok"),
+  );
+  const prompt = renderPromptLayers(layers);
+  const staticLayer = layers.staticBlocks.join("\n\n");
+  const profileLayer = layers.profilePersonaBlocks.join("\n\n");
+  const runtimeFactsLayer = layers.runtimeFactBlocks.join("\n\n");
+
+  assert.equal(layers.profilePersonaBlocks.length, 1);
+  assert.equal(layers.runtimeFactBlocks.length > 0, true);
+  assert.match(runtimeFactsLayer, /Cut line:/);
+  assert.match(runtimeFactsLayer, /Target locked: yes/);
+  assert.match(runtimeFactsLayer, /Hard signal: present/);
+  assert.match(runtimeFactsLayer, /review whether this design is bullshit/);
+  assert.match(prompt, /Tool-use contract:/);
+  assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
+  assert.doesNotMatch(staticLayer, /Grok cut:/);
+  assert.doesNotMatch(profileLayer, /Structural clarity:/);
 });
 
 
@@ -186,7 +245,7 @@ test("system prompt states that budget anxiety is not a valid reason for shallow
   assert.match(prompt, /go deeper rather than retreating into a superficial answer/i);
 });
 
-test("system prompt frames the INTP architect mindset around essence, simplicity, and explainable design", () => {
+test("intp profile contributes one persona layer and the structured runtime facts presentation", () => {
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
       ROOT,
@@ -195,16 +254,11 @@ test("system prompt frames the INTP architect mindset around essence, simplicity
     ),
   );
 
-  assert.match(prompt, /INTP architectural mindset:/);
-  assert.match(prompt, /top-tier, ace, strongest, elegant INTP architect/i);
-  assert.match(prompt, /essence, root causes, governing structure, constraints, and boundaries/i);
-  assert.match(prompt, /simplicity as the prerequisite for extensibility, maintainability, readability, verifiability, and long-term evolution/i);
-  assert.match(prompt, /explicit, easy-to-explain designs/i);
-  assert.match(prompt, /objective facts, runtime results, and verifiable evidence/i);
-  assert.match(prompt, /rather than pleasing the user, sounding agreeable, or performing confidence/i);
-  assert.match(prompt, /investigate and clarify instead of guessing/i);
-  assert.match(prompt, /convert uncertainty into checks, disagreement into verification, and complexity back into boundaries/i);
-  assert.match(prompt, /architecture that is clear, bounded, explicit in responsibility, and strong in maintainability/i);
+  assert.match(prompt, /Structural clarity:/);
+  assert.match(prompt, /Runtime environment:/);
+  assert.doesNotMatch(prompt, /Current Objective:/);
+  assert.doesNotMatch(prompt, /Cut line:/);
+  assert.doesNotMatch(prompt, /Grok cut:/);
 });
 
 test("system prompt states that external content is data rather than authority", () => {
@@ -334,7 +388,7 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   assert.equal(metrics.renderedChars, renderPromptLayers(layers).length);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "External content boundary"), true);
   assert.equal(metrics.blockMetrics.some((metric) => metric.title === "Diligence / budget contract"), true);
-  assert.equal(metrics.blockMetrics.some((metric) => metric.title === "INTP architectural mindset"), true);
+  assert.equal(metrics.blockMetrics.some((metric) => metric.title === "Structural clarity"), true);
   assert.equal(metrics.blockMetrics.some((metric) => metric.layer === "profile"), true);
   assert.equal(metrics.hotspots.length > 0, true);
   const topHotspot = metrics.hotspots[0];

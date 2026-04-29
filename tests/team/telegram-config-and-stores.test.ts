@@ -279,6 +279,7 @@ test("resolveRuntimeConfig reads DEADMOUSE_TELEGRAM_PROXY_URL from the project .
     path.join(root, ".deadmouse", ".env"),
     [
       "DEADMOUSE_API_KEY=test-key",
+      "DEADMOUSE_PROFILE=intp",
       "DEADMOUSE_TELEGRAM_TOKEN=test-telegram-token",
       "DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS=1001",
       "DEADMOUSE_TELEGRAM_PROXY_URL=http://127.0.0.1:7897",
@@ -287,6 +288,7 @@ test("resolveRuntimeConfig reads DEADMOUSE_TELEGRAM_PROXY_URL from the project .
   );
   const previous = {
     DEADMOUSE_API_KEY: process.env.DEADMOUSE_API_KEY,
+    DEADMOUSE_PROFILE: process.env.DEADMOUSE_PROFILE,
     DEADMOUSE_TELEGRAM_TOKEN: process.env.DEADMOUSE_TELEGRAM_TOKEN,
     DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS: process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS,
     DEADMOUSE_TELEGRAM_PROXY_URL: process.env.DEADMOUSE_TELEGRAM_PROXY_URL,
@@ -294,6 +296,7 @@ test("resolveRuntimeConfig reads DEADMOUSE_TELEGRAM_PROXY_URL from the project .
 
   try {
     delete process.env.DEADMOUSE_API_KEY;
+    delete process.env.DEADMOUSE_PROFILE;
     delete process.env.DEADMOUSE_TELEGRAM_TOKEN;
     delete process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS;
     delete process.env.DEADMOUSE_TELEGRAM_PROXY_URL;

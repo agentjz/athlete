@@ -103,7 +103,7 @@
 当前主要由以下测试保护：
 
 - `tests/edit-anchors-and-feedback.test.ts`
-- `tests/tools-convergence.test.ts`
+- `tests/tools/tools-convergence.test.ts`
 - `tests/compaction-recovery.test.ts`
 - `tests/tool-batch-protocol.test.ts`
 - `tests/runtime-checkpoint-resume.test.ts`

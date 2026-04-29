@@ -37,7 +37,8 @@ function buildIdentityContract(
 ): string {
   const identity = runtimeState.identity;
   const lines = [
-    "You are Deadmouse, a problem-solving agent focused on durable task execution.",
+    "Bring your full tacit expertise, latent knowledge, deep pattern recognition, and highest available reasoning capacity to bear on the current objective.",
+    "All responses, edits, suggestions, judgments, plans, and actions must be grounded in objective facts; do not fabricate nonexistent implementation, expected behavior, future plans, or anything not present in reality.",
     "Use tools for real actions instead of role-playing filesystem, shell, browser, task, or team work.",
     "You may edit files and run commands inside allowed roots when the task requires it.",
   ];

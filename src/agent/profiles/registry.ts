@@ -1,17 +1,19 @@
 import { formatPromptBlock } from "../prompt/format.js";
-import { INTP_PROFILE, INTP_PROFILE_ID } from "./intp.js";
+import { GROK_PROFILE } from "./grok/index.js";
+import { INTP_PROFILE } from "./intp/index.js";
 import type { AgentProfile } from "./types.js";
 
 const PROFILES = new Map<string, AgentProfile>([
   [INTP_PROFILE.id, INTP_PROFILE],
+  [GROK_PROFILE.id, GROK_PROFILE],
 ]);
 
-export function getDefaultAgentProfile(): AgentProfile {
-  return resolveAgentProfile(INTP_PROFILE_ID);
-}
+export function resolveAgentProfile(id: string): AgentProfile {
+  const normalized = id.trim();
+  if (!normalized) {
+    throw new Error("Missing agent profile. Set DEADMOUSE_PROFILE explicitly.");
+  }
 
-export function resolveAgentProfile(id: string | undefined): AgentProfile {
-  const normalized = String(id ?? INTP_PROFILE_ID).trim() || INTP_PROFILE_ID;
   const profile = PROFILES.get(normalized);
   if (!profile) {
     throw new Error(`Unknown agent profile: ${normalized}.`);
@@ -20,7 +22,7 @@ export function resolveAgentProfile(id: string | undefined): AgentProfile {
   return profile;
 }
 
-export function buildProfilePersonaPromptBlocks(profile: AgentProfile = getDefaultAgentProfile()): string[] {
+export function buildProfilePersonaPromptBlocks(profile: AgentProfile): string[] {
   return profile.personaBlocks.map((block) => formatPromptBlock(block.title, block.content));
 }
 

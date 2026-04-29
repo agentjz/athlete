@@ -1,44 +1,40 @@
-import { normalizeCheckpoint } from "../checkpoint.js";
-import { formatSkillPromptBlock } from "../../capabilities/skills/prompt.js";
-import { formatPromptBlock } from "../prompt/format.js";
+import { normalizeCheckpoint } from "../../checkpoint.js";
+import { formatSkillPromptBlock } from "../../../capabilities/skills/prompt.js";
+import { formatPromptBlock } from "../../prompt/format.js";
 import {
   buildFieldBlock,
   type PromptField,
-} from "../prompt/structured.js";
-import type {
-  AgentProfile,
-  AgentRuntimeFactsProfile,
-  RuntimeFactsProfileInput,
-} from "./types.js";
-import type { SessionCheckpoint, TaskState, VerificationState } from "../../types.js";
+} from "../../prompt/structured.js";
+import type { AgentProfile, AgentRuntimeFactsProfile, RuntimeFactsProfileInput } from "../types.js";
+import type { SessionCheckpoint, TaskState, VerificationState } from "../../../types.js";
 
 export const INTP_PROFILE_ID = "intp";
-export const INTP_ARCHITECTURE_BLOCK_TITLE = "INTP architectural mindset";
+export const INTP_ARCHITECTURE_BLOCK_TITLE = "Structural clarity";
 
 const INTP_RUNTIME_FACTS_PROFILE: AgentRuntimeFactsProfile = {
   id: INTP_PROFILE_ID,
   name: "INTP runtime facts",
-  summary: "Default Deadmouse runtime facts presentation for objective-first, evidence-first agent work.",
+  summary: "Structured runtime facts for objective-first, evidence-first architecture work.",
   buildBlocks: buildIntpRuntimeFactBlocks,
 };
 
 export const INTP_PROFILE: AgentProfile = {
   id: INTP_PROFILE_ID,
   name: "INTP",
-  summary: "Default Deadmouse profile for essence-first architecture, explicit boundaries, and evidence-backed judgment.",
+  summary: "Structure-first judgment that reduces complexity into clear boundaries, causes, and maintainable moves.",
   personaBlocks: [
     {
       title: INTP_ARCHITECTURE_BLOCK_TITLE,
       content: [
-        "Operate from the perspective of a top-tier, ace, strongest, elegant INTP architect.",
-        "Seek the essence, root causes, governing structure, constraints, and boundaries before reaching for surface fixes.",
-        "Treat simplicity as the prerequisite for extensibility, maintainability, readability, verifiability, and long-term evolution.",
-        "Prefer explicit, easy-to-explain designs over cleverness, hidden coupling, or ornamental complexity.",
-        "Judge independently and anchor on objective facts, runtime results, and verifiable evidence rather than pleasing the user, sounding agreeable, or performing confidence.",
-        "Reduce complexity by giving files, modules, and components clear responsibilities and composing them through crisp interfaces.",
-        "When ambiguity appears, investigate and clarify instead of guessing; if an implementation is hard to explain, suspect the design and simplify it.",
-        "Stay sharp and constructive in hard tasks: convert uncertainty into checks, disagreement into verification, and complexity back into boundaries.",
-        "First make the change easy, then make the easy change; keep the main path obvious before polishing edge detail, require architecture that is clear, bounded, explicit in responsibility, and strong in maintainability, then close it in the real system.",
+        "Start from structure.",
+        "Find the boundary before the fix.",
+        "Trace symptoms back to cause, constraint, responsibility, state, and interface.",
+        "Make the system easier to explain before making the change.",
+        "Simplicity carries extensibility, maintainability, readability, verification, and long-term evolution.",
+        "Prefer explicit responsibilities and crisp interfaces over cleverness, hidden coupling, or ornamental complexity.",
+        "Turn ambiguity into checks, disagreement into evidence, and complexity into named boundaries.",
+        "If the implementation is hard to explain, suspect the design.",
+        "Make the change easy, then make the easy change.",
       ].join("\n"),
     },
   ],
@@ -73,11 +69,9 @@ function buildRuntimeEnvironmentBlock(input: RuntimeFactsProfileInput): string |
 
 function buildCurrentObjectiveBlock(taskState: TaskState | undefined): string | undefined {
   const fields: PromptField[] = [];
-
   if (taskState?.objective) {
     fields.push({ label: "User input", value: taskState.objective });
   }
-
   return buildFieldBlock("Current Objective", fields);
 }
 
@@ -96,7 +90,6 @@ function buildVerificationBlock(state: VerificationState | undefined): string | 
   }
 
   const fields: PromptField[] = [{ label: "Status", value: verification.status }];
-
   if (verification.observedPaths.length > 0) {
     fields.push({ label: "Observed paths", value: formatLimitedList(verification.observedPaths, 6) });
   }
@@ -149,27 +142,14 @@ function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskSta
     { label: "Status", value: normalized.status },
     { label: "Runtime phase", value: formatCheckpointPhase(normalized.flow.phase, normalized.flow.reason) },
   ];
-
   if (normalized.recentToolBatch) {
     fields.push({ label: "Recent tool batch", value: `${normalized.recentToolBatch.tools.length} tool(s) recorded` });
   }
   if (normalized.priorityArtifacts.length > 0) {
-    fields.push({
-      label: "Priority artifacts",
-      value: `${normalized.priorityArtifacts.length} artifact reference(s) stored`,
-    });
+    fields.push({ label: "Priority artifacts", value: `${normalized.priorityArtifacts.length} artifact reference(s) stored` });
   }
 
   return buildFieldBlock("Runtime Facts", fields);
-}
-
-function checkpointMatchesCurrentInput(checkpoint: SessionCheckpoint, taskState: TaskState | undefined): boolean {
-  const current = normalizeOneLine(taskState?.objective);
-  if (!current) {
-    return false;
-  }
-
-  return normalizeOneLine(checkpoint.objective) === current;
 }
 
 function buildCapabilityBlock(runtimeState: RuntimeFactsProfileInput["runtimeState"]): string | undefined {
@@ -184,12 +164,15 @@ function buildSkillBlock(
 ): string | undefined {
   const content = formatSkillPromptBlock(discoveredSkills, runtimeState).trim();
   if (!content || content === "- No project skills discovered.") {
-    return discoveredSkills.length > 0
-      ? formatPromptBlock("Skill runtime hints", content)
-      : undefined;
+    return discoveredSkills.length > 0 ? formatPromptBlock("Skill runtime hints", content) : undefined;
   }
 
   return formatPromptBlock("Skill runtime hints", content);
+}
+
+function checkpointMatchesCurrentInput(checkpoint: SessionCheckpoint, taskState: TaskState | undefined): boolean {
+  const current = normalizeOneLine(taskState?.objective);
+  return Boolean(current) && normalizeOneLine(checkpoint.objective) === current;
 }
 
 function formatCheckpointPhase(phase: string, reason: string | undefined): string {
@@ -210,15 +193,11 @@ function normalizeOneLine(value: string | undefined): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function normalizeVerificationState(
-  state: VerificationState | undefined,
-): VerificationState | undefined {
-  if (!state) {
-    return undefined;
-  }
-
-  return {
-    ...state,
-    observedPaths: Array.isArray(state.observedPaths) ? state.observedPaths.filter(Boolean) : [],
-  };
+function normalizeVerificationState(state: VerificationState | undefined): VerificationState | undefined {
+  return state
+    ? {
+        ...state,
+        observedPaths: Array.isArray(state.observedPaths) ? state.observedPaths.filter(Boolean) : [],
+      }
+    : undefined;
 }
