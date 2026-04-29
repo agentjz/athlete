@@ -12,6 +12,7 @@ interface BuildProviderRequestBodyInput {
   forceReasoning: boolean;
   thinking?: "enabled" | "disabled";
   reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+  maxOutputTokens?: number;
 }
 
 export function buildProviderRequestBody(
@@ -28,6 +29,10 @@ export function buildProviderRequestBody(
     tool_choice: input.tools?.length ? "auto" : undefined,
     stream: input.stream,
   };
+
+  if (typeof input.maxOutputTokens === "number" && Number.isFinite(input.maxOutputTokens)) {
+    body.max_tokens = Math.max(1, Math.trunc(input.maxOutputTokens));
+  }
 
   if (capabilities.provider === "deepseek") {
     body.thinking = { type: thinking };

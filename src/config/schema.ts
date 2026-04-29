@@ -55,18 +55,19 @@ export function normalizeConfig(
     profile: String(config.profile ?? "").trim(),
     thinking: normalizeThinking(config.thinking),
     reasoningEffort: normalizeReasoningEffort(config.reasoningEffort),
+    maxOutputTokens: clampOptionalNumber(config.maxOutputTokens, 1, 384_000),
     yieldAfterToolSteps: clampNumber(
       config.yieldAfterToolSteps,
       0,
       50,
       DEFAULT_CONFIG.yieldAfterToolSteps,
     ),
-    contextWindowMessages: clampNumber(config.contextWindowMessages, 6, 120, DEFAULT_CONFIG.contextWindowMessages),
-    maxContextChars: clampNumber(config.maxContextChars, 8_000, 300_000, DEFAULT_CONFIG.maxContextChars),
+    contextWindowMessages: clampNumber(config.contextWindowMessages, 6, 240, DEFAULT_CONFIG.contextWindowMessages),
+    maxContextChars: clampNumber(config.maxContextChars, 8_000, 1_000_000, DEFAULT_CONFIG.maxContextChars),
     contextSummaryChars: clampNumber(
       config.contextSummaryChars,
       1_000,
-      40_000,
+      160_000,
       DEFAULT_CONFIG.contextSummaryChars,
     ),
     maxToolIterations: clampNumber(config.maxToolIterations, 1, 20, DEFAULT_CONFIG.maxToolIterations),
@@ -189,6 +190,18 @@ export function mergeAppConfig(base: AppConfig, patch: Partial<AppConfig>): AppC
 function clampNumber(value: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(value)) {
     return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function clampOptionalNumber(value: number | undefined, min: number, max: number): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (!Number.isFinite(value)) {
+    return undefined;
   }
 
   return Math.max(min, Math.min(max, Math.trunc(value)));

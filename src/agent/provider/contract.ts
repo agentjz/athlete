@@ -23,6 +23,7 @@ export interface ProviderAdapterRequest {
   forceReasoning: boolean;
   thinking?: "enabled" | "disabled";
   reasoningEffort?: ModelReasoningEffort;
+  maxOutputTokens?: number;
   abortSignal?: AbortSignal;
   onRequestMetric?: (metric: ModelRequestMetric) => void;
 }

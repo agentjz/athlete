@@ -9,12 +9,15 @@ export const APP_CONFIG_KEYS = [
   "profile",
   "thinking",
   "reasoningEffort",
+  "maxOutputTokens",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
   "contextSummaryChars",
   "maxToolIterations",
   "maxContinuationBatches",
+  "managedTurnMaxSlices",
+  "managedTurnMaxElapsedMs",
   "maxReadBytes",
   "maxSearchResults",
   "maxSpreadsheetPreviewRows",
@@ -35,12 +38,15 @@ const MUTABLE_CONFIG_KEYS = new Set<keyof AppConfig>([
   "profile",
   "thinking",
   "reasoningEffort",
+  "maxOutputTokens",
   "yieldAfterToolSteps",
   "contextWindowMessages",
   "maxContextChars",
   "contextSummaryChars",
   "maxToolIterations",
   "maxContinuationBatches",
+  "managedTurnMaxSlices",
+  "managedTurnMaxElapsedMs",
   "maxReadBytes",
   "maxSearchResults",
   "maxSpreadsheetPreviewRows",
@@ -67,12 +73,15 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
       throw new Error("schemaVersion is managed by Deadmouse and cannot be set manually.");
     case "showReasoning":
       return (rawValue === "true" || rawValue === "1") as AppConfig[keyof AppConfig];
+    case "maxOutputTokens":
     case "contextWindowMessages":
     case "maxContextChars":
     case "contextSummaryChars":
     case "yieldAfterToolSteps":
     case "maxToolIterations":
     case "maxContinuationBatches":
+    case "managedTurnMaxSlices":
+    case "managedTurnMaxElapsedMs":
     case "maxReadBytes":
     case "maxSearchResults":
     case "maxSpreadsheetPreviewRows":

@@ -69,7 +69,25 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       profile: process.env.DEADMOUSE_PROFILE ?? fileConfig.profile,
       thinking: parseThinkingEnv(process.env.DEADMOUSE_THINKING) ?? fileConfig.thinking,
       reasoningEffort: parseReasoningEffortEnv(process.env.DEADMOUSE_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
+      maxOutputTokens:
+        parseIntegerEnv(process.env.DEADMOUSE_MAX_OUTPUT_TOKENS) ?? fileConfig.maxOutputTokens,
       baseUrl: process.env.DEADMOUSE_BASE_URL ?? fileConfig.baseUrl,
+      yieldAfterToolSteps:
+        parseIntegerEnv(process.env.DEADMOUSE_YIELD_AFTER_TOOL_STEPS) ?? fileConfig.yieldAfterToolSteps,
+      contextWindowMessages:
+        parseIntegerEnv(process.env.DEADMOUSE_CONTEXT_WINDOW_MESSAGES) ?? fileConfig.contextWindowMessages,
+      maxContextChars:
+        parseIntegerEnv(process.env.DEADMOUSE_MAX_CONTEXT_CHARS) ?? fileConfig.maxContextChars,
+      contextSummaryChars:
+        parseIntegerEnv(process.env.DEADMOUSE_CONTEXT_SUMMARY_CHARS) ?? fileConfig.contextSummaryChars,
+      maxToolIterations:
+        parseIntegerEnv(process.env.DEADMOUSE_MAX_TOOL_ITERATIONS) ?? fileConfig.maxToolIterations,
+      maxContinuationBatches:
+        parseIntegerEnv(process.env.DEADMOUSE_MAX_CONTINUATION_BATCHES) ?? fileConfig.maxContinuationBatches,
+      managedTurnMaxSlices:
+        parseIntegerEnv(process.env.DEADMOUSE_MANAGED_TURN_MAX_SLICES) ?? fileConfig.managedTurnMaxSlices,
+      managedTurnMaxElapsedMs:
+        parseIntegerEnv(process.env.DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS) ?? fileConfig.managedTurnMaxElapsedMs,
       mcp: {
         ...fileConfig.mcp,
         enabled: parseBooleanEnv(process.env.DEADMOUSE_MCP_ENABLED) ?? fileConfig.mcp.enabled,

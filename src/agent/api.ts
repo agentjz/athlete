@@ -28,6 +28,7 @@ export async function fetchAssistantResponse(
     model: string;
     thinking?: ModelThinkingMode;
     reasoningEffort?: ModelReasoningEffort;
+    maxOutputTokens?: number;
   },
   tools: FunctionToolDefinition[] | undefined,
   callbacks: AgentCallbacks | undefined,
@@ -118,6 +119,7 @@ async function tryFetch(
     model: string;
     thinking?: ModelThinkingMode;
     reasoningEffort?: ModelReasoningEffort;
+    maxOutputTokens?: number;
   },
   tools: FunctionToolDefinition[] | undefined,
   callbacks: AgentCallbacks | undefined,
@@ -179,6 +181,7 @@ async function tryFetch(
           forceReasoning,
           thinking: request.thinking,
           reasoningEffort: request.reasoningEffort,
+          maxOutputTokens: request.maxOutputTokens,
           abortSignal,
           onRequestMetric: forwardMetric,
         });
@@ -226,6 +229,7 @@ async function tryFetch(
             forceReasoning,
             thinking: request.thinking,
             reasoningEffort: request.reasoningEffort,
+            maxOutputTokens: request.maxOutputTokens,
             abortSignal,
             onRequestMetric: forwardMetric,
           });

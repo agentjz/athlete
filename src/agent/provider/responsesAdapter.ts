@@ -184,6 +184,10 @@ function buildResponsesRequestBody(request: ProviderAdapterRequest): Record<stri
     tool_choice: request.tools?.length ? "auto" : undefined,
   };
 
+  if (typeof request.maxOutputTokens === "number" && Number.isFinite(request.maxOutputTokens)) {
+    body.max_output_tokens = Math.max(1, Math.trunc(request.maxOutputTokens));
+  }
+
   const reasoningEffort = normalizeResponsesReasoningEffort(
     request.reasoningEffort ?? capabilities.defaultReasoningEffort,
   );

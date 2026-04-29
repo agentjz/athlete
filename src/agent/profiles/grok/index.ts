@@ -11,7 +11,7 @@ export const GROK_PERSONA_BLOCK_TITLE = "Grok cut";
 const GROK_RUNTIME_FACTS_PROFILE: AgentRuntimeFactsProfile = {
   id: GROK_PROFILE_ID,
   name: "Grok runtime facts",
-  summary: "Cut-line runtime facts that foreground the target, evidence, pressure, and missing signals.",
+  summary: "Cut-line runtime facts that foreground the target and recorded evidence without turning missing signals into pressure.",
   buildBlocks: buildGrokRuntimeFactBlocks,
 };
 
@@ -60,14 +60,27 @@ function buildCurrentObjectiveBlock(taskState: TaskState | undefined): string | 
 }
 
 function buildCutLineBlock(input: RuntimeFactsProfileInput): string | undefined {
-  return buildFieldBlock("Cut line", [
-    { label: "Target locked", value: input.taskState?.objective ? "yes" : "no" },
-    { label: "Hard signal", value: hasVerificationSignal(input) ? "present" : "none recorded" },
-    { label: "Acceptance", value: input.acceptanceState?.contract ? input.acceptanceState.status : "none recorded" },
-    { label: "Checkpoint", value: input.checkpoint?.status ?? "none recorded" },
-    { label: "Capability surface", value: input.runtimeState.capabilitySummary ? "visible" : "not summarized" },
-    { label: "Loaded skills", value: String(input.skillRuntimeState.loadedSkills.length) },
-  ]);
+  const fields: PromptField[] = [];
+  if (input.taskState?.objective) {
+    fields.push({ label: "Target locked", value: "yes" });
+  }
+  if (hasVerificationSignal(input)) {
+    fields.push({ label: "Recorded evidence", value: "present" });
+  }
+  if (input.acceptanceState?.contract) {
+    fields.push({ label: "Acceptance", value: input.acceptanceState.status });
+  }
+  if (input.checkpoint) {
+    fields.push({ label: "Checkpoint", value: input.checkpoint.status });
+  }
+  if (input.runtimeState.capabilitySummary) {
+    fields.push({ label: "Capability surface", value: "visible" });
+  }
+  if (input.skillRuntimeState.loadedSkills.length > 0) {
+    fields.push({ label: "Loaded skills", value: String(input.skillRuntimeState.loadedSkills.length) });
+  }
+
+  return buildFieldBlock("Decision facts", fields);
 }
 
 function buildVerificationBlock(state: VerificationState | undefined): string | undefined {
@@ -117,7 +130,7 @@ function buildAcceptanceBlock(state: RuntimeFactsProfileInput["acceptanceState"]
     fields.push({ label: "Issue summary", value: state.lastIssueSummary });
   }
 
-  return buildFieldBlock("Acceptance pressure", fields);
+  return buildFieldBlock("Acceptance facts", fields);
 }
 
 function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskState: TaskState | undefined): string | undefined {
@@ -140,7 +153,7 @@ function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskSta
     fields.push({ label: "Priority artifacts", value: `${normalized.priorityArtifacts.length} artifact reference(s) stored` });
   }
 
-  return buildFieldBlock("Runtime pressure", fields);
+  return buildFieldBlock("Runtime facts", fields);
 }
 
 function buildCapabilityBlock(runtimeState: RuntimeFactsProfileInput["runtimeState"]): string | undefined {

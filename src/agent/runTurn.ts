@@ -144,6 +144,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             model: requestModel,
             thinking: turnModelConfig.thinking,
             reasoningEffort: turnModelConfig.reasoningEffort,
+            maxOutputTokens: turnModelConfig.maxOutputTokens,
           },
           turnToolDefinitions,
           options.callbacks,

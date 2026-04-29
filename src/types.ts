@@ -63,6 +63,7 @@ export interface AppConfig {
   profile: string;
   thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
+  maxOutputTokens?: number;
   yieldAfterToolSteps: number;
   contextWindowMessages: number;
   maxContextChars: number;

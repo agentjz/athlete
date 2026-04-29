@@ -109,6 +109,70 @@ test("resolveRuntimeConfig lets DEADMOUSE_PROFILE override the project env file"
   }
 });
 
+test("resolveRuntimeConfig reads runtime budget values from the project env file", async (t) => {
+  const root = await createTempWorkspace("runtime-budget-env-config", t);
+  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, ".deadmouse", ".env"),
+    [
+      "DEADMOUSE_PROVIDER=deepseek",
+      "DEADMOUSE_API_KEY=project-key",
+      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
+      "DEADMOUSE_MODEL=deepseek-v4-flash",
+      "DEADMOUSE_PROFILE=intp",
+      "DEADMOUSE_CONTEXT_WINDOW_MESSAGES=77",
+      "DEADMOUSE_MAX_CONTEXT_CHARS=123456",
+      "DEADMOUSE_CONTEXT_SUMMARY_CHARS=12345",
+      "DEADMOUSE_MAX_OUTPUT_TOKENS=23456",
+      "DEADMOUSE_YIELD_AFTER_TOOL_STEPS=9",
+      "DEADMOUSE_MAX_TOOL_ITERATIONS=7",
+      "DEADMOUSE_MAX_CONTINUATION_BATCHES=6",
+      "DEADMOUSE_MANAGED_TURN_MAX_SLICES=5",
+      "DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS=234567",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const previous = snapshotEnv([
+    "DEADMOUSE_CONTEXT_WINDOW_MESSAGES",
+    "DEADMOUSE_MAX_CONTEXT_CHARS",
+    "DEADMOUSE_CONTEXT_SUMMARY_CHARS",
+    "DEADMOUSE_MAX_OUTPUT_TOKENS",
+    "DEADMOUSE_YIELD_AFTER_TOOL_STEPS",
+    "DEADMOUSE_MAX_TOOL_ITERATIONS",
+    "DEADMOUSE_MAX_CONTINUATION_BATCHES",
+    "DEADMOUSE_MANAGED_TURN_MAX_SLICES",
+    "DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS",
+  ]);
+
+  try {
+    restoreEnv({
+      DEADMOUSE_CONTEXT_WINDOW_MESSAGES: undefined,
+      DEADMOUSE_MAX_CONTEXT_CHARS: undefined,
+      DEADMOUSE_CONTEXT_SUMMARY_CHARS: undefined,
+      DEADMOUSE_MAX_OUTPUT_TOKENS: undefined,
+      DEADMOUSE_YIELD_AFTER_TOOL_STEPS: undefined,
+      DEADMOUSE_MAX_TOOL_ITERATIONS: undefined,
+      DEADMOUSE_MAX_CONTINUATION_BATCHES: undefined,
+      DEADMOUSE_MANAGED_TURN_MAX_SLICES: undefined,
+      DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS: undefined,
+    });
+
+    const runtime = await resolveRuntimeConfig({ cwd: root });
+    assert.equal(runtime.contextWindowMessages, 77);
+    assert.equal(runtime.maxContextChars, 123_456);
+    assert.equal(runtime.contextSummaryChars, 12_345);
+    assert.equal(runtime.maxOutputTokens, 23_456);
+    assert.equal(runtime.yieldAfterToolSteps, 9);
+    assert.equal(runtime.maxToolIterations, 7);
+    assert.equal(runtime.maxContinuationBatches, 6);
+    assert.equal(runtime.managedTurnMaxSlices, 5);
+    assert.equal(runtime.managedTurnMaxElapsedMs, 234_567);
+  } finally {
+    restoreEnv(previous);
+  }
+});
+
 test("resolveRuntimeConfig fails closed when no agent profile is explicitly configured", async (t) => {
   const root = await createTempWorkspace("missing-profile-runtime-config", t);
   await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });

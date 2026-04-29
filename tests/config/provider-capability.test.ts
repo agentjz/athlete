@@ -55,6 +55,7 @@ test("buildProviderRequestBody derives provider-specific reasoning behavior from
     forceReasoning: false,
     thinking: "enabled",
     reasoningEffort: "max",
+    maxOutputTokens: 23_456,
   });
   const deepseekNonThinkingBody = buildProviderRequestBody({
     provider: "deepseek",
@@ -78,6 +79,7 @@ test("buildProviderRequestBody derives provider-specific reasoning behavior from
   assert.equal(deepseekBody.model, "deepseek-v4-pro");
   assert.deepEqual(deepseekBody.thinking, { type: "enabled" });
   assert.equal(deepseekBody.reasoning_effort, "max");
+  assert.equal(deepseekBody.max_tokens, 23_456);
   assert.deepEqual(deepseekNonThinkingBody.thinking, { type: "disabled" });
   assert.equal("reasoning_effort" in deepseekNonThinkingBody, false);
   assert.equal("thinking" in genericBody, false);
