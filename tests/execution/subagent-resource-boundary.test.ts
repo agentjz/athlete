@@ -27,13 +27,6 @@ test("subagent resource guard does not stop normal work after ten tool calls", a
     ...baseConfig,
     yieldAfterToolSteps: 0,
     baseUrl: server.baseUrl,
-    agentModels: {
-      ...baseConfig.agentModels,
-      subagent: {
-        ...baseConfig.agentModels.subagent,
-        baseUrl: server.baseUrl,
-      },
-    },
   };
   const store = new ExecutionStore(root);
   const execution = await store.create({
@@ -68,13 +61,6 @@ test("subagent resource guard returns to lead on execution boundary", async (t) 
     ...baseConfig,
     yieldAfterToolSteps: 0,
     baseUrl: server.baseUrl,
-    agentModels: {
-      ...baseConfig.agentModels,
-      subagent: {
-        ...baseConfig.agentModels.subagent,
-        baseUrl: server.baseUrl,
-      },
-    },
   };
   const store = new ExecutionStore(root);
   const execution = await store.create({

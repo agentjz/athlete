@@ -30,21 +30,18 @@ export function registerDoctorCommand(
       ui.info(`provider: ${runtime.config.provider}`);
       ui.info(`model: ${runtime.config.model}`);
       ui.info(`baseUrl: ${runtime.config.baseUrl}`);
-      ui.info(`leadProvider: ${runtime.config.agentModels.lead.provider}`);
-      ui.info(`leadModel: ${runtime.config.agentModels.lead.model}`);
-      ui.info(`leadBaseUrl: ${runtime.config.agentModels.lead.baseUrl}`);
 
-      if (!runtime.config.agentModels.lead.apiKey.trim()) {
+      if (!runtime.config.apiKey.trim()) {
         throw new Error(
-          "User-fixable error: Lead API key not found. Set `DEADMOUSE_LEAD_API_KEY` or `DEADMOUSE_API_KEY` in the current project `.deadmouse/.env`, then rerun `deadmouse doctor`.",
+          "User-fixable error: API key not found. Set `DEADMOUSE_API_KEY` in the current project `.deadmouse/.env`, then rerun `deadmouse doctor`.",
         );
       }
 
       const diagnosis = await probeProviderConnection({
-        provider: runtime.config.agentModels.lead.provider,
-        model: runtime.config.agentModels.lead.model,
-        baseUrl: runtime.config.agentModels.lead.baseUrl,
-        apiKey: runtime.config.agentModels.lead.apiKey,
+        provider: runtime.config.provider,
+        model: runtime.config.model,
+        baseUrl: runtime.config.baseUrl,
+        apiKey: runtime.config.apiKey,
       });
       if (diagnosis.kind === "ok") {
         ui.success(`Provider reachable. models=${diagnosis.models}`);

@@ -19,21 +19,43 @@ import { runExecutionWorker } from "../../src/execution/worker.js";
 
 test("execution lanes share one worker launch protocol instead of lane-specific CLI entries", async (t) => {
   const root = await createTempWorkspace("execution-worker-launch", t);
-  const launch = buildExecutionWorkerLaunch({
-    rootDir: root,
-    config: createTestRuntimeConfig(root),
-    executionId: "exec-123",
+  const staleKeys = ["LEAD", "TEAMMATE", "SUBAGENT"].flatMap((identity) => {
+    return ["API_KEY", "BASE_URL", "MODEL", "PROVIDER", "THINKING", "REASONING_EFFORT"].map((field) => {
+      return `DEADMOUSE_${identity}_${field}`;
+    });
   });
+  const previous = Object.fromEntries(staleKeys.map((key) => [key, process.env[key]]));
+  try {
+    for (const key of staleKeys) {
+      process.env[key] = "stale";
+    }
+    const launch = buildExecutionWorkerLaunch({
+      rootDir: root,
+      config: createTestRuntimeConfig(root),
+      executionId: "exec-123",
+    });
 
-  assert.deepEqual(
-    launch.args.slice(-4),
-    ["__worker__", "run", "--execution-id", "exec-123"],
-  );
-  assert.equal(launch.args.includes("--model"), false);
-  assert.equal(launch.env.DEADMOUSE_SUBAGENT_MODEL, "deepseek-v4-flash");
-  assert.equal(launch.env.DEADMOUSE_SUBAGENT_THINKING, "enabled");
-  assert.equal(launch.env.DEADMOUSE_TEAMMATE_MODEL, "deepseek-v4-flash");
-  assert.equal(launch.env.DEADMOUSE_TEAMMATE_THINKING, "enabled");
+    assert.deepEqual(
+      launch.args.slice(-4),
+      ["__worker__", "run", "--execution-id", "exec-123"],
+    );
+    assert.equal(launch.args.includes("--model"), false);
+    assert.equal(launch.env.DEADMOUSE_MODEL, "deepseek-v4-flash");
+    assert.equal(launch.env.DEADMOUSE_THINKING, "enabled");
+    const identityModelEnv = Object.keys(launch.env).filter((key) => {
+      return ["LEAD", "TEAMMATE", "SUBAGENT"].some((identity) => key.startsWith(`DEADMOUSE_${identity}_`));
+    });
+    assert.deepEqual(identityModelEnv, []);
+  } finally {
+    for (const key of staleKeys) {
+      const value = previous[key];
+      if (typeof value === "string") {
+        process.env[key] = value;
+      } else {
+        delete process.env[key];
+      }
+    }
+  }
 });
 
 test("execution lanes share one formal lifecycle across agent and command work", async (t) => {

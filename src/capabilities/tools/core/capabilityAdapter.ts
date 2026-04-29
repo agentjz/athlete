@@ -68,7 +68,7 @@ function groupToolEntries(entries: readonly ToolRegistryEntry[]): ToolEntryGroup
   }
   return [...groups.values()].map((group) => ({
     ...group,
-    toolNames: group.toolNames.sort().slice(0, 16),
+    toolNames: group.toolNames.sort(),
   }));
 }
 

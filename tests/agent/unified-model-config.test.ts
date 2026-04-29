@@ -6,8 +6,8 @@ import { runAgentTurn } from "../../src/agent/runTurn.js";
 import { MemorySessionStore } from "../../src/agent/session.js";
 import { createTestRuntimeConfig, createTempWorkspace } from "../helpers.js";
 
-test("runAgentTurn sends model requests through the current agent role model profile", async (t) => {
-  const root = await createTempWorkspace("agent-role-model-config", t);
+test("runAgentTurn sends all identities through the core model config", async (t) => {
+  const root = await createTempWorkspace("unified-model-config", t);
   const seenModels: string[] = [];
   const server = await startModelCaptureServer((model) => {
     seenModels.push(model);
@@ -16,29 +16,9 @@ test("runAgentTurn sends model requests through the current agent role model pro
 
   const config = createTestRuntimeConfig(root);
   config.provider = "openai-compatible";
-  config.apiKey = "default-key";
+  config.apiKey = "core-key";
   config.baseUrl = server.baseUrl;
-  config.model = "default-model";
-  config.agentModelOverrides = {
-    lead: {
-      provider: "openai-compatible",
-      apiKey: "lead-key",
-      baseUrl: server.baseUrl,
-      model: "lead-model",
-    },
-    teammate: {
-      provider: "openai-compatible",
-      apiKey: "team-key",
-      baseUrl: server.baseUrl,
-      model: "team-model",
-    },
-    subagent: {
-      provider: "openai-compatible",
-      apiKey: "subagent-key",
-      baseUrl: server.baseUrl,
-      model: "subagent-model",
-    },
-  };
+  config.model = "core-model";
 
   for (const identity of [
     { kind: "lead" as const, name: "lead" },
@@ -63,7 +43,7 @@ test("runAgentTurn sends model requests through the current agent role model pro
     });
   }
 
-  assert.deepEqual(seenModels, ["lead-model", "team-model", "subagent-model"]);
+  assert.deepEqual(seenModels, ["core-model", "core-model", "core-model"]);
 });
 
 async function startModelCaptureServer(

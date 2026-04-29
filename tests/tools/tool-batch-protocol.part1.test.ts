@@ -550,3 +550,45 @@ test("beforeToolCall blocks and afterToolCall failures become formal tool errors
   assert.equal(failedPayload.code, "TOOL_HOOK_FAILED");
   assert.equal((failedPayload.protocol as Record<string, unknown>).status, "failed");
 });
+
+test("unknown tool names become tool failure facts instead of breaking the turn", async (t) => {
+  const root = await createTempWorkspace("tool-batch-unknown-tool", t);
+  const sessionStore = new RecordingSessionStore();
+  const session = await sessionStore.create(root);
+
+  const server = await startFakeOpenAiServer((request) => {
+    if (requestCount(request) === 1) {
+      return toolCallsResponse([
+        { id: "call-unknown", name: "bg_check_job", args: {} },
+      ]);
+    }
+    return textResponse("recovered");
+  });
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await runManagedAgentTurn({
+    input: "Recover from an invalid tool name.",
+    cwd: root,
+    config: {
+      ...createTestRuntimeConfig(root),
+      baseUrl: server.baseUrl,
+    },
+    session,
+    sessionStore,
+    toolRegistry: createToolRegistry(),
+    identity: {
+      kind: "teammate",
+      name: "unknown-tool-test",
+    },
+  });
+
+  assert.equal(result.yielded, false);
+  const toolMessage = result.session.messages.find((message) => message.role === "tool" && message.name === "bg_check_job");
+  assert(toolMessage);
+  const payload = JSON.parse(String(toolMessage.content ?? "{}")) as Record<string, unknown>;
+  assert.equal(payload.ok, false);
+  assert.equal(payload.error, "Unknown tool: bg_check_job");
+  assert.match(String(payload.hint ?? ""), /exposed tool list/i);
+});

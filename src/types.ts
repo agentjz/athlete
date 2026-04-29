@@ -2,7 +2,6 @@ import type { McpConfig } from "./capabilities/mcp/types.js";
 import type { AcceptanceState } from "./types/acceptance.js";
 import type { LoadedSkill } from "./capabilities/skills/types.js";
 import type { TelegramConfig, TelegramRuntimeConfig } from "./telegram/config.js";
-import type { RuntimeAgentModelRuntime } from "./config/agentModelTypes.js";
 import type { RuntimeTransition } from "./types/runtimeTransitions.js";
 export type {
   LoadedSkill,
@@ -85,7 +84,8 @@ export interface AppConfig {
   telegram: TelegramConfig;
 }
 
-export interface RuntimeConfig extends AppConfig, RuntimeAgentModelRuntime {
+export interface RuntimeConfig extends AppConfig {
+  apiKey: string;
   mineru: MineruRuntimeConfig;
   paths: AppPaths;
   telegram: TelegramRuntimeConfig;

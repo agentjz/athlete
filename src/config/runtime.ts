@@ -10,7 +10,6 @@ import {
   readMineruRuntimeConfig,
 } from "./runtimeEnv.js";
 import { normalizeConfig } from "./schema.js";
-import { readRuntimeAgentModelOverrides, resolveRuntimeAgentModels } from "./agentModels.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
 import {
   parseTelegramAllowedUserIds,
@@ -94,20 +93,9 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
     },
   );
 
-  const agentModelOverrides = readRuntimeAgentModelOverrides();
-
   return {
     ...merged,
     apiKey: process.env.DEADMOUSE_API_KEY ?? "",
-    agentModelOverrides,
-    agentModels: resolveRuntimeAgentModels({
-      provider: merged.provider,
-      apiKey: process.env.DEADMOUSE_API_KEY ?? "",
-      baseUrl: merged.baseUrl,
-      model: merged.model,
-      thinking: merged.thinking,
-      reasoningEffort: merged.reasoningEffort,
-    }, agentModelOverrides),
     mineru: readMineruRuntimeConfig(),
     paths,
     telegram: resolveTelegramRuntimeConfig(merged.telegram, projectRoots.stateRootDir),

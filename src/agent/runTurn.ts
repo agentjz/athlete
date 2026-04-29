@@ -30,28 +30,18 @@ import { loadProjectContext } from "../context/projectContext.js";
 import { buildSkillRuntimeState } from "../capabilities/skills/state.js";
 import { createRuntimeToolRegistry } from "../capabilities/tools/core/runtimeRegistry.js";
 import { throwIfAborted } from "../utils/abort.js";
-import { resolveAgentModelConfig } from "../config/agentModels.js";
 
 export type { AgentCallbacks, RunTurnOptions } from "./types.js";
 
 export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResult> {
   const projectContext = await loadProjectContext(options.cwd);
   const identity = options.identity ?? { kind: "lead" as const, name: "lead" };
-  const modelConfig = resolveAgentModelConfig(options.config, identity);
-  const turnModelConfig = {
-    ...options.config,
-    provider: modelConfig.provider,
-    apiKey: modelConfig.apiKey,
-    baseUrl: modelConfig.baseUrl,
-    model: modelConfig.model,
-    thinking: modelConfig.thinking,
-    reasoningEffort: modelConfig.reasoningEffort,
-  };
-  if (!modelConfig.apiKey) {
-    throw new Error(`Missing API key for ${identity.kind} model profile. Open the project's .env file and add the matching DEADMOUSE_${identity.kind.toUpperCase()}_API_KEY or DEADMOUSE_API_KEY.`);
+  const turnModelConfig = options.config;
+  if (!turnModelConfig.apiKey) {
+    throw new Error("Missing API key. Open the project's .env file and add DEADMOUSE_API_KEY.");
   }
   let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
-  const client = createProviderClientPool(modelConfig);
+  const client = createProviderClientPool(turnModelConfig);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
   const changeStore = new ChangeStore(options.config.paths.changesDir);
@@ -114,7 +104,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         session.acceptanceState,
       );
       promptLayers = extendPromptLayersForTurnState(promptLayers, iteration, softToolLimit, consecutiveRequestFailures);
-      const requestModel = pickRequestModel(modelConfig.provider, modelConfig.model, consecutiveRequestFailures);
+      const requestModel = pickRequestModel(turnModelConfig.provider, turnModelConfig.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
       const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
       const prioritizedToolDefinitions = toolRegistry.entries
@@ -147,10 +137,10 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           client,
           requestContext.messages,
           {
-            provider: modelConfig.provider,
+            provider: turnModelConfig.provider,
             model: requestModel,
-            thinking: modelConfig.thinking,
-            reasoningEffort: modelConfig.reasoningEffort,
+            thinking: turnModelConfig.thinking,
+            reasoningEffort: turnModelConfig.reasoningEffort,
           },
           turnToolDefinitions,
           options.callbacks,
@@ -161,7 +151,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             sessionId: session.id,
             identityKind: identity.kind,
             identityName: identity.name,
-            configuredModel: modelConfig.model,
+            configuredModel: turnModelConfig.model,
           },
         );
         session = noteRuntimeModelRequests(session, modelRequestMetrics);

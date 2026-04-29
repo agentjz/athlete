@@ -69,7 +69,14 @@ export async function executeToolBatch(
       continue;
     }
 
-    const preparation = await params.toolRegistry.prepare(toolCall.function.name, toolCall.function.arguments, toolContext);
+    const preparation = await params.toolRegistry.prepare(toolCall.function.name, toolCall.function.arguments, toolContext)
+      .catch((error) => {
+        results.set(toolCall.id, buildToolExecutionFailureResult(toolCall, error));
+        return undefined;
+      });
+    if (!preparation) {
+      continue;
+    }
     if (!preparation.ok) {
       const finalized = params.toolRegistry.finalize(preparation.preparedCall, preparation.result, {
         status: "blocked",

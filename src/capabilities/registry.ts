@@ -8,6 +8,7 @@ import { listToolCapabilityPackages } from "./tools/core/capabilityAdapter.js";
 import type { ToolRegistryEntry } from "./tools/core/types.js";
 import { listWorkflowCapabilityPackages } from "./workflows/registry.js";
 import { CapabilityRegistry, formatCapabilityRegistryForLead, type CapabilityPackageProvider } from "../protocol/registry.js";
+import { assertCapabilitySurfaceConvergence, createCapabilitySurface } from "../protocol/capabilitySurface.js";
 import type { CapabilityRegistrySummaryOptions } from "../protocol/summary.js";
 import type { RuntimeConfig } from "../types.js";
 
@@ -42,4 +43,16 @@ export function formatRuntimeCapabilityRegistryForLead(
   options: CapabilityRegistrySummaryOptions = {},
 ): string {
   return formatCapabilityRegistryForLead(listRuntimeCapabilityPackageProviders(input), options);
+}
+
+export function assertRuntimeCapabilityConvergence(
+  input: RuntimeCapabilityInput = {},
+): void {
+  const entries = input.toolEntries ?? [];
+  if (entries.length === 0) {
+    return;
+  }
+
+  const surface = createCapabilitySurface(listToolCapabilityPackages(entries));
+  assertCapabilitySurfaceConvergence(surface, entries.map((entry) => entry.name));
 }

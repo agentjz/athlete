@@ -20,7 +20,7 @@ export function writeCliInteractiveIntro(options: {
   options.output.plain(chalk.bold(chalk.greenBright(DEADMOUSE_BANNER)));
   options.output.dim(`session: ${options.session.id}`);
   options.output.dim(`cwd: ${options.cwd}`);
-  options.output.dim("Capabilities: team, subagent, workflow are always available to Lead");
+  options.output.dim("Capabilities: unified protocol surface (use /runtime to inspect current exposure)");
   options.output.dim("Commands:");
   options.output.dim("/help        Show help");
   options.output.dim("/runtime     Show runtime summary");

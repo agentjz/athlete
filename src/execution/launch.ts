@@ -80,34 +80,11 @@ function buildExecutionWorkerEnv(input: {
     DEADMOUSE_MODEL: input.config.model,
     DEADMOUSE_PROVIDER: input.config.provider,
     DEADMOUSE_THINKING: input.config.thinking,
-    DEADMOUSE_LEAD_API_KEY: input.config.agentModels.lead.apiKey,
-    DEADMOUSE_LEAD_BASE_URL: input.config.agentModels.lead.baseUrl,
-    DEADMOUSE_LEAD_MODEL: input.config.agentModels.lead.model,
-    DEADMOUSE_LEAD_PROVIDER: input.config.agentModels.lead.provider,
-    DEADMOUSE_LEAD_THINKING: input.config.agentModels.lead.thinking,
-    DEADMOUSE_TEAMMATE_API_KEY: input.config.agentModels.teammate.apiKey,
-    DEADMOUSE_TEAMMATE_BASE_URL: input.config.agentModels.teammate.baseUrl,
-    DEADMOUSE_TEAMMATE_MODEL: input.config.agentModels.teammate.model,
-    DEADMOUSE_TEAMMATE_PROVIDER: input.config.agentModels.teammate.provider,
-    DEADMOUSE_TEAMMATE_THINKING: input.config.agentModels.teammate.thinking,
-    DEADMOUSE_SUBAGENT_API_KEY: input.config.agentModels.subagent.apiKey,
-    DEADMOUSE_SUBAGENT_BASE_URL: input.config.agentModels.subagent.baseUrl,
-    DEADMOUSE_SUBAGENT_MODEL: input.config.agentModels.subagent.model,
-    DEADMOUSE_SUBAGENT_PROVIDER: input.config.agentModels.subagent.provider,
-    DEADMOUSE_SUBAGENT_THINKING: input.config.agentModels.subagent.thinking,
   };
   if (input.config.reasoningEffort) {
     env.DEADMOUSE_REASONING_EFFORT = input.config.reasoningEffort;
   }
-  if (input.config.agentModels.lead.reasoningEffort) {
-    env.DEADMOUSE_LEAD_REASONING_EFFORT = input.config.agentModels.lead.reasoningEffort;
-  }
-  if (input.config.agentModels.teammate.reasoningEffort) {
-    env.DEADMOUSE_TEAMMATE_REASONING_EFFORT = input.config.agentModels.teammate.reasoningEffort;
-  }
-  if (input.config.agentModels.subagent.reasoningEffort) {
-    env.DEADMOUSE_SUBAGENT_REASONING_EFFORT = input.config.agentModels.subagent.reasoningEffort;
-  }
+  deleteObsoleteIdentityModelEnv(env);
 
   const actorName = String(input.actorName ?? "").trim();
   const playwright = input.config.mcp.playwright;
@@ -124,4 +101,12 @@ function buildExecutionWorkerEnv(input: {
   }
 
   return env;
+}
+
+function deleteObsoleteIdentityModelEnv(env: NodeJS.ProcessEnv): void {
+  for (const identity of ["LEAD", "TEAMMATE", "SUBAGENT"]) {
+    for (const field of ["API_KEY", "BASE_URL", "MODEL", "PROVIDER", "THINKING", "REASONING_EFFORT"]) {
+      delete env[`DEADMOUSE_${identity}_${field}`];
+    }
+  }
 }

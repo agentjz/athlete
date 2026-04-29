@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/capabilities/mcp/toolAdapter.js";
+import { assertRuntimeCapabilityConvergence } from "../../src/capabilities/registry.js";
 import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
 import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
 import type { RegisteredTool } from "../../src/capabilities/tools/core/types.js";
@@ -181,5 +182,23 @@ test("tool execution fails closed when a governed write tool omits required chan
   await assert.rejects(
     () => registry.execute("governed_write", "{}", makeToolContext(process.cwd()) as never),
     /CHANGE_SIGNAL_REQUIRED|changedPaths/i,
+  );
+});
+
+test("runtime capability declarations stay converged with the exposed tool registry", () => {
+  const registry = createToolRegistry();
+  assert.doesNotThrow(() => {
+    assertRuntimeCapabilityConvergence({
+      toolEntries: registry.entries,
+    });
+  });
+});
+
+test("tool registry fails closed when onlyNames requests an unregistered tool", () => {
+  assert.throws(
+    () => createToolRegistry({
+      onlyNames: ["definitely_missing_tool"],
+    }),
+    /onlyNames include unregistered tools/i,
   );
 });

@@ -110,6 +110,7 @@ function collectSelectedTools(options: ToolRegistryOptions): Array<{
   const allSources = [builtinSource, ...(options.sources ?? [])];
   const onlyNames = options.onlyNames ? new Set(options.onlyNames) : null;
   const excludeNames = new Set(options.excludeNames ?? []);
+  assertRequestedToolNamesResolved(allSources, onlyNames);
 
   return allSources.flatMap((source) =>
     source.tools
@@ -126,6 +127,29 @@ function collectSelectedTools(options: ToolRegistryOptions): Array<{
         return !excludeNames.has(name);
       }),
   );
+}
+
+function assertRequestedToolNamesResolved(
+  sources: readonly ToolRegistrySource[],
+  onlyNames: ReadonlySet<string> | null,
+): void {
+  if (!onlyNames || onlyNames.size === 0) {
+    return;
+  }
+
+  const available = new Set<string>();
+  for (const source of sources) {
+    for (const tool of source.tools) {
+      available.add(tool.definition.function.name);
+    }
+  }
+
+  const unresolved = [...onlyNames].filter((name) => !available.has(name)).sort();
+  if (unresolved.length > 0) {
+    throw new Error(
+      `Requested onlyNames include unregistered tools: ${unresolved.join(", ")}.`,
+    );
+  }
 }
 
 function applySourceDefaults(source: ToolRegistrySource, tool: RegisteredTool): RegisteredTool {

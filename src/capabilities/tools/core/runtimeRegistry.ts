@@ -1,6 +1,7 @@
 import { McpClientManager } from "../../mcp/clientManager.js";
 import { createLazyMcpToolSources } from "../../mcp/lazySources.js";
 import type { RuntimeConfig } from "../../../types.js";
+import { assertRuntimeCapabilityConvergence } from "../../registry.js";
 import { createToolRegistry } from "./registry.js";
 import type { ToolRegistry, ToolRegistryOptions, ToolRegistrySource } from "./types.js";
 
@@ -22,6 +23,10 @@ export async function createRuntimeToolRegistry(
   const registry = createToolRegistry({
     ...options,
     sources: [...(options.sources ?? []), ...mcpSources],
+  });
+  assertRuntimeCapabilityConvergence({
+    mcpConfig: config.mcp,
+    toolEntries: registry.entries,
   });
 
   return {

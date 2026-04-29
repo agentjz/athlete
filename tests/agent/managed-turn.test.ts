@@ -12,26 +12,6 @@ function createConfig(): RuntimeConfig {
     schemaVersion: 1,
     provider: "deepseek",
     apiKey: "test-key",
-    agentModels: {
-      lead: {
-        provider: "deepseek",
-        apiKey: "test-key",
-        baseUrl: "https://api.deepseek.com",
-        model: "deepseek-v4-flash",
-      },
-      teammate: {
-        provider: "deepseek",
-        apiKey: "test-key",
-        baseUrl: "https://api.deepseek.com",
-        model: "deepseek-v4-flash",
-      },
-      subagent: {
-        provider: "deepseek",
-        apiKey: "test-key",
-        baseUrl: "https://api.deepseek.com",
-        model: "deepseek-v4-flash",
-      },
-    },
     mineru: {
       token: "test-mineru-token",
       baseUrl: "https://mineru.net/api/v4",

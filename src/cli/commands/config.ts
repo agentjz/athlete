@@ -39,11 +39,6 @@ export function registerConfigCommands(
             baseUrl: runtime.config.baseUrl,
             pathAccess: "unrestricted",
             apiKey: runtime.config.apiKey ? "set" : "missing",
-            agentModels: {
-              lead: redactAgentModel(runtime.config.agentModels.lead),
-              teammate: redactAgentModel(runtime.config.agentModels.teammate),
-              subagent: redactAgentModel(runtime.config.agentModels.subagent),
-            },
             telegram: {
               ...runtime.config.telegram,
               token: runtime.config.telegram.token ? "set" : "missing",
@@ -105,15 +100,4 @@ export function registerConfigCommands(
       ui.success(`Updated ${key}`);
       writeStdoutLine(JSON.stringify(next[key], null, 2));
     });
-}
-
-function redactAgentModel(profile: RuntimeConfig["agentModels"]["lead"]): Record<string, unknown> {
-  return {
-    provider: profile.provider,
-    baseUrl: profile.baseUrl,
-    model: profile.model,
-    apiKey: profile.apiKey ? "set" : "missing",
-    thinking: profile.thinking,
-    reasoningEffort: profile.reasoningEffort,
-  };
 }
