@@ -130,7 +130,7 @@ function normalizeYieldTransition(
   reason: RuntimeYieldTransition["reason"],
   timestamp: string,
 ): RuntimeYieldTransition | undefined {
-  if (reason.code === "yield.delegation_dispatch") {
+  if (reason.code === "yield.execution_dispatch") {
     return {
       action: "yield",
       reason: {

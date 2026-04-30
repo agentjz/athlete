@@ -1,8 +1,10 @@
 import { spawnExecutionWorker as defaultSpawnExecutionWorker } from "../../execution/launch.js";
+import { createExecutionFromAssignment } from "../../execution/createFromAssignment.js";
 import { ExecutionStore } from "../../execution/store.js";
 import type { ExecutionRecord, ExecutionWorktreePolicy } from "../../execution/types.js";
+import { createAssignmentContract } from "../../protocol/assignment.js";
 import type { RuntimeConfig } from "../../types.js";
-import { buildSubagentAssignment, getSubagentProfile } from "./profiles.js";
+import { buildSubagentAssignment, getSubagentProfile, toSubagentCapabilityPackage } from "./profiles.js";
 
 type SpawnExecutionWorker = typeof defaultSpawnExecutionWorker;
 
@@ -37,9 +39,19 @@ export async function launchSubagentWorkerExecution(
   deps: LaunchSubagentWorkerExecutionDependencies = {},
 ): Promise<LaunchSubagentWorkerExecutionResult> {
   const profile = getSubagentProfile(options.agentType);
+  const capability = toSubagentCapabilityPackage(profile);
+  const assignment = createAssignmentContract({
+    capabilityId: capability.packageId,
+    objective: options.objective,
+    scope: options.scope,
+    expectedOutput: options.expectedOutput,
+    createdBy: options.requestedBy ?? "lead",
+  });
 
-  const executionStore = new ExecutionStore(options.rootDir);
-  const execution = await executionStore.create({
+  const execution = await createExecutionFromAssignment({
+    rootDir: options.rootDir,
+    capability,
+    assignment,
     lane: "agent",
     profile: "subagent",
     launch: "worker",
@@ -51,6 +63,7 @@ export async function launchSubagentWorkerExecution(
     objectiveText: options.objectiveText,
     cwd: options.cwd,
     prompt: buildSubagentAssignment(options.description, options.objective, profile, {
+      assignment,
       scope: options.scope,
       expectedOutput: options.expectedOutput,
     }),
@@ -63,7 +76,7 @@ export async function launchSubagentWorkerExecution(
     executionId: execution.id,
     actorName: execution.actorName,
   });
-  const started = await executionStore.start(execution.id, {
+  const started = await new ExecutionStore(options.rootDir).start(execution.id, {
     pid,
   });
 

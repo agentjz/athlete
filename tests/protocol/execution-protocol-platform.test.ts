@@ -72,6 +72,8 @@ test("protocol platform keeps capability, assignment, and closeout as generic co
 
   assert.equal(pkg.protocol, "deadmouse.capability-package");
   assert.equal(pkg.version, "1.0.0");
+  assert.equal(pkg.runner.leadWaitPolicy.lead, "while_execution_active");
+  assert.equal(pkg.runner.leadWaitPolicy.wake, "required");
   assert.match(formatCapabilityPackageForLead(pkg), /workflow\.generic-workflow \[workflow\]/);
   assert.doesNotThrow(() => assertCapabilityPackageAcceptsAssignment(pkg, assignment));
   assert.throws(
@@ -143,6 +145,7 @@ test("capability packages freeze machine permissions away from strategy decision
   assert.equal(pkg.machinePermissions.decideStrategy, false);
   assert.equal(pkg.contracts.input, "AssignmentContract");
   assert.equal(pkg.contracts.output, "CloseoutContract");
+  assert.equal(pkg.runner.leadWaitPolicy.lead, "while_execution_active");
 });
 
 test("source adapters register built-in and external surfaces as capability packages without concrete strategy", () => {
@@ -221,6 +224,11 @@ test("source adapters register built-in and external surfaces as capability pack
   assert.equal(ids.has("skill.research"), true);
   assert.equal([...ids].some((id) => id.startsWith("tool.builtin.filesystem.read")), true);
   assert.equal(registry.list().every((item) => item.machinePermissions.autoDispatch === false), true);
+  assert.equal(registry.resolve("team.teammate").runner.leadWaitPolicy.lead, "while_execution_active");
+  assert.equal(registry.resolve("background.command").runner.leadWaitPolicy.lead, "while_execution_active");
+  assert.equal(registry.resolve("workflow.manual-lead-selected").runner.leadWaitPolicy.lead, "while_execution_active");
+  assert.equal(registry.resolve("skill.research").runner.leadWaitPolicy.lead, "none");
+  assert.equal(registry.resolve("mcp.planner").runner.leadWaitPolicy.lead, "none");
 });
 
 test("capability registry fails closed on duplicate packages and static adapters only expose packages", () => {
@@ -257,6 +265,12 @@ test("external ecosystem manifests normalize into packages without changing prot
       description: "Manifest adapter.",
     },
     runnerType: "external_cli",
+    leadWaitPolicy: {
+      lead: "while_execution_active",
+      wake: "required",
+      scope: "global",
+      terminalStatuses: ["completed", "failed", "aborted", "paused"],
+    },
     inputSchema: "AssignmentContract plus external CLI args",
     outputSchema: "CloseoutContract plus ArtifactRef",
     budgetPolicy: "Lead chooses when external CLI runtime is worth the cost.",
@@ -306,6 +320,7 @@ test("external ecosystem manifests normalize into packages without changing prot
   assert.equal(externalAgent.packageId, "external_agent.codex-cli");
   assert.equal(externalAgent.source.builtIn, false);
   assert.equal(externalAgent.runner.requiresAssignment, true);
+  assert.equal(externalAgent.runner.leadWaitPolicy.scope, "global");
   assert.equal(externalAgent.machinePermissions.autoSelect, false);
   assert.equal(plugin.packageId, "plugin.demo");
   assert.equal(registry.resolve("external_agent.another-agent").runner.runnerType, "external_cli");

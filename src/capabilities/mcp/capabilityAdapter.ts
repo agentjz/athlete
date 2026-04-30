@@ -46,6 +46,10 @@ function toMcpCapabilityPackage(server: ResolvedMcpServerDefinition): Capability
       description: "Adapts configured MCP servers into capability packages without discovering or selecting tools.",
     },
     runnerType: "mcp",
+    runner: {
+      createsExecution: false,
+      emitsWakeSignal: false,
+    },
     availability: `${server.name} MCP server surface with startup/runtime cost recorded in capability metadata.`,
   });
 }

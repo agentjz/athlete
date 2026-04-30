@@ -10,6 +10,8 @@ import {
 } from "./package.js";
 import type { CapabilityRunnerType } from "./runner.js";
 import { isCapabilityRunnerType } from "./runner.js";
+import type { LeadWaitPolicyInput } from "./leadWait.js";
+import { normalizeLeadWaitPolicy } from "./leadWait.js";
 
 export const CAPABILITY_MANIFEST_PROTOCOL = "deadmouse.capability-manifest" as const;
 
@@ -33,6 +35,9 @@ export interface CapabilityPackageManifest {
     description: string;
   };
   runnerType: CapabilityRunnerType;
+  createsExecution?: boolean;
+  emitsWakeSignal?: boolean;
+  leadWaitPolicy?: LeadWaitPolicyInput;
   inputSchema?: string;
   outputSchema?: string;
   budgetPolicy?: string;
@@ -76,6 +81,11 @@ export function createCapabilityPackageFromManifest(manifest: CapabilityPackageM
     },
     adapter: manifest.adapter,
     runnerType: manifest.runnerType,
+    runner: {
+      createsExecution: manifest.createsExecution,
+      emitsWakeSignal: manifest.emitsWakeSignal,
+      leadWaitPolicy: manifest.leadWaitPolicy,
+    },
     budgetPolicy: manifest.budgetPolicy,
     artifactPolicy: manifest.artifactPolicy,
     closeoutPolicy: manifest.closeoutPolicy,
@@ -146,6 +156,11 @@ export function parseCapabilityPackageManifest(value: unknown): CapabilityPackag
       description: readText(adapter, "description", "CapabilityPackageManifest.adapter"),
     },
     runnerType,
+    createsExecution: typeof record.createsExecution === "boolean" ? record.createsExecution : undefined,
+    emitsWakeSignal: typeof record.emitsWakeSignal === "boolean" ? record.emitsWakeSignal : undefined,
+    leadWaitPolicy: record.leadWaitPolicy === undefined
+      ? undefined
+      : normalizeLeadWaitPolicy(record.leadWaitPolicy),
     inputSchema: readOptionalText(record, "inputSchema"),
     outputSchema: readOptionalText(record, "outputSchema"),
     budgetPolicy: readOptionalText(record, "budgetPolicy"),

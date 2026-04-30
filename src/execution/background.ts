@@ -1,9 +1,11 @@
 import process from "node:process";
 import path from "node:path";
 
+import { getBackgroundCapabilityPackage } from "../capabilities/background/capabilityAdapter.js";
+import { createAssignmentContract } from "../protocol/assignment.js";
 import { closeExecution } from "./closeout.js";
+import { createExecutionFromAssignment } from "./createFromAssignment.js";
 import { ExecutionStore } from "./store.js";
-import { resolveExecutionBoundary } from "./boundary.js";
 import type { ExecutionRecord } from "./types.js";
 
 export type BackgroundJobStatus = "running" | "completed" | "failed" | "timed_out" | "aborted";
@@ -42,7 +44,22 @@ export class BackgroundJobStore {
     objectiveKey?: string;
     objectiveText?: string;
   }): Promise<BackgroundJobRecord> {
-    const execution = await new ExecutionStore(this.rootDir).create({
+    const capability = getBackgroundCapabilityPackage();
+    const assignment = createAssignmentContract({
+      capabilityId: capability.packageId,
+      objective: input.command,
+      scope: input.cwd,
+      expectedOutput: "Execution record, command output, exit code, and CloseoutContract.",
+      budget: {
+        maxRuntimeMs: input.timeoutMs,
+        maxIdleMs: input.stallTimeoutMs,
+      },
+      createdBy: input.requestedBy,
+    });
+    const execution = await createExecutionFromAssignment({
+      rootDir: this.rootDir,
+      capability,
+      assignment,
       lane: "command",
       profile: "background",
       launch: "worker",
@@ -63,8 +80,25 @@ export class BackgroundJobStore {
   }
 
   async save(job: BackgroundJobRecord): Promise<BackgroundJobRecord> {
+    const store = new ExecutionStore(this.rootDir);
+    const current = assertBackgroundExecution(await store.load(job.id));
     return mapExecutionToBackgroundJob(
-      await new ExecutionStore(this.rootDir).save(mapBackgroundJobToExecution(job)),
+      await store.save({
+        ...current,
+        command: job.command,
+        cwd: job.cwd,
+        requestedBy: job.requestedBy,
+        objectiveKey: job.objectiveKey,
+        objectiveText: job.objectiveText,
+        timeoutMs: job.timeoutMs,
+        stallTimeoutMs: job.stallTimeoutMs,
+        pid: job.pid,
+        output: job.output,
+        exitCode: job.exitCode,
+        statusDetail: job.status === "timed_out" ? "timed_out" : current.statusDetail,
+        updatedAt: job.updatedAt,
+        finishedAt: job.finishedAt,
+      }),
     );
   }
 
@@ -238,45 +272,6 @@ function mapExecutionToBackgroundJob(execution: ExecutionRecord): BackgroundJobR
     createdAt: execution.createdAt,
     updatedAt: execution.updatedAt,
     finishedAt: execution.finishedAt,
-  };
-}
-
-function mapBackgroundJobToExecution(job: BackgroundJobRecord): ExecutionRecord {
-  const status = job.status === "running"
-    ? "running"
-    : job.status === "completed"
-      ? "completed"
-      : job.status === "aborted"
-        ? "aborted"
-        : "failed";
-  const boundary = resolveExecutionBoundary({
-    profile: "background",
-    timeoutMs: job.timeoutMs,
-    stallTimeoutMs: job.stallTimeoutMs,
-  });
-  return {
-    id: job.id,
-    lane: "command",
-    profile: "background",
-    launch: "worker",
-    requestedBy: job.requestedBy,
-    objectiveKey: job.objectiveKey,
-    objectiveText: job.objectiveText,
-    actorName: "background",
-    cwd: job.cwd,
-    status,
-    worktreePolicy: "none",
-    command: job.command,
-    timeoutMs: job.timeoutMs,
-    stallTimeoutMs: job.stallTimeoutMs,
-    boundary,
-    pid: job.pid,
-    output: job.output,
-    exitCode: job.exitCode,
-    statusDetail: job.status === "timed_out" ? "timed_out" : undefined,
-    createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
-    finishedAt: job.finishedAt,
   };
 }
 

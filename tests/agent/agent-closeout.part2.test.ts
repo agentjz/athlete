@@ -295,7 +295,7 @@ function okResult(
   };
 }
 
-test("runAgentTurn yields immediately after delegation dispatch instead of letting Lead poll", async (t) => {
+test("runAgentTurn yields immediately after execution dispatch instead of letting Lead poll", async (t) => {
   const root = await createTempWorkspace("delegation-dispatch-yield", t);
   const sessionStore = new MemorySessionStore();
   const session = await sessionStore.create(root);
@@ -330,7 +330,7 @@ test("runAgentTurn yields immediately after delegation dispatch instead of letti
   });
 
   assert.equal(result.yielded, true);
-  assert.equal(result.yieldReason, "delegation_dispatch");
+  assert.equal(result.yieldReason, "execution_dispatch");
   assert.deepEqual(executedTools, ["delegate_once"]);
   assert.equal(requests, 1);
 });

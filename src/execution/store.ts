@@ -1,5 +1,9 @@
 import { withProjectLedger } from "../control/ledger/open.js";
 import { ExecutionLedgerRepo } from "../control/ledger/executionRepo.js";
+import type { LeadWaitPolicyInput } from "../protocol/leadWait.js";
+import type { AssignmentContract } from "../protocol/assignment.js";
+import type { CapabilityPackage } from "../protocol/package.js";
+import type { ExecutionPolicySnapshot } from "../protocol/executionPolicy.js";
 import { publishExecutionWakeSignal, type WakeSignalReason } from "../protocol/wakeSignal.js";
 import type { ExecutionCloseInput, ExecutionRecord, ExecutionStartInput } from "./types.js";
 
@@ -23,6 +27,10 @@ export class ExecutionStore {
     command?: string;
     timeoutMs?: number;
     stallTimeoutMs?: number;
+    waitPolicy?: LeadWaitPolicyInput;
+    assignment?: AssignmentContract;
+    capabilityPackage?: CapabilityPackage;
+    executionPolicy?: ExecutionPolicySnapshot;
   }): Promise<ExecutionRecord> {
     return withProjectLedger(this.rootDir, ({ db }) => new ExecutionLedgerRepo(db).create(input));
   }

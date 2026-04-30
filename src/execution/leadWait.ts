@@ -1,14 +1,15 @@
-import { loadProjectContext } from "../../context/projectContext.js";
-import { reconcileActiveExecutions } from "../../execution/reconcile.js";
-import { ExecutionStore } from "../../execution/store.js";
-import type { ExecutionRecord } from "../../execution/types.js";
-import { buildObjectiveFrame, readObjectiveTask } from "../../objective/metadata.js";
-import type { ObjectiveTaskSnapshot } from "../../objective/types.js";
-import { snapshotExecutionWakeSignal, waitForExecutionWakeSignalChange } from "../../protocol/wakeSignal.js";
-import { TaskStore } from "../../tasks/store.js";
-import { throwIfAborted } from "../../utils/abort.js";
+import { loadProjectContext } from "../context/projectContext.js";
+import { buildObjectiveFrame, readObjectiveTask } from "../objective/metadata.js";
+import type { ObjectiveTaskSnapshot } from "../objective/types.js";
+import { isLeadBlockingPolicy } from "../protocol/leadWait.js";
+import { snapshotExecutionWakeSignal, waitForExecutionWakeSignalChange } from "../protocol/wakeSignal.js";
+import { TaskStore } from "../tasks/store.js";
+import { throwIfAborted } from "../utils/abort.js";
+import { reconcileActiveExecutions } from "./reconcile.js";
+import { ExecutionStore } from "./store.js";
+import type { ExecutionRecord } from "./types.js";
 
-export async function waitForDelegatedWorkToSettle(input: {
+export async function waitForLeadWaitExecutionsToSettle(input: {
   cwd: string;
   objectiveText?: string;
   abortSignal?: AbortSignal;
@@ -16,9 +17,9 @@ export async function waitForDelegatedWorkToSettle(input: {
   const context = await loadProjectContext(input.cwd);
 
   for (;;) {
-    throwIfAborted(input.abortSignal, "Delegated work wait was aborted.");
+    throwIfAborted(input.abortSignal, "Lead wait was aborted.");
     const snapshot = await snapshotExecutionWakeSignal(context.stateRootDir);
-    if (!await hasActiveDelegatedWork(input.cwd, input.objectiveText, context.stateRootDir)) {
+    if (!await hasActiveLeadWaitExecutions(input.cwd, input.objectiveText, context.stateRootDir)) {
       return;
     }
     await waitForExecutionWakeSignalChange({
@@ -29,7 +30,7 @@ export async function waitForDelegatedWorkToSettle(input: {
   }
 }
 
-export async function hasActiveDelegatedWork(
+export async function hasActiveLeadWaitExecutions(
   cwd: string,
   objectiveText?: string,
   stateRootDir?: string,
@@ -51,12 +52,8 @@ export async function hasActiveDelegatedWork(
     : [];
 
   return executions.some((execution) =>
-    isDelegatedExecution(execution) &&
+    isLeadBlockingPolicy(execution.waitPolicy) &&
     (!objective || isExecutionRelevantToObjective(execution, objective.key, relevantTasks)));
-}
-
-function isDelegatedExecution(execution: ExecutionRecord): boolean {
-  return execution.profile === "teammate" || execution.profile === "subagent" || execution.profile === "background";
 }
 
 function isExecutionRelevantToObjective(
@@ -64,6 +61,11 @@ function isExecutionRelevantToObjective(
   objectiveKey: string,
   relevantTasks: ObjectiveTaskSnapshot[],
 ): boolean {
+  const scope = execution.waitPolicy?.scope ?? "objective";
+  if (scope === "global") {
+    return true;
+  }
+
   if (execution.objectiveKey && execution.objectiveKey === objectiveKey) {
     return true;
   }
@@ -73,7 +75,10 @@ function isExecutionRelevantToObjective(
     return true;
   }
 
+  if (scope === "task") {
+    return false;
+  }
+
   return relevantTasks.some((task) =>
     task.meta.executionId === execution.id || task.meta.jobId === execution.id);
 }
-

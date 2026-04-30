@@ -110,13 +110,13 @@ export function createYieldTransition(
   };
 }
 
-export function createDelegationDispatchYieldTransition(
+export function createExecutionDispatchYieldTransition(
   timestamp = new Date().toISOString(),
 ): RuntimeYieldTransition {
   return {
     action: "yield",
     reason: {
-      code: "yield.delegation_dispatch",
+      code: "yield.execution_dispatch",
     },
     timestamp,
   };
@@ -228,7 +228,7 @@ export function buildRunTurnResult(input: {
       input.transition.action === "yield"
         ? input.transition.reason.code === "yield.tool_step_limit"
           ? `tool_steps_${input.transition.reason.toolSteps}`
-          : "delegation_dispatch"
+          : "execution_dispatch"
         : undefined,
     paused: input.transition.action === "pause",
     pauseReason:

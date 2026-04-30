@@ -1,10 +1,10 @@
 import { buildInternalWakeInput } from "../checkpoint.js";
 import { runAgentTurn } from "../runTurn.js";
 import { createManagedSliceBudgetPauseTransition } from "../runtimeTransition.js";
+import { hasActiveLeadWaitExecutions, waitForLeadWaitExecutionsToSettle } from "../../execution/leadWait.js";
 import { persistCheckpointTransition } from "./persistence.js";
 import { evaluateManagedSliceBudget, resolveManagedSliceBudget } from "./managedBudget.js";
 import { hasUnfinishedLeadWork } from "./leadReturnGate.js";
-import { hasActiveDelegatedWork, waitForDelegatedWorkToSettle } from "./delegatedWorkWait.js";
 import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "../types.js";
 
 export interface ManagedTurnYieldContext {
@@ -68,8 +68,8 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
         };
       }
 
-      if (isLead && await hasActiveDelegatedWork(options.cwd, session.taskState?.objective)) {
-        await waitForDelegatedWorkToSettle({
+      if (isLead && await hasActiveLeadWaitExecutions(options.cwd, session.taskState?.objective)) {
+        await waitForLeadWaitExecutionsToSettle({
           cwd: options.cwd,
           objectiveText: session.taskState?.objective,
           abortSignal: options.abortSignal,
@@ -104,8 +104,8 @@ export async function runManagedAgentTurn(options: ManagedTurnOptions): Promise<
       };
     }
 
-    if (isLead && result.transition?.action === "yield" && result.transition.reason.code === "yield.delegation_dispatch") {
-      await waitForDelegatedWorkToSettle({
+    if (isLead && result.transition?.action === "yield" && result.transition.reason.code === "yield.execution_dispatch") {
+      await waitForLeadWaitExecutionsToSettle({
         cwd: options.cwd,
         objectiveText: session.taskState?.objective,
         abortSignal: options.abortSignal,

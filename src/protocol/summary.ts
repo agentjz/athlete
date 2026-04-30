@@ -15,6 +15,7 @@ export function formatCapabilityRegistrySummary(
     "Execution capability platform:",
     "Capability packages are options for Lead, not machine intent.",
     "Every package uses AssignmentContract -> Execution/Progress/Artifact -> CloseoutContract -> WakeSignal.",
+    "Lead wait behavior is package protocol data snapshotted into Execution records, not a concrete capability name branch.",
     "Machine permissions are fixed: expose and execute explicit assignments only; never auto-select or auto-dispatch.",
   ];
 

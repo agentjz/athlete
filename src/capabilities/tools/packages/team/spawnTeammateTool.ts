@@ -1,8 +1,10 @@
 import { spawnExecutionWorker } from "../../../../execution/launch.js";
 import { ExecutionStore } from "../../../../execution/store.js";
+import { createExecutionFromAssignment } from "../../../../execution/createFromAssignment.js";
+import { createAssignmentContract } from "../../../../protocol/assignment.js";
 import { reconcileTeamState } from "../../../team/reconcile.js";
 import { TeamStore } from "../../../team/store.js";
-import { buildTeammateAssignment } from "../../../team/profiles.js";
+import { buildTeammateAssignment, getTeamCapabilityPackage } from "../../../team/profiles.js";
 import { TaskStore } from "../../../../tasks/store.js";
 import { okResult, parseArgs, readOptionalNumber, readString } from "../../core/shared.js";
 import type { RegisteredTool } from "../../core/types.js";
@@ -78,8 +80,18 @@ export const spawnTeammateTool: RegisteredTool = {
     let pid: number;
     let executionId = "";
     try {
-      const executionStore = new ExecutionStore(context.projectContext.stateRootDir);
-      const execution = await executionStore.create({
+      const capability = getTeamCapabilityPackage();
+      const assignment = createAssignmentContract({
+        capabilityId: capability.packageId,
+        objective,
+        scope,
+        expectedOutput,
+        createdBy: context.identity.name,
+      });
+      const execution = await createExecutionFromAssignment({
+        rootDir: context.projectContext.stateRootDir,
+        capability,
+        assignment,
         lane: "agent",
         profile: "teammate",
         launch: "worker",
@@ -90,7 +102,7 @@ export const spawnTeammateTool: RegisteredTool = {
         objectiveKey: context.currentObjective?.key,
         objectiveText: context.currentObjective?.text,
         cwd: context.cwd,
-        prompt: buildTeammateAssignment({ name, role, objective, scope, expectedOutput }),
+        prompt: buildTeammateAssignment({ name, role, objective, scope, expectedOutput, assignment }),
         worktreePolicy: reservedTaskId ? "task" : "none",
       });
       executionId = execution.id;
@@ -100,7 +112,7 @@ export const spawnTeammateTool: RegisteredTool = {
         executionId,
         actorName: name,
       });
-      await executionStore.start(executionId, { pid });
+      await new ExecutionStore(context.projectContext.stateRootDir).start(executionId, { pid });
     } catch (error) {
       if (taskId) {
         await taskStore.update(taskId, {

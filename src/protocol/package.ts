@@ -1,5 +1,6 @@
 import type { AssignmentContract } from "./assignment.js";
 import { normalizeProtocolId, type CapabilityProfile } from "./capability.js";
+import type { LeadWaitPolicyInput } from "./leadWait.js";
 import { createCapabilityRunnerDescriptor, type CapabilityRunnerDescriptor, type CapabilityRunnerType } from "./runner.js";
 
 export const CAPABILITY_PACKAGE_PROTOCOL = "deadmouse.capability-package" as const;
@@ -69,7 +70,9 @@ export function createCapabilityPackage(input: {
   source: Omit<CapabilityPackageSource, "id"> & { id?: string };
   adapter: CapabilityPackageAdapter;
   runnerType: CapabilityRunnerType;
-  runner?: Partial<Pick<CapabilityRunnerDescriptor, "createsExecution" | "emitsProgress" | "emitsArtifacts" | "emitsCloseout" | "emitsWakeSignal">>;
+  runner?: Partial<Pick<CapabilityRunnerDescriptor, "createsExecution" | "emitsProgress" | "emitsArtifacts" | "emitsCloseout" | "emitsWakeSignal">> & {
+    leadWaitPolicy?: LeadWaitPolicyInput;
+  };
   budgetPolicy?: string;
   artifactPolicy?: string;
   closeoutPolicy?: string;
@@ -105,6 +108,7 @@ export function createCapabilityPackage(input: {
       emitsArtifacts: input.runner?.emitsArtifacts,
       emitsCloseout: input.runner?.emitsCloseout,
       emitsWakeSignal: input.runner?.emitsWakeSignal,
+      leadWaitPolicy: input.runner?.leadWaitPolicy,
     }),
     contracts: {
       input: "AssignmentContract",

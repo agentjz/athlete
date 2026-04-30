@@ -43,8 +43,9 @@ export function buildTeammateAssignment(input: {
   objective: string;
   scope: string;
   expectedOutput: string;
+  assignment?: ReturnType<typeof createAssignmentContract>;
 }): string {
-  const assignment = createAssignmentContract({
+  const assignment = input.assignment ?? createAssignmentContract({
     capabilityId: TEAM_CAPABILITY_PROFILE.id,
     objective: input.objective,
     scope: input.scope,

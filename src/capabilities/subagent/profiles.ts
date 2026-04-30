@@ -84,20 +84,22 @@ export function buildSubagentAssignment(
   prompt: string,
   profile: SubagentProfile,
   options: {
+    assignment?: ReturnType<typeof createAssignmentContract>;
     scope?: string;
     expectedOutput?: string;
   } = {},
 ): string {
+  const assignment = options.assignment ?? createAssignmentContract({
+    capabilityId: `subagent.${profile.type}`,
+    objective: prompt,
+    scope: options.scope ?? description,
+    expectedOutput: options.expectedOutput ?? "Return a CloseoutContract with evidence, verification, risks, and next Lead suggestion.",
+    createdBy: "lead",
+  });
   return [
     `Delegated task: ${description}`,
     formatCapabilityPackageForLead(toSubagentCapabilityPackage(profile)),
-    formatAssignmentContract(createAssignmentContract({
-      capabilityId: `subagent.${profile.type}`,
-      objective: prompt,
-      scope: options.scope ?? description,
-      expectedOutput: options.expectedOutput ?? "Return a CloseoutContract with evidence, verification, risks, and next Lead suggestion.",
-      createdBy: "lead",
-    })),
+    formatAssignmentContract(assignment),
     profile.assignmentPreamble,
     "Detailed instructions:",
     prompt.trim(),

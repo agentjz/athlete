@@ -1,3 +1,6 @@
+import type { LeadWaitPolicy, LeadWaitPolicyInput } from "./leadWait.js";
+import { createLeadWaitPolicyForRunner } from "./leadWait.js";
+
 export const CAPABILITY_RUNNER_PROTOCOL = "deadmouse.capability-runner" as const;
 
 export type CapabilityRunnerType = string;
@@ -12,6 +15,7 @@ export interface CapabilityRunnerDescriptor {
   emitsArtifacts: boolean;
   emitsCloseout: boolean;
   emitsWakeSignal: boolean;
+  leadWaitPolicy: LeadWaitPolicy;
   machineMaySelect: false;
   machineMayAutoDispatch: false;
 }
@@ -42,17 +46,25 @@ export function createCapabilityRunnerDescriptor(input: {
   emitsArtifacts?: boolean;
   emitsCloseout?: boolean;
   emitsWakeSignal?: boolean;
+  leadWaitPolicy?: LeadWaitPolicyInput;
 }): CapabilityRunnerDescriptor {
+  const createsExecution = input.createsExecution ?? true;
+  const emitsWakeSignal = input.emitsWakeSignal ?? true;
   return {
     protocol: CAPABILITY_RUNNER_PROTOCOL,
     runnerType: input.runnerType,
     requiresAssignment: true,
     decisionOwner: "lead",
-    createsExecution: input.createsExecution ?? true,
+    createsExecution,
     emitsProgress: input.emitsProgress ?? true,
     emitsArtifacts: input.emitsArtifacts ?? true,
     emitsCloseout: input.emitsCloseout ?? true,
-    emitsWakeSignal: input.emitsWakeSignal ?? true,
+    emitsWakeSignal,
+    leadWaitPolicy: createLeadWaitPolicyForRunner({
+      createsExecution,
+      emitsWakeSignal,
+      policy: input.leadWaitPolicy,
+    }),
     machineMaySelect: false,
     machineMayAutoDispatch: false,
   };

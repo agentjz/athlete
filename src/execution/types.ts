@@ -1,3 +1,8 @@
+import type { LeadWaitPolicy } from "../protocol/leadWait.js";
+import type { AssignmentContract } from "../protocol/assignment.js";
+import type { CapabilityPackage } from "../protocol/package.js";
+import type { ExecutionPolicySnapshot } from "../protocol/executionPolicy.js";
+
 export type ExecutionLane = "agent" | "command";
 
 export type ExecutionProfile = "subagent" | "teammate" | "background" | "workflow";
@@ -39,6 +44,13 @@ export interface ExecutionRecord {
   command?: string;
   timeoutMs?: number;
   stallTimeoutMs?: number;
+  waitPolicy?: LeadWaitPolicy;
+  assignmentId?: string;
+  assignmentSnapshot?: AssignmentContract;
+  capabilityId?: string;
+  capabilityKind?: string;
+  capabilityPackageSnapshot?: CapabilityPackage;
+  executionPolicy?: ExecutionPolicySnapshot;
   boundary: ExecutionBoundaryProtocol;
   summary?: string;
   resultText?: string;

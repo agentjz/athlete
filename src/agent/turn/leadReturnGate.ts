@@ -1,34 +1,16 @@
 import { loadProjectContext } from "../../context/projectContext.js";
-import type { ExecutionRecord } from "../../execution/types.js";
-import { ExecutionStore } from "../../execution/store.js";
-import { buildObjectiveFrame, readObjectiveTask } from "../../objective/metadata.js";
-import type { ObjectiveTaskSnapshot } from "../../objective/types.js";
+import { hasActiveLeadWaitExecutions } from "../../execution/leadWait.js";
 import { ProtocolRequestStore } from "../../capabilities/team/requestStore.js";
 import { TeamStore } from "../../capabilities/team/store.js";
-import { TaskStore } from "../../tasks/store.js";
 
 export async function hasUnfinishedLeadWork(cwd: string, objectiveText?: string): Promise<boolean> {
   const context = await loadProjectContext(cwd);
-  const [executions, protocolRequests, teammates, tasks] = await Promise.all([
-    new ExecutionStore(context.stateRootDir).listRelevant({
-      requestedBy: "lead",
-      statuses: ["queued", "running"],
-    }),
+  const [hasActiveExecutionWait, protocolRequests, teammates] = await Promise.all([
+    hasActiveLeadWaitExecutions(cwd, objectiveText, context.stateRootDir),
     new ProtocolRequestStore(context.stateRootDir).list(),
     new TeamStore(context.stateRootDir).listMembers(),
-    new TaskStore(context.stateRootDir).list(),
   ]);
   const teammateByName = new Map(teammates.map((member) => [member.name, member]));
-  const objective = objectiveText ? buildObjectiveFrame(objectiveText) : undefined;
-  const relevantTasks = objective
-    ? tasks
-        .map((task) => readObjectiveTask(task))
-        .filter((task): task is ObjectiveTaskSnapshot => Boolean(task && task.meta.key === objective.key))
-    : [];
-
-  const hasActiveDelegation = executions.some((item) =>
-    (item.profile === "teammate" || item.profile === "subagent" || item.profile === "background") &&
-    (!objective || isExecutionRelevantToObjective(item, objective.key, relevantTasks)));
   const hasPendingProtocol = protocolRequests.some((request) => {
     if (request.from !== "lead" || request.status !== "pending") {
       return false;
@@ -39,23 +21,5 @@ export async function hasUnfinishedLeadWork(cwd: string, objectiveText?: string)
     return true;
   });
 
-  return hasActiveDelegation || hasPendingProtocol;
-}
-
-function isExecutionRelevantToObjective(
-  execution: ExecutionRecord,
-  objectiveKey: string,
-  relevantTasks: ObjectiveTaskSnapshot[],
-): boolean {
-  if (execution.objectiveKey && execution.objectiveKey === objectiveKey) {
-    return true;
-  }
-
-  const relevantTaskIds = new Set(relevantTasks.map((task) => task.record.id));
-  if (typeof execution.taskId === "number" && relevantTaskIds.has(execution.taskId)) {
-    return true;
-  }
-
-  return relevantTasks.some((task) =>
-    task.meta.executionId === execution.id || task.meta.jobId === execution.id);
+  return hasActiveExecutionWait || hasPendingProtocol;
 }

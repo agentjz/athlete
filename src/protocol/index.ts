@@ -4,6 +4,8 @@ export * from "./assignment.js";
 export * from "./capability.js";
 export * from "./closeout.js";
 export * from "./execution.js";
+export * from "./executionPolicy.js";
+export * from "./leadWait.js";
 export * from "./manifest.js";
 export * from "./manifestBundle.js";
 export * from "./package.js";

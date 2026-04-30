@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 
 import { currentTimestamp } from "./shared.js";
 
-const LEDGER_SCHEMA_VERSION = 5;
+const LEDGER_SCHEMA_VERSION = 7;
 
 export function applyLedgerMigrations(db: Database.Database): void {
   const userVersion = readUserVersion(db);
@@ -28,6 +28,14 @@ export function applyLedgerMigrations(db: Database.Database): void {
 
   if (userVersion > 0 && userVersion < 5) {
     rebuildExecutionSchemaWithWorkflowProfile(db);
+  }
+
+  if (userVersion > 0 && userVersion < 6) {
+    addExecutionWaitPolicyColumn(db);
+  }
+
+  if (userVersion > 0 && userVersion < 7) {
+    addExecutionProtocolSnapshotColumns(db);
   }
 
   db.pragma(`user_version = ${LEDGER_SCHEMA_VERSION}`);
@@ -57,6 +65,13 @@ function createExecutionSchema(db: Database.Database): void {
       command TEXT,
       timeout_ms INTEGER,
       stall_timeout_ms INTEGER,
+      wait_policy_json TEXT,
+      assignment_id TEXT,
+      assignment_json TEXT,
+      capability_id TEXT,
+      capability_kind TEXT,
+      capability_package_json TEXT,
+      execution_policy_json TEXT,
       summary TEXT,
       result_text TEXT,
       output TEXT,
@@ -114,6 +129,13 @@ function rebuildExecutionSchemaWithoutInline(db: Database.Database): void {
       command,
       timeout_ms,
       stall_timeout_ms,
+      wait_policy_json,
+      assignment_id,
+      assignment_json,
+      capability_id,
+      capability_kind,
+      capability_package_json,
+      execution_policy_json,
       summary,
       result_text,
       output,
@@ -145,6 +167,13 @@ function rebuildExecutionSchemaWithoutInline(db: Database.Database): void {
       command,
       timeout_ms,
       stall_timeout_ms,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       summary,
       result_text,
       output,
@@ -194,6 +223,13 @@ function rebuildExecutionSchemaWithWorkflowProfile(db: Database.Database): void 
       command,
       timeout_ms,
       stall_timeout_ms,
+      wait_policy_json,
+      assignment_id,
+      assignment_json,
+      capability_id,
+      capability_kind,
+      capability_package_json,
+      execution_policy_json,
       summary,
       result_text,
       output,
@@ -225,6 +261,13 @@ function rebuildExecutionSchemaWithWorkflowProfile(db: Database.Database): void 
       command,
       timeout_ms,
       stall_timeout_ms,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       summary,
       result_text,
       output,
@@ -252,6 +295,35 @@ function addExecutionObjectiveColumns(db: Database.Database): void {
     db.exec(`ALTER TABLE executions ADD COLUMN objective_text TEXT`);
   }
 }
+
+function addExecutionWaitPolicyColumn(db: Database.Database): void {
+  const columns = new Set(
+    db.prepare(`PRAGMA table_info(executions)`).all().map((row) => String((row as { name?: unknown }).name ?? "")),
+  );
+  if (!columns.has("wait_policy_json")) {
+    db.exec(`ALTER TABLE executions ADD COLUMN wait_policy_json TEXT`);
+  }
+}
+
+function addExecutionProtocolSnapshotColumns(db: Database.Database): void {
+  const columns = new Set(
+    db.prepare(`PRAGMA table_info(executions)`).all().map((row) => String((row as { name?: unknown }).name ?? "")),
+  );
+  const additions = [
+    ["assignment_id", "TEXT"],
+    ["assignment_json", "TEXT"],
+    ["capability_id", "TEXT"],
+    ["capability_kind", "TEXT"],
+    ["capability_package_json", "TEXT"],
+    ["execution_policy_json", "TEXT"],
+  ] as const;
+  for (const [name, type] of additions) {
+    if (!columns.has(name)) {
+      db.exec(`ALTER TABLE executions ADD COLUMN ${name} ${type}`);
+    }
+  }
+}
+
 function readUserVersion(db: Database.Database): number {
   const value = db.pragma("user_version", { simple: true });
   return typeof value === "number" ? value : 0;

@@ -2,6 +2,10 @@ import crypto from "node:crypto";
 
 import type Database from "better-sqlite3";
 
+import type { AssignmentContract } from "../../protocol/assignment.js";
+import type { ExecutionPolicySnapshot } from "../../protocol/executionPolicy.js";
+import { normalizeExecutionPolicySnapshot } from "../../protocol/executionPolicy.js";
+import type { CapabilityPackage } from "../../protocol/package.js";
 import type {
   ExecutionCloseInput,
   ExecutionLaunchMode,
@@ -12,6 +16,8 @@ import type {
   ExecutionWorktreePolicy,
 } from "../../execution/types.js";
 import { resolveExecutionBoundary } from "../../execution/boundary.js";
+import type { LeadWaitPolicyInput } from "../../protocol/leadWait.js";
+import { createLeadWaitPolicy, normalizeLeadWaitPolicy } from "../../protocol/leadWait.js";
 import { applyExecutionClose, applyExecutionStart, assertExecutionSaveAllowed } from "./executionLifecycle.js";
 import { currentTimestamp, normalizeText } from "./shared.js";
 
@@ -35,6 +41,10 @@ export class ExecutionLedgerRepo {
     command?: string;
     timeoutMs?: number;
     stallTimeoutMs?: number;
+    waitPolicy?: LeadWaitPolicyInput;
+    assignment?: AssignmentContract;
+    capabilityPackage?: CapabilityPackage;
+    executionPolicy?: ExecutionPolicySnapshot;
   }): ExecutionRecord {
     const now = currentTimestamp();
     const record = normalizeExecution({
@@ -55,6 +65,10 @@ export class ExecutionLedgerRepo {
       command: input.command,
       timeoutMs: input.timeoutMs,
       stallTimeoutMs: input.stallTimeoutMs,
+      waitPolicy: input.waitPolicy ? normalizeLeadWaitPolicy(input.waitPolicy) : undefined,
+      assignmentSnapshot: input.assignment,
+      capabilityPackageSnapshot: input.capabilityPackage,
+      executionPolicy: input.executionPolicy,
       createdAt: now,
       updatedAt: now,
     });
@@ -81,6 +95,13 @@ export class ExecutionLedgerRepo {
         command,
         timeout_ms,
         stall_timeout_ms,
+        wait_policy_json,
+        assignment_id,
+        assignment_json,
+        capability_id,
+        capability_kind,
+        capability_package_json,
+        execution_policy_json,
         summary,
         result_text,
         output,
@@ -90,7 +111,7 @@ export class ExecutionLedgerRepo {
         created_at,
         updated_at,
         finished_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       record.id,
       record.lane,
@@ -112,6 +133,13 @@ export class ExecutionLedgerRepo {
       record.command ?? null,
       record.timeoutMs ?? null,
       record.stallTimeoutMs ?? null,
+      record.waitPolicy ? JSON.stringify(record.waitPolicy) : null,
+      record.assignmentId ?? null,
+      record.assignmentSnapshot ? JSON.stringify(record.assignmentSnapshot) : null,
+      record.capabilityId ?? null,
+      record.capabilityKind ?? null,
+      record.capabilityPackageSnapshot ? JSON.stringify(record.capabilityPackageSnapshot) : null,
+      record.executionPolicy ? JSON.stringify(record.executionPolicy) : null,
       record.summary ?? null,
       record.resultText ?? null,
       record.output ?? null,
@@ -187,6 +215,13 @@ export class ExecutionLedgerRepo {
         command,
         timeout_ms,
         stall_timeout_ms,
+        wait_policy_json,
+        assignment_id,
+        assignment_json,
+        capability_id,
+        capability_kind,
+        capability_package_json,
+        execution_policy_json,
         summary,
         result_text,
         output,
@@ -226,6 +261,13 @@ export class ExecutionLedgerRepo {
         command,
         timeout_ms,
         stall_timeout_ms,
+        wait_policy_json,
+        assignment_id,
+        assignment_json,
+        capability_id,
+        capability_kind,
+        capability_package_json,
+        execution_policy_json,
         summary,
         result_text,
         output,
@@ -235,7 +277,7 @@ export class ExecutionLedgerRepo {
         created_at,
         updated_at,
         finished_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         lane = excluded.lane,
         profile = excluded.profile,
@@ -256,6 +298,13 @@ export class ExecutionLedgerRepo {
         command = excluded.command,
         timeout_ms = excluded.timeout_ms,
         stall_timeout_ms = excluded.stall_timeout_ms,
+        wait_policy_json = excluded.wait_policy_json,
+        assignment_id = excluded.assignment_id,
+        assignment_json = excluded.assignment_json,
+        capability_id = excluded.capability_id,
+        capability_kind = excluded.capability_kind,
+        capability_package_json = excluded.capability_package_json,
+        execution_policy_json = excluded.execution_policy_json,
         summary = excluded.summary,
         result_text = excluded.result_text,
         output = excluded.output,
@@ -286,6 +335,13 @@ export class ExecutionLedgerRepo {
       normalized.command ?? null,
       normalized.timeoutMs ?? null,
       normalized.stallTimeoutMs ?? null,
+      normalized.waitPolicy ? JSON.stringify(normalized.waitPolicy) : null,
+      normalized.assignmentId ?? null,
+      normalized.assignmentSnapshot ? JSON.stringify(normalized.assignmentSnapshot) : null,
+      normalized.capabilityId ?? null,
+      normalized.capabilityKind ?? null,
+      normalized.capabilityPackageSnapshot ? JSON.stringify(normalized.capabilityPackageSnapshot) : null,
+      normalized.executionPolicy ? JSON.stringify(normalized.executionPolicy) : null,
       normalized.summary ?? null,
       normalized.resultText ?? null,
       normalized.output ?? null,
@@ -323,6 +379,13 @@ export class ExecutionLedgerRepo {
         command,
         timeout_ms,
         stall_timeout_ms,
+        wait_policy_json,
+        assignment_id,
+        assignment_json,
+        capability_id,
+        capability_kind,
+        capability_package_json,
+        execution_policy_json,
         summary,
         result_text,
         output,
@@ -359,6 +422,13 @@ interface ExecutionRow {
   command: string | null;
   timeout_ms: number | null;
   stall_timeout_ms: number | null;
+  wait_policy_json: string | null;
+  assignment_id: string | null;
+  assignment_json: string | null;
+  capability_id: string | null;
+  capability_kind: string | null;
+  capability_package_json: string | null;
+  execution_policy_json: string | null;
   summary: string | null;
   result_text: string | null;
   output: string | null;
@@ -392,6 +462,13 @@ function mapExecutionRow(row: ExecutionRow): ExecutionRecord {
     command: row.command ?? undefined,
     timeoutMs: row.timeout_ms ?? undefined,
     stallTimeoutMs: row.stall_timeout_ms ?? undefined,
+    waitPolicy: readWaitPolicy(row.wait_policy_json),
+    assignmentId: row.assignment_id ?? undefined,
+    assignmentSnapshot: readJson<AssignmentContract>(row.assignment_json),
+    capabilityId: row.capability_id ?? undefined,
+    capabilityKind: row.capability_kind ?? undefined,
+    capabilityPackageSnapshot: readJson<CapabilityPackage>(row.capability_package_json),
+    executionPolicy: readExecutionPolicy(row.execution_policy_json),
     summary: row.summary ?? undefined,
     resultText: row.result_text ?? undefined,
     output: row.output ?? undefined,
@@ -414,6 +491,20 @@ function normalizeExecution(record: Omit<ExecutionRecord, "boundary"> & Partial<
     timeoutMs,
     stallTimeoutMs,
   });
+  const waitPolicy = record.waitPolicy
+    ? normalizeLeadWaitPolicy(record.waitPolicy)
+    : record.executionPolicy
+      ? normalizeLeadWaitPolicy(record.executionPolicy.leadWaitPolicy)
+    : createLeadWaitPolicy({
+        lead: record.requestedBy === "lead" ? "while_execution_active" : "none",
+        wake: "required",
+        scope: record.taskId ? "task" : record.objectiveKey ? "objective" : "global",
+      });
+  const executionPolicy = record.executionPolicy
+    ? normalizeExecutionPolicySnapshot(record.executionPolicy)
+    : undefined;
+  const assignmentSnapshot = record.assignmentSnapshot;
+  const capabilityPackageSnapshot = record.capabilityPackageSnapshot;
   return {
     id: normalizeExecutionId(record.id) || createExecutionId(),
     lane: normalizeLane(record.lane),
@@ -435,6 +526,15 @@ function normalizeExecution(record: Omit<ExecutionRecord, "boundary"> & Partial<
     command: normalizeOptionalText(record.command),
     timeoutMs: boundary.maxRuntimeMs,
     stallTimeoutMs: boundary.maxIdleMs,
+    waitPolicy,
+    assignmentId: normalizeOptionalText(record.assignmentId) ?? assignmentSnapshot?.assignmentId,
+    assignmentSnapshot,
+    capabilityId: normalizeOptionalText(record.capabilityId)
+      ?? capabilityPackageSnapshot?.packageId
+      ?? assignmentSnapshot?.capabilityId,
+    capabilityKind: normalizeOptionalText(record.capabilityKind) ?? capabilityPackageSnapshot?.profile.kind,
+    capabilityPackageSnapshot,
+    executionPolicy,
     boundary,
     summary: normalizeOptionalText(record.summary),
     resultText: normalizeOptionalText(record.resultText),
@@ -466,8 +566,44 @@ function normalizeProfile(value: string): ExecutionProfile {
       return "background";
     case "teammate":
       return "teammate";
+    case "workflow":
+      return "workflow";
     default:
       throw new Error(`Invalid execution profile '${String(value)}'.`);
+  }
+}
+
+function readWaitPolicy(value: string | null): ExecutionRecord["waitPolicy"] {
+  if (!value) {
+    return undefined;
+  }
+  try {
+    return normalizeLeadWaitPolicy(JSON.parse(value));
+  } catch {
+    return undefined;
+  }
+}
+
+function readExecutionPolicy(value: string | null): ExecutionRecord["executionPolicy"] {
+  const parsed = readJson<ExecutionPolicySnapshot>(value);
+  if (!parsed) {
+    return undefined;
+  }
+  try {
+    return normalizeExecutionPolicySnapshot(parsed);
+  } catch {
+    return undefined;
+  }
+}
+
+function readJson<T>(value: string | null): T | undefined {
+  if (!value) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return undefined;
   }
 }
 

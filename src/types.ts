@@ -39,7 +39,7 @@ export type {
   RuntimeTerminalTransition,
   RuntimeTransition,
   RuntimeYieldReason,
-  RuntimeYieldDelegationDispatchReason,
+  RuntimeYieldExecutionDispatchReason,
   RuntimeYieldToolStepLimitReason,
   RuntimeYieldTransition,
 } from "./types/runtimeTransitions.js";
