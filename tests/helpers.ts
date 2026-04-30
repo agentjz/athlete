@@ -146,7 +146,7 @@ export function createCheckpointFixture(
     completedSteps?: string[];
     recentToolBatch?: Record<string, unknown>;
     flow?: Record<string, unknown>;
-    priorityArtifacts?: Array<Record<string, unknown>>;
+    evidenceArtifacts?: Array<Record<string, unknown>>;
     updatedAt?: string;
   } = {},
 ): Record<string, unknown> {
@@ -163,7 +163,7 @@ export function createCheckpointFixture(
       updatedAt: timestamp,
       ...(overrides.flow ?? {}),
     },
-    priorityArtifacts: overrides.priorityArtifacts ?? [],
+    evidenceArtifacts: overrides.evidenceArtifacts ?? [],
     updatedAt: timestamp,
   };
 }

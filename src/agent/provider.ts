@@ -1,3 +1,5 @@
+import { resolveModelCapabilityProfile, type ModelCapabilityProfile } from "./modelProfile.js";
+
 export interface ProviderCapabilities {
   provider: string;
   model: string;
@@ -7,6 +9,7 @@ export interface ProviderCapabilities {
   defaultReasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
   requestTimeoutMs: number;
   doctorProbeTimeoutMs: number;
+  modelProfile: ModelCapabilityProfile;
 }
 
 interface ProviderProfileInput {
@@ -25,7 +28,7 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
   const model = normalizeModelName(input.model);
 
   if (provider === "deepseek" || model.startsWith("deepseek-")) {
-    return {
+    return attachModelProfile({
       provider: "deepseek",
       model,
       wireApi: "chat.completions",
@@ -34,11 +37,11 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
       defaultReasoningEffort: "high",
       requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
       doctorProbeTimeoutMs: DEFAULT_DOCTOR_PROBE_TIMEOUT_MS,
-    };
+    });
   }
 
   if (provider === "openai" || model === "gpt-5.4") {
-    return {
+    return attachModelProfile({
       provider: "openai",
       model,
       wireApi: "responses",
@@ -47,10 +50,10 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
       defaultReasoningEffort: "xhigh",
       requestTimeoutMs: RELAY_REQUEST_TIMEOUT_MS,
       doctorProbeTimeoutMs: RELAY_DOCTOR_PROBE_TIMEOUT_MS,
-    };
+    });
   }
 
-  return {
+  return attachModelProfile({
     provider,
     model,
     wireApi: "chat.completions",
@@ -58,6 +61,13 @@ export function resolveProviderCapabilities(input: ProviderProfileInput): Provid
     defaultReasoningEnabled: false,
     requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
     doctorProbeTimeoutMs: DEFAULT_DOCTOR_PROBE_TIMEOUT_MS,
+  });
+}
+
+function attachModelProfile(capabilities: Omit<ProviderCapabilities, "modelProfile">): ProviderCapabilities {
+  return {
+    ...capabilities,
+    modelProfile: resolveModelCapabilityProfile(capabilities),
   };
 }
 

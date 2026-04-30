@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
@@ -184,3 +184,4 @@ test("getLightweightVerificationAttempt does not clear verification for source-c
 
   assert.equal(attempt, null);
 });
+

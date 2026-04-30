@@ -17,6 +17,7 @@ export type ToolGovernanceSource = ToolOriginKind;
 export type ToolGovernanceSpecialty =
   | "background"
   | "browser"
+  | "code"
   | "document"
   | "external"
   | "filesystem"
@@ -24,6 +25,7 @@ export type ToolGovernanceSpecialty =
   | "messaging"
   | "shell"
   | "task"
+  | "trace"
   | "team"
   | "worktree";
 export type ToolGovernanceMutation = "read" | "state" | "write";

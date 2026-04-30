@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -59,7 +59,7 @@ async function main() {
   const reloaded = await sessionStore.load(phaseOneResult.session.id);
   const checkpoint = reloaded.checkpoint;
   const checkpointExists = Boolean(checkpoint?.objective);
-  const checkpointStoragePath = checkpoint?.priorityArtifacts?.find((artifact) =>
+  const checkpointStoragePath = checkpoint?.evidenceArtifacts?.find((artifact) =>
     artifact.toolName === "capture_round2_checkpoint" && artifact.storagePath
   )?.storagePath;
   const phaseTwoRegistry = createRound2ApiRegistry(workspace);

@@ -12,8 +12,9 @@ export function formatCapabilityRegistrySummary(
   const maxPerKind = Math.max(1, options.maxPerKind ?? 6);
   const grouped = groupByKind(packages);
   const lines = [
-    "Execution capability platform:",
-    "Capability packages are options for Lead, not machine intent.",
+    "Capability presentation layer:",
+    "This layer summarizes, orders, and de-noises available capability packages for Lead.",
+    "Presentation order and summaries are options for Lead, not machine intent.",
     "Every package uses AssignmentContract -> Execution/Progress/Artifact -> CloseoutContract -> WakeSignal.",
     "Lead wait behavior is package protocol data snapshotted into Execution records, not a concrete capability name branch.",
     "Machine permissions are fixed: expose and execute explicit assignments only; never auto-select or auto-dispatch.",

@@ -42,6 +42,11 @@ test("provider capabilities keep DeepSeek V4 on the chat completions wire withou
   assert.equal(gpt54.doctorProbeTimeoutMs >= 30_000, true);
   assert.equal(deepseek.wireApi, "chat.completions");
   assert.equal(deepseek.defaultReasoningEffort, "high");
+  assert.equal(deepseek.modelProfile.tier, "strong");
+  assert.equal(deepseek.modelProfile.harnessSurface.reasoningVisibleToHarness, true);
+  assert.equal(gpt54.modelProfile.tier, "frontier");
+  assert.equal(gpt54.modelProfile.wireApi, "responses");
+  assert.equal(gpt54.modelProfile.harnessSurface.preferLowNoiseCapabilitySummary, true);
   assert.equal(generic.wireApi, "chat.completions");
 });
 

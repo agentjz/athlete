@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createToolRegistry, createToolSource } from "../../src/capabilities/tools/core/registry.js";
 import type { RegisteredTool, ToolRegistry } from "../../src/capabilities/tools/core/types.js";
 import type { AgentCallbacks } from "../../src/agent/types.js";
@@ -16,7 +16,7 @@ import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from ".
 
 
 
-class RecordingSessionStore extends MemorySessionStore {
+class RecordingSessionStore extends InProcessSessionStore {
   readonly savedSnapshots: SessionRecord[] = [];
 
   override async save(session: SessionRecord): Promise<SessionRecord> {
@@ -437,3 +437,4 @@ test("prepare-phase strictness blocks unknown args for L1 and L2 tools", async (
   assert.equal(l2Result.metadata?.protocol?.blockedIn, "prepare");
   assert.deepEqual(l2Result.metadata?.protocol?.phases, ["prepare", "finalize"]);
 });
+

@@ -17,12 +17,12 @@ export function formatSkillPromptBlock(
   }
 
   if (available.length > 0) {
-    lines.push(`- Skill index: ${formatSkillIndex(available)}`);
+    lines.push(`- Skill capability index: ${formatSkillIndex(available)}`);
     lines.push("- Skill bodies are available only through explicit load_skill calls.");
   }
 
   if (lines.length === 0) {
-    return "- Skill index is empty.";
+    return "- Skill capability index is empty.";
   }
 
   return lines.join("\n");

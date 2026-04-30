@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
-import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
+import { orderToolDefinitionsForLead } from "../../src/agent/capabilityPresentation.js";
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
 function createTool(name: string): FunctionToolDefinition {
@@ -19,8 +19,8 @@ function createTool(name: string): FunctionToolDefinition {
   };
 }
 
-test("prioritizeToolDefinitionsForTurn keeps web research lightweight before browser automation", () => {
-  const prioritized = prioritizeToolDefinitionsForTurn(
+test("tool presentation order keeps web research lightweight before browser automation", () => {
+  const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),
       createTool("read_file"),
@@ -40,15 +40,15 @@ test("prioritizeToolDefinitionsForTurn keeps web research lightweight before bro
     },
   );
 
-  const names = prioritized.map((tool) => tool.function.name);
+  const names = ordered.map((tool) => tool.function.name);
   assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
   assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
   assert(names.indexOf("download_url") < names.indexOf("mcp_playwright_browser_click"));
   assert(names.includes("load_skill"));
 });
 
-test("prioritizeToolDefinitionsForTurn keeps continuation web hints advisory instead of browser-first", () => {
-  const prioritized = prioritizeToolDefinitionsForTurn(
+test("tool presentation order keeps continuation web hints advisory instead of browser-first", () => {
+  const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),
       createTool("read_file"),
@@ -67,14 +67,14 @@ test("prioritizeToolDefinitionsForTurn keeps continuation web hints advisory ins
     },
   );
 
-  const names = prioritized.map((tool) => tool.function.name);
+  const names = ordered.map((tool) => tool.function.name);
   assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
   assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
   assert(names.includes("run_shell"));
   assert(names.includes("mcp_playwright_browser_take_screenshot"));
 });
 
-test("prioritizeToolDefinitionsForTurn leaves non-web turns in their original order", () => {
+test("tool presentation order leaves non-web turns in their original order", () => {
   const original = [
     createTool("list_files"),
     createTool("read_file"),
@@ -82,12 +82,12 @@ test("prioritizeToolDefinitionsForTurn leaves non-web turns in their original or
     createTool("mcp_playwright_browser_navigate"),
   ];
 
-  const prioritized = prioritizeToolDefinitionsForTurn(original, {
+  const ordered = orderToolDefinitionsForLead(original, {
     input: "Inspect the src directory structure and summarize the current module boundaries.",
   });
 
   assert.deepEqual(
-    prioritized.map((tool) => tool.function.name),
+    ordered.map((tool) => tool.function.name),
     original.map((tool) => tool.function.name),
   );
 });

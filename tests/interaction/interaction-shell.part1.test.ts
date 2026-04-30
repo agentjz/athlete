@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import type { InteractiveExitGuard, InteractiveExitProcess } from "../../src/interaction/exitGuard.js";
 import { InteractiveSessionDriver } from "../../src/interaction/sessionDriver.js";
 import type { InteractionShell } from "../../src/interaction/shell.js";
@@ -172,7 +172,7 @@ function createExitGuard(script: {
 test("shared interaction driver can run a full turn through a shell adapter without CLI stdio", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -190,7 +190,7 @@ test("shared interaction driver can run a full turn through a shell adapter with
     shell,
     runTurn: async (options) => {
       seenInputs.push(options.input);
-      options.callbacks?.onStatus?.("routing turn");
+      options.callbacks?.onStatus?.("running turn");
       options.callbacks?.onAssistantText?.("done");
       options.callbacks?.onAssistantDone?.("done");
       return {
@@ -217,7 +217,7 @@ test("shared interaction driver can run a full turn through a shell adapter with
 test("local commands still run through the shared shell boundary without invoking the agent turn", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -253,7 +253,7 @@ test("local commands still run through the shared shell boundary without invokin
 test("quit exits immediately when no background processes are running", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [{ kind: "submit", value: "quit" }],
@@ -279,7 +279,7 @@ test("quit exits immediately when no background processes are running", async ()
 test("closed interactive input terminates running workers instead of leaving detached processes alive", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [{ kind: "closed" }],
@@ -312,3 +312,4 @@ test("closed interactive input terminates running workers instead of leaving det
   assert.deepEqual(exitGuard.lastTerminated.map((item) => item.pid), [321]);
   assert.equal(shell.outputs.some((entry) => entry.level === "warn" && entry.text.includes("Input closed")), true);
 });
+

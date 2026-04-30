@@ -1,8 +1,8 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { getDefaultPlaywrightMcpConfig } from "../../src/capabilities/mcp/playwright/config.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace } from "../helpers.js";
@@ -76,7 +76,7 @@ function createConfig(): RuntimeConfig {
 
 test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
   const root = await createTempWorkspace("managed-turn", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const initialSession = await sessionStore.save({
     ...(await sessionStore.create(root)),
     checkpoint: createCheckpointFixture("Ship the round2 checkpoint runtime.", {
@@ -126,7 +126,7 @@ test("runManagedAgentTurn auto-continues yielded lead turns", async (t) => {
 
 test("runManagedAgentTurn lets supervisors override continuation input", async (t) => {
   const root = await createTempWorkspace("managed-turn", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const initialSession = await sessionStore.create(root);
   const seenInputs: string[] = [];
   let sliceCount = 0;
@@ -165,7 +165,7 @@ test("runManagedAgentTurn lets supervisors override continuation input", async (
 
 test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config is enabled", async (t) => {
   const root = await createTempWorkspace("managed-turn", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const initialSession = await sessionStore.create(root);
   const seenInputs: string[] = [];
   const seenHeadlessFlags: Array<boolean | undefined> = [];
@@ -213,7 +213,7 @@ test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config
 
 test("runManagedAgentTurn still auto-continues yielded turns when verification state is already passed", async (t) => {
   const root = await createTempWorkspace("managed-turn", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const initialSession = await sessionStore.create(root);
   const session = await sessionStore.save(({
     ...initialSession,
@@ -265,3 +265,4 @@ test("runManagedAgentTurn still auto-continues yielded turns when verification s
   assert.doesNotMatch(String(seenInputs[1]), /Finished the implementation/i);
   assert.doesNotMatch(String(seenInputs[1]), /Summarize the verified result/i);
 });
+

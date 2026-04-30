@@ -2,7 +2,7 @@ import { getBrowserStepRank, getToolGovernanceForName, isBrowserGovernedTool } f
 import type { FunctionToolDefinition } from "../capabilities/tools/index.js";
 import type { ToolRegistryEntry } from "../capabilities/tools/core/types.js";
 
-export interface ToolPriorityOptions {
+export interface CapabilityPresentationInput {
   input?: string;
   objective?: string;
   taskSummary?: string;
@@ -27,8 +27,8 @@ const EXPLICIT_INTERACTIVE_WEB_PATTERNS = [
 const WEB_WORKFLOW_SKILLS = new Set(["web-research", "browser-automation"]);
 const INTERACTIVE_WEB_WORKFLOW_SKILLS = new Set(["browser-automation"]);
 
-// Lightweight network tools are preferred first for non-interactive web turns.
-const LIGHTWEIGHT_WEB_TOOL_RANK = new Map<string, number>([
+// Presentation order only: this reduces noise without selecting a tool for Lead.
+const WEB_TOOL_PRESENTATION_ORDER = new Map<string, number>([
   ["http_probe", 0],
   ["http_request", 1],
   ["http_session", 2],
@@ -39,51 +39,51 @@ const LIGHTWEIGHT_WEB_TOOL_RANK = new Map<string, number>([
   ["network_trace", 7],
 ]);
 
-export function prioritizeToolEntriesForTurn(
+export function orderToolEntriesForLead(
   entries: ToolRegistryEntry[],
-  options: ToolPriorityOptions,
+  options: CapabilityPresentationInput,
 ): ToolRegistryEntry[] {
-  if (!shouldPrioritizeBrowserEntries(entries, options)) {
+  if (!shouldReorderBrowserEntries(entries, options)) {
     return entries;
   }
 
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
-  const prioritized = entries
+  const ordered = entries
     .map((entry, index) => ({
       entry,
       index,
-      rank: getToolPriorityRank(entry.name, entry.governance, {
+      presentationOrder: getToolPresentationOrder(entry.name, entry.governance, {
         interactiveWebIntent,
       }),
     }))
     .sort((left, right) => {
-      if (left.rank !== right.rank) {
-        return left.rank - right.rank;
+      if (left.presentationOrder !== right.presentationOrder) {
+        return left.presentationOrder - right.presentationOrder;
       }
 
       return left.index - right.index;
     })
     .map((item) => item.entry);
 
-  return assertSameEntrySet(entries, prioritized);
+  return assertSameEntrySet(entries, ordered);
 }
 
-export function prioritizeToolDefinitionsForTurn(
+export function orderToolDefinitionsForLead(
   definitions: FunctionToolDefinition[],
-  options: ToolPriorityOptions,
+  options: CapabilityPresentationInput,
 ): FunctionToolDefinition[] {
-  if (!shouldPrioritizeBrowserTools(definitions, options)) {
+  if (!shouldReorderBrowserTools(definitions, options)) {
     return definitions;
   }
 
   const interactiveWebIntent = isInteractiveWebIntent(options);
 
-  const prioritized = definitions
+  const ordered = definitions
     .map((definition, index) => ({
       definition,
       index,
-      rank: getToolPriorityRank(
+      presentationOrder: getToolPresentationOrder(
         definition.function.name,
         getToolGovernanceForName(definition.function.name),
         {
@@ -92,53 +92,53 @@ export function prioritizeToolDefinitionsForTurn(
       ),
     }))
     .sort((left, right) => {
-      if (left.rank !== right.rank) {
-        return left.rank - right.rank;
+      if (left.presentationOrder !== right.presentationOrder) {
+        return left.presentationOrder - right.presentationOrder;
       }
 
       return left.index - right.index;
     })
     .map((entry) => entry.definition);
 
-  return assertSameDefinitionSet(definitions, prioritized);
+  return assertSameDefinitionSet(definitions, ordered);
 }
 
-function assertSameEntrySet(original: ToolRegistryEntry[], prioritized: ToolRegistryEntry[]): ToolRegistryEntry[] {
+function assertSameEntrySet(original: ToolRegistryEntry[], ordered: ToolRegistryEntry[]): ToolRegistryEntry[] {
   assertSameNameSet(
     original.map((entry) => entry.name),
-    prioritized.map((entry) => entry.name),
-    "tool entry prioritization",
+    ordered.map((entry) => entry.name),
+    "tool entry presentation ordering",
   );
-  return prioritized;
+  return ordered;
 }
 
-function assertSameDefinitionSet(original: FunctionToolDefinition[], prioritized: FunctionToolDefinition[]): FunctionToolDefinition[] {
+function assertSameDefinitionSet(original: FunctionToolDefinition[], ordered: FunctionToolDefinition[]): FunctionToolDefinition[] {
   assertSameNameSet(
     original.map((definition) => definition.function.name),
-    prioritized.map((definition) => definition.function.name),
-    "tool definition prioritization",
+    ordered.map((definition) => definition.function.name),
+    "tool definition presentation ordering",
   );
-  return prioritized;
+  return ordered;
 }
 
-function assertSameNameSet(originalNames: string[], prioritizedNames: string[], label: string): void {
+function assertSameNameSet(originalNames: string[], orderedNames: string[], label: string): void {
   const original = [...originalNames].sort();
-  const prioritized = [...prioritizedNames].sort();
-  if (original.length !== prioritized.length || original.some((name, index) => name !== prioritized[index])) {
+  const ordered = [...orderedNames].sort();
+  if (original.length !== ordered.length || original.some((name, index) => name !== ordered[index])) {
     throw new Error(`${label} must not add, remove, or hide tools.`);
   }
 }
 
-function shouldPrioritizeBrowserTools(
+function shouldReorderBrowserTools(
   definitions: FunctionToolDefinition[],
-  options: ToolPriorityOptions,
+  options: CapabilityPresentationInput,
 ): boolean {
   return hasBrowserCapabilityTool(definitions) && (hasWebWorkflowSignal(options) || hasExplicitWebSurface(options));
 }
 
-function shouldPrioritizeBrowserEntries(
+function shouldReorderBrowserEntries(
   entries: ToolRegistryEntry[],
-  options: ToolPriorityOptions,
+  options: CapabilityPresentationInput,
 ): boolean {
   return (
     entries.some((entry) => isBrowserGovernedTool(entry.governance)) &&
@@ -153,7 +153,7 @@ function hasBrowserCapabilityTool(definitions: FunctionToolDefinition[]): boolea
   });
 }
 
-function hasExplicitWebSurface(options: ToolPriorityOptions): boolean {
+function hasExplicitWebSurface(options: CapabilityPresentationInput): boolean {
   const combinedText = getCombinedText(options);
   if (!combinedText) {
     return false;
@@ -162,7 +162,7 @@ function hasExplicitWebSurface(options: ToolPriorityOptions): boolean {
   return EXPLICIT_WEB_SURFACE_PATTERNS.some((pattern) => pattern.test(combinedText));
 }
 
-function isInteractiveWebIntent(options: ToolPriorityOptions): boolean {
+function isInteractiveWebIntent(options: CapabilityPresentationInput): boolean {
   if (hasInteractiveWebWorkflowSignal(options)) {
     return true;
   }
@@ -175,12 +175,12 @@ function isInteractiveWebIntent(options: ToolPriorityOptions): boolean {
   return EXPLICIT_INTERACTIVE_WEB_PATTERNS.some((pattern) => pattern.test(combinedText));
 }
 
-function hasWebWorkflowSignal(options: ToolPriorityOptions): boolean {
+function hasWebWorkflowSignal(options: CapabilityPresentationInput): boolean {
   const activeSkillNames = normalizeSkillNames(options.activeSkillNames);
   return activeSkillNames.some((name) => WEB_WORKFLOW_SKILLS.has(name));
 }
 
-function hasInteractiveWebWorkflowSignal(options: ToolPriorityOptions): boolean {
+function hasInteractiveWebWorkflowSignal(options: CapabilityPresentationInput): boolean {
   const activeSkillNames = normalizeSkillNames(options.activeSkillNames);
   return activeSkillNames.some((name) => INTERACTIVE_WEB_WORKFLOW_SKILLS.has(name));
 }
@@ -189,32 +189,32 @@ function normalizeSkillNames(input: string[] | undefined): string[] {
   return (input ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean);
 }
 
-function getCombinedText(options: ToolPriorityOptions): string {
+function getCombinedText(options: CapabilityPresentationInput): string {
   return [options.input, options.objective, options.taskSummary]
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join("\n")
     .trim();
 }
 
-function getToolPriorityRank(
+function getToolPresentationOrder(
   name: string,
   governance: ReturnType<typeof getToolGovernanceForName>,
   options: {
     interactiveWebIntent: boolean;
   },
 ): number {
-  const lightweightRank = LIGHTWEIGHT_WEB_TOOL_RANK.get(name);
+  const lightweightOrder = WEB_TOOL_PRESENTATION_ORDER.get(name);
   if (options.interactiveWebIntent) {
     if (governance && isBrowserGovernedTool(governance)) {
       return 80 + getBrowserStepRank(governance);
     }
 
-    if (lightweightRank !== undefined) {
-      return 10 + lightweightRank;
+    if (lightweightOrder !== undefined) {
+      return 10 + lightweightOrder;
     }
   } else {
-    if (lightweightRank !== undefined) {
-      return 10 + lightweightRank;
+    if (lightweightOrder !== undefined) {
+      return 10 + lightweightOrder;
     }
 
     if (governance && isBrowserGovernedTool(governance)) {

@@ -88,7 +88,7 @@ export class SessionStore implements SessionStoreLike {
   }
 }
 
-export class MemorySessionStore implements SessionStoreLike {
+export class InProcessSessionStore implements SessionStoreLike {
   private readonly sessions = new Map<string, SessionRecord>();
 
   async create(cwd: string): Promise<SessionRecord> {
@@ -104,7 +104,7 @@ export class MemorySessionStore implements SessionStoreLike {
   async load(id: string): Promise<SessionRecord> {
     const session = this.sessions.get(id);
     if (!session) {
-      throw createSessionNotFoundError(id, `memory:${id}`);
+      throw createSessionNotFoundError(id, `in-process:${id}`);
     }
 
     return session;

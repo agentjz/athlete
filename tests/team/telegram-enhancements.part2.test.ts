@@ -522,6 +522,7 @@ test("telegram service can locate a workspace file and send it back through the 
         JSON.stringify({
           path: ".",
           pattern: "send me",
+          mode: "matches",
         }),
         toolContext as never,
       );

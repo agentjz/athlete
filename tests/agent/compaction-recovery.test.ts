@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -53,7 +53,7 @@ test("post-compaction degradation keeps checkpoint state and eventually pauses i
         phase: "continuation",
         updatedAt: new Date().toISOString(),
       },
-      priorityArtifacts: [],
+      evidenceArtifacts: [],
       updatedAt: new Date().toISOString(),
     },
     verificationState: {

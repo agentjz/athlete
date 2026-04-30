@@ -1,4 +1,4 @@
-import type { McpConfig } from "./capabilities/mcp/types.js";
+﻿import type { McpConfig } from "./capabilities/mcp/types.js";
 import type { AcceptanceState } from "./types/acceptance.js";
 import type { LoadedSkill } from "./capabilities/skills/types.js";
 import type { TelegramConfig, TelegramRuntimeConfig } from "./telegram/config.js";
@@ -290,7 +290,7 @@ export interface SessionCheckpoint {
   completedSteps: string[];
   recentToolBatch?: SessionCheckpointToolBatch;
   flow: SessionCheckpointFlow;
-  priorityArtifacts: SessionCheckpointArtifact[];
+  evidenceArtifacts: SessionCheckpointArtifact[];
   updatedAt: string;
 }
 

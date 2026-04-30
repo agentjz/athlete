@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createEmptyVerificationState, recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
@@ -279,7 +279,7 @@ function okResult(
 }
 
 test("handleCompletedAssistantResponse finalizes once verified work is done even if prior todos are stale", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(process.cwd());
   const session = await sessionStore.save(({
     ...baseSession,
@@ -340,7 +340,7 @@ test("handleCompletedAssistantResponse records closeout without auto-verifying l
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.writeFile(targetPath, "# Verified output\n- item\n", "utf8");
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -393,7 +393,7 @@ test("handleCompletedAssistantResponse does not pause on recorded verification f
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.writeFile(targetPath, "# Verified output\n- item\n", "utf8");
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -440,7 +440,7 @@ test("handleCompletedAssistantResponse does not pause on recorded verification f
 });
 
 test("handleCompletedAssistantResponse treats verification state as fact rather than a closeout gate", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(process.cwd());
   const pendingPath = path.join(process.cwd(), "src", "agent", "runTurn.ts");
 
@@ -482,3 +482,4 @@ test("handleCompletedAssistantResponse treats verification state as fact rather 
     assert.equal((outcome.result.session as any).checkpoint?.flow?.lastTransition?.reason?.code, "finalize.completed");
   }
 });
+

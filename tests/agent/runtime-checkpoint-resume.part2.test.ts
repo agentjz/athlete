@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -218,7 +218,7 @@ test("runtime checkpoint reload preserves the current structured transition trut
   assert.equal(checkpoint?.flow?.lastTransition?.reason?.code, "yield.tool_step_limit");
   assert.equal(checkpoint?.flow?.lastTransition?.reason?.toolSteps, 5);
   assert.equal(checkpoint?.completedSteps?.includes("Completed the setup phase"), true);
-  assert.ok(Array.isArray(checkpoint?.priorityArtifacts));
+  assert.ok(Array.isArray(checkpoint?.evidenceArtifacts));
 });
 
 test("runtime checkpoint exposes only current-objective runtime facts when histories are compressed", { concurrency: false }, () => {
@@ -239,7 +239,7 @@ test("runtime checkpoint exposes only current-objective runtime facts when histo
     flow: {
       phase: "resume",
     },
-    priorityArtifacts: [
+    evidenceArtifacts: [
       {
         kind: "externalized_tool_result",
         toolName: "emit_large_checkpoint",

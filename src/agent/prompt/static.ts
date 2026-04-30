@@ -97,10 +97,10 @@ function buildWorkLoopContract(runtimeState: PromptRuntimeState): string {
 
 function buildPromptBoundaryContract(): string {
   return [
-    "Prompt text defines operating principles, evidence discipline, and hard boundaries; it is not a hidden routing policy.",
-    "Do not turn examples, capability names, tool groups, skill indexes, ledger facts, verification facts, acceptance facts, wake signals, or runtime summaries into mandatory next actions.",
+    "Prompt text defines operating principles, evidence discipline, and hard boundaries; it is not a hidden decision policy.",
+    "Do not turn examples, capability names, tool groups, skill capability indexes, ledger facts, verification facts, acceptance facts, wake signals, or runtime summaries into mandatory next actions.",
     "There is no trigger-action dispatch table: no 'if web then browser', no 'if changed paths then test', no 'if a skill exists then load it', no 'if acceptance is pending then continue', and no 'if complex then delegate'.",
-    "Choose actions from the current objective and evidence. When evidence is missing, inspect it or report the uncertainty instead of following a prompt-shaped default route.",
+    "Choose actions from the current objective and evidence. When evidence is missing, inspect it or report the uncertainty instead of following a prompt-shaped default action.",
   ].join("\n");
 }
 
@@ -130,7 +130,7 @@ function buildToolUseContract(
     lines.splice(
       6,
       0,
-      "Skill loading is an explicit model choice for the current objective; skill index entries are not required actions.",
+      "Skill loading is an explicit model choice for the current objective; skill capability index entries are not required actions.",
       "Coordination, protocol, background, and worktree tools are explicit action surfaces; availability is not instruction.",
     );
   }

@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 import { resolveUserPath } from "../../../../utils/fs.js";
 import { ToolExecutionError } from "../../core/errors.js";
 import { findPathSuggestions } from "../../core/pathSuggestions.js";
-import { SPREADSHEET_EXTENSIONS } from "../../core/routing.js";
+import { SPREADSHEET_EXTENSIONS } from "../../core/capabilityHints.js";
 import { clampNumber, okResult, parseArgs, readString } from "../../core/shared.js";
 import type { RegisteredTool } from "../../core/types.js";
 

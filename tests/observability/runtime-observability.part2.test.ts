@@ -202,7 +202,7 @@ test("runtime observability explains provider and managed budget pause reasons w
         },
         updatedAt: new Date().toISOString(),
       },
-      priorityArtifacts: [],
+      evidenceArtifacts: [],
       updatedAt: new Date().toISOString(),
     },
   } as any);
@@ -265,7 +265,7 @@ test("runtime observability explains provider and managed budget pause reasons w
         },
         updatedAt: new Date().toISOString(),
       },
-      priorityArtifacts: [],
+      evidenceArtifacts: [],
       updatedAt: new Date().toISOString(),
     },
   } as any);
@@ -344,7 +344,7 @@ test("runtime observability local command prints a product-style summary that ex
             },
             updatedAt: new Date().toISOString(),
           },
-          priorityArtifacts: [],
+          evidenceArtifacts: [],
           updatedAt: new Date().toISOString(),
         },
         verificationState: {

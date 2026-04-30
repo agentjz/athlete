@@ -1,4 +1,4 @@
-import {
+﻿import {
   buildCheckpointFlow,
   createToolBatchTransition,
   getTurnInputTransition,
@@ -48,10 +48,10 @@ export function normalizeCheckpoint(
     completedSteps: takeLastUnique(checkpoint.completedSteps ?? [], 8),
     recentToolBatch: normalizeToolBatch(checkpoint.recentToolBatch),
     flow: normalizeCheckpointFlow(checkpoint.flow, status, timestamp),
-    priorityArtifacts:
+    evidenceArtifacts:
       status === "completed"
         ? []
-        : normalizeArtifacts(checkpoint.priorityArtifacts ?? []),
+        : normalizeArtifacts(checkpoint.evidenceArtifacts ?? []),
     updatedAt: normalizeTimestamp(checkpoint.updatedAt, timestamp),
   };
 }
@@ -66,8 +66,8 @@ export function normalizeSessionCheckpoint(session: SessionRecord): SessionRecor
   }
 
   if (checkpoint.status !== "completed") {
-    checkpoint.priorityArtifacts = mergeArtifacts(
-      checkpoint.priorityArtifacts,
+    checkpoint.evidenceArtifacts = mergeArtifacts(
+      checkpoint.evidenceArtifacts,
       checkpoint.recentToolBatch?.artifacts ?? [],
     );
   }
@@ -152,12 +152,12 @@ export function noteCheckpointToolBatch(
       ...checkpoint,
       completedSteps: deriveCompletedSteps(session),
       recentToolBatch,
-      priorityArtifacts:
+      evidenceArtifacts:
         checkpoint.status === "completed"
           ? []
           : mergeArtifacts(
               recentToolBatch?.artifacts ?? [],
-              checkpoint.priorityArtifacts,
+              checkpoint.evidenceArtifacts,
             ),
       flow: buildCheckpointFlow({
         current: checkpoint.flow,

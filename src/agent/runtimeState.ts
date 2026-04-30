@@ -77,7 +77,7 @@ export async function loadPromptRuntimeState(
     backgroundSummary,
     protocolSummary,
     coordinationPolicySummary,
-    capabilitySummary: identity.kind === "lead"
+    capabilityPresentation: identity.kind === "lead"
       ? formatRuntimeCapabilityRegistryForLead(capabilityInput, { maxPerKind: 4 })
       : undefined,
   };

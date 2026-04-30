@@ -29,7 +29,7 @@ function createProjectContext(skills: LoadedSkill[] = []): ProjectContext {
   };
 }
 
-test("system prompt exposes static and profile runtime facts layers without a history memory layer", () => {
+test("system prompt exposes static and profile runtime facts layers without a history recall layer", () => {
   const layers = buildSystemPromptLayers(
     ROOT,
     createTestRuntimeConfig(ROOT),
@@ -52,7 +52,7 @@ test("system prompt exposes static and profile runtime facts layers without a hi
   assert.match(prompt, /External content boundary:/);
   assert.match(prompt, /Project instructions:/);
   assert.notEqual(runtimeFactsIndex, -1);
-  assert.doesNotMatch(prompt, /Compressed conversation memory:/);
+  assert.doesNotMatch(prompt, /Compressed conversation recall:/);
   assert.doesNotMatch(prompt, /Earlier turn summary/);
   assert.doesNotMatch(prompt, /Carryover:/);
 });
@@ -188,7 +188,7 @@ test("grok profile injects a cut-style persona and its own runtime facts present
 });
 
 
-test("system prompt states principles without becoming a trigger-action routing table", () => {
+test("system prompt states principles without becoming a trigger-action decision table", () => {
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
       ROOT,
@@ -198,7 +198,7 @@ test("system prompt states principles without becoming a trigger-action routing 
   );
 
   assert.match(prompt, /Prompt boundary contract:/);
-  assert.match(prompt, /not a hidden routing policy/i);
+  assert.match(prompt, /not a hidden decision policy/i);
   assert.match(prompt, /no 'if web then browser'/i);
   assert.match(prompt, /no 'if changed paths then test'/i);
   assert.match(prompt, /no 'if a skill exists then load it'/i);
@@ -352,7 +352,7 @@ test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   );
 
   assert.match(block, /Loaded now: web-research/);
-  assert.match(block, /Skill index: web-research, browser-automation, spec-alignment/);
+  assert.match(block, /Skill capability index: web-research, browser-automation, spec-alignment/);
   assert.match(block, /explicit load_skill calls/);
   assert.doesNotMatch(block, /Turn match:/);
   assert.doesNotMatch(block, /via scene|via task_type/);

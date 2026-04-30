@@ -23,7 +23,7 @@ function toMcpCapabilityPackage(server: ResolvedMcpServerDefinition): Capability
       `${server.transport} MCP operations`,
       server.include.length > 0 ? `included tools: ${server.include.slice(0, 8).join(", ")}` : "server-discovered tools",
     ],
-    notFor: ["automatic startup as strategy", "machine-owned routing", "bypassing AssignmentContract"],
+    notFor: ["automatic startup as strategy", "machine-owned decisions", "bypassing AssignmentContract"],
     inputSchema: "AssignmentContract plus explicit MCP-backed tool calls selected by Lead",
     outputSchema: "ToolExecutionResult plus ArtifactRef / CloseoutContract evidence when work is delegated",
     budgetPolicy: `MCP server timeout ${server.timeoutMs}ms; Lead decides whether this server is worth starting or using.`,

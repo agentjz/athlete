@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import test from "node:test";
 
 import { runAgentTurn } from "../../src/agent/runTurn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createTestRuntimeConfig, createTempWorkspace } from "../helpers.js";
 
 test("runAgentTurn sends all identities through the core model config", async (t) => {
@@ -38,7 +38,7 @@ test("runAgentTurn sends all identities through the core model config", async (t
         messages: [],
         todoItems: [],
       },
-      sessionStore: new MemorySessionStore(),
+      sessionStore: new InProcessSessionStore(),
       identity,
     });
   }
@@ -89,3 +89,4 @@ async function readRequestBody(request: http.IncomingMessage): Promise<string> {
   }
   return Buffer.concat(chunks).toString("utf8");
 }
+

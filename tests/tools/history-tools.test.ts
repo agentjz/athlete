@@ -11,7 +11,7 @@ import { getProjectStatePaths } from "../../src/project/statePaths.js";
 import type { StoredMessage } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
-test("history tools expose persisted evidence without automatic prompt memory", async (t) => {
+test("history tools expose persisted evidence without automatic prompt recall", async (t) => {
   const root = await createTempWorkspace("history-tools", t);
   const config = createTestRuntimeConfig(root);
   const sessionStore = new SessionStore(config.paths.sessionsDir);

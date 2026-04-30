@@ -27,7 +27,7 @@ test("repo skill catalog contains MinerU document skills and removes the retired
   );
 });
 
-test("MinerU skills are discoverable without turn-level auto routing", async () => {
+test("MinerU skills are discoverable without turn-level automatic selection", async () => {
   const skills = await discoverSkills(REPO_ROOT, REPO_ROOT, []);
   const names = new Set(skills.map((skill) => skill.name));
 
@@ -37,7 +37,7 @@ test("MinerU skills are discoverable without turn-level auto routing", async () 
   assert.equal(names.has("mineru-ppt-reading"), true);
 });
 
-test("system prompt keeps document routing at the principle level instead of hardcoding the full MinerU route table", () => {
+test("system prompt keeps document capability guidance at the principle level instead of hardcoding a MinerU decision table", () => {
   const root = REPO_ROOT;
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(

@@ -10,12 +10,12 @@ import type { ToolGovernanceDocumentKind } from "./types.js";
 
 export const SPREADSHEET_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".tsv", ".ods"]);
 
-export interface ToolRouteHint {
+export interface ToolCapabilityHint {
   code: string;
-  action:
-    | "skip_file_content"
-    | "use_read_spreadsheet"
-    | "use_document_read";
+  presentation:
+    | "metadata_only"
+    | "spreadsheet_reader_available"
+    | "document_reader_available";
   detectedCapability:
     | "spreadsheet.read"
     | "document.read";
@@ -23,105 +23,105 @@ export interface ToolRouteHint {
   reason: string;
 }
 
-const EXTENSION_ROUTE_PATTERNS: Array<{
+const EXTENSION_CAPABILITY_HINT_PATTERNS: Array<{
   extensions: readonly string[];
-  route: ToolRouteHint;
+  hint: ToolCapabilityHint;
 }> = [
   {
     extensions: [...SPREADSHEET_EXTENSIONS],
-    route: spreadsheetRoute(),
+    hint: spreadsheetHint(),
   },
   {
     extensions: [...MINERU_DOC_EXTENSIONS],
-    route: documentRoute("doc"),
+    hint: documentHint("doc"),
   },
   {
     extensions: [...MINERU_PDF_EXTENSIONS],
-    route: documentRoute("pdf"),
+    hint: documentHint("pdf"),
   },
   {
     extensions: [...MINERU_IMAGE_EXTENSIONS],
-    route: documentRoute("image"),
+    hint: documentHint("image"),
   },
   {
     extensions: [...MINERU_PPT_EXTENSIONS],
-    route: documentRoute("ppt"),
+    hint: documentHint("ppt"),
   },
 ];
 
-export function getToolRouteHintForPath(filePath: string): ToolRouteHint | null {
+export function getToolCapabilityHintForPath(filePath: string): ToolCapabilityHint | null {
   const extension = path.extname(filePath).toLowerCase();
-  const matched = EXTENSION_ROUTE_PATTERNS.find((item) => item.extensions.includes(extension));
-  return matched ? matched.route : null;
+  const matched = EXTENSION_CAPABILITY_HINT_PATTERNS.find((item) => item.extensions.includes(extension));
+  return matched ? matched.hint : null;
 }
 
-export function getToolRouteHintForText(message: string): ToolRouteHint | null {
+export function getToolCapabilityHintForText(message: string): ToolCapabilityHint | null {
   const lower = message.toLowerCase();
-  return EXTENSION_ROUTE_PATTERNS
+  return EXTENSION_CAPABILITY_HINT_PATTERNS
     .find((item) => item.extensions.some((extension) => lower.includes(extension)))
-    ?.route ?? null;
+    ?.hint ?? null;
 }
 
-export function buildToolRoutingHint(route: ToolRouteHint): string {
-  switch (route.detectedCapability) {
+export function buildToolCapabilityHint(hint: ToolCapabilityHint): string {
+  switch (hint.detectedCapability) {
     case "spreadsheet.read":
       return "Detected spreadsheet input. Structured spreadsheet-read capability is available; raw text reading is not the structured path.";
     case "document.read":
-      return buildDocumentRoutingHint(route.documentKind);
+      return buildDocumentCapabilityHint(hint.documentKind);
     default:
       return "A specialized capability is available for this file type.";
   }
 }
 
-function spreadsheetRoute(): ToolRouteHint {
-  return {
-    code: "route.spreadsheet.read_spreadsheet",
-    action: "use_read_spreadsheet",
-    detectedCapability: "spreadsheet.read",
-    reason: "Spreadsheet format detected",
+function spreadsheetHint(): ToolCapabilityHint {
+    return {
+      code: "hint.spreadsheet.read_spreadsheet",
+      presentation: "spreadsheet_reader_available",
+      detectedCapability: "spreadsheet.read",
+      reason: "Spreadsheet format detected",
   };
 }
 
-function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
+function documentHint(kind: ToolGovernanceDocumentKind): ToolCapabilityHint {
   switch (kind) {
     case "doc":
       return {
-        code: "route.document.read.doc",
-        action: "use_document_read",
+        code: "hint.document.read.doc",
+        presentation: "document_reader_available",
         detectedCapability: "document.read",
         documentKind: "doc",
         reason: "Word document detected",
       };
     case "image":
       return {
-        code: "route.document.read.image",
-        action: "use_document_read",
+        code: "hint.document.read.image",
+        presentation: "document_reader_available",
         detectedCapability: "document.read",
         documentKind: "image",
         reason: "Image document detected",
       };
     case "pdf":
       return {
-        code: "route.document.read.pdf",
-        action: "use_document_read",
+        code: "hint.document.read.pdf",
+        presentation: "document_reader_available",
         detectedCapability: "document.read",
         documentKind: "pdf",
         reason: "PDF document detected",
       };
     case "ppt":
       return {
-        code: "route.document.read.ppt",
-        action: "use_document_read",
+        code: "hint.document.read.ppt",
+        presentation: "document_reader_available",
         detectedCapability: "document.read",
         documentKind: "ppt",
         reason: "Presentation document detected",
       };
     case "spreadsheet":
-      return spreadsheetRoute();
+      return spreadsheetHint();
     default:
       return {
-        code: "route.document.read.doc",
-        action: "use_document_read",
+        code: "hint.document.read.doc",
+        presentation: "document_reader_available",
         detectedCapability: "document.read",
         documentKind: "doc",
         reason: "Document detected",
@@ -129,7 +129,7 @@ function documentRoute(kind: ToolGovernanceDocumentKind): ToolRouteHint {
   }
 }
 
-function buildDocumentRoutingHint(kind: ToolRouteHint["documentKind"]): string {
+function buildDocumentCapabilityHint(kind: ToolCapabilityHint["documentKind"]): string {
   switch (kind) {
     case "doc":
       return "Detected Word document input. Document-read capability is available; read_docx is the native .docx fallback when rich parsing is unavailable.";

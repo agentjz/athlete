@@ -14,6 +14,7 @@ export interface ProjectStatePaths {
   observabilityDir: string;
   observabilityEventsDir: string;
   observabilityCrashesDir: string;
+  tracesDir: string;
 }
 
 export function getProjectStatePaths(rootDir: string): ProjectStatePaths {
@@ -35,6 +36,7 @@ export function getProjectStatePaths(rootDir: string): ProjectStatePaths {
     observabilityDir,
     observabilityEventsDir: path.join(observabilityDir, "events"),
     observabilityCrashesDir: path.join(observabilityDir, "crashes"),
+    tracesDir: path.join(deadmouseDir, "traces"),
   };
 }
 

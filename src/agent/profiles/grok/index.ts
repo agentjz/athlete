@@ -1,4 +1,4 @@
-import { normalizeCheckpoint } from "../../checkpoint.js";
+﻿import { normalizeCheckpoint } from "../../checkpoint.js";
 import { formatSkillPromptBlock } from "../../../capabilities/skills/prompt.js";
 import { formatPromptBlock } from "../../prompt/format.js";
 import { buildFieldBlock, type PromptField } from "../../prompt/structured.js";
@@ -73,7 +73,7 @@ function buildCutLineBlock(input: RuntimeFactsProfileInput): string | undefined 
   if (input.checkpoint) {
     fields.push({ label: "Checkpoint", value: input.checkpoint.status });
   }
-  if (input.runtimeState.capabilitySummary) {
+  if (input.runtimeState.capabilityPresentation) {
     fields.push({ label: "Capability surface", value: "visible" });
   }
   if (input.skillRuntimeState.loadedSkills.length > 0) {
@@ -149,16 +149,16 @@ function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskSta
   if (normalized.recentToolBatch) {
     fields.push({ label: "Recent tool batch", value: `${normalized.recentToolBatch.tools.length} tool(s) recorded` });
   }
-  if (normalized.priorityArtifacts.length > 0) {
-    fields.push({ label: "Priority artifacts", value: `${normalized.priorityArtifacts.length} artifact reference(s) stored` });
+  if (normalized.evidenceArtifacts.length > 0) {
+    fields.push({ label: "Evidence artifacts", value: `${normalized.evidenceArtifacts.length} artifact reference(s) stored` });
   }
 
   return buildFieldBlock("Runtime facts", fields);
 }
 
 function buildCapabilityBlock(runtimeState: RuntimeFactsProfileInput["runtimeState"]): string | undefined {
-  return runtimeState.capabilitySummary
-    ? formatPromptBlock("Available capability registry", runtimeState.capabilitySummary)
+  return runtimeState.capabilityPresentation
+    ? formatPromptBlock("Capability presentation layer", runtimeState.capabilityPresentation)
     : undefined;
 }
 

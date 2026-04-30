@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { buildToolExecutionFailureResult } from "../../src/agent/turn/toolExecutor.js";
 import { resolveToollessTurn } from "../../src/agent/turn/toolless.js";
@@ -101,7 +101,7 @@ test("background_terminate is idempotent for already-terminal background jobs", 
 });
 
 test("handleCompletedAssistantResponse refuses to finalize an empty visible result", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(process.cwd());
 
   const outcome = await handleCompletedAssistantResponse({
@@ -133,7 +133,7 @@ test("handleCompletedAssistantResponse refuses to finalize an empty visible resu
 });
 
 test("toolless visible output finalizes without skill-driven continuation", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(process.cwd());
 
   const outcome = await resolveToollessTurn({
@@ -161,3 +161,4 @@ test("toolless visible output finalizes without skill-driven continuation", asyn
     assert.equal(outcome.result.transition?.reason.code, "finalize.completed");
   }
 });
+

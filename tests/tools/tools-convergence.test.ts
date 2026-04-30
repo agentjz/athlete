@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
-import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
+import { orderToolDefinitionsForLead } from "../../src/agent/capabilityPresentation.js";
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
 import type { ProjectContext } from "../../src/types.js";
@@ -51,7 +51,7 @@ test("find_files is exposed through the formal runtime registry as a governed bu
   await registry.close?.();
 });
 
-test("turn-time tool prioritization reorders tools without reducing the visible tool set", async () => {
+test("turn-time tool presentation ordering reorders tools without reducing the visible tool set", async () => {
   const registry = await createRuntimeToolRegistry(
     createTestRuntimeConfig(process.cwd()),
     {},
@@ -62,13 +62,13 @@ test("turn-time tool prioritization reorders tools without reducing the visible 
   );
   const originalNames = registry.definitions.map((tool) => tool.function.name);
 
-  const prioritized = prioritizeToolDefinitionsForTurn(registry.definitions, {
+  const ordered = orderToolDefinitionsForLead(registry.definitions, {
     input: "Open https://example.com in the browser and inspect the page.",
   });
-  const prioritizedNames = prioritized.map((tool) => tool.function.name);
+  const orderedNames = ordered.map((tool) => tool.function.name);
 
-  assert.deepEqual(sortedToolNames(prioritizedNames), sortedToolNames(originalNames));
-  assert.equal(new Set(prioritizedNames).size, new Set(originalNames).size);
+  assert.deepEqual(sortedToolNames(orderedNames), sortedToolNames(originalNames));
+  assert.equal(new Set(orderedNames).size, new Set(originalNames).size);
   await registry.close?.();
 });
 
@@ -274,6 +274,7 @@ test("search_files keeps the base path search flow while adding literal, context
       literal: true,
       ignoreCase: true,
       context: 1,
+      mode: "matches",
       limit: 1,
     }),
     makeToolContext(root, root) as never,
@@ -284,13 +285,161 @@ test("search_files keeps the base path search flow while adding literal, context
   const enhancedMatches = enhancedPayload.matches as Array<Record<string, unknown>>;
   const firstMatch = enhancedMatches[0];
 
-  assert.equal(Array.isArray(basePayload.matches), true);
-  assert.equal((basePayload.matches as unknown[]).length, 1);
+  assert.equal(basePayload.mode, "files");
+  assert.equal(Array.isArray(basePayload.files), true);
+  assert.equal((basePayload.files as unknown[]).length, 1);
+  assert.equal(basePayload.matchedFilesCount, 1);
+  assert.equal(basePayload.totalMatches, 1);
   assert.equal(enhancedPayload.truncated, true);
   assert.equal(enhancedMatches.length, 1);
   assert.match(String(firstMatch?.path ?? ""), /src[\\/](one|two)\.ts$/);
   assert.deepEqual(firstMatch?.before, ["const intro = 'alpha';"]);
   assert.deepEqual(firstMatch?.after, ["const outro = 'omega';"]);
+  assert.deepEqual(Object.keys((firstMatch?.readArgs as Record<string, unknown>) ?? {}).sort(), ["end_line", "path", "start_line"]);
+});
+
+test("search_files files mode returns low-noise file evidence with read continuation args", async (t) => {
+  const root = await createTempWorkspace("search-files-files-mode", t);
+  await fs.mkdir(path.join(root, "src"), { recursive: true });
+  await fs.writeFile(path.join(root, "src", "one.ts"), "alpha\nneedle\nomega\n", "utf8");
+  await fs.writeFile(path.join(root, "src", "two.ts"), "needle\nneedle\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "search_files",
+    JSON.stringify({
+      path: ".",
+      pattern: "needle",
+      mode: "files",
+      limit: 10,
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+  const files = payload.files as Array<Record<string, unknown>>;
+
+  assert.equal(payload.mode, "files");
+  assert.equal(payload.matchedFilesCount, 2);
+  assert.equal(payload.totalMatches, 3);
+  assert.equal(Array.isArray(payload.matches), false);
+  assert.equal(files.length, 2);
+  assert(files.every((file) => typeof file.path === "string"));
+  assert(files.every((file) => typeof file.matches === "number"));
+  assert(files.every((file) => typeof file.firstLine === "number"));
+  assert(files.every((file) => typeof file.readArgs === "object" && file.readArgs !== null));
+});
+
+test("search_files count mode returns distribution evidence without match content", async (t) => {
+  const root = await createTempWorkspace("search-files-count-mode", t);
+  await fs.mkdir(path.join(root, "src"), { recursive: true });
+  await fs.writeFile(path.join(root, "src", "one.ts"), "needle\n", "utf8");
+  await fs.writeFile(path.join(root, "src", "two.ts"), "needle\nneedle\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "search_files",
+    JSON.stringify({
+      path: ".",
+      pattern: "needle",
+      mode: "count",
+      limit: 10,
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+  const files = payload.files as Array<Record<string, unknown>>;
+
+  assert.equal(payload.mode, "count");
+  assert.equal(payload.matchedFilesCount, 2);
+  assert.equal(payload.totalMatches, 3);
+  assert.equal(Array.isArray(payload.matches), false);
+  assert.equal(files.length, 2);
+  assert(files.every((file) => typeof file.path === "string"));
+  assert(files.every((file) => typeof file.matches === "number"));
+  assert(files.every((file) => Object.hasOwn(file, "readArgs") === false));
+  assert(files.every((file) => Object.hasOwn(file, "firstLine") === false));
+});
+
+test("code fact tools expose symbols, references, and structural patterns as read-only evidence", async (t) => {
+  const root = await createTempWorkspace("code-facts", t);
+  await fs.mkdir(path.join(root, "src"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, "src", "service.ts"),
+    [
+      "export interface ServiceConfig {",
+      "  endpoint: string;",
+      "}",
+      "",
+      "export class ServiceClient {",
+      "  constructor(private config: ServiceConfig) {}",
+      "  async fetchUser(id: string) {",
+      "    return this.config.endpoint + id;",
+      "  }",
+      "}",
+      "",
+      "export function createService(config: ServiceConfig) {",
+      "  return new ServiceClient(config);",
+      "}",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const registry = createToolRegistry();
+  const symbolEntry = registry.entries?.find((entry) => entry.name === "code_symbols");
+  const referencesEntry = registry.entries?.find((entry) => entry.name === "code_references");
+  const patternEntry = registry.entries?.find((entry) => entry.name === "code_pattern");
+  assert.equal(symbolEntry?.governance.mutation, "read");
+  assert.equal(referencesEntry?.governance.specialty, "code");
+  assert.equal(patternEntry?.governance.concurrencySafe, true);
+
+  const symbolsResult = await registry.execute(
+    "code_symbols",
+    JSON.stringify({
+      path: ".",
+      query: "Service",
+      literal: true,
+      limit: 20,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const referencesResult = await registry.execute(
+    "code_references",
+    JSON.stringify({
+      path: ".",
+      symbol: "ServiceConfig",
+      limit: 20,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const patternResult = await registry.execute(
+    "code_pattern",
+    JSON.stringify({
+      path: ".",
+      pattern: "async\\s+fetchUser",
+      limit: 20,
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const symbolsPayload = JSON.parse(symbolsResult.output) as Record<string, unknown>;
+  const referencesPayload = JSON.parse(referencesResult.output) as Record<string, unknown>;
+  const patternPayload = JSON.parse(patternResult.output) as Record<string, unknown>;
+  const symbols = symbolsPayload.symbols as Array<Record<string, unknown>>;
+  const references = referencesPayload.references as Array<Record<string, unknown>>;
+  const matches = patternPayload.matches as Array<Record<string, unknown>>;
+
+  assert.equal(symbolsPayload.totalReturned, 3);
+  assert(symbols.some((symbol) => symbol.kind === "interface" && symbol.name === "ServiceConfig"));
+  assert(symbols.some((symbol) => symbol.kind === "class" && symbol.name === "ServiceClient"));
+  assert(symbols.every((symbol) => typeof symbol.readArgs === "object" && symbol.readArgs !== null));
+  assert.equal(referencesPayload.symbol, "ServiceConfig");
+  assert.equal(references.length >= 3, true);
+  assert(references.every((reference) => typeof reference.readArgs === "object" && reference.readArgs !== null));
+  assert.equal(matches.length, 1);
+  assert.match(String(matches[0]?.text ?? ""), /fetchUser/);
+  assert.deepEqual(Object.keys((matches[0]?.readArgs as Record<string, unknown>) ?? {}).sort(), ["end_line", "path", "start_line"]);
 });
 
 test("list_files compact mode returns a lightweight directory confirmation without changing the tool name", async (t) => {

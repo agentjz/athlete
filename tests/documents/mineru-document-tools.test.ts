@@ -17,14 +17,14 @@ import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from ".
 const IMAGE_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5Lh6kAAAAASUVORK5CYII=";
 
-test("inspectTextFile routes supported documents toward dedicated MinerU tools", async (t) => {
+test("inspectTextFile presents supported document reader capabilities", async (t) => {
   const root = await createTempWorkspace("mineru-introspection", t);
   const cases = [
-    { name: "sample.pdf", action: "use_document_read", documentKind: "pdf" },
-    { name: "sample.png", action: "use_document_read", documentKind: "image" },
-    { name: "sample.doc", action: "use_document_read", documentKind: "doc" },
-    { name: "sample.docx", action: "use_document_read", documentKind: "doc" },
-    { name: "sample.pptx", action: "use_document_read", documentKind: "ppt" },
+    { name: "sample.pdf", presentation: "document_reader_available", documentKind: "pdf" },
+    { name: "sample.png", presentation: "document_reader_available", documentKind: "image" },
+    { name: "sample.doc", presentation: "document_reader_available", documentKind: "doc" },
+    { name: "sample.docx", presentation: "document_reader_available", documentKind: "doc" },
+    { name: "sample.pptx", presentation: "document_reader_available", documentKind: "ppt" },
   ] as const;
 
   for (const item of cases) {
@@ -33,7 +33,7 @@ test("inspectTextFile routes supported documents toward dedicated MinerU tools",
 
     const inspected = await inspectTextFile(filePath, 1024);
     assert.equal(inspected.readable, false);
-    assert.equal(inspected.action, item.action);
+    assert.equal(inspected.presentation, item.presentation);
     assert.equal(inspected.detectedCapability, "document.read");
     assert.equal(inspected.documentKind, item.documentKind);
   }

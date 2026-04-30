@@ -2,6 +2,7 @@ import type { Command } from "commander";
 
 import { probeProviderConnection } from "../../agent/provider/connection.js";
 import { resolveProjectRoots } from "../../context/repoRoots.js";
+import { buildRuntimeDoctorReport, formatRuntimeDoctorReport } from "../../doctor/runtimeDoctor.js";
 import { formatObservabilityDoctorReport } from "../../observability/doctor.js";
 import { buildObservabilityReport } from "../../observability/report.js";
 import type { CliOverrides, RuntimeConfig } from "../../types.js";
@@ -52,6 +53,21 @@ export function registerDoctorCommand(
       }
 
       throw new Error(diagnosis.message);
+    });
+
+  doctorCommand
+    .command("runtime")
+    .description("Show capability package, model profile, recovery, trace, and execution diagnostics.")
+    .action(async () => {
+      const runtime = await options.resolveRuntime(options.getCliOverrides());
+      const report = await buildRuntimeDoctorReport({
+        rootDir: runtime.cwd,
+        cwd: runtime.cwd,
+        config: runtime.config,
+      });
+      for (const line of formatRuntimeDoctorReport(report)) {
+        ui.plain(line);
+      }
     });
 
   doctorCommand

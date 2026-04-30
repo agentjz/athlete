@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { buildToolExecutionFailureResult } from "../../src/agent/turn/toolExecutor.js";
 import { resolveToollessTurn } from "../../src/agent/turn/toolless.js";
@@ -180,3 +180,4 @@ test("background_run, background_check, and background_terminate expose one proc
   assert.equal(closedProcess.state, "closed");
   assert.equal((closedProcess.events as string[]).includes("process/closed"), true);
 });
+

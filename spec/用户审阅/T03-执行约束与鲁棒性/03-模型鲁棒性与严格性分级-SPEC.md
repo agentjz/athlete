@@ -32,7 +32,7 @@
 - 默认：`maxAttempts=6`、`maxElapsedMs=120000`
 - 超限记录：`pause.provider_recovery_budget_exhausted`
 - 必含字段：`attemptsUsed/maxAttempts/elapsedMs/maxElapsedMs/lastError`
-- Lead 主路径：命中后写入结构化记录并立即回主调度复核，不把本轮 turn 直接终止为 `paused`
+- Lead 主路径：命中后写入结构化记录并立即回主复核，不把本轮 turn 直接终止为 `paused`
 - 非 Lead（如 teammate/subagent）执行：保持正式 `pause` 收口，避免隐藏失败
 
 ### 3.2 Managed turn slice 预算
@@ -41,7 +41,7 @@
 - 默认时长上限：`maxElapsedMs=180000`
 - 超限记录：`pause.managed_slice_budget_exhausted`
 - 必含字段：`slicesUsed/maxSlices/elapsedMs/maxElapsedMs`
-- Lead 主路径：命中后写入结构化记录并回主调度复核，再决定下一轮动作；不以预算命中直接终止主循环
+- Lead 主路径：命中后写入结构化记录并回主复核，再决定下一轮动作；不以预算命中直接终止主循环
 - 非 Lead 执行：保持正式 `pause` 收口
 
 ### 3.3 Subagent 资源治理（替代旧式工具次数预算）
@@ -96,4 +96,5 @@
 - 委派后必须先回主控复核，不能同链路无限深挖。
 - 委派进行中时，Lead 不对外停机，也不消耗模型轮次做旁路工作；机器层静默等 execution 事实变化，状态变化后再合流复核。
 - 文档、测试、实现三者一致，无“代码先改文档后补”尾巴。
+
 

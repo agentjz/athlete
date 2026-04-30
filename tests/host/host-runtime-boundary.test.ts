@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
 import { AgentTurnError } from "../../src/agent/errors.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createPersistedSession, ensureBoundSession } from "../../src/host/session.js";
 import { runHostTurn } from "../../src/host/turn.js";
 import type { RegisteredTool, ToolRegistry } from "../../src/capabilities/tools/core/types.js";
@@ -52,7 +52,7 @@ test("host-facing adapters stop importing raw turn and raw runtime registry dire
 test("shared host turn boundary injects extra tools through one registry path and always closes it", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await createPersistedSession(sessionStore, cwd);
   const seenExtraTools: string[] = [];
   let registryClosed = 0;
@@ -104,7 +104,7 @@ test("shared host turn boundary injects extra tools through one registry path an
 test("shared host turn boundary turns managed-turn failures into structured host outcomes", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await createPersistedSession(sessionStore, cwd);
 
   const outcome = await runHostTurn(
@@ -139,7 +139,7 @@ test("shared host turn boundary turns managed-turn failures into structured host
 
 test("shared host session boundary recreates missing bound sessions without inventing a second session truth source", async () => {
   const cwd = process.cwd();
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   let binding: { peerKey: string; sessionId: string; updatedAt: string } | null = {
     peerKey: "telegram:private:1001",
     sessionId: "missing-session",
@@ -192,3 +192,4 @@ function createExtraTool(name: string): RegisteredTool {
     },
   };
 }
+

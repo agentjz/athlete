@@ -111,7 +111,7 @@ test("capability registry explains availability without creating machine intent"
     },
   ]);
 
-  assert.match(registry, /Capability packages are options for Lead, not machine intent/);
+  assert.match(registry, /Presentation order and summaries are options for Lead, not machine intent/);
   assert.match(registry, /AssignmentContract/);
   assert.match(registry, /CloseoutContract/);
 });
@@ -378,11 +378,11 @@ test("external manifest bundles become registry adapters without custom core wir
   assert.deepEqual(adapter.adapts, ["skill", "external_agent"]);
   assert.equal(registry.resolve("skill.audit-skill").runner.runnerType, "skill_load");
   assert.equal(registry.resolve("external_agent.hephaestus").source.kind, "plugin");
-  assert.match(summary, /Capability packages are options for Lead, not machine intent/);
+  assert.match(summary, /Presentation order and summaries are options for Lead, not machine intent/);
   assert.doesNotMatch(summary, /automatic audit/);
 });
 
-test("lead capability summary is low-noise and does not dump skill bodies or full tool schemas", () => {
+test("lead capability presentation is low-noise and does not dump skill bodies or full tool schemas", () => {
   const skill: LoadedSkill = {
     schemaVersion: "skill",
     version: "1.0.0",

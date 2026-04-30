@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -219,7 +219,7 @@ test("runtime checkpoint persists a structured checkpoint after yield and keeps 
   assert.match(String(checkpoint?.recentToolBatch?.summary ?? ""), /emit_large_checkpoint/i);
   assert.equal(checkpoint?.flow?.runState?.status, "idle");
   assert.equal(
-    checkpoint?.priorityArtifacts?.some((artifact: Record<string, unknown>) =>
+    checkpoint?.evidenceArtifacts?.some((artifact: Record<string, unknown>) =>
       artifact.toolName === "emit_large_checkpoint" && artifact.storagePath === storedPayload?.storagePath
     ),
     true,

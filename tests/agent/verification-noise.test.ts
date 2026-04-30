@@ -1,7 +1,7 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { processToolCallBatch } from "../../src/agent/turn/toolBatchLifecycle.js";
 import { ToolLoopGuard } from "../../src/agent/turn/loopGuard.js";
 import { ChangeStore } from "../../src/changes/store.js";
@@ -11,7 +11,7 @@ import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 
 test("failed observation verification metadata is recorded as fact without creating a closeout gate", async (t) => {
   const root = await createTempWorkspace("verification-observation-noise", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   const config = createTestRuntimeConfig(root);
   const projectContext = await loadProjectContext(root);
@@ -67,3 +67,4 @@ test("failed observation verification metadata is recorded as fact without creat
   assert.equal(result.validationPassed, false);
   assert.equal(result.session.verificationState?.status, "failed");
 });
+

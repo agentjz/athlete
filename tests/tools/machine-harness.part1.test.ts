@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { buildToolExecutionFailureResult } from "../../src/agent/turn/toolExecutor.js";
 import { resolveToollessTurn } from "../../src/agent/turn/toolless.js";
@@ -205,3 +205,4 @@ test("blocked tool results include a factual hint without a strategy next step",
   assert.equal(typeof payload.hint, "string");
   assert.equal(payload.next_step, undefined);
 });
+

@@ -8,7 +8,7 @@ import { noteRuntimeCompression, noteRuntimeModelRequests, type ModelRequestMetr
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
 import { buildSystemPromptLayers } from "./systemPrompt.js";
 import { buildRunTurnResult, createExecutionDispatchYieldTransition, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
-import { prioritizeToolDefinitionsForTurn, prioritizeToolEntriesForTurn } from "./toolPriority.js";
+import { orderToolDefinitionsForLead, orderToolEntriesForLead } from "./capabilityPresentation.js";
 import { resolveAgentProfile } from "./profiles/registry.js";
 import { clearCompactionRecovery, noteCompactionObserved, notePostCompactionNoText } from "./turn/compactionRecovery.js";
 import { persistRecoveryOrPauseFromCompaction } from "./turn/compactionPersistence.js";
@@ -31,18 +31,38 @@ import { loadProjectContext } from "../context/projectContext.js";
 import { buildSkillRuntimeState } from "../capabilities/skills/state.js";
 import { createRuntimeToolRegistry } from "../capabilities/tools/core/runtimeRegistry.js";
 import { throwIfAborted } from "../utils/abort.js";
+import {
+  createTraceTurnId,
+  traceModelRequest,
+  traceModelResponse,
+  traceTurnStarted,
+  traceTurnTerminal,
+  type TraceRuntimeScope,
+} from "../trace/runtime.js";
 
 export type { AgentCallbacks, RunTurnOptions } from "./types.js";
 
 export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResult> {
   const projectContext = await loadProjectContext(options.cwd);
   const identity = options.identity ?? { kind: "lead" as const, name: "lead" };
+  const traceScope: TraceRuntimeScope = {
+    rootDir: projectContext.stateRootDir,
+    sessionId: options.session.id,
+    turnId: createTraceTurnId(),
+    identity,
+  };
   const turnModelConfig = options.config;
   const profile = resolveAgentProfile(options.config.profile);
   if (!turnModelConfig.apiKey) {
     throw new Error("Missing API key. Open the project's .env file and add DEADMOUSE_API_KEY.");
   }
   let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
+  traceScope.sessionId = session.id;
+  await traceTurnStarted(traceScope, {
+    cwd: options.cwd,
+    userInput: options.input,
+    objective: session.taskState?.objective,
+  });
   const client = createProviderClientPool(turnModelConfig);
   const ownsToolRegistry = !options.toolRegistry;
   const toolRegistry = options.toolRegistry ?? (await createRuntimeToolRegistry(options.config));
@@ -64,6 +84,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         const transition = createYieldTransition(iteration, options.yieldAfterToolSteps);
         session = await persistYieldedTurn(session, options.sessionStore, transition);
         options.callbacks?.onStatus?.(`Yielding after ${iteration} tool steps so the managed runtime can reconcile state.`);
+        await traceTurnTerminal(traceScope, {
+          kind: "turn_yielded",
+          summary: "Turn yielded after tool step limit.",
+          data: {
+            transition,
+          },
+        });
         return buildRunTurnResult({
           session,
           changedPaths,
@@ -110,20 +137,20 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       const requestModel = pickRequestModel(turnModelConfig.provider, turnModelConfig.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
       const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
-      const prioritizedToolDefinitions = toolRegistry.entries
-        ? prioritizeToolEntriesForTurn(toolRegistry.entries, {
+      const leadVisibleToolDefinitions = toolRegistry.entries
+        ? orderToolEntriesForLead(toolRegistry.entries, {
             input: options.input,
             objective: session.taskState?.objective,
             taskSummary: runtimeState.taskSummary,
             activeSkillNames: [...skillRuntimeState.loadedSkillNames],
           }).map((entry) => entry.definition)
-        : prioritizeToolDefinitionsForTurn(toolRegistry.definitions, {
+        : orderToolDefinitionsForLead(toolRegistry.definitions, {
             input: options.input,
             objective: session.taskState?.objective,
             taskSummary: runtimeState.taskSummary,
             activeSkillNames: [...skillRuntimeState.loadedSkillNames],
           });
-      const turnToolDefinitions = prioritizedToolDefinitions;
+      const turnToolDefinitions = leadVisibleToolDefinitions;
       session = requestContext.compressed
         ? noteCompactionObserved(noteRuntimeCompression(session))
         : session;
@@ -132,6 +159,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         compressionAnnounced = true;
       }
       emitTurnProgressStatus(options.callbacks, iteration, softToolLimit, continuationWindow);
+      await traceModelRequest(traceScope, {
+        provider: turnModelConfig.provider,
+        configuredModel: turnModelConfig.model,
+        requestModel,
+        requestContext,
+        toolDefinitions: turnToolDefinitions,
+      });
       let response;
       const modelRequestMetrics: ModelRequestMetric[] = [];
       options.callbacks?.onModelWaitStart?.();
@@ -158,6 +192,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             configuredModel: turnModelConfig.model,
           },
         );
+        await traceModelResponse(traceScope, { response });
         session = noteRuntimeModelRequests(session, modelRequestMetrics);
         consecutiveRequestFailures = 0;
         recoveryStartedAtMs = undefined;
@@ -178,6 +213,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           const transition = createProviderRecoveryBudgetPauseTransition(budgetDecision.snapshot);
           session = await persistCheckpointTransition(session, options.sessionStore, transition);
           options.callbacks?.onStatus?.(transition.reason.pauseReason);
+          await traceTurnTerminal(traceScope, {
+            kind: "turn_paused",
+            summary: "Turn paused after provider recovery budget was exhausted.",
+            data: {
+              transition,
+            },
+          });
           return buildRunTurnResult({
             session,
             changedPaths,
@@ -196,6 +238,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           delayMs,
         });
         session = await persistRecoveryTurn(session, options.sessionStore, transition);
+        await traceTurnTerminal(traceScope, {
+          kind: "turn_recovered",
+          summary: "Turn entered provider request recovery.",
+          data: {
+            transition,
+          },
+        });
         options.callbacks?.onStatus?.(buildRecoveryStatus(transition));
         await sleep(delayMs, options.abortSignal);
         continue;
@@ -217,6 +266,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             });
 
             if (degradation.transition.action === "pause") {
+              await traceTurnTerminal(traceScope, {
+                kind: "turn_paused",
+                summary: "Turn paused after post-compaction degradation recovery was exhausted.",
+                data: {
+                  transition: degradation.transition,
+                },
+              });
               return buildRunTurnResult({
                 session: persisted,
                 changedPaths,
@@ -242,10 +298,27 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           options,
         });
         if (completed.kind === "continue") {
+          await traceTurnTerminal(traceScope, {
+            kind: "turn_recovered",
+            summary: "Turn continued after empty assistant response.",
+            data: {
+              transition: completed.transition,
+            },
+          });
           session = completed.session;
           continue;
         }
         emitAssistantFinalOutput(response, options);
+        await traceTurnTerminal(traceScope, {
+          kind: "turn_finalized",
+          summary: "Turn finalized with assistant output.",
+          data: {
+            transition: completed.result.transition,
+            changedPaths: completed.result.changedPaths,
+            verificationAttempted: completed.result.verificationAttempted,
+            verificationPassed: completed.result.verificationPassed,
+          },
+        });
         return completed.result;
       }
       session = clearCompactionRecovery(session);
@@ -262,6 +335,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         validationAttempted,
         validationPassed,
         roundsSinceTodoWrite,
+        traceScope,
       });
       session = batchResult.session;
       changedPaths = batchResult.changedPaths;
@@ -272,6 +346,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         const transition = createExecutionDispatchYieldTransition();
         session = await persistYieldedTurn(session, options.sessionStore, transition);
         options.callbacks?.onStatus?.("Lead yielded after execution dispatch; machine runtime will wait for execution closeout before resuming.");
+        await traceTurnTerminal(traceScope, {
+          kind: "turn_yielded",
+          summary: "Lead yielded after execution dispatch.",
+          data: {
+            transition,
+          },
+        });
         return buildRunTurnResult({
           session,
           changedPaths,
@@ -304,6 +385,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         }
       : session;
     const persistedSession = await options.sessionStore.save(settledSession).catch(() => settledSession);
+    await traceTurnTerminal(traceScope, {
+      kind: "turn_failed",
+      summary: getErrorMessage(error),
+      data: {
+        error,
+      },
+    });
     throw new AgentTurnError(getErrorMessage(error), persistedSession, { cause: error });
   } finally {
     if (ownsToolRegistry) await toolRegistry.close?.().catch(() => undefined);

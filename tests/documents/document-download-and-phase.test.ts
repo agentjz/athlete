@@ -1,11 +1,11 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
 import { evaluateAcceptanceState } from "../../src/agent/acceptance.js";
-import { createMessage, createToolMessage, MemorySessionStore } from "../../src/agent/session.js";
+import { createMessage, createToolMessage, InProcessSessionStore } from "../../src/agent/session.js";
 import { downloadUrlTool } from "../../src/capabilities/tools/packages/network/downloadUrlTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 
@@ -78,7 +78,7 @@ test("download_url saves remote bytes into the workspace and emits a changed pat
 
 test("document acceptance phase advances from acquire_document to read_document to assemble_outputs", async (t) => {
   const root = await createTempWorkspace("document-phase", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -126,4 +126,5 @@ test("document acceptance phase advances from acquire_document to read_document 
   });
   assert.equal(afterRead.state.currentPhase, "assemble_outputs");
 });
+
 

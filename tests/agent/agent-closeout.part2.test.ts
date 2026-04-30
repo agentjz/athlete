@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -7,7 +7,7 @@ import test from "node:test";
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { runAgentTurn } from "../../src/agent/runTurn.js";
 import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createEmptyVerificationState, recordVerificationAttempt } from "../../src/agent/verification.js";
 import { getLightweightVerificationAttempt } from "../../src/agent/verification.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
@@ -297,7 +297,7 @@ function okResult(
 
 test("runAgentTurn yields immediately after execution dispatch instead of letting Lead poll", async (t) => {
   const root = await createTempWorkspace("delegation-dispatch-yield", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   const executedTools: string[] = [];
   let requests = 0;
@@ -337,7 +337,7 @@ test("runAgentTurn yields immediately after execution dispatch instead of lettin
 
 test("runAgentTurn leaves todo_write visible after verification and finalizes when the model answers", async (t) => {
   const root = await createTempWorkspace("closeout-todo", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   const executedTools: string[] = [];
   const seenToolSets: string[][] = [];
@@ -399,7 +399,7 @@ test("runAgentTurn leaves todo_write visible after verification and finalizes wh
 
 test("runAgentTurn leaves task tools visible after verified completion and finalizes when the model answers", async (t) => {
   const root = await createTempWorkspace("closeout-tasks", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   const executedTools: string[] = [];
   const seenToolSets: string[][] = [];
@@ -457,9 +457,9 @@ test("runAgentTurn leaves task tools visible after verified completion and final
   );
 });
 
-test("runAgentTurn finalizes visible output instead of using todo state as a strategy gate", async (t) => {
+test("runAgentTurn finalizes visible output without treating todo state as a strategy boundary", async (t) => {
   const root = await createTempWorkspace("closeout-default-lead", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -518,3 +518,4 @@ test("getLightweightVerificationAttempt treats a targeted read_file of a written
     passed: true,
   });
 });
+

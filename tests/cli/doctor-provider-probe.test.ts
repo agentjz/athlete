@@ -110,7 +110,7 @@ test("fetchAssistantResponse uses the responses adapter for GPT-5.4 instead of f
     chat: {
       completions: {
         create: async () => {
-          throw new Error("chat.completions should not be used for gpt-5.4 responses routing.");
+          throw new Error("chat.completions should not be used for gpt-5.4 responses wire selection.");
         },
       },
     },
@@ -173,7 +173,7 @@ test("fetchAssistantResponse forwards DEADMOUSE_REASONING_EFFORT to responses re
     chat: {
       completions: {
         create: async () => {
-          throw new Error("chat.completions should not be used for gpt-5.4 responses routing.");
+          throw new Error("chat.completions should not be used for gpt-5.4 responses wire selection.");
         },
       },
     },

@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildInternalWakeInput } from "../../src/agent/checkpoint/prompt.js";
 import { createMessage } from "../../src/agent/session/messages.js";
-import { MemorySessionStore } from "../../src/agent/session/store.js";
+import { InProcessSessionStore } from "../../src/agent/session/store.js";
 import { initializeTurnSession } from "../../src/agent/turn/persistence.js";
 import { hasUnfinishedLeadWork } from "../../src/agent/turn/leadReturnGate.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
@@ -20,7 +20,7 @@ import { createCheckpointFixture, createTempWorkspace, createTestRuntimeConfig, 
 
 test("new user objective starts a fresh current task frame", async (t) => {
   const root = await createTempWorkspace("current-objective-frame", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   let session = await sessionStore.create(root);
   session = await sessionStore.save({
     ...session,
@@ -33,7 +33,7 @@ test("new user objective starts a fresh current task frame", async (t) => {
       }), { name: "todo_write" }),
     ],
     checkpoint: createCheckpointFixture("Old task: collect Helldivers news", {
-      priorityArtifacts: [{
+      evidenceArtifacts: [{
         kind: "tool_preview",
         label: "old news evidence",
         path: ".deadmouse/tool-results/old-news.json",
@@ -46,7 +46,7 @@ test("new user objective starts a fresh current task frame", async (t) => {
   assert.equal(next.taskState?.objective, "New task: demonstrate teammate dispatch and return");
   assert.deepEqual(next.todoItems, []);
   assert.equal(next.checkpoint?.objective, "Old task: collect Helldivers news");
-  assert.equal(next.checkpoint?.priorityArtifacts?.[0]?.label, "old news evidence");
+  assert.equal(next.checkpoint?.evidenceArtifacts?.[0]?.label, "old news evidence");
 });
 
 test("internal wake input is only a doorbell and does not replay checkpoint scripts", () => {
@@ -59,7 +59,7 @@ test("internal wake input is only a doorbell and does not replay checkpoint scri
 
 test("literal continue remains the latest user input instead of restoring a checkpoint", async (t) => {
   const root = await createTempWorkspace("literal-continue-frame", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.save({
     ...(await sessionStore.create(root)),
     checkpoint: createCheckpointFixture("Old objective: collect evidence") as unknown as SessionCheckpoint,
@@ -222,7 +222,7 @@ test("current objective gates ignore old objective executions", async (t) => {
 test("delegation capability availability does not create machine tasks or executions", async (t) => {
   const root = await createTempWorkspace("dead-machine-no-auto-plan", t);
   await initGitRepo(root);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   const seenInputs: string[] = [];
 
@@ -249,3 +249,4 @@ test("delegation capability availability does not create machine tasks or execut
   assert.equal((await new ExecutionStore(root).list()).length, 0);
   assert.notEqual(result.paused, true);
 });
+

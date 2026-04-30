@@ -1,16 +1,16 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { createProviderRecoveryBudgetPauseTransition } from "../../src/agent/runtimeTransition.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { loadProjectContext } from "../../src/context/projectContext.js";
 import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import { createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "../helpers.js";
 
 test("runManagedAgentTurn pauses when yielded slices exceed the managed slice budget", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(process.cwd());
   let sliceCount = 0;
 
@@ -53,7 +53,7 @@ test("runManagedAgentTurn pauses when yielded slices exceed the managed slice bu
 });
 
 test("runManagedAgentTurn pauses when managed slice elapsed budget is exhausted", async () => {
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(process.cwd());
   let sliceCount = 0;
 
@@ -101,7 +101,7 @@ test("runManagedAgentTurn pauses when managed slice elapsed budget is exhausted"
 test("runManagedAgentTurn rebounds to Lead when managed slice budget is exhausted", async (t) => {
   const root = await createTempWorkspace("managed-budget-lead-rebound", t);
   await initGitRepo(root);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   let sliceCount = 0;
 
@@ -143,7 +143,7 @@ test("runManagedAgentTurn rebounds to Lead when managed slice budget is exhauste
 test("runManagedAgentTurn rebounds to Lead after provider recovery budget pauses a slice", async (t) => {
   const root = await createTempWorkspace("managed-provider-budget-rebound", t);
   await initGitRepo(root);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   let sliceCount = 0;
 
@@ -199,7 +199,7 @@ test("runManagedAgentTurn wakes Lead with no strategy prose at the hard boundary
     subject: "Graceful shutdown for alpha",
     content: "Please shut down gracefully.",
   });
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(root);
   let sliceCount = 0;
 
@@ -232,3 +232,4 @@ test("runManagedAgentTurn wakes Lead with no strategy prose at the hard boundary
   assert.match(boundaryInput, /^\[internal\] Wake lead runtime/i);
   assert.doesNotMatch(boundaryInput, /hard boundary|Lead must review|do not ask the user|next strategy/i);
 });
+

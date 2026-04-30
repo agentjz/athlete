@@ -10,6 +10,7 @@
 
 - 通用请求协议层
 - provider capability/profile 层
+- model capability profile 层
 - wire API adapter 层
 
 当前实现已正式支持 GPT-5.4，并保留 OpenAI-compatible chat provider 的适配能力。
@@ -19,6 +20,7 @@
 主要代码边界如下：
 
 - `src/agent/provider.ts`
+- `src/agent/modelProfile.ts`
 - `src/agent/provider/contract.ts`
 - `src/agent/provider/responsesAdapter.ts`
 - `src/agent/provider/chatCompletionsAdapter.ts`
@@ -31,6 +33,7 @@
 
 - `通用请求协议层`：turn 主流程看到的统一模型调用边界。
 - `provider capability/profile`：根据 provider、model 与显式运行配置决定 wire API、超时和 reasoning 策略。
+- `model capability profile`：把模型能力差异表达为事实画像，包括 tier、tool use reliability、context policy 和 harness surface facts。
 - `wire API adapter`：把统一请求映射成 `responses` 或 `chat.completions` 协议，再归一回统一响应结构。
 
 ## 真相源与状态归属
@@ -40,6 +43,7 @@ provider 相关正式状态当前归属如下：
 - 运行配置来自 `src/config/store.ts`
 - `.deadmouse/.env`、环境变量和 config file 由 `src/config/runtime.ts` 归一为 runtime config
 - provider 能力判断由 `src/agent/provider.ts` 统一给出
+- 模型能力画像由 `src/agent/modelProfile.ts` 统一给出，并挂在 provider capabilities 上
 
 当前不存在宿主私有 provider 配置入口，也不依赖外部临时认证目录作为正式运行入口。
 
@@ -49,9 +53,10 @@ provider 相关正式状态当前归属如下：
 
 1. 配置系统解析 provider、model、base URL、API key、thinking、reasoning effort 和 max output tokens。
 2. `resolveProviderCapabilities(...)` 判断 wire API、超时与 provider 默认 reasoning 策略。
-3. `src/agent/api.ts` 依据 capability 选择 `responsesAdapter` 或 `chatCompletionsAdapter`。
-4. adapter 将具体协议响应归一为统一的 `AssistantResponse`。
-5. `runTurn` 继续沿统一响应结构处理工具调用、文本结果和 closeout。
+3. provider capabilities 同时给出 model capability profile，供诊断和能力呈现读取。
+4. `src/agent/api.ts` 依据 capability 选择 `responsesAdapter` 或 `chatCompletionsAdapter`。
+5. adapter 将具体协议响应归一为统一的 `AssistantResponse`。
+6. `runTurn` 继续沿统一响应结构处理工具调用、文本结果和 closeout。
 
 ## 当前能力结论
 
@@ -61,9 +66,11 @@ provider 相关正式状态当前归属如下：
 - DeepSeek 官方 V4 走 `chat.completions`，模型名固定为 `deepseek-v4-flash / deepseek-v4-pro`，是否思考由 `thinking` 字段决定
 - DeepSeek 官方 V4 只在 `thinking=enabled` 时发送 `reasoning_effort=high|max`；配置成其他值时直接报错，不做跨模型兼容映射
 - `maxOutputTokens` 通过统一配置进入请求；`chat.completions` 映射为 `max_tokens`，`responses` 映射为 `max_output_tokens`
-- DeepSeek 官方 V4 请求中已保留的 assistant 消息如果带 `reasoning_content`，后续多轮请求必须按协议回传；这是 provider 协议元数据，不扩大当前上下文，也不进入长期记忆
+- DeepSeek 官方 V4 请求中已保留的 assistant 消息如果带 `reasoning_content`，后续多轮请求必须按协议回传；这是 provider 协议元数据，不扩大当前上下文，也不进入长期人格注入
 - GPT-5.4 默认使用更长的 request timeout 与 doctor probe timeout
 - doctor 与真实请求链路共用同一套 provider 选择与 base URL 规则
+- model capability profile 当前记录 provider、model、wire API、reasoning 可见性、tier、tool use reliability、context policy 和 harness surface facts
+- model capability profile 是事实画像，不自动改变工具可见性，不自动选择能力，不替 Lead 判断任务路线
 
 ## 失败路径与异常路径
 
@@ -82,6 +89,7 @@ provider 相关正式状态当前归属如下：
 - `tests/config/provider-runtime-config.test.ts`
 - `tests/doctor-provider-probe.test.ts`
 - `tests/provider-and-tool-observability.test.ts`
+- `tests/doctor/runtime-doctor.test.ts`
 
 同时，当前仓库已经完成：
 

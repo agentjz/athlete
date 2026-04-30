@@ -9,6 +9,7 @@ import type { ToolRegistryEntry } from "./tools/core/types.js";
 import { listWorkflowCapabilityPackages } from "./workflows/registry.js";
 import { CapabilityRegistry, formatCapabilityRegistryForLead, type CapabilityPackageProvider } from "../protocol/registry.js";
 import { assertCapabilitySurfaceConvergence, createCapabilitySurface } from "../protocol/capabilitySurface.js";
+import type { CapabilityPackage } from "../protocol/package.js";
 import type { CapabilityRegistrySummaryOptions } from "../protocol/summary.js";
 import type { RuntimeConfig } from "../types.js";
 
@@ -16,6 +17,7 @@ export interface RuntimeCapabilityInput {
   skills?: readonly LoadedSkill[];
   toolEntries?: readonly ToolRegistryEntry[];
   mcpConfig?: RuntimeConfig["mcp"];
+  packageProviders?: readonly CapabilityPackageProvider[];
 }
 
 export function listRuntimeCapabilityPackageProviders(
@@ -29,6 +31,9 @@ export function listRuntimeCapabilityPackageProviders(
     { listCapabilityPackages: () => input.mcpConfig ? listMcpCapabilityPackages(input.mcpConfig) : [] },
     { listCapabilityPackages: () => listSkillCapabilityPackages(input.skills ?? []) },
     { listCapabilityPackages: () => listToolCapabilityPackages(input.toolEntries ?? []) },
+    ...(input.packageProviders ?? []).map((provider) => ({
+      listCapabilityPackages: () => filterEnabledCapabilityPackages(provider.listCapabilityPackages()),
+    })),
   ];
 }
 
@@ -36,6 +41,10 @@ export function createRuntimeCapabilityRegistry(
   input: RuntimeCapabilityInput = {},
 ): CapabilityRegistry {
   return CapabilityRegistry.fromProviders(listRuntimeCapabilityPackageProviders(input));
+}
+
+export function filterEnabledCapabilityPackages(packages: readonly CapabilityPackage[]): CapabilityPackage[] {
+  return packages.filter((pkg) => pkg.governance.enabled && pkg.governance.installed);
 }
 
 export function formatRuntimeCapabilityRegistryForLead(

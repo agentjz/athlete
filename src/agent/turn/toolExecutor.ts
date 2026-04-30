@@ -1,7 +1,7 @@
 import type { ChangeStore } from "../../changes/store.js";
 import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
 import { readToolExecutionProtocol } from "../../capabilities/tools/core/toolFinalize.js";
-import { buildToolRoutingHint, getToolRouteHintForPath, getToolRouteHintForText } from "../../capabilities/tools/core/routing.js";
+import { buildToolCapabilityHint, getToolCapabilityHintForPath, getToolCapabilityHintForText } from "../../capabilities/tools/core/capabilityHints.js";
 import { createToolRegistry } from "../../capabilities/tools/index.js";
 import { buildObjectiveFrame } from "../../objective/metadata.js";
 import type { ProjectContext, SessionRecord, ToolCallRecord, ToolExecutionResult } from "../../types.js";
@@ -92,10 +92,10 @@ export async function executePreparedToolCallWithRecovery(
 
 function buildToolRecoveryHint(toolName: string, rawArgs: string, message: string): string {
   const lower = message.toLowerCase();
-  const route = readRouteHint(rawArgs, message);
+  const hint = readCapabilityHint(rawArgs, message);
 
-  if (route) {
-    return buildToolRoutingHint(route);
+  if (hint) {
+    return buildToolCapabilityHint(hint);
   }
 
   if (lower.includes("enoent") || lower.includes("no such file") || lower.includes("file not found")) {
@@ -121,12 +121,12 @@ function buildToolRecoveryHint(toolName: string, rawArgs: string, message: strin
   return `The ${toolName} tool failed. The error payload is the available runtime evidence.`;
 }
 
-function readRouteHint(rawArgs: string, message: string) {
+function readCapabilityHint(rawArgs: string, message: string) {
   try {
     const parsed = JSON.parse(rawArgs) as { path?: unknown };
     const targetPath = typeof parsed.path === "string" ? parsed.path : "";
-    return getToolRouteHintForPath(targetPath) ?? getToolRouteHintForText(message);
+    return getToolCapabilityHintForPath(targetPath) ?? getToolCapabilityHintForText(message);
   } catch {
-    return getToolRouteHintForText(message);
+    return getToolCapabilityHintForText(message);
   }
 }

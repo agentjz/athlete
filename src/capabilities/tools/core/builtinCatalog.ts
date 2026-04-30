@@ -1,9 +1,14 @@
 import { applyPatchTool } from "../packages/files/applyPatchTool.js";
+import { agentTraceListTool } from "../packages/trace/agentTraceListTool.js";
+import { agentTraceReadTool } from "../packages/trace/agentTraceReadTool.js";
 import { backgroundCheckTool } from "../packages/background/backgroundCheckTool.js";
 import { backgroundRunTool } from "../packages/background/backgroundRunTool.js";
 import { backgroundTerminateTool } from "../packages/background/backgroundTerminateTool.js";
 import { broadcastTool } from "../packages/team/broadcastTool.js";
 import { claimTaskTool } from "../packages/tasks/claimTaskTool.js";
+import { codePatternTool } from "../packages/code/codePatternTool.js";
+import { codeReferencesTool } from "../packages/code/codeReferencesTool.js";
+import { codeSymbolsTool } from "../packages/code/codeSymbolsTool.js";
 import { coordinationPolicyTool } from "../packages/team/coordinationPolicyTool.js";
 import { downloadUrlTool } from "../packages/network/downloadUrlTool.js";
 import { editDocxTool } from "../packages/documents/editDocxTool.js";
@@ -73,6 +78,9 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(findFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
   defineBuiltinTool(readFileTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
   defineBuiltinTool(searchFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(codeSymbolsTool, readTool("code", { concurrencySafe: true })),
+  defineBuiltinTool(codeReferencesTool, readTool("code", { concurrencySafe: true })),
+  defineBuiltinTool(codePatternTool, readTool("code", { concurrencySafe: true })),
   defineBuiltinTool(mineruPdfReadTool, documentReadTool("pdf")),
   defineBuiltinTool(mineruImageReadTool, documentReadTool("image")),
   defineBuiltinTool(mineruDocReadTool, documentReadTool("doc")),
@@ -93,6 +101,8 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(toolArtifactReadTool, readTool("history", { concurrencySafe: true })),
   defineBuiltinTool(runtimeEventSearchTool, readTool("history", { concurrencySafe: true })),
   defineBuiltinTool(changeRecordReadTool, readTool("history", { concurrencySafe: true })),
+  defineBuiltinTool(agentTraceListTool, readTool("trace", { concurrencySafe: true })),
+  defineBuiltinTool(agentTraceReadTool, readTool("trace", { concurrencySafe: true })),
   defineBuiltinTool(loadSkillTool, stateTool("task")),
   defineBuiltinTool(worktreeListTool, readTool("worktree", { concurrencySafe: true })),
   defineBuiltinTool(worktreeGetTool, readTool("worktree", { concurrencySafe: true })),

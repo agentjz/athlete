@@ -14,6 +14,7 @@ import type { ToolRegistry } from "../../capabilities/tools/core/types.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions } from "../types.js";
 import type { ToolLoopGuard } from "./loopGuard.js";
 import { readToolFailureError } from "./toolFailure.js";
+import { traceToolCall, traceToolResult, type TraceRuntimeScope } from "../../trace/runtime.js";
 
 export interface ProcessToolCallBatchInput {
   session: SessionRecord;
@@ -28,6 +29,7 @@ export interface ProcessToolCallBatchInput {
   validationAttempted: boolean;
   validationPassed: boolean;
   roundsSinceTodoWrite: number;
+  traceScope?: TraceRuntimeScope;
 }
 
 export interface ProcessToolCallBatchResult {
@@ -65,6 +67,9 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
   for (const toolCall of response.toolCalls) {
     throwIfAborted(options.abortSignal, "Turn aborted by user.");
     options.callbacks?.onToolCall?.(toolCall.function.name, toolCall.function.arguments);
+    if (input.traceScope) {
+      await traceToolCall(input.traceScope, toolCall);
+    }
     usedTodoWrite = usedTodoWrite || toolCall.function.name === "todo_write";
     const blockedResult = loopGuard.getPreflightBlockedResult(toolCall);
     const gatedResult = blockedResult ?? undefined;
@@ -161,6 +166,14 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       sessionId: session.id,
       projectContext,
     });
+    if (input.traceScope) {
+      await traceToolResult(input.traceScope, {
+        toolCall,
+        result,
+        durationMs,
+        externalizedToolResult: storedToolMessage.externalizedToolResult,
+      });
+    }
     batchToolMessages.push(storedToolMessage);
     session = await options.sessionStore.appendMessages(
       noteRuntimeToolExecution(session, {

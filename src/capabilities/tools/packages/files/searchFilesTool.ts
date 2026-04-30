@@ -40,6 +40,11 @@ export const searchFilesTool: RegisteredTool = {
             type: "boolean",
             description: "Whether search is case-insensitive.",
           },
+          mode: {
+            type: "string",
+            enum: ["files", "count", "matches"],
+            description: "Output mode. files returns matching files only, count returns per-file counts, matches returns matching lines with optional context. Defaults to files.",
+          },
           limit: {
             type: "number",
             description: "Maximum matches to return.",
@@ -58,6 +63,7 @@ export const searchFilesTool: RegisteredTool = {
     const literal = readBoolean(args.literal, false);
     const contextLines = clampNumber(args.context, 0, 8, 0);
     const caseSensitive = !readBoolean(args.ignoreCase, false);
+    const mode = readSearchMode(args.mode);
     const maxResults = clampNumber(args.limit, 1, 1_000, context.config.maxSearchResults);
     const resolved = resolveUserPath(targetPath, context.cwd);
     const stats = await fs.stat(resolved);
@@ -85,7 +91,23 @@ export const searchFilesTool: RegisteredTool = {
       before: string[];
       after: string[];
       lineTruncated: boolean;
+      readArgs: {
+        path: string;
+        start_line: number;
+        end_line: number;
+      };
     }> = [];
+    const fileSummaries = new Map<string, {
+      path: string;
+      matches: number;
+      firstLine: number;
+      readArgs: {
+        path: string;
+        start_line: number;
+        end_line: number;
+      };
+    }>();
+    let totalMatches = 0;
     let truncated = false;
 
     outer: for (const filePath of filePaths) {
@@ -102,35 +124,74 @@ export const searchFilesTool: RegisteredTool = {
           continue;
         }
 
-        if (matches.length >= maxResults) {
+        if (totalMatches >= maxResults) {
           truncated = true;
           break outer;
         }
 
+        const lineNumber = index + 1;
+        const readArgs = buildReadArgs(filePath, lineNumber, contextLines, lines.length);
+        totalMatches += 1;
+        const existingSummary = fileSummaries.get(filePath);
+        if (existingSummary) {
+          existingSummary.matches += 1;
+        } else {
+          fileSummaries.set(filePath, {
+            path: filePath,
+            matches: 1,
+            firstLine: lineNumber,
+            readArgs,
+          });
+        }
+
         matches.push({
           path: filePath,
-          line: index + 1,
+          line: lineNumber,
           text: truncateLine(line),
           before: lines.slice(Math.max(0, index - contextLines), index).map((value) => truncateLine(value)),
           after: lines.slice(index + 1, index + 1 + contextLines).map((value) => truncateLine(value)),
           lineTruncated: line.length > MAX_MATCH_LINE_CHARS,
+          readArgs,
         });
       }
     }
 
+    const files = Array.from(fileSummaries.values());
+    const basePayload = {
+      searched: filePaths.length,
+      pattern,
+      glob,
+      literal,
+      ignoreCase: !caseSensitive,
+      context: contextLines,
+      limit: maxResults,
+      truncated,
+      mode,
+      matchedFilesCount: files.length,
+      totalMatches,
+    };
+    const payload =
+      mode === "files"
+        ? {
+            ...basePayload,
+            files,
+          }
+        : mode === "count"
+          ? {
+              ...basePayload,
+              files: files.map((file) => ({
+                path: file.path,
+                matches: file.matches,
+              })),
+            }
+          : {
+              ...basePayload,
+              matches,
+            };
+
     return okResult(
       JSON.stringify(
-        {
-          searched: filePaths.length,
-          pattern,
-          glob,
-          literal,
-          ignoreCase: !caseSensitive,
-          context: contextLines,
-          limit: maxResults,
-          truncated,
-          matches,
-        },
+        payload,
         null,
         2,
       ),
@@ -139,9 +200,39 @@ export const searchFilesTool: RegisteredTool = {
 };
 
 const MAX_MATCH_LINE_CHARS = 500;
+type SearchMode = "files" | "count" | "matches";
+
+function readSearchMode(value: unknown): SearchMode {
+  if (value === undefined) {
+    return "files";
+  }
+
+  if (value === "files" || value === "count" || value === "matches") {
+    return value;
+  }
+
+  throw new Error('Tool argument "mode" must be "files", "count", or "matches".');
+}
 
 function truncateLine(value: string): string {
   return value.length <= MAX_MATCH_LINE_CHARS
     ? value
     : `${value.slice(0, MAX_MATCH_LINE_CHARS)}... [line truncated]`;
+}
+
+function buildReadArgs(
+  filePath: string,
+  line: number,
+  contextLines: number,
+  totalLines: number,
+): {
+  path: string;
+  start_line: number;
+  end_line: number;
+} {
+  return {
+    path: filePath,
+    start_line: Math.max(1, line - contextLines),
+    end_line: Math.min(totalLines, line + contextLines),
+  };
 }

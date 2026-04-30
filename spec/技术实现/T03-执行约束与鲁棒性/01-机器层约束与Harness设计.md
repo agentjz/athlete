@@ -27,12 +27,12 @@ Deadmouse 的机器层是运行身体，不是第二个大脑。
 
 - 自动要求验证、修复、重新验证或继续
 - 因 changedPaths、shell 是否只读、工具 mutation metadata 自动判定需要验证
-- 因 acceptance pending/failed 自动要求 change route 或选择下一步
+- 因 acceptance pending/failed 自动要求换路线或选择下一步
 - 因 skill 缺失、索引命中或元数据匹配自动推进加载
 - 从 checkpoint、tool batch、artifact preview 推导 next step
 - 把 internal reminder 伪装成 user message
 - 把 ledger 默认注入当前注意力
-- 把 todo/plan gate 扩张成策略引擎
+- 把 todo/plan 状态扩张成策略引擎
 - 在 blocked/tool failure 结果里生成 `next_step`
 
 ## 关键状态
@@ -53,7 +53,7 @@ verification 只记录事实：
 
 acceptance contract 可以被解析和检查，但检查结果只是事实摘要。
 
-pending/failed/completed 不能变成 route-change 指令，不能要求模型“不要 explanation-only”，不能替 Lead 选择下一步。
+pending/failed/completed 不能变成换路线指令，不能要求模型“不要 explanation-only”，不能替 Lead 选择下一步。
 
 ### skill
 
@@ -98,7 +98,7 @@ prompt 可以给 Lead 看事实和能力，不能把 verification focus、accept
 
 - verification/acceptance/todo/skill 不阻断可见 closeout
 - verification 不因 shell/read-only/changedPaths 自动 required
-- acceptance 不生成 route-change 文案
+- acceptance 不生成换路线文案
 - missing skill 不触发 continuation
 - checkpoint 不生成 strategy next step
 - blocked/tool failure/shutdown pending 不返回 `next_step`

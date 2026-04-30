@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
 import { injectInboxMessagesIfNeeded } from "../../src/agent/runtimeState.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { MessageBus } from "../../src/capabilities/team/messageBus.js";
 import { CoordinationPolicyStore } from "../../src/capabilities/team/policyStore.js";
 import { ProtocolRequestStore } from "../../src/capabilities/team/requestStore.js";
@@ -21,7 +21,7 @@ import { createTempWorkspace, makeToolContext } from "../helpers.js";
 test("team messaging keeps inbox archived until the model explicitly reads it", async (t) => {
   const root = await createTempWorkspace("team-msg", t);
   const bus = new MessageBus(root);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
 
   await bus.send("lead", "alpha", "hello alpha");
   const teammateSession = await sessionStore.create(root);
@@ -166,3 +166,4 @@ test("spawn and send_message expose explicit collaboration surface contracts", a
   assert.equal(sendCollaboration.from, "lead");
   assert.equal(sendCollaboration.to, "alpha");
 });
+

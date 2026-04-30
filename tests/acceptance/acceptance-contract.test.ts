@@ -1,11 +1,11 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
 import { handleCompletedAssistantResponse } from "../../src/agent/turn.js";
 import { evaluateAcceptanceState } from "../../src/agent/acceptance.js";
-import { createMessage, createToolMessage, MemorySessionStore, SessionStore } from "../../src/agent/session.js";
+import { createMessage, createToolMessage, InProcessSessionStore, SessionStore } from "../../src/agent/session.js";
 import type { RunTurnOptions } from "../../src/agent/types.js";
 import { createTempWorkspace, createTestRuntimeConfig } from "../helpers.js";
 
@@ -78,7 +78,7 @@ test("acceptance evaluation records missing evidence fields without forcing clos
     "utf8",
   );
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -165,7 +165,7 @@ test("acceptance evaluation allows finalize only after required files, evidence 
   await fs.writeFile(path.join(root, "RUN.md"), "node backend/server.js\n", "utf8");
   await fs.writeFile(path.join(root, "RESULT.md"), "evidence complete\n", "utf8");
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -266,7 +266,7 @@ test("acceptance evaluation treats successful browser page evidence as a valid p
   await fs.writeFile(path.join(root, "RUN.md"), "node backend/server.js\n", "utf8");
   await fs.writeFile(path.join(root, "RESULT.md"), "official news evidence\n", "utf8");
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -354,3 +354,4 @@ test("acceptance stalled summary remains factual instead of demanding a route ch
   assert.match(evaluation.summary, /stalled for 3 consecutive evaluation/);
   assert.doesNotMatch(evaluation.summary, /Switch strategy|next concrete action|Do not continue/i);
 });
+

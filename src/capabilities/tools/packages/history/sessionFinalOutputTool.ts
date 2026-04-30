@@ -13,7 +13,7 @@ export const sessionFinalOutputTool: RegisteredTool = {
     type: "function",
     function: {
       name: "session_final_output",
-      description: "Read final assistant text outputs from a persisted session. This is explicit history lookup, not automatic prompt memory.",
+      description: "Read final assistant text outputs from a persisted session. This is explicit history lookup, not automatic prompt recall.",
       parameters: {
         type: "object",
         properties: {

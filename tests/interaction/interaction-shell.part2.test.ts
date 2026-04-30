@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import type { InteractiveExitGuard, InteractiveExitProcess } from "../../src/interaction/exitGuard.js";
 import { InteractiveSessionDriver } from "../../src/interaction/sessionDriver.js";
 import type { InteractionShell } from "../../src/interaction/shell.js";
@@ -172,7 +172,7 @@ function createExitGuard(script: {
 test("quit lists running background processes and lets the user cancel exit", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -223,7 +223,7 @@ test("quit lists running background processes and lets the user cancel exit", as
 test("quit fails closed when some background processes cannot be terminated", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -268,7 +268,7 @@ test("quit fails closed when some background processes cannot be terminated", as
 test("multiline input is routed through the shell adapter and submitted as one turn", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -305,7 +305,7 @@ test("multiline input is routed through the shell adapter and submitted as one t
 test("interrupts abort the in-flight turn through the shared shell boundary", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [
@@ -348,3 +348,4 @@ test("interrupts abort the in-flight turn through the shared shell boundary", as
     true,
   );
 });
+

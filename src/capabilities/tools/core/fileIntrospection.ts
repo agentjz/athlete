@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { getToolRouteHintForPath } from "./routing.js";
+import { getToolCapabilityHintForPath } from "./capabilityHints.js";
 import { decodeTextBuffer } from "../../../utils/text.js";
 import type { ToolGovernanceDocumentKind } from "./types.js";
 
@@ -26,15 +26,15 @@ export interface InspectedFile {
   readable: boolean;
   content?: string;
   reason?: string;
-  action?:
-    | "skip_file_content"
-    | "use_read_spreadsheet"
-    | "use_document_read";
+  presentation?:
+    | "metadata_only"
+    | "spreadsheet_reader_available"
+    | "document_reader_available";
   detectedCapability?:
     | "spreadsheet.read"
     | "document.read";
   documentKind?: ToolGovernanceDocumentKind;
-  routeCode?: string;
+  capabilityHintCode?: string;
   size: number;
   extension: string;
 }
@@ -43,15 +43,15 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
   const stat = await fs.stat(filePath);
   const extension = path.extname(filePath).toLowerCase();
 
-  const route = getToolRouteHintForPath(filePath);
-  if (route) {
+  const hint = getToolCapabilityHintForPath(filePath);
+  if (hint) {
     return {
       readable: false,
-      reason: `${route.reason}: ${extension}`,
-      action: route.action,
-      detectedCapability: route.detectedCapability,
-      documentKind: route.documentKind,
-      routeCode: route.code,
+      reason: `${hint.reason}: ${extension}`,
+      presentation: hint.presentation,
+      detectedCapability: hint.detectedCapability,
+      documentKind: hint.documentKind,
+      capabilityHintCode: hint.code,
       size: stat.size,
       extension,
     };
@@ -61,7 +61,7 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
     return {
       readable: false,
       reason: `Unsupported binary/document format: ${extension || "unknown"}`,
-      action: "skip_file_content",
+      presentation: "metadata_only",
       size: stat.size,
       extension,
     };
@@ -73,7 +73,7 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
     return {
       readable: false,
       reason: "Binary file detected",
-      action: "skip_file_content",
+      presentation: "metadata_only",
       size: stat.size,
       extension,
     };

@@ -6,6 +6,7 @@ import {
   isCapabilitySourceKind,
   type CapabilityAdapterKind,
   type CapabilityPackage,
+  type CapabilityPackageGovernance,
   type CapabilitySourceKind,
 } from "./package.js";
 import type { CapabilityRunnerType } from "./runner.js";
@@ -49,6 +50,7 @@ export interface CapabilityPackageManifest {
   bestFor?: readonly string[];
   notFor?: readonly string[];
   extensionPoint?: string;
+  governance?: Partial<CapabilityPackageGovernance>;
 }
 
 export function createCapabilityPackageFromManifest(manifest: CapabilityPackageManifest): CapabilityPackage {
@@ -92,6 +94,7 @@ export function createCapabilityPackageFromManifest(manifest: CapabilityPackageM
     availability: manifest.availability,
     useWhen: manifest.bestFor,
     avoidWhen: manifest.notFor,
+    governance: manifest.governance,
   });
 }
 
@@ -172,6 +175,7 @@ export function parseCapabilityPackageManifest(value: unknown): CapabilityPackag
     bestFor: readOptionalTextArray(record, "bestFor"),
     notFor: readOptionalTextArray(record, "notFor"),
     extensionPoint: readOptionalText(record, "extensionPoint"),
+    governance: parseGovernance(record.governance),
   };
 }
 
@@ -204,4 +208,57 @@ function readOptionalTextArray(record: Record<string, unknown>, key: string): st
     throw new Error(`CapabilityPackageManifest.${key} must be an array.`);
   }
   return value.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function parseGovernance(value: unknown): Partial<CapabilityPackageGovernance> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const record = readRecord(value, "CapabilityPackageManifest.governance");
+  return {
+    enabled: typeof record.enabled === "boolean" ? record.enabled : undefined,
+    installed: typeof record.installed === "boolean" ? record.installed : undefined,
+    installRef: readOptionalText(record, "installRef"),
+    dependencies: parseDependencies(record.dependencies, "dependencies"),
+    versionConstraints: parseDependencies(record.versionConstraints, "versionConstraints"),
+    diagnostics: parseDiagnostics(record.diagnostics),
+  };
+}
+
+function parseDependencies(value: unknown, label: string): CapabilityPackageGovernance["dependencies"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`CapabilityPackageManifest.governance.${label} must be an array.`);
+  }
+  return value.map((item) => {
+    const record = readRecord(item, `CapabilityPackageManifest.governance.${label}`);
+    return {
+      packageId: readText(record, "packageId", `CapabilityPackageManifest.governance.${label}`),
+      version: readOptionalText(record, "version"),
+      optional: typeof record.optional === "boolean" ? record.optional : undefined,
+    };
+  });
+}
+
+function parseDiagnostics(value: unknown): CapabilityPackageGovernance["diagnostics"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("CapabilityPackageManifest.governance.diagnostics must be an array.");
+  }
+  return value.map((item) => {
+    const record = readRecord(item, "CapabilityPackageManifest.governance.diagnostics");
+    const severity = readText(record, "severity", "CapabilityPackageManifest.governance.diagnostics");
+    if (severity !== "info" && severity !== "warning" && severity !== "error") {
+      throw new Error(`Unsupported capability governance diagnostic severity '${severity}'.`);
+    }
+    return {
+      severity,
+      message: readText(record, "message", "CapabilityPackageManifest.governance.diagnostics"),
+      code: readOptionalText(record, "code"),
+    };
+  });
 }

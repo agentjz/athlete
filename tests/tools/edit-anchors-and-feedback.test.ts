@@ -1,11 +1,11 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
@@ -152,7 +152,7 @@ test("apply_patch returns formal write feedback metadata after patching", async 
 
 test("runManagedAgentTurn persists session diff into the formal session truth after a write batch", async (t) => {
   const root = await createTempWorkspace("session-diff-truth", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.save({
     ...(await sessionStore.create(root)),
     todoItems: [
@@ -334,3 +334,4 @@ async function readRequestBody(request: http.IncomingMessage): Promise<string> {
   }
   return Buffer.concat(chunks).toString("utf8");
 }
+

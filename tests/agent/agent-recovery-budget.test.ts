@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import {
   evaluateProviderRecoveryBudget,
@@ -73,7 +73,7 @@ test("runManagedAgentTurn pauses with provider recovery budget fields after repe
     await server.close();
   });
 
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(process.cwd());
   const result = await runManagedAgentTurn({
     input: "recovery budget integration test",
@@ -150,3 +150,4 @@ async function startFlakyServer(): Promise<{
       }),
   };
 }
+

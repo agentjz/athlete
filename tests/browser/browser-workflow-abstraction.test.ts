@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { prioritizeToolDefinitionsForTurn } from "../../src/agent/toolPriority.js";
+import { orderToolDefinitionsForLead } from "../../src/agent/capabilityPresentation.js";
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
 
 function createTool(name: string, description = name): FunctionToolDefinition {
@@ -18,8 +18,8 @@ function createTool(name: string, description = name): FunctionToolDefinition {
   };
 }
 
-test("tool priority recognizes browser capability tools without depending on Playwright naming", () => {
-  const prioritized = prioritizeToolDefinitionsForTurn(
+test("tool presentation order recognizes browser capability tools without depending on Playwright naming", () => {
+  const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),
       createTool("read_file"),
@@ -34,7 +34,7 @@ test("tool priority recognizes browser capability tools without depending on Pla
     },
   );
 
-  const names = prioritized.map((tool) => tool.function.name);
+  const names = ordered.map((tool) => tool.function.name);
   assert.deepEqual(names.slice(0, 2), [
     "mcp_webpilot_browser_navigate",
     "mcp_webpilot_browser_snapshot",

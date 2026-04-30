@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
 import { evaluateAcceptanceState } from "../../src/agent/acceptance.js";
-import { createMessage, createToolMessage, MemorySessionStore } from "../../src/agent/session.js";
+import { createMessage, createToolMessage, InProcessSessionStore } from "../../src/agent/session.js";
 import { createTempWorkspace } from "../helpers.js";
 
 function createDocumentPrompt(): string {
@@ -32,7 +32,7 @@ function createDocumentPrompt(): string {
 
 test("document acceptance phase advances after a generic document-read completion signal instead of a MinerU tool name", async (t) => {
   const root = await createTempWorkspace("document-workflow-abstraction", t);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const baseSession = await sessionStore.create(root);
   const session = await sessionStore.save({
     ...baseSession,
@@ -81,3 +81,4 @@ test("document acceptance phase advances after a generic document-read completio
   });
   assert.equal(afterRead.state.currentPhase, "assemble_outputs");
 });
+

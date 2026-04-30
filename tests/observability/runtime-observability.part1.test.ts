@@ -372,7 +372,7 @@ test("runtime observability summary separates durable truth from derived diagnos
         },
         updatedAt: new Date().toISOString(),
       },
-      priorityArtifacts: [],
+      evidenceArtifacts: [],
       updatedAt: new Date().toISOString(),
     },
     verificationState: {

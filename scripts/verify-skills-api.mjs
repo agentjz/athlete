@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { runAgentTurn } from "../.test-build/src/agent/runTurn.js";
-import { MemorySessionStore } from "../.test-build/src/agent/session.js";
+import { InProcessSessionStore } from "../.test-build/src/agent/session.js";
 import { resolveRuntimeConfig } from "../.test-build/src/config/store.js";
 import { loadProjectContext } from "../.test-build/src/context/projectContext.js";
 import { buildSkillRuntimeState } from "../.test-build/src/capabilities/skills/state.js";
@@ -26,7 +26,7 @@ async function main() {
       playwright: resolved.mcp.playwright,
     },
   };
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(workspace);
   const toolCalls = [];
   const statusUpdates = [];

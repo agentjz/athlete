@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { MemorySessionStore } from "../../src/agent/session.js";
+import { InProcessSessionStore } from "../../src/agent/session.js";
 import type { InteractiveExitGuard, InteractiveExitProcess } from "../../src/interaction/exitGuard.js";
 import { InteractiveSessionDriver } from "../../src/interaction/sessionDriver.js";
 import type { InteractionShell } from "../../src/interaction/shell.js";
@@ -192,7 +192,7 @@ test("readline input keeps a process-level SIGINT bridge while interactive liste
 test("startInteractiveChat delegates session control to the shared driver", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell();
   const seenDriverOptions: Array<Record<string, unknown>> = [];
@@ -237,7 +237,7 @@ test("startInteractiveChat mirrors terminal input and output into observability 
   const cwd = await createTempWorkspace("terminal-log", t);
   await initGitRepo(cwd);
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   const shell = createFakeShell({
     prompts: [{ kind: "submit", value: "hello terminal" }],
@@ -302,7 +302,7 @@ test("startInteractiveChat mirrors terminal input and output into observability 
 test("startInteractiveChat surfaces shell bootstrap failures directly", async () => {
   const cwd = process.cwd();
   const config = createTestRuntimeConfig(cwd);
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new InProcessSessionStore();
   const session = await sessionStore.create(cwd);
   await assert.rejects(
     () =>
@@ -322,3 +322,4 @@ test("startInteractiveChat surfaces shell bootstrap failures directly", async ()
     /shell bootstrap failed/,
   );
 });
+
