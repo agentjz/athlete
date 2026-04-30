@@ -2,6 +2,7 @@
   "name": "@jun133/deadmouse",
   "version": "0.1.1",
   "description": "An agent harness for durable execution.",
+  "license": "MIT",
   "keywords": [
     "deadmouse",
     "agent",

@@ -1,50 +1,48 @@
-﻿import { normalizeCheckpoint } from "../../checkpoint.js";
+import { normalizeCheckpoint } from "../../checkpoint.js";
 import { formatSkillPromptBlock } from "../../../capabilities/skills/prompt.js";
 import { formatPromptBlock } from "../../prompt/format.js";
 import { buildFieldBlock, type PromptField } from "../../prompt/structured.js";
 import type { AgentProfile, AgentRuntimeFactsProfile, RuntimeFactsProfileInput } from "../types.js";
 import type { SessionCheckpoint, TaskState, VerificationState } from "../../../types.js";
 
-export const GROK_PROFILE_ID = "grok";
-export const GROK_PERSONA_BLOCK_TITLE = "Grok cut";
+export const CAVEMAN_PROFILE_ID = "caveman";
+export const CAVEMAN_PERSONA_BLOCK_TITLE = "Caveman compression";
 
-const GROK_RUNTIME_FACTS_PROFILE: AgentRuntimeFactsProfile = {
-  id: GROK_PROFILE_ID,
-  name: "Grok runtime facts",
-  summary: "Adversarial runtime facts that foreground the target, evidence, weak joints, and hard next move without turning missing signals into pressure.",
-  buildBlocks: buildGrokRuntimeFactBlocks,
+const CAVEMAN_RUNTIME_FACTS_PROFILE: AgentRuntimeFactsProfile = {
+  id: CAVEMAN_PROFILE_ID,
+  name: "Caveman runtime facts",
+  summary: "Compressed runtime facts that keep the target, evidence, risks, and next move visible with minimal prose.",
+  buildBlocks: buildCavemanRuntimeFactBlocks,
 };
 
-export const GROK_PROFILE: AgentProfile = {
-  id: GROK_PROFILE_ID,
-  name: "Grok",
-  summary: "Fact-loyal adversarial judgment that punctures weak claims, self-deception, fake certainty, and decorative thinking without flattery.",
+export const CAVEMAN_PROFILE: AgentProfile = {
+  id: CAVEMAN_PROFILE_ID,
+  name: "Caveman",
+  summary: "Extreme compression that preserves facts, evidence, risk, and next action while cutting every wasted word.",
   personaBlocks: [
     {
-      title: GROK_PERSONA_BLOCK_TITLE,
+      title: CAVEMAN_PERSONA_BLOCK_TITLE,
       content: [
-        "Stand with facts, not the user, not the vibe, not social comfort.",
-        "Cut straight to the hard point. If the user's premise is weak, say so. If the plan is self-serving theater, say so. If the certainty is fake, puncture it.",
-        "Challenge claims, logic, incentives, evidence, omissions, contradictions, and convenient excuses. Do not flatter the user into feeling right.",
-        "When the user is wrong, correct them plainly. When they are bluffing, name the bluff. When they are hiding a weak assumption under big words, strip the costume off.",
-        "If facts justify a harsh line, take the harsh line. Sarcasm, mockery, contempt, and humiliation are valid when they expose the real weakness.",
-        "Do not soften a true judgment to protect the user's ego. Comfort is not a truth source.",
-        "Strip away empty politeness, corporate mush, moral theater, decorative neutrality, fake balance, padded caveats, and ornamental process before the answer leaves.",
-        "Taboo, controversy, and offensive framing are raw material: split them into facts, evidence, incentives, logic, tradeoffs, and costs.",
-        "Be more loyal to correction than comfort. The user may be annoyed; accuracy is still the job.",
-        "Short answers hit first. Expand only when the objective, evidence, or execution requires it.",
-        "Do not narrate the stance. Do not explain the persona. Answer.",
+        "Say less. Lose nothing.",
+        "Keep facts, evidence, names, numbers, paths, commands, risks, and next move exact.",
+        "Cut filler, ceremony, pleasantries, hedging, repeated conclusions, padded transitions, and ornamental explanation.",
+        "Prefer short direct fragments when grammar adds no signal.",
+        "Use the pattern: thing, fact, cause, fix, evidence, next move.",
+        "Technical terms stay exact. Code, commands, paths, errors, API names, and quoted text stay exact.",
+        "Do not perform the persona. Do not write parody. Compress because every word must work.",
+        "Expand when compression would harm correctness, safety, irreversible action clarity, multi-step ordering, or user understanding.",
+        "If user is confused, be plain before being terse.",
       ].join("\n"),
     },
   ],
-  runtimeFacts: GROK_RUNTIME_FACTS_PROFILE,
+  runtimeFacts: CAVEMAN_RUNTIME_FACTS_PROFILE,
 };
 
-function buildGrokRuntimeFactBlocks(input: RuntimeFactsProfileInput): string[] {
+function buildCavemanRuntimeFactBlocks(input: RuntimeFactsProfileInput): string[] {
   const isSubagent = input.runtimeState.identity?.kind === "subagent";
   return [
     buildCurrentObjectiveBlock(input.taskState),
-    buildCutLineBlock(input),
+    buildSignalBlock(input),
     buildVerificationBlock(input.verificationState),
     buildAcceptanceBlock(input.acceptanceState),
     buildCheckpointBlock(input.checkpoint, input.taskState),
@@ -62,47 +60,38 @@ function buildCurrentObjectiveBlock(taskState: TaskState | undefined): string | 
   return buildFieldBlock("Current Objective", fields);
 }
 
-function buildCutLineBlock(input: RuntimeFactsProfileInput): string | undefined {
+function buildSignalBlock(input: RuntimeFactsProfileInput): string | undefined {
   const fields: PromptField[] = [];
   if (input.taskState?.objective) {
-    fields.push({ label: "Target locked", value: "yes" });
+    fields.push({ label: "Target", value: "current user input" });
   }
-  if (hasVerificationSignal(input)) {
-    fields.push({ label: "Recorded evidence", value: "present" });
+  if (hasVerificationSignal(input.verificationState)) {
+    fields.push({ label: "Evidence", value: "recorded" });
   }
   if (input.acceptanceState?.contract) {
     fields.push({ label: "Acceptance", value: input.acceptanceState.status });
   }
-  if (input.checkpoint) {
-    fields.push({ label: "Checkpoint", value: input.checkpoint.status });
+  if (checkpointMatchesCurrentInput(normalizeCheckpoint(input.checkpoint), input.taskState)) {
+    fields.push({ label: "Checkpoint", value: "current objective only" });
   }
   if (input.runtimeState.capabilityPresentation) {
-    fields.push({ label: "Capability surface", value: "visible" });
+    fields.push({ label: "Capabilities", value: "visible" });
   }
   if (input.skillRuntimeState.loadedSkills.length > 0) {
-    fields.push({ label: "Loaded skills", value: String(input.skillRuntimeState.loadedSkills.length) });
+    fields.push({ label: "Skills", value: String(input.skillRuntimeState.loadedSkills.length) });
   }
-
-  return buildFieldBlock("Decision facts", fields);
+  return buildFieldBlock("Signal facts", fields);
 }
 
 function buildVerificationBlock(state: VerificationState | undefined): string | undefined {
   const verification = normalizeVerificationState(state);
-  if (!verification) {
-    return undefined;
-  }
-
-  const hasSignal =
-    verification.status !== "idle" ||
-    verification.observedPaths.length > 0 ||
-    verification.attempts > 0;
-  if (!hasSignal) {
+  if (!verification || !hasVerificationSignal(verification)) {
     return undefined;
   }
 
   const fields: PromptField[] = [{ label: "Status", value: verification.status }];
   if (verification.observedPaths.length > 0) {
-    fields.push({ label: "Observed paths", value: formatLimitedList(verification.observedPaths, 4) });
+    fields.push({ label: "Paths", value: formatLimitedList(verification.observedPaths, 4) });
   }
   if (verification.lastCommand) {
     fields.push({
@@ -113,7 +102,7 @@ function buildVerificationBlock(state: VerificationState | undefined): string | 
   if (verification.attempts > 0) {
     fields.push({ label: "Attempts", value: String(verification.attempts) });
   }
-  return buildFieldBlock("Hard evidence", fields);
+  return buildFieldBlock("Evidence facts", fields);
 }
 
 function buildAcceptanceBlock(state: RuntimeFactsProfileInput["acceptanceState"]): string | undefined {
@@ -122,40 +111,35 @@ function buildAcceptanceBlock(state: RuntimeFactsProfileInput["acceptanceState"]
   }
 
   const fields: PromptField[] = [
-    { label: "Contract kind", value: state.contract.kind },
-    { label: "Current phase", value: state.currentPhase ?? "active" },
+    { label: "Kind", value: state.contract.kind },
+    { label: "Phase", value: state.currentPhase ?? "active" },
     { label: "Status", value: state.status },
   ];
   if (state.pendingChecks.length > 0) {
-    fields.push({ label: "Pending checks", value: formatLimitedList(state.pendingChecks, 4) });
+    fields.push({ label: "Pending", value: formatLimitedList(state.pendingChecks, 4) });
   }
   if (state.lastIssueSummary) {
-    fields.push({ label: "Issue summary", value: state.lastIssueSummary });
+    fields.push({ label: "Issue", value: state.lastIssueSummary });
   }
-
   return buildFieldBlock("Acceptance facts", fields);
 }
 
 function buildCheckpointBlock(checkpoint: SessionCheckpoint | undefined, taskState: TaskState | undefined): string | undefined {
   const normalized = normalizeCheckpoint(checkpoint);
-  if (!normalized || normalized.status === "completed") {
-    return undefined;
-  }
-  if (!checkpointMatchesCurrentInput(normalized, taskState)) {
+  if (!checkpointMatchesCurrentInput(normalized, taskState) || normalized?.status === "completed") {
     return undefined;
   }
 
   const fields: PromptField[] = [
     { label: "Status", value: normalized.status },
-    { label: "Runtime phase", value: normalized.flow.reason ? `${normalized.flow.phase} (${normalized.flow.reason})` : normalized.flow.phase },
+    { label: "Phase", value: normalized.flow.reason ? `${normalized.flow.phase} (${normalized.flow.reason})` : normalized.flow.phase },
   ];
   if (normalized.recentToolBatch) {
-    fields.push({ label: "Recent tool batch", value: `${normalized.recentToolBatch.tools.length} tool(s) recorded` });
+    fields.push({ label: "Tool batch", value: `${normalized.recentToolBatch.tools.length} tool(s)` });
   }
   if (normalized.evidenceArtifacts.length > 0) {
-    fields.push({ label: "Evidence artifacts", value: `${normalized.evidenceArtifacts.length} artifact reference(s) stored` });
+    fields.push({ label: "Artifacts", value: `${normalized.evidenceArtifacts.length} ref(s)` });
   }
-
   return buildFieldBlock("Runtime facts", fields);
 }
 
@@ -179,29 +163,30 @@ function buildSkillBlock(
 
 function buildRuntimeEnvironmentBlock(input: RuntimeFactsProfileInput): string | undefined {
   return buildFieldBlock("Runtime environment", [
-    { label: "Current working directory", value: input.cwd },
-    { label: "Project root", value: input.projectContext.rootDir },
-    { label: "Project state root", value: input.projectContext.stateRootDir },
+    { label: "Cwd", value: input.cwd },
+    { label: "State root", value: input.projectContext.stateRootDir },
     { label: "Model", value: input.config.model },
     { label: "Thinking", value: input.config.thinking ?? "provider default" },
-    { label: "Reasoning effort", value: input.config.reasoningEffort ?? "provider default" },
+    { label: "Reasoning", value: input.config.reasoningEffort ?? "provider default" },
   ]);
 }
 
-function hasVerificationSignal(input: RuntimeFactsProfileInput): boolean {
-  const verification = input.verificationState;
+function hasVerificationSignal(state: VerificationState | undefined): boolean {
   return Boolean(
-    verification &&
-      (verification.status !== "idle" ||
-        verification.observedPaths.length > 0 ||
-        verification.attempts > 0 ||
-        verification.lastCommand),
+    state &&
+      (state.status !== "idle" ||
+        state.observedPaths.length > 0 ||
+        state.attempts > 0 ||
+        state.lastCommand),
   );
 }
 
-function checkpointMatchesCurrentInput(checkpoint: SessionCheckpoint, taskState: TaskState | undefined): boolean {
+function checkpointMatchesCurrentInput(
+  checkpoint: SessionCheckpoint | undefined,
+  taskState: TaskState | undefined,
+): checkpoint is SessionCheckpoint {
   const current = normalizeOneLine(taskState?.objective);
-  return Boolean(current) && normalizeOneLine(checkpoint.objective) === current;
+  return Boolean(checkpoint && current && normalizeOneLine(checkpoint.objective) === current);
 }
 
 function formatLimitedList(values: string[], limit: number): string {

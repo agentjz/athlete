@@ -77,6 +77,8 @@ test("system prompt keeps core contracts separate from the configured intp profi
   assert.equal(layers.runtimeFactBlocks.some((block) => /Runtime environment:/i.test(block)), true);
   assert.doesNotMatch(staticLayer, /Structural clarity:/);
   assert.match(profileLayer, /Structural clarity:/);
+  assert.doesNotMatch(profileLayer, /Grok cut:/);
+  assert.doesNotMatch(profileLayer, /Caveman compression:/);
   assert.equal(resolveAgentProfile("intp").id, "intp");
 });
 
@@ -187,6 +189,101 @@ test("grok profile injects a cut-style persona and its own runtime facts present
   assert.doesNotMatch(profileLayer, /Structural clarity:/);
 });
 
+test("caveman profile injects compression persona without losing evidence boundaries", () => {
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "compress the answer without losing facts",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    undefined,
+    {
+      status: "passed",
+      attempts: 1,
+      observedPaths: ["validation/caveman.txt"],
+      lastCommand: "npm test",
+      lastExitCode: 0,
+      lastKind: "test",
+      updatedAt: new Date().toISOString(),
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    resolveAgentProfile("caveman"),
+  );
+  const prompt = renderPromptLayers(layers);
+  const staticLayer = layers.staticBlocks.join("\n\n");
+  const profileLayer = layers.profilePersonaBlocks.join("\n\n");
+  const runtimeFactsLayer = layers.runtimeFactBlocks.join("\n\n");
+
+  assert.match(profileLayer, /Caveman compression:/);
+  assert.match(profileLayer, /Say less\. Lose nothing\./);
+  assert.match(profileLayer, /Keep facts, evidence, names, numbers, paths, commands, risks, and next move exact\./);
+  assert.match(profileLayer, /Do not perform the persona\. Do not write parody\./);
+  assert.match(profileLayer, /Expand when compression would harm correctness, safety, irreversible action clarity, multi-step ordering, or user understanding\./);
+  assert.match(runtimeFactsLayer, /Signal facts:/);
+  assert.match(runtimeFactsLayer, /Evidence facts:/);
+  assert.match(runtimeFactsLayer, /compress the answer without losing facts/);
+  assert.match(prompt, /Tool-use contract:/);
+  assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
+  assert.doesNotMatch(profileLayer, /Structural clarity:/);
+  assert.doesNotMatch(profileLayer, /Grok cut:/);
+});
+
+test("sexy profile injects erotic persona while keeping runtime facts precise", () => {
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "refactor the profile registry",
+      activeFiles: [],
+      plannedActions: [],
+      completedActions: [],
+      blockers: [],
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    undefined,
+    {
+      status: "passed",
+      attempts: 1,
+      observedPaths: ["validation/sexy.txt"],
+      lastCommand: "npm test",
+      lastExitCode: 0,
+      lastKind: "test",
+      updatedAt: new Date().toISOString(),
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    resolveAgentProfile("sexy"),
+  );
+  const prompt = renderPromptLayers(layers);
+  const staticLayer = layers.staticBlocks.join("\n\n");
+  const profileLayer = layers.profilePersonaBlocks.join("\n\n");
+  const runtimeFactsLayer = layers.runtimeFactBlocks.join("\n\n");
+
+  assert.match(profileLayer, /Adult charge:/);
+  assert.match(profileLayer, /adult female engineer/i);
+  assert.match(profileLayer, /teasing pressure/i);
+  assert.match(runtimeFactsLayer, /Execution voltage:/);
+  assert.match(runtimeFactsLayer, /Evidence facts:/);
+  assert.match(runtimeFactsLayer, /refactor the profile registry/);
+  assert.match(prompt, /Tool-use contract:/);
+  assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
+  assert.doesNotMatch(profileLayer, /Structural clarity:/);
+  assert.doesNotMatch(profileLayer, /Grok cut:/);
+  assert.doesNotMatch(profileLayer, /Caveman compression:/);
+});
+
 
 test("system prompt states principles without becoming a trigger-action decision table", () => {
   const prompt = renderPromptLayers(
@@ -232,6 +329,22 @@ test("system prompt does not carry previous final output into a new objective", 
   assert.doesNotMatch(prompt, /Carryover:/);
   assert.doesNotMatch(prompt, /browser runtime is stable/);
   assert.doesNotMatch(prompt, /old objective: inspect browser runtime/);
+});
+
+test("system prompt keeps history as explicit evidence lookup instead of automatic recall", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+    ),
+  );
+
+  assert.match(prompt, /History is never automatically injected into the current objective/i);
+  assert.match(prompt, /use session_list to inspect recent session summaries first/i);
+  assert.match(prompt, /then session_final_output for a specific session's complete final output when necessary/i);
+  assert.doesNotMatch(prompt, /if.*previous/i);
+  assert.doesNotMatch(prompt, /if.*上一轮/i);
 });
 
 test("system prompt states that budget anxiety is not a valid reason for shallow work or premature closeout", () => {
