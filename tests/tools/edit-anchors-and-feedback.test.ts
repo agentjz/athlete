@@ -92,6 +92,120 @@ test("edit_file rejects existing-file edits that omit formal anchors", async (t)
   assert.match(String(payload.error ?? ""), /anchor|required/i);
 });
 
+test("edit_file preserves UTF-8 BOM and CRLF while editing from fresh read anchors", async (t) => {
+  const root = await createTempWorkspace("edit-bom-crlf", t);
+  const filePath = path.join(root, "story.txt");
+  await fs.writeFile(filePath, Buffer.concat([
+    Buffer.from([0xef, 0xbb, 0xbf]),
+    Buffer.from("alpha\r\nbeta\r\ngamma\r\n", "utf8"),
+  ]));
+
+  const registry = createToolRegistry();
+  const readResult = await registry.execute(
+    "read_file",
+    JSON.stringify({
+      path: "story.txt",
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const readPayload = JSON.parse(readResult.output) as Record<string, unknown>;
+  const identity = readPayload.identity as Record<string, unknown>;
+  const anchors = readPayload.anchors as Array<Record<string, unknown>>;
+  const betaAnchor = anchors.find((anchor) => anchor.line === 2);
+
+  const editResult = await registry.execute(
+    "edit_file",
+    JSON.stringify({
+      path: "story.txt",
+      expected_identity: identity,
+      edits: [
+        {
+          anchor: betaAnchor,
+          old_string: "beta",
+          new_string: "BETA",
+        },
+      ],
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const after = await fs.readFile(filePath);
+
+  assert.equal(editResult.ok, true);
+  assert.deepEqual([...after.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  assert.equal(after.toString("utf8"), "\uFEFFalpha\r\nBETA\r\ngamma\r\n");
+});
+
+test("edit_file can apply two independent edits from one read without refreshing whole-file identity", async (t) => {
+  const root = await createTempWorkspace("edit-repeat-without-refresh", t);
+  const filePath = path.join(root, "story.txt");
+  await fs.writeFile(filePath, "alpha\nbeta\ngamma\n", "utf8");
+
+  const registry = createToolRegistry();
+  const readResult = await registry.execute(
+    "read_file",
+    JSON.stringify({
+      path: "story.txt",
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const readPayload = JSON.parse(readResult.output) as Record<string, unknown>;
+  const identity = readPayload.identity as Record<string, unknown>;
+  const anchors = readPayload.anchors as Array<Record<string, unknown>>;
+
+  const first = await registry.execute(
+    "edit_file",
+    JSON.stringify({
+      path: "story.txt",
+      expected_identity: identity,
+      edits: [
+        {
+          anchor: anchors.find((anchor) => anchor.line === 2),
+          old_string: "beta",
+          new_string: "BETA",
+        },
+      ],
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const second = await registry.execute(
+    "edit_file",
+    JSON.stringify({
+      path: "story.txt",
+      expected_identity: identity,
+      edits: [
+        {
+          anchor: anchors.find((anchor) => anchor.line === 3),
+          old_string: "gamma",
+          new_string: "GAMMA",
+        },
+      ],
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  assert.equal(first.ok, true);
+  assert.equal(second.ok, true);
+  assert.equal(await fs.readFile(filePath, "utf8"), "alpha\nBETA\nGAMMA\n");
+});
+
+test("write_file can create an empty file without routing through shell", async (t) => {
+  const root = await createTempWorkspace("write-empty-file", t);
+  const filePath = path.join(root, "empty.txt");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "write_file",
+    JSON.stringify({
+      path: "empty.txt",
+      content: "",
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(await fs.readFile(filePath, "utf8"), "");
+});
+
 test("write_file returns formal diff, diagnostics, and session diff feedback after a write", async (t) => {
   const root = await createTempWorkspace("write-feedback", t);
   const registry = createToolRegistry();

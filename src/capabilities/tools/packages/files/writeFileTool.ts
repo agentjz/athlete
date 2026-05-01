@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 
 import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../../../utils/fs.js";
 import { recordToolChange } from "../../core/changeTracking.js";
-import { buildDiffPreview, okResult, parseArgs, readBoolean, readString } from "../../core/shared.js";
+import { buildDiffPreview, okResult, parseArgs, readBoolean, readPossiblyEmptyString, readString } from "../../core/shared.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
 import type { RegisteredTool } from "../../core/types.js";
@@ -37,7 +37,7 @@ export const writeFileTool: RegisteredTool = {
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
     const targetPath = readString(args.path, "path");
-    const content = readString(args.content, "content");
+    const content = readPossiblyEmptyString(args.content, "content");
     const createDirectories = readBoolean(args.create_directories, true);
     const resolved = resolveUserPath(targetPath, context.cwd);
     const existed = await fileExists(resolved);

@@ -1,14 +1,20 @@
 import fs from "node:fs/promises";
 
 import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
+import { decodeTextFileEnvelope, encodeTextFileEnvelope } from "../../../../utils/text.js";
 import { recordToolChange } from "../../core/changeTracking.js";
 import { ToolExecutionError } from "../../core/errors.js";
-import { buildDiffPreview, okResult, parseArgs, readString } from "../../core/shared.js";
+import { buildDiffPreview, okResult, parseArgs, readPossiblyEmptyString, readString } from "../../core/shared.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
 import { findAnchoredOccurrences, validateAnchorAgainstSource } from "./editAnchorMatch.js";
 import { readFileEditAnchor, type FileEditAnchor } from "./editAnchor.js";
-import { buildFileEditIdentity, getFileEditIdentityMismatch, readFileEditIdentity } from "./editIdentity.js";
+import {
+  buildFileEditIdentity,
+  getFileEditIdentityMismatch,
+  hasFileEditIdentityContentChanged,
+  readFileEditIdentity,
+} from "./editIdentity.js";
 import type { RegisteredTool } from "../../core/types.js";
 
 interface RequestedEdit {
@@ -119,12 +125,23 @@ export const editFileTool: RegisteredTool = {
     const resolved = resolveUserPath(targetPath, context.cwd);
 
     return withFileEditLock(resolved, async () => {
-      const before = await fs.readFile(resolved, "utf8");
+      const beforeBuffer = await fs.readFile(resolved);
+      const beforeEnvelope = decodeTextFileEnvelope(beforeBuffer);
+      if (!beforeEnvelope) {
+        throw new ToolExecutionError(`edit_file cannot edit binary or unsupported text encoding for ${resolved}`, {
+          code: "EDIT_UNREADABLE_TEXT",
+          details: {
+            path: resolved,
+          },
+        });
+      }
+
+      const before = beforeEnvelope.text;
       const currentIdentity = buildFileEditIdentity(resolved, before);
       const mismatch = getFileEditIdentityMismatch(expectedIdentity, currentIdentity, resolved);
       if (mismatch) {
         throw new ToolExecutionError(mismatch, {
-          code: "EDIT_IDENTITY_STALE",
+          code: "EDIT_IDENTITY_PATH_MISMATCH",
           details: {
             path: resolved,
           },
@@ -145,7 +162,7 @@ export const editFileTool: RegisteredTool = {
 
       const diff = buildDiffPreview(before, after);
 
-      await fs.writeFile(resolved, after, "utf8");
+      await fs.writeFile(resolved, encodeTextFileEnvelope(after, beforeEnvelope));
       const changeRecord = await recordToolChange(context, {
         toolName: "edit_file",
         summary: `edit_file ${resolved}`,
@@ -176,6 +193,7 @@ export const editFileTool: RegisteredTool = {
             path: resolved,
             requestedEdits: edits.length,
             appliedEdits: plannedEdits.length,
+            identityChangedBeforeEdit: hasFileEditIdentityContentChanged(expectedIdentity, currentIdentity),
             changedPaths: [resolved],
             changeId: changeRecord.change?.id,
             changeHistoryWarning: changeRecord.warning,
@@ -213,8 +231,8 @@ function readRequestedEdit(value: unknown, field: string): RequestedEdit {
   const record = value as Record<string, unknown>;
   return {
     anchor: readFileEditAnchor(record.anchor, `${field}.anchor`),
-    oldString: readString(record.old_string, `${field}.old_string`),
-    newString: readString(record.new_string, `${field}.new_string`),
+    oldString: readPossiblyEmptyString(record.old_string, `${field}.old_string`),
+    newString: readPossiblyEmptyString(record.new_string, `${field}.new_string`),
   };
 }
 

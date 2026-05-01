@@ -14,46 +14,73 @@ export interface DecodedTextBuffer {
   encoding: "utf8" | "utf8-bom" | "utf16le" | "utf16be";
 }
 
+export interface TextFileEnvelope extends DecodedTextBuffer {
+  lineEnding: "\n" | "\r\n";
+}
+
 export function decodeTextBuffer(buffer: Buffer): DecodedTextBuffer | null {
+  const envelope = decodeTextFileEnvelope(buffer);
+  if (!envelope) {
+    return null;
+  }
+
+  return {
+    text: envelope.text,
+    encoding: envelope.encoding,
+  };
+}
+
+export function decodeTextFileEnvelope(buffer: Buffer): TextFileEnvelope | null {
   if (buffer.length === 0) {
     return {
       text: "",
       encoding: "utf8",
+      lineEnding: "\n",
     };
   }
 
   if (startsWith(buffer, UTF8_BOM)) {
+    const rawText = buffer.subarray(UTF8_BOM.length).toString("utf8");
     return {
-      text: normalizeTextForStorage(buffer.subarray(UTF8_BOM.length).toString("utf8")),
+      text: normalizeTextForStorage(rawText),
       encoding: "utf8-bom",
+      lineEnding: detectLineEnding(rawText),
     };
   }
 
   if (startsWith(buffer, UTF16LE_BOM)) {
+    const rawText = buffer.subarray(UTF16LE_BOM.length).toString("utf16le");
     return {
-      text: normalizeTextForStorage(buffer.subarray(UTF16LE_BOM.length).toString("utf16le")),
+      text: normalizeTextForStorage(rawText),
       encoding: "utf16le",
+      lineEnding: detectLineEnding(rawText),
     };
   }
 
   if (startsWith(buffer, UTF16BE_BOM)) {
+    const rawText = swapUtf16ByteOrder(buffer.subarray(UTF16BE_BOM.length)).toString("utf16le");
     return {
-      text: normalizeTextForStorage(swapUtf16ByteOrder(buffer.subarray(UTF16BE_BOM.length)).toString("utf16le")),
+      text: normalizeTextForStorage(rawText),
       encoding: "utf16be",
+      lineEnding: detectLineEnding(rawText),
     };
   }
 
   if (looksLikeUtf16Le(buffer)) {
+    const rawText = buffer.toString("utf16le");
     return {
-      text: normalizeTextForStorage(buffer.toString("utf16le")),
+      text: normalizeTextForStorage(rawText),
       encoding: "utf16le",
+      lineEnding: detectLineEnding(rawText),
     };
   }
 
   if (looksLikeUtf16Be(buffer)) {
+    const rawText = swapUtf16ByteOrder(buffer).toString("utf16le");
     return {
-      text: normalizeTextForStorage(swapUtf16ByteOrder(buffer).toString("utf16le")),
+      text: normalizeTextForStorage(rawText),
       encoding: "utf16be",
+      lineEnding: detectLineEnding(rawText),
     };
   }
 
@@ -61,16 +88,40 @@ export function decodeTextBuffer(buffer: Buffer): DecodedTextBuffer | null {
     return null;
   }
 
+  const rawText = buffer.toString("utf8");
   return {
-    text: normalizeTextForStorage(buffer.toString("utf8")),
+    text: normalizeTextForStorage(rawText),
     encoding: "utf8",
+    lineEnding: detectLineEnding(rawText),
   };
+}
+
+export function encodeTextFileEnvelope(content: string, envelope: Pick<TextFileEnvelope, "encoding" | "lineEnding">): Buffer {
+  const restoredLineEndings = envelope.lineEnding === "\r\n"
+    ? normalizeTextForStorage(content).replace(/\n/g, "\r\n")
+    : normalizeTextForStorage(content);
+
+  if (envelope.encoding === "utf8-bom") {
+    return Buffer.concat([UTF8_BOM, Buffer.from(restoredLineEndings, "utf8")]);
+  }
+
+  if (envelope.encoding === "utf16le") {
+    return Buffer.concat([UTF16LE_BOM, Buffer.from(restoredLineEndings, "utf16le")]);
+  }
+
+  if (envelope.encoding === "utf16be") {
+    const utf16le = Buffer.from(restoredLineEndings, "utf16le");
+    return Buffer.concat([UTF16BE_BOM, swapUtf16ByteOrder(utf16le)]);
+  }
+
+  return Buffer.from(restoredLineEndings, "utf8");
 }
 
 export function normalizeTextForStorage(value: string): string {
   return value
     .replace(/^\uFEFF/, "")
-    .replace(/\r\n/g, "\n");
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
 export function detectTextCorruption(value: string): boolean {
@@ -84,6 +135,18 @@ export function detectTextCorruption(value: string): boolean {
 
 function startsWith(buffer: Buffer, prefix: Buffer): boolean {
   return buffer.length >= prefix.length && prefix.equals(buffer.subarray(0, prefix.length));
+}
+
+function detectLineEnding(content: string): "\n" | "\r\n" {
+  const crlfIndex = content.indexOf("\r\n");
+  const lfIndex = content.indexOf("\n");
+  if (lfIndex === -1) {
+    return "\n";
+  }
+  if (crlfIndex === -1) {
+    return "\n";
+  }
+  return crlfIndex <= lfIndex ? "\r\n" : "\n";
 }
 
 function looksLikeUtf16Le(buffer: Buffer): boolean {

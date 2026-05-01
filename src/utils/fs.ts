@@ -11,11 +11,25 @@ export async function fileExists(targetPath: string): Promise<boolean> {
 }
 
 export function resolveUserPath(inputPath: string, cwd: string): string {
-  if (path.isAbsolute(inputPath)) {
-    return path.normalize(inputPath);
+  const cleanPath = normalizeUserPathInput(inputPath);
+  if (path.isAbsolute(cleanPath)) {
+    return path.normalize(cleanPath);
   }
 
-  return path.resolve(cwd, inputPath);
+  return path.resolve(cwd, cleanPath);
+}
+
+export function normalizeUserPathInput(inputPath: string): string {
+  const trimmed = inputPath.trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    if ((first === "\"" && last === "\"") || (first === "'" && last === "'")) {
+      return trimmed.slice(1, -1);
+    }
+  }
+
+  return trimmed;
 }
 
 export async function ensureParentDirectory(filePath: string): Promise<void> {

@@ -15,7 +15,7 @@ Deadmouse 的机器层是运行身体，不是第二个大脑。
 机器层可以做：
 
 - 工具 schema、参数和权限形态校验
-- 文件 identity、anchor、stale edit、覆盖写入等确定性约束
+- 文件 identity、anchor、目标现场复核、覆盖写入等确定性约束
 - pending tool calls、tool batch 顺序、结果归档
 - execution/process runtime、idle、timeout、terminate 边界
 - session snapshot、checkpoint、runtime stats、artifact 引用持久化
@@ -82,7 +82,7 @@ prompt 可以给 Lead 看事实和能力，不能把 verification focus、accept
 ## 保留的硬约束
 
 - 非法工具参数 fail closed
-- stale edit fail closed
+- 目标 anchor 或目标文本已变化的 edit fail closed；文件其他位置变化只记录为事实，不阻断目标未变的编辑
 - 覆盖已有文件必须走正式编辑/写入 guard
 - 执行通道必须有 runtime/idle boundary
 - pending tool calls 必须按协议收口

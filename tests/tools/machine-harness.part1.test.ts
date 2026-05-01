@@ -49,7 +49,7 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
   };
 }
 
-test("read_file emits a stable identity, edit_file uses it, and stale identities are rejected", async (t) => {
+test("read_file emits an identity, edit_file uses target anchors, and unrelated file changes do not block edits", async (t) => {
   const root = await createTempWorkspace("machine-identity", t);
   const filePath = path.join(root, "story.txt");
   await fs.writeFile(filePath, "alpha\nbeta\ngamma\n", "utf8");
@@ -73,7 +73,31 @@ test("read_file emits a stable identity, edit_file uses it, and stale identities
   assert.deepEqual(readResult.metadata?.protocol?.phases, ["prepare", "execute", "finalize"]);
   assert.equal(readResult.metadata?.protocol?.policy, "parallel");
 
-  await fs.writeFile(filePath, "header\nalpha\nbeta\ngamma\n", "utf8");
+  await fs.writeFile(filePath, "alpha\nbeta\nGAMMA\n", "utf8");
+  const editResult = await registry.execute(
+    "edit_file",
+    JSON.stringify({
+      path: "story.txt",
+      expected_identity: identity,
+      edits: [
+        {
+          anchor: betaAnchor,
+          old_string: "beta",
+          new_string: "BETA",
+        },
+      ],
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const editPayload = JSON.parse(editResult.output) as Record<string, unknown>;
+
+  assert.equal(editResult.ok, true);
+  assert.equal(editPayload.identityChangedBeforeEdit, true);
+  assert.deepEqual(editResult.metadata?.protocol?.phases, ["prepare", "execute", "finalize"]);
+  assert.equal(editResult.metadata?.protocol?.policy, "sequential");
+  assert.equal(await fs.readFile(filePath, "utf8"), "alpha\nBETA\nGAMMA\n");
+
+  await fs.writeFile(filePath, "alpha\nbeta changed\nGAMMA\n", "utf8");
   await assert.rejects(
     () =>
       registry.execute(
@@ -91,40 +115,8 @@ test("read_file emits a stable identity, edit_file uses it, and stale identities
         }),
         makeToolContext(root, root) as never,
       ),
-    /stale/i,
+    /targeted line changed/i,
   );
-
-  const refreshedRead = await registry.execute(
-    "read_file",
-    JSON.stringify({
-      path: "story.txt",
-    }),
-    makeToolContext(root, root) as never,
-  );
-  const refreshedIdentity = (JSON.parse(refreshedRead.output) as Record<string, unknown>).identity;
-  const refreshedAnchors = (JSON.parse(refreshedRead.output) as Record<string, unknown>).anchors as Array<Record<string, unknown>>;
-  const refreshedBetaAnchor = refreshedAnchors.find((anchor) => anchor.line === 3);
-  const editResult = await registry.execute(
-    "edit_file",
-    JSON.stringify({
-      path: "story.txt",
-      expected_identity: refreshedIdentity,
-      edits: [
-        {
-          anchor: refreshedBetaAnchor,
-          old_string: "beta",
-          new_string: "BETA",
-        },
-      ],
-    }),
-    makeToolContext(root, root) as never,
-  );
-
-  assert.equal(editResult.ok, true);
-  assert.ok(refreshedBetaAnchor);
-  assert.deepEqual(editResult.metadata?.protocol?.phases, ["prepare", "execute", "finalize"]);
-  assert.equal(editResult.metadata?.protocol?.policy, "sequential");
-  assert.match(await fs.readFile(filePath, "utf8"), /BETA/);
 });
 
 test("write_file blocks overwriting existing files during prepare and points the model back to edit_file", async (t) => {

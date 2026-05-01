@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { getToolCapabilityHintForPath } from "./capabilityHints.js";
-import { decodeTextBuffer } from "../../../utils/text.js";
+import { decodeTextFileEnvelope } from "../../../utils/text.js";
+import type { TextFileEnvelope } from "../../../utils/text.js";
 import type { ToolGovernanceDocumentKind } from "./types.js";
 
 const KNOWN_BINARY_EXTENSIONS = new Set([
@@ -37,6 +38,7 @@ export interface InspectedFile {
   capabilityHintCode?: string;
   size: number;
   extension: string;
+  textEnvelope?: Pick<TextFileEnvelope, "encoding" | "lineEnding">;
 }
 
 export async function inspectTextFile(filePath: string, _maxBytes: number): Promise<InspectedFile> {
@@ -68,7 +70,7 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
   }
 
   const buffer = await fs.readFile(filePath);
-  const decoded = decodeTextBuffer(buffer);
+  const decoded = decodeTextFileEnvelope(buffer);
   if (!decoded) {
     return {
       readable: false,
@@ -82,6 +84,10 @@ export async function inspectTextFile(filePath: string, _maxBytes: number): Prom
   return {
     readable: true,
     content: decoded.text,
+    textEnvelope: {
+      encoding: decoded.encoding,
+      lineEnding: decoded.lineEnding,
+    },
     size: stat.size,
     extension,
   };

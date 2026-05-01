@@ -4,6 +4,7 @@ import fg from "fast-glob";
 
 import type { ProjectContext } from "../../../types.js";
 import { isPathIgnored } from "../../../utils/ignore.js";
+import { normalizeUserPathInput } from "../../../utils/fs.js";
 
 export async function findPathSuggestions(
   cwd: string,
@@ -11,7 +12,7 @@ export async function findPathSuggestions(
   projectContext: Pick<ProjectContext, "ignoreRules">,
   limit = 8,
 ): Promise<string[]> {
-  const normalized = requestedPath.replace(/\\/g, "/");
+  const normalized = normalizeUserPathInput(requestedPath).replace(/\\/g, "/");
   const baseName = path.basename(normalized).trim();
   const needle = baseName.length > 0 ? baseName : normalized.trim();
 

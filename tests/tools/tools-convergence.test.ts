@@ -298,6 +298,26 @@ test("search_files keeps the base path search flow while adding literal, context
   assert.deepEqual(Object.keys((firstMatch?.readArgs as Record<string, unknown>) ?? {}).sort(), ["end_line", "path", "start_line"]);
 });
 
+test("read_file accepts copied paths with surrounding whitespace and quotes", async (t) => {
+  const root = await createTempWorkspace("read-file-copied-path", t);
+  const filePath = path.join(root, "notes.txt");
+  await fs.writeFile(filePath, "alpha\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "read_file",
+    JSON.stringify({
+      path: `  "${filePath}"  `,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+
+  assert.equal(result.ok, true);
+  assert.equal(payload.path, filePath);
+  assert.match(String(payload.content ?? ""), /alpha/);
+});
+
 test("search_files files mode returns low-noise file evidence with read continuation args", async (t) => {
   const root = await createTempWorkspace("search-files-files-mode", t);
   await fs.mkdir(path.join(root, "src"), { recursive: true });

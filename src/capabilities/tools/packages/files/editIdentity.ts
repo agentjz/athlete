@@ -42,15 +42,13 @@ export function getFileEditIdentityMismatch(
     return "The provided edit identity was issued for a different file path. A fresh read_file identity for the target file is required.";
   }
 
-  if (
-    expected.sha256 !== actual.sha256 ||
-    expected.byteLength !== actual.byteLength ||
-    expected.lineCount !== actual.lineCount
-  ) {
-    return "The file changed after it was read, so the edit identity is now stale. A fresh read_file identity is required.";
-  }
-
   return null;
+}
+
+export function hasFileEditIdentityContentChanged(expected: FileEditIdentity, actual: FileEditIdentity): boolean {
+  return expected.sha256 !== actual.sha256 ||
+    expected.byteLength !== actual.byteLength ||
+    expected.lineCount !== actual.lineCount;
 }
 
 function readIdentityString(value: unknown, field: string): string {

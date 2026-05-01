@@ -36,6 +36,14 @@ export function readString(value: unknown, field: string): string {
   return value;
 }
 
+export function readPossiblyEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`Tool argument "${field}" must be a string.`);
+  }
+
+  return value;
+}
+
 export function readBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
 }

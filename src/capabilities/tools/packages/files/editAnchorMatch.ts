@@ -45,6 +45,10 @@ export function validateAnchorAgainstSource(
 }
 
 export function findAnchoredOccurrences(source: string, oldString: string, anchor: FileEditAnchor): AnchoredMatch[] {
+  if (oldString.length === 0) {
+    return [];
+  }
+
   const matches = findOccurrences(source, oldString);
   return matches.filter((match) => match.startLine === anchor.line);
 }
