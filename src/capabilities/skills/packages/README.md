@@ -23,9 +23,7 @@ Currently retained official skills:
 - `mineru-ppt-reading`
   Purpose: route `.ppt` and `.pptx` through `mineru_ppt_read` and the MinerU extraction path.
 
-Recommended future network-related skills:
+Current network-related skills:
 
 - `web-research`
   Purpose: public web search, fetch, reading, and summarization.
-- `browser-automation`
-  Purpose: real browser interaction, authenticated pages, forms, and click flows.

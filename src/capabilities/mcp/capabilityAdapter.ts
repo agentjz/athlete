@@ -38,7 +38,7 @@ function toMcpCapabilityPackage(server: ResolvedMcpServerDefinition): Capability
       kind: "mcp",
       id: `mcp.${server.name}`,
       path: server.cwd || undefined,
-      builtIn: server.name === "playwright",
+      builtIn: false,
     },
     adapter: {
       kind: "mcp",

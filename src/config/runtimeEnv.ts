@@ -56,34 +56,6 @@ export function parseThinkingEnv(value: string | undefined): RuntimeConfig["thin
   }
 }
 
-export function parsePlaywrightBrowserEnv(value: string | undefined): RuntimeConfig["mcp"]["playwright"]["browser"] | undefined {
-  switch ((value ?? "").trim().toLowerCase()) {
-    case "chromium":
-      return "chromium";
-    case "chrome":
-      return "chrome";
-    case "firefox":
-      return "firefox";
-    case "webkit":
-      return "webkit";
-    case "msedge":
-      return "msedge";
-    default:
-      return undefined;
-  }
-}
-
-export function parsePlaywrightOutputModeEnv(value: string | undefined): RuntimeConfig["mcp"]["playwright"]["outputMode"] | undefined {
-  switch ((value ?? "").trim().toLowerCase()) {
-    case "file":
-      return "file";
-    case "stdout":
-      return "stdout";
-    default:
-      return undefined;
-  }
-}
-
 export function readMineruRuntimeConfig(): MineruRuntimeConfig {
   return {
     token: (process.env.MINERU_API_TOKEN ?? "").trim(),

@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { RuntimeConfig } from "../../types.js";
 
 export interface BuildTeammateWorkerEnvOptions {
@@ -23,19 +21,6 @@ export function buildTeammateWorkerEnv(options: BuildTeammateWorkerEnvOptions): 
     env.DEADMOUSE_REASONING_EFFORT = options.config.reasoningEffort;
   }
   deleteObsoleteIdentityModelEnv(env);
-
-  const playwright = options.config.mcp.playwright;
-  if (options.config.mcp.enabled && playwright.enabled && !playwright.isolated) {
-    env.DEADMOUSE_MCP_PLAYWRIGHT_USER_DATA_DIR = path.join(
-      options.rootDir,
-      ".deadmouse",
-      "playwright-mcp",
-      "teammates",
-      options.name,
-      "profile",
-    );
-    delete env.DEADMOUSE_MCP_PLAYWRIGHT_ISOLATED;
-  }
 
   return env;
 }

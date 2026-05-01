@@ -52,11 +52,6 @@ export function formatMcpToolName(serverName: string, toolName: string): string 
 function buildToolDescription(tool: McpDiscoveredTool): string {
   const description = tool.description.trim();
   const suffix = `MCP server: ${tool.serverName}.`;
-  if (tool.serverName === "playwright" && tool.name.startsWith("browser_")) {
-    const browserHint = "Browser/webpage capability for real browser rendering, page interaction, login state, screenshots, or dynamic content; lightweight HTTP/download tools remain available for static fetches.";
-    return [description, browserHint, suffix].filter(Boolean).join(" ");
-  }
-
   return description ? `${description} ${suffix}` : suffix;
 }
 

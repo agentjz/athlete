@@ -4,7 +4,7 @@ import type {
   ToolGovernanceDocumentKind,
 } from "./types.js";
 
-export const WEB_WORKFLOWS = ["web-research", "browser-automation"] as const;
+export const WEB_WORKFLOWS = ["web-research"] as const;
 
 export function readTool(
   specialty: ToolGovernance["specialty"],

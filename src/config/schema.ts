@@ -167,10 +167,6 @@ export function mergeAppConfig(base: AppConfig, patch: Partial<AppConfig>): AppC
     mcp: {
       ...base.mcp,
       ...(patch.mcp ?? {}),
-      playwright: {
-        ...base.mcp.playwright,
-        ...(patch.mcp?.playwright ?? {}),
-      },
     },
     telegram: {
       ...base.telegram,

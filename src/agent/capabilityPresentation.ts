@@ -24,8 +24,8 @@ const EXPLICIT_INTERACTIVE_WEB_PATTERNS = [
   /\b(?:click|type|fill|scroll|hover|screenshot|snapshot|ui)\b[\s\S]{0,40}\b(?:browser|page|web)\b/i,
 ];
 
-const WEB_WORKFLOW_SKILLS = new Set(["web-research", "browser-automation"]);
-const INTERACTIVE_WEB_WORKFLOW_SKILLS = new Set(["browser-automation"]);
+const WEB_WORKFLOW_SKILLS = new Set(["web-research"]);
+const INTERACTIVE_WEB_WORKFLOW_SKILLS = new Set<string>();
 
 // Presentation order only: this reduces noise without selecting a tool for Lead.
 const WEB_TOOL_PRESENTATION_ORDER = new Map<string, number>([

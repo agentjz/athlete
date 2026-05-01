@@ -18,7 +18,7 @@ function createTool(name: string, description = name): FunctionToolDefinition {
   };
 }
 
-test("tool presentation order recognizes browser capability tools without depending on Playwright naming", () => {
+test("tool presentation order recognizes browser capability tools without depending on provider naming", () => {
   const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),

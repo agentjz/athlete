@@ -5,9 +5,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
-import { preparePlaywrightRuntimeArtifacts } from "./playwright/artifacts.js";
-import { ensurePlaywrightBrowserAvailableForServer } from "./playwright/browserInstall.js";
-import { normalizePlaywrightToolInput } from "./playwright/invoke.js";
 import type {
   McpClient,
   McpDiscoverySnapshot,
@@ -100,12 +97,11 @@ export class StdioMcpClient implements McpClient {
     context: McpInvocationContext,
   ): Promise<McpToolCallResult> {
     await this.ensureConnected();
-    const normalizedInput = await normalizePlaywrightToolInput(this.server, toolName, input);
 
     const result = await this.client.callTool(
       {
         name: toolName,
-        arguments: normalizedInput,
+        arguments: input,
       },
       undefined,
       {
@@ -226,8 +222,6 @@ function formatToolResult(result: Awaited<ReturnType<Client["callTool"]>>): stri
 }
 
 async function ensureConfiguredDirectories(server: ResolvedMcpServerDefinition): Promise<void> {
-  await ensurePlaywrightBrowserAvailableForServer(server);
-
   const userDataDir = readFlagValue(server.args, "--user-data-dir");
   if (userDataDir) {
     await fs.mkdir(userDataDir, { recursive: true });
@@ -242,8 +236,6 @@ async function ensureConfiguredDirectories(server: ResolvedMcpServerDefinition):
   if (outputDir) {
     await fs.mkdir(outputDir, { recursive: true });
   }
-
-  await preparePlaywrightRuntimeArtifacts(server);
 }
 
 function readFlagValue(args: string[], flagName: string): string {

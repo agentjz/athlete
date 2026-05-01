@@ -3,8 +3,6 @@ import { ensureAppDirectories, loadConfig } from "./fileStore.js";
 import {
   parseBooleanEnv,
   parseIntegerEnv,
-  parsePlaywrightBrowserEnv,
-  parsePlaywrightOutputModeEnv,
   parseReasoningEffortEnv,
   parseThinkingEnv,
   readMineruRuntimeConfig,
@@ -25,7 +23,6 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
   const paths = await ensureAppDirectories();
   const fileConfig = await loadConfig();
   const projectRoots = await resolveProjectRoots(cwd);
-  const playwrightEnabled = parseBooleanEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_ENABLED) ?? fileConfig.mcp.playwright.enabled;
   const telegramAllowedUserIds = process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS
     ? parseTelegramAllowedUserIds(process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS)
     : fileConfig.telegram.allowedUserIds;
@@ -91,18 +88,6 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       mcp: {
         ...fileConfig.mcp,
         enabled: parseBooleanEnv(process.env.DEADMOUSE_MCP_ENABLED) ?? fileConfig.mcp.enabled,
-        playwright: {
-          ...fileConfig.mcp.playwright,
-          enabled: playwrightEnabled,
-          browser: parsePlaywrightBrowserEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_BROWSER) ?? fileConfig.mcp.playwright.browser,
-          headless: parseBooleanEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_HEADLESS) ?? fileConfig.mcp.playwright.headless,
-          isolated: parseBooleanEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_ISOLATED) ?? fileConfig.mcp.playwright.isolated,
-          userDataDir: process.env.DEADMOUSE_MCP_PLAYWRIGHT_USER_DATA_DIR ?? fileConfig.mcp.playwright.userDataDir,
-          outputMode:
-            parsePlaywrightOutputModeEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_OUTPUT_MODE) ??
-            fileConfig.mcp.playwright.outputMode,
-          saveSession: parseBooleanEnv(process.env.DEADMOUSE_MCP_PLAYWRIGHT_SAVE_SESSION) ?? fileConfig.mcp.playwright.saveSession,
-        },
       },
       telegram: telegramConfig,
     },

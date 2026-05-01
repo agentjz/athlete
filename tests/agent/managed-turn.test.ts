@@ -3,7 +3,6 @@ import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { InProcessSessionStore } from "../../src/agent/session.js";
-import { getDefaultPlaywrightMcpConfig } from "../../src/capabilities/mcp/playwright/config.js";
 import type { RuntimeConfig } from "../../src/types.js";
 import { createCheckpointFixture, createTempWorkspace } from "../helpers.js";
 
@@ -42,7 +41,6 @@ function createConfig(): RuntimeConfig {
     mcp: {
       enabled: false,
       servers: [],
-      playwright: getDefaultPlaywrightMcpConfig(),
     },
     telegram: {
       token: "test-telegram-token",
@@ -161,54 +159,6 @@ test("runManagedAgentTurn lets supervisors override continuation input", async (
   assert.equal(sliceCount, 2);
   assert.equal(seenInputs[0], "bootstrap");
   assert.match(String(seenInputs[1]), /New inbox updates are pending/i);
-});
-
-test("runManagedAgentTurn keeps continuation behavior when Playwright MCP config is enabled", async (t) => {
-  const root = await createTempWorkspace("managed-turn", t);
-  const sessionStore = new InProcessSessionStore();
-  const initialSession = await sessionStore.create(root);
-  const seenInputs: string[] = [];
-  const seenHeadlessFlags: Array<boolean | undefined> = [];
-  let sliceCount = 0;
-
-  const config = {
-    ...createConfig(),
-    mcp: {
-      enabled: true,
-      servers: [],
-      playwright: {
-        ...getDefaultPlaywrightMcpConfig(),
-        enabled: true,
-        headless: false,
-      },
-    },
-  } as RuntimeConfig;
-
-  const result = await runManagedAgentTurn({
-    input: "resume browser task",
-    cwd: root,
-    config,
-    session: initialSession,
-    sessionStore,
-    runSlice: async (options) => {
-      sliceCount += 1;
-      seenInputs.push(options.input);
-      seenHeadlessFlags.push((options.config.mcp as any).playwright?.headless);
-
-      return {
-        session: options.session,
-        changedPaths: [],
-        verificationAttempted: false,
-        yielded: sliceCount === 1,
-      };
-    },
-  });
-
-  assert.equal(sliceCount, 2);
-  assert.equal(result.yielded, false);
-  assert.deepEqual(seenHeadlessFlags, [false, false]);
-  assert.equal(seenInputs[0], "resume browser task");
-  assert.match(String(seenInputs[1]), /Wake lead runtime/i);
 });
 
 test("runManagedAgentTurn still auto-continues yielded turns when verification state is already passed", async (t) => {

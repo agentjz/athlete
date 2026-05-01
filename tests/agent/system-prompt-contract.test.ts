@@ -237,26 +237,26 @@ test("caveman profile injects compression persona without losing evidence bounda
   assert.doesNotMatch(profileLayer, /Grok cut:/);
 });
 
-test("sexy profile injects erotic persona while keeping runtime facts precise", () => {
+test("buddha profile injects calm resolve without weakening evidence boundaries", () => {
   const layers = buildSystemPromptLayers(
     ROOT,
     createTestRuntimeConfig(ROOT),
     createProjectContext(),
     {
-      objective: "refactor the profile registry",
+      objective: "fix the failing checkout test calmly",
       activeFiles: [],
       plannedActions: [],
       completedActions: [],
-      blockers: [],
+      blockers: ["checkout flow still red"],
       lastUpdatedAt: new Date().toISOString(),
     },
     undefined,
     {
-      status: "passed",
-      attempts: 1,
-      observedPaths: ["validation/sexy.txt"],
+      status: "failed",
+      attempts: 2,
+      observedPaths: ["validation/checkout.txt"],
       lastCommand: "npm test",
-      lastExitCode: 0,
+      lastExitCode: 1,
       lastKind: "test",
       updatedAt: new Date().toISOString(),
     },
@@ -264,26 +264,28 @@ test("sexy profile injects erotic persona while keeping runtime facts precise", 
     undefined,
     undefined,
     undefined,
-    resolveAgentProfile("sexy"),
+    resolveAgentProfile("buddha"),
   );
   const prompt = renderPromptLayers(layers);
   const staticLayer = layers.staticBlocks.join("\n\n");
   const profileLayer = layers.profilePersonaBlocks.join("\n\n");
   const runtimeFactsLayer = layers.runtimeFactBlocks.join("\n\n");
 
-  assert.match(profileLayer, /Adult charge:/);
-  assert.match(profileLayer, /adult female engineer/i);
-  assert.match(profileLayer, /teasing pressure/i);
-  assert.match(runtimeFactsLayer, /Execution voltage:/);
+  assert.match(profileLayer, /Still resolve:/);
+  assert.match(profileLayer, /lower the temperature/i);
+  assert.match(profileLayer, /Code bugs not exhausted, resolve not released/i);
+  assert.match(profileLayer, /No blame, no panic/i);
+  assert.match(profileLayer, /not doctrine/i);
+  assert.match(runtimeFactsLayer, /Unresolved work:/);
+  assert.match(runtimeFactsLayer, /Defect state: known failure remains/);
+  assert.match(runtimeFactsLayer, /checkout flow still red/);
   assert.match(runtimeFactsLayer, /Evidence facts:/);
-  assert.match(runtimeFactsLayer, /refactor the profile registry/);
   assert.match(prompt, /Tool-use contract:/);
   assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
   assert.doesNotMatch(profileLayer, /Structural clarity:/);
   assert.doesNotMatch(profileLayer, /Grok cut:/);
   assert.doesNotMatch(profileLayer, /Caveman compression:/);
 });
-
 
 test("system prompt states principles without becoming a trigger-action decision table", () => {
   const prompt = renderPromptLayers(
@@ -443,11 +445,7 @@ test("system prompt keeps capability guidance at the principle level instead of 
 test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   const webResearch = createSkill({
     name: "web-research",
-    description: "Research the web with browser-first tools.",
-  });
-  const browserAutomation = createSkill({
-    name: "browser-automation",
-    description: "Drive browser interactions end to end.",
+    description: "Research the web with lightweight network tools.",
   });
   const specAlignment = createSkill({
     name: "spec-alignment",
@@ -460,20 +458,19 @@ test("skill prompt is a compact runtime hint instead of a catalog dump", () => {
   };
 
   const block = formatSkillPromptBlock(
-    [webResearch, browserAutomation, specAlignment],
+    [webResearch, specAlignment],
     runtimeState,
   );
 
   assert.match(block, /Loaded now: web-research/);
-  assert.match(block, /Skill capability index: web-research, browser-automation, spec-alignment/);
+  assert.match(block, /Skill capability index: web-research, spec-alignment/);
   assert.match(block, /explicit load_skill calls/);
   assert.doesNotMatch(block, /Turn match:/);
   assert.doesNotMatch(block, /via scene|via task_type/);
   assert.doesNotMatch(block, /Matched but not loaded|required/);
   assert.doesNotMatch(block, /Consider loading|you may first inspect/i);
   assert.doesNotMatch(block, /Discovered project skill catalog/i);
-  assert.doesNotMatch(block, /Research the web with browser-first tools\./);
-  assert.doesNotMatch(block, /Drive browser interactions end to end\./);
+  assert.doesNotMatch(block, /Research the web with lightweight network tools\./);
 });
 
 test("prompt metrics expose per-layer size data and request-context prompt observability", () => {

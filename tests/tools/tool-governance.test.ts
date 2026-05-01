@@ -83,10 +83,6 @@ test("runtime registry governs MCP tools and blocks ambiguous tools that are mis
       ...runtimeConfig,
       mcp: {
         enabled: true,
-        playwright: {
-          ...runtimeConfig.mcp.playwright,
-          enabled: true,
-        },
         servers: [],
       },
     },

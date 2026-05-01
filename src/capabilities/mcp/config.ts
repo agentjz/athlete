@@ -1,4 +1,3 @@
-import { buildPlaywrightMcpServer, getDefaultPlaywrightMcpConfig, normalizePlaywrightMcpConfig } from "./playwright/config.js";
 import type {
   McpConfig,
   McpConfigInput,
@@ -15,26 +14,22 @@ export function getDefaultMcpConfig(): McpConfig {
   return {
     enabled: false,
     servers: [],
-    playwright: getDefaultPlaywrightMcpConfig(),
   };
 }
 
 export function normalizeMcpConfig(
   config: McpConfigInput | undefined,
-  runtime: McpRuntimeConfigContext = {},
+  _runtime: McpRuntimeConfigContext = {},
 ): McpConfig {
   const servers = Array.isArray(config?.servers)
     ? config!.servers
         .map((server) => normalizeMcpServer(server))
         .filter((server): server is McpServerConfig => server !== null)
     : [];
-  const playwright = normalizePlaywrightMcpConfig(config?.playwright, runtime);
-  const playwrightServer = buildPlaywrightMcpServer(playwright);
 
   return {
-    enabled: Boolean(config?.enabled || playwright.enabled),
-    servers: dedupeServersByName(playwrightServer ? [...servers, playwrightServer] : servers),
-    playwright,
+    enabled: Boolean(config?.enabled),
+    servers: dedupeServersByName(servers),
   };
 }
 

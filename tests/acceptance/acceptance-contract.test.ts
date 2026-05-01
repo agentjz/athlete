@@ -289,7 +289,7 @@ test("acceptance evaluation treats successful browser page evidence as a valid p
       createToolMessage(
         "call-page",
         "### Page\n- Page URL: http://127.0.0.1:4010/\n- Page Title: Helldivers 2 public intel research system",
-        "mcp_playwright_browser_navigate",
+        "mcp_web_page_snapshot",
       ),
       createToolMessage(
         "call-html",

@@ -1,31 +1,5 @@
 export type McpTransportType = "stdio" | "sse" | "streamable-http";
 
-export type PlaywrightBrowserName = "chromium" | "chrome" | "firefox" | "webkit" | "msedge";
-
-export interface PlaywrightMcpConfig {
-  enabled: boolean;
-  command: string;
-  packageSpec: string;
-  browser: PlaywrightBrowserName;
-  headless: boolean;
-  isolated: boolean;
-  userDataDir: string;
-  storageState: string;
-  configPath: string;
-  outputDir: string;
-  outputMode: "stdout" | "file";
-  saveSession: boolean;
-  caps: string[];
-  extraArgs: string[];
-  env: Record<string, string>;
-  cwd: string;
-  timeoutMs: number;
-}
-
-export interface PlaywrightMcpConfigInput extends Partial<PlaywrightMcpConfig> {
-  package?: string;
-}
-
 export interface McpRuntimeConfigContext {
   cwd?: string;
   cacheDir?: string;
@@ -65,13 +39,11 @@ export interface McpServerConfig {
 export interface McpConfig {
   enabled: boolean;
   servers: McpServerConfig[];
-  playwright: PlaywrightMcpConfig;
 }
 
 export interface McpConfigInput {
   enabled?: boolean;
   servers?: Array<Partial<McpServerConfig>>;
-  playwright?: PlaywrightMcpConfigInput;
 }
 
 export interface ResolvedMcpServerDefinition extends McpServerConfig {

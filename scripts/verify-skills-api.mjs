@@ -23,7 +23,6 @@ async function main() {
     mcp: {
       enabled: false,
       servers: [],
-      playwright: resolved.mcp.playwright,
     },
   };
   const sessionStore = new InProcessSessionStore();

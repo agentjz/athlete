@@ -17,8 +17,7 @@
     "dist",
     "README.md",
     "spec",
-    "src/capabilities/skills/packages",
-    "scripts/postinstall-playwright.mjs"
+    "src/capabilities/skills/packages"
   ],
   "publishConfig": {
     "access": "public"
@@ -30,7 +29,6 @@
     "build": "tsup src/cli.ts --format cjs --platform node --target node20 --outDir dist --clean --sourcemap",
     "check": "npm run typecheck && npm run build",
     "dev": "tsx src/cli.ts",
-    "postinstall": "node scripts/postinstall-playwright.mjs",
     "test:build": "node -e \"require('node:fs').rmSync('.test-build', { recursive: true, force: true })\" && tsc -p tsconfig.tests.json",
     "test:core": "npm run test:build && node --test .test-build/tests/**/*.test.js",
     "verify:skills-api": "npm run test:build && node scripts/verify-skills-api.mjs",
@@ -45,7 +43,6 @@
   "dependencies": {
     "@inquirer/prompts": "^7.9.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@playwright/mcp": "^0.0.70",
     "@types/adm-zip": "^0.5.8",
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.8.0",

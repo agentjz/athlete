@@ -12,7 +12,7 @@ export const runShellTool: RegisteredTool = {
     type: "function",
     function: {
       name: "run_shell",
-      description: "Run a local terminal command in the current working directory or another directory. For webpages, use browser MCP tools first and treat shell fetching as fallback.",
+      description: "Run a local terminal command in the current working directory or another directory. For webpages, use lightweight network tools first and treat shell fetching as fallback.",
       parameters: {
         type: "object",
         properties: {

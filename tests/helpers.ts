@@ -5,7 +5,6 @@ import path from "node:path";
 import type { TestContext } from "node:test";
 
 import type { RuntimeConfig } from "../src/types.js";
-import { getDefaultPlaywrightMcpConfig } from "../src/capabilities/mcp/playwright/config.js";
 
 process.env.DEADMOUSE_TEST_WORKER_MODE = "stub";
 
@@ -107,7 +106,6 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
     mcp: {
       enabled: false,
       servers: [],
-      playwright: getDefaultPlaywrightMcpConfig(),
     },
     telegram: {
       token: "test-telegram-token",

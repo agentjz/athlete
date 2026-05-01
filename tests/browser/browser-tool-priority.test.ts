@@ -19,7 +19,7 @@ function createTool(name: string): FunctionToolDefinition {
   };
 }
 
-test("tool presentation order keeps web research lightweight before browser automation", () => {
+test("tool presentation order keeps web research lightweight ahead of generic tools", () => {
   const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),
@@ -29,10 +29,10 @@ test("tool presentation order keeps web research lightweight before browser auto
       createTool("http_request"),
       createTool("download_url"),
       createTool("load_skill"),
-      createTool("mcp_playwright_browser_navigate"),
-      createTool("mcp_playwright_browser_snapshot"),
-      createTool("mcp_playwright_browser_click"),
-      createTool("mcp_playwright_browser_type"),
+      createTool("mcp_webpilot_browser_navigate"),
+      createTool("mcp_webpilot_browser_snapshot"),
+      createTool("mcp_webpilot_browser_click"),
+      createTool("mcp_webpilot_browser_type"),
       createTool("write_file"),
     ],
     {
@@ -41,13 +41,13 @@ test("tool presentation order keeps web research lightweight before browser auto
   );
 
   const names = ordered.map((tool) => tool.function.name);
-  assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
-  assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
-  assert(names.indexOf("download_url") < names.indexOf("mcp_playwright_browser_click"));
+  assert(names.indexOf("http_probe") < names.indexOf("mcp_webpilot_browser_navigate"));
+  assert(names.indexOf("http_request") < names.indexOf("mcp_webpilot_browser_snapshot"));
+  assert(names.indexOf("download_url") < names.indexOf("mcp_webpilot_browser_click"));
   assert(names.includes("load_skill"));
 });
 
-test("tool presentation order keeps continuation web hints advisory instead of browser-first", () => {
+test("tool presentation order keeps continuation web hints on lightweight network tools", () => {
   const ordered = orderToolDefinitionsForLead(
     [
       createTool("list_files"),
@@ -55,9 +55,9 @@ test("tool presentation order keeps continuation web hints advisory instead of b
       createTool("run_shell"),
       createTool("http_probe"),
       createTool("http_request"),
-      createTool("mcp_playwright_browser_navigate"),
-      createTool("mcp_playwright_browser_snapshot"),
-      createTool("mcp_playwright_browser_take_screenshot"),
+      createTool("mcp_webpilot_browser_navigate"),
+      createTool("mcp_webpilot_browser_snapshot"),
+      createTool("mcp_webpilot_browser_take_screenshot"),
       createTool("write_file"),
     ],
     {
@@ -68,10 +68,10 @@ test("tool presentation order keeps continuation web hints advisory instead of b
   );
 
   const names = ordered.map((tool) => tool.function.name);
-  assert(names.indexOf("http_probe") < names.indexOf("mcp_playwright_browser_navigate"));
-  assert(names.indexOf("http_request") < names.indexOf("mcp_playwright_browser_snapshot"));
+  assert(names.indexOf("http_probe") < names.indexOf("mcp_webpilot_browser_navigate"));
+  assert(names.indexOf("http_request") < names.indexOf("mcp_webpilot_browser_snapshot"));
   assert(names.includes("run_shell"));
-  assert(names.includes("mcp_playwright_browser_take_screenshot"));
+  assert(names.includes("mcp_webpilot_browser_take_screenshot"));
 });
 
 test("tool presentation order leaves non-web turns in their original order", () => {
@@ -79,7 +79,7 @@ test("tool presentation order leaves non-web turns in their original order", () 
     createTool("list_files"),
     createTool("read_file"),
     createTool("run_shell"),
-    createTool("mcp_playwright_browser_navigate"),
+    createTool("http_probe"),
   ];
 
   const ordered = orderToolDefinitionsForLead(original, {

@@ -86,20 +86,6 @@ function buildExecutionWorkerEnv(input: {
   }
   deleteObsoleteIdentityModelEnv(env);
 
-  const actorName = String(input.actorName ?? "").trim();
-  const playwright = input.config.mcp.playwright;
-  if (actorName && input.config.mcp.enabled && playwright.enabled && !playwright.isolated) {
-    env.DEADMOUSE_MCP_PLAYWRIGHT_USER_DATA_DIR = path.join(
-      input.rootDir,
-      ".deadmouse",
-      "playwright-mcp",
-      "executions",
-      actorName,
-      "profile",
-    );
-    delete env.DEADMOUSE_MCP_PLAYWRIGHT_ISOLATED;
-  }
-
   return env;
 }
 
