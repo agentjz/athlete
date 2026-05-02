@@ -19,6 +19,7 @@ export async function runCommand(command: string, args: string[], options: Proce
     cwd: options.cwd,
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
+    shell: process.platform === "win32",
   });
   let output = "";
   let timedOut = false;

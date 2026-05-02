@@ -4,6 +4,7 @@ import path from "node:path";
 import type { RepoContractFinding, RepoContractScanInput } from "./types.ts";
 
 interface PackageJsonShape {
+  description?: string;
   scripts?: Record<string, string>;
 }
 
@@ -12,10 +13,22 @@ export async function scanPackageScripts({ root }: RepoContractScanInput): Promi
   const scripts = packageJson.scripts ?? {};
   const findings: RepoContractFinding[] = [];
 
-  if (scripts.verify !== "npm run verify:repo-contracts && npm test") {
+  if (packageJson.description !== "Agent") {
     findings.push({
       file: "package.json",
-      message: "scripts.verify must be the standard repository verification entry: npm run verify:repo-contracts && npm test",
+      message: "package description must stay minimal: Agent",
+    });
+  }
+  if (scripts.verify !== "npm run live:ecology:dry-run && npm run verify:repo-contracts && npm test") {
+    findings.push({
+      file: "package.json",
+      message: "scripts.verify must run live ecology dry-run, repository contracts, and npm test.",
+    });
+  }
+  if (scripts["live:ecology:dry-run"] !== "tsx tests/production-line/verify-live-ecology.ts --dry-run") {
+    findings.push({
+      file: "package.json",
+      message: "scripts.live:ecology:dry-run must run the Live API production-line dry-run without real model calls.",
     });
   }
   if (scripts["verify:repo-contracts"] !== "tsx tests/production-line/verify-repo-contracts.ts") {

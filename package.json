@@ -1,7 +1,7 @@
 {
   "name": "@jun133/kitty",
   "version": "0.0.1",
-  "description": "An agent harness for durable execution.",
+  "description": "Agent",
   "license": "MIT",
   "keywords": [
     "kitty",
@@ -42,8 +42,9 @@
     "verify:generated": "tsx tests/production-line/verify-generated.ts",
     "verify:readme-capabilities": "tsx tests/production-line/sync-readme-capabilities.ts --check",
     "verify:repo-contracts": "tsx tests/production-line/verify-repo-contracts.ts",
+    "live:ecology:dry-run": "tsx tests/production-line/verify-live-ecology.ts --dry-run",
     "live:ecology": "tsx tests/production-line/verify-live-ecology.ts",
-    "verify": "npm run verify:repo-contracts && npm test",
+    "verify": "npm run live:ecology:dry-run && npm run verify:repo-contracts && npm test",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
     "prepublishOnly": "npm run build",
     "test": "npm run check && npm run test:core"

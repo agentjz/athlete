@@ -10,11 +10,13 @@ export async function writeJson(filePath: string, value: unknown): Promise<void>
 
 export function printLiveEcologySummary(summary: LiveEcologySummary): void {
   console.log(`live ecology: ${summary.status}`);
+  console.log(`mode=${summary.mode}`);
   console.log(`runRoot=${summary.runRoot}`);
   for (const group of summary.groups) {
-    console.log(
-      `${group.id}: ${group.status} covered=${group.coveredTools.length}/${group.expectedTools.length} missing=${group.missingTools.length} failed=${group.failedTools.length}`,
-    );
+    const progress = group.mode === "dry-run"
+      ? `prepared=${group.preparedTools.length}`
+      : `covered=${group.coveredTools.length}/${group.expectedTools.length} missing=${group.missingTools.length} failed=${group.failedTools.length}`;
+    console.log(`${group.id}: ${group.status} ${progress}`);
     if (group.missingTools.length > 0) {
       console.log(`  missing: ${group.missingTools.join(", ")}`);
     }

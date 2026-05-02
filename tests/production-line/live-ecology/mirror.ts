@@ -7,6 +7,7 @@ const EXCLUDED_ROOTS = new Set([
   ".git",
   ".kitty",
   ".test-build",
+  ".tmp-smoke",
   "dist",
   "node_modules",
 ]);
@@ -54,7 +55,7 @@ async function copyTree(source: string, target: string, runRoot: string): Promis
   const entries = await fs.readdir(sourceRoot, { withFileTypes: true });
 
   for (const entry of entries) {
-    if (EXCLUDED_ROOTS.has(entry.name)) {
+    if (EXCLUDED_ROOTS.has(entry.name) || entry.name.startsWith("live-ecology-test-")) {
       continue;
     }
 

@@ -20,16 +20,19 @@ export interface LiveEcologyOptions {
   outputDir: string;
   timeoutMs?: number;
   groupIds: Set<string>;
+  dryRun?: boolean;
 }
 
 export interface LiveEcologyGroupSummary {
   id: string;
   title: string;
+  mode: "dry-run" | "live";
   status: "passed" | "needs_review";
   exitCode: number;
   timedOut: boolean;
   sessionId: string;
   expectedTools: string[];
+  preparedTools: string[];
   coveredTools: string[];
   missingTools: string[];
   failedTools: FailedToolSummary[];
@@ -41,6 +44,7 @@ export interface LiveEcologyGroupSummary {
 
 export interface LiveEcologySummary {
   status: "running" | "passed" | "needs_review";
+  mode: "dry-run" | "live";
   startedAt: string;
   finishedAt?: string;
   runRoot: string;
@@ -63,6 +67,7 @@ export async function runLiveEcology(rootDir: string, options: LiveEcologyOption
   const groups = selectGroups(options.groupIds, inventoryGroups);
   const summary: LiveEcologySummary = {
     status: "running",
+    mode: options.dryRun === true ? "dry-run" : "live",
     startedAt: new Date().toISOString(),
     runRoot,
     mirrorRoot: mirror.mirrorRoot,
@@ -86,7 +91,9 @@ export async function runLiveEcology(rootDir: string, options: LiveEcologyOption
   await captureCliFacts(mirror);
 
   for (const group of groups) {
-    const result = await runGroup(mirror, group, toolNames, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const result = options.dryRun === true
+      ? await dryRunGroup(mirror, group, toolNames)
+      : await runGroup(mirror, group, toolNames, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     summary.groups.push(result);
     await writeJson(path.join(runRoot, "summary.json"), summary);
   }
@@ -95,6 +102,49 @@ export async function runLiveEcology(rootDir: string, options: LiveEcologyOption
   summary.finishedAt = new Date().toISOString();
   await writeJson(path.join(runRoot, "summary.json"), summary);
   return summary;
+}
+
+async function dryRunGroup(
+  mirror: LiveEcologyMirror,
+  group: LiveEcologyGroup,
+  toolNames: string[],
+): Promise<LiveEcologyGroupSummary> {
+  const groupDir = path.join(mirror.runRoot, group.id);
+  const mirrorEvidenceDir = path.join(mirror.mirrorRoot, ".live-ecology", group.id);
+  await fs.mkdir(groupDir, { recursive: true });
+  await fs.mkdir(mirrorEvidenceDir, { recursive: true });
+
+  const prompt = buildLiveEcologyPrompt(group, mirrorEvidenceDir, toolNames);
+  const promptPath = path.join(groupDir, "prompt.txt");
+  const outputPath = path.join(groupDir, "cli-output.txt");
+  await fs.writeFile(promptPath, `${prompt}\n`, "utf8");
+  await writeJson(path.join(groupDir, "dry-run.json"), {
+    id: group.id,
+    title: group.title,
+    expectedTools: getExpectedTools(group),
+    skippedTools: getSkippedTools(group),
+    promptPath,
+    outputPath,
+  });
+
+  return {
+    id: group.id,
+    title: group.title,
+    mode: "dry-run",
+    status: "passed",
+    exitCode: 0,
+    timedOut: false,
+    sessionId: "",
+    expectedTools: getExpectedTools(group),
+    preparedTools: getExpectedTools(group),
+    coveredTools: [],
+    missingTools: [],
+    failedTools: [],
+    skippedTools: getSkippedTools(group),
+    skipReasons: Object.fromEntries(group.tools.filter((tool) => !tool.enabled).map((tool) => [tool.name, tool.skipReason ?? "disabled"])),
+    promptPath,
+    outputPath,
+  };
 }
 
 function selectGroups(groupIds: Set<string>, inventoryGroups: LiveEcologyGroup[]): LiveEcologyGroup[] {
@@ -165,11 +215,13 @@ async function runGroup(
   const groupSummary: LiveEcologyGroupSummary = {
     id: group.id,
     title: group.title,
+    mode: "live",
     status: processResult.exitCode === 0 && missingTools.length === 0 && failedTools.length === 0 ? "passed" : "needs_review",
     exitCode: processResult.exitCode,
     timedOut: processResult.timedOut,
     sessionId,
     expectedTools,
+    preparedTools: expectedTools,
     coveredTools,
     missingTools,
     failedTools,

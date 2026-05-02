@@ -9,6 +9,7 @@ interface LiveEcologyCliOptions {
   timeoutMs?: number;
   groupIds: Set<string>;
   help: boolean;
+  dryRun: boolean;
 }
 
 function parseOptions(args: string[]): LiveEcologyCliOptions {
@@ -17,6 +18,7 @@ function parseOptions(args: string[]): LiveEcologyCliOptions {
     timeoutMs: undefined,
     groupIds: new Set<string>(),
     help: false,
+    dryRun: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -35,6 +37,10 @@ function parseOptions(args: string[]): LiveEcologyCliOptions {
     }
     if (arg === "--help" || arg === "-h") {
       options.help = true;
+      continue;
+    }
+    if (arg === "--dry-run") {
+      options.dryRun = true;
       continue;
     }
     throw new Error(`Unknown argument: ${arg}`);
@@ -56,7 +62,7 @@ async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
   if (options.help) {
     const groups = await loadLiveEcologyGroups(root);
-    console.log("Usage: npm.cmd run live:ecology -- [--out <dir>] [--group <id>] [--timeout-ms <ms>]");
+    console.log("Usage: npm.cmd run live:ecology -- [--dry-run] [--out <dir>] [--group <id>] [--timeout-ms <ms>]");
     console.log(`Groups: ${groups.map((group) => group.id).join(", ")}`);
     return;
   }
