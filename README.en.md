@@ -20,6 +20,12 @@ Kitty Agent is an open source agent framework that uses harness design to force 
 
 Kitty is open source under the MIT License.
 
+If you're interested in **building your own Agent** from scratch, join our group chat and let's grow together.
+
+<p align="center">
+  <img src="assets/wechat-group.jpg" alt="WeChat Group" width="300">
+</p>
+
 <!-- capability-ecology:start -->
 
 ## Built-in Profiles

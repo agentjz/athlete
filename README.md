@@ -20,6 +20,12 @@
 
 Kitty 遵循 MIT 开源协议。
 
+如果你对**手搓 Agent** 感兴趣，可以加群一起聊聊，共同进步。
+
+<p align="center">
+  <img src="assets/wechat-group.jpg" alt="微信交流群" width="300">
+</p>
+
 <!-- capability-ecology:start -->
 
 ## 内置人格
