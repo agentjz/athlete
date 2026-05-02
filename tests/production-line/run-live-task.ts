@@ -85,10 +85,14 @@ async function runKittyCli(
 
   let output = "";
   child.stdout.on("data", (chunk: Buffer | string) => {
-    output += chunk.toString();
+    const text = chunk.toString();
+    output += text;
+    process.stdout.write(text);
   });
   child.stderr.on("data", (chunk: Buffer | string) => {
-    output += chunk.toString();
+    const text = chunk.toString();
+    output += text;
+    process.stderr.write(text);
   });
 
   const monitor = setInterval(() => {
@@ -99,7 +103,9 @@ async function runKittyCli(
         }
       })
       .catch((error: unknown) => {
-        output += `\n[session-monitor-error] ${error instanceof Error ? error.message : String(error)}\n`;
+        const text = `\n[session-monitor-error] ${error instanceof Error ? error.message : String(error)}\n`;
+        output += text;
+        process.stderr.write(text);
       });
   }, 5_000);
 

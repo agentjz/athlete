@@ -7,6 +7,8 @@ export interface ProcessRunOptions {
   cwd: string;
   timeoutMs: number;
   capturePath: string;
+  streamOutput?: boolean;
+  streamLabel?: string;
 }
 
 export interface ProcessRunResult {
@@ -29,10 +31,18 @@ export async function runCommand(command: string, args: string[], options: Proce
   }, options.timeoutMs);
 
   child.stdout.on("data", (chunk) => {
-    output += chunk.toString("utf8");
+    const text = chunk.toString("utf8");
+    output += text;
+    if (options.streamOutput) {
+      writeStreamText(process.stdout, text, options.streamLabel);
+    }
   });
   child.stderr.on("data", (chunk) => {
-    output += chunk.toString("utf8");
+    const text = chunk.toString("utf8");
+    output += text;
+    if (options.streamOutput) {
+      writeStreamText(process.stderr, text, options.streamLabel);
+    }
   });
 
   const exitCode = await new Promise<number | null>((resolve, reject) => {
@@ -51,6 +61,21 @@ export async function runCommand(command: string, args: string[], options: Proce
     exitCode: typeof exitCode === "number" ? exitCode : 1,
     timedOut,
   };
+}
+
+function writeStreamText(stream: NodeJS.WriteStream, text: string, label?: string): void {
+  if (!label) {
+    stream.write(text);
+    return;
+  }
+
+  const normalized = text.replace(/\r\n/g, "\n");
+  for (const line of normalized.split("\n")) {
+    if (line.length === 0) {
+      continue;
+    }
+    stream.write(`[${label}] ${line}\n`);
+  }
 }
 
 export async function runNodeProcess(args: string[], options: ProcessRunOptions): Promise<ProcessRunResult> {
