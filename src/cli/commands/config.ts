@@ -71,7 +71,8 @@ export function registerConfigCommands(
     .command("path")
     .description("Show the config file path.")
     .action(async () => {
-      writeStdoutLine(getAppPaths().configFile);
+      const overrides = options.getCliOverrides();
+      writeStdoutLine(getAppPaths(overrides.cwd ?? process.cwd()).configFile);
     });
 
   configCommand
@@ -83,8 +84,9 @@ export function registerConfigCommands(
         throw new Error(`Unknown config key: ${key}`);
       }
 
+      const overrides = options.getCliOverrides();
       const { loadConfig } = await import("../../config/store.js");
-      const config = await loadConfig();
+      const config = await loadConfig(overrides.cwd ?? process.cwd());
       writeStdoutLine(JSON.stringify(config[key], null, 2));
     });
 
@@ -102,13 +104,14 @@ export function registerConfigCommands(
         throw new Error(`${key} is managed by Kitty and cannot be changed with config set.`);
       }
 
+      const overrides = options.getCliOverrides();
       const { updateConfig } = await import("../../config/store.js");
       const next = await updateConfig((config) => {
         return {
           ...config,
           [key]: coerceConfigValue(key, value),
         } as AppConfig;
-      });
+      }, overrides.cwd ?? process.cwd());
 
       ui.success(`Updated ${key}`);
       writeStdoutLine(JSON.stringify(next[key], null, 2));

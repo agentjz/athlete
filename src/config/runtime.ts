@@ -20,8 +20,8 @@ import type { CliOverrides, RuntimeConfig } from "../types.js";
 export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promise<RuntimeConfig> {
   const cwd = overrides.cwd ?? process.cwd();
   loadDotEnvFiles(cwd);
-  const paths = await ensureAppDirectories();
-  const fileConfig = await loadConfig();
+  const paths = await ensureAppDirectories(cwd);
+  const fileConfig = await loadConfig(cwd);
   const projectRoots = await resolveProjectRoots(cwd);
   const telegramAllowedUserIds = process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS
     ? parseTelegramAllowedUserIds(process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS)

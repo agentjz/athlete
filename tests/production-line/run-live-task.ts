@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import envPaths from "env-paths";
 
 import type { SessionRecord, StoredMessage } from "../../src/types.js";
+import { extractCloseoutSessionId, getLiveTaskSessionsDir } from "./live-ecology/sessionCapture.ts";
 
 interface CliArgs {
   promptPath: string;
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
 
   const startedAt = Date.now();
   const promptNeedle = prompt.slice(0, 160);
-  const sessionsDir = path.join(envPaths("kitty").data, "sessions");
+  const sessionsDir = getLiveTaskSessionsDir();
   let matchedSessionId = "";
   let finishRequested = false;
 
@@ -62,8 +62,7 @@ async function main(): Promise<void> {
   const result = await runKittyCli(prompt, monitorSession, () => finishRequested);
   await fs.writeFile(args.cliOutputPath, result.output, "utf8");
 
-  const match = [...result.output.matchAll(/session:\s*(\S+)/g)].at(-1);
-  const sessionId = matchedSessionId || match?.[1] || "";
+  const sessionId = matchedSessionId || extractCloseoutSessionId(result.output);
   await fs.writeFile(args.sessionPath, `${sessionId}\n`, "utf8");
 
   if (typeof result.exitCode === "number" && result.exitCode !== 0) {
@@ -155,16 +154,23 @@ async function findMatchingSession(
 }
 
 function parseSessionRecord(raw: string): SessionRecord | null {
-  try {
-    const parsed = JSON.parse(raw) as Partial<SessionRecord>;
-    if (typeof parsed.id === "string" && Array.isArray(parsed.messages)) {
-      return parsed as SessionRecord;
-    }
-  } catch {
-    return null;
+  const parsed = safeParseRecord(raw) as Partial<SessionRecord> | null;
+  if (typeof parsed?.id === "string" && Array.isArray(parsed.messages)) {
+    return parsed as SessionRecord;
   }
 
   return null;
+}
+
+function safeParseRecord(raw: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function isExternalUserMessage(message: StoredMessage): boolean {

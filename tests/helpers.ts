@@ -128,12 +128,12 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
       stateDir: path.join(root, ".kitty", "telegram"),
     },
     paths: {
-      configDir: root,
-      dataDir: root,
-      cacheDir: root,
-      configFile: path.join(root, "config.json"),
-      sessionsDir: path.join(root, "sessions"),
-      changesDir: path.join(root, "changes"),
+      configDir: path.join(root, ".kitty"),
+      dataDir: path.join(root, ".kitty"),
+      cacheDir: path.join(root, ".kitty", "cache"),
+      configFile: path.join(root, ".kitty", "config.json"),
+      sessionsDir: path.join(root, ".kitty", "sessions"),
+      changesDir: path.join(root, ".kitty", "changes"),
     },
   };
 }

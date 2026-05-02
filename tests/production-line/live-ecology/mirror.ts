@@ -10,6 +10,7 @@ const EXCLUDED_ROOTS = new Set([
   ".tmp-smoke",
   "dist",
   "node_modules",
+  "ref",
 ]);
 
 export interface LiveEcologyMirror {

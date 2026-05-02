@@ -31,7 +31,7 @@ function maybeHandleEntryFastPath(argv: string[]): boolean {
   }
 
   if (userArgs.length === 2 && userArgs[0] === "config" && userArgs[1] === "path") {
-    writeStdoutLine(getAppPaths().configFile);
+    writeStdoutLine(getAppPaths(process.cwd()).configFile);
     return true;
   }
 

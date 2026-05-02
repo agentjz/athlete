@@ -1,6 +1,7 @@
-﻿import fs from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
-import envPaths from "env-paths";
+
+import { getLiveTaskSessionsDir } from "./sessionCapture.ts";
 
 interface SessionToolCall {
   function?: {
@@ -28,10 +29,9 @@ export async function readSessionRecord(sessionId: string): Promise<SessionRecor
   if (!sessionId) {
     return null;
   }
-  const sessionsDir = path.join(envPaths("kitty").data, "sessions");
-  const sessionPath = path.join(sessionsDir, `${sessionId}.json`);
+  const sessionPath = path.join(getLiveTaskSessionsDir(), `${sessionId}.json`);
   const raw = await fs.readFile(sessionPath, "utf8").catch(() => "");
-  return raw ? JSON.parse(raw) : null;
+  return raw ? JSON.parse(raw) as SessionRecordLike : null;
 }
 
 export function collectCoveredTools(sessionRecord: SessionRecordLike | null): string[] {
@@ -79,7 +79,7 @@ function safeParse(value: unknown): Record<string, unknown> | null {
     return null;
   }
   try {
-    return JSON.parse(value);
+    return JSON.parse(value) as Record<string, unknown>;
   } catch {
     return null;
   }

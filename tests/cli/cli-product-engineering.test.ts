@@ -29,7 +29,7 @@ test("CLI exposes --version without resolving runtime", async () => {
 });
 
 test("CLI config path stays available even when runtime resolution would fail", async () => {
-  await withTempAppDirs(async () => {
+  await withTempCwd(async (root) => {
     let resolveRuntimeCalls = 0;
     const program = buildCliProgram({
       resolveRuntime: async () => {
@@ -37,7 +37,7 @@ test("CLI config path stays available even when runtime resolution would fail", 
         throw new Error("config path must not resolve runtime");
       },
     });
-    const configFile = getAppPaths().configFile;
+    const configFile = getAppPaths(root).configFile;
 
     const output = await captureStdout(async () => {
       await program.parseAsync(["config", "path"], {
@@ -51,8 +51,8 @@ test("CLI config path stays available even when runtime resolution would fail", 
 });
 
 test("config files without schemaVersion fail closed instead of being upgraded", async () => {
-  await withTempAppDirs(async () => {
-    const paths = getAppPaths();
+  await withTempCwd(async (root) => {
+    const paths = getAppPaths(root);
     await fs.mkdir(path.dirname(paths.configFile), { recursive: true });
     await fs.writeFile(
       paths.configFile,
@@ -68,7 +68,7 @@ test("config files without schemaVersion fail closed instead of being upgraded",
     );
 
     await assert.rejects(
-      () => loadConfig(),
+      () => loadConfig(root),
       (error: unknown) => {
         const message = String((error as Error).message ?? error);
         assert.match(message, /schema.?version/i);
@@ -80,8 +80,8 @@ test("config files without schemaVersion fail closed instead of being upgraded",
 });
 
 test("unsupported config schema version fails closed with an actionable message", async () => {
-  await withTempAppDirs(async () => {
-    const paths = getAppPaths();
+  await withTempCwd(async (root) => {
+    const paths = getAppPaths(root);
     await fs.mkdir(path.dirname(paths.configFile), { recursive: true });
     await fs.writeFile(
       paths.configFile,
@@ -97,7 +97,7 @@ test("unsupported config schema version fails closed with an actionable message"
     );
 
     await assert.rejects(
-      () => loadConfig(),
+      () => loadConfig(root),
       (error: unknown) => {
         const message = String((error as Error).message ?? error);
         assert.match(message, /schema.?version/i);
@@ -182,31 +182,15 @@ async function captureStdout(run: () => Promise<void>): Promise<string> {
   }
 }
 
-async function withTempAppDirs(run: () => Promise<void>): Promise<void> {
+async function withTempCwd(run: (root: string) => Promise<void>): Promise<void> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-cli-config-"));
-  const original = {
-    APPDATA: process.env.APPDATA,
-    LOCALAPPDATA: process.env.LOCALAPPDATA,
-    HOME: process.env.HOME,
-    USERPROFILE: process.env.USERPROFILE,
-  };
-
-  process.env.APPDATA = path.join(root, "appdata");
-  process.env.LOCALAPPDATA = path.join(root, "localappdata");
-  process.env.HOME = root;
-  process.env.USERPROFILE = root;
+  const originalCwd = process.cwd();
+  process.chdir(root);
 
   try {
-    await run();
+    await run(root);
   } finally {
-    for (const [key, value] of Object.entries(original)) {
-      if (typeof value === "string") {
-        process.env[key] = value;
-      } else {
-        delete process.env[key];
-      }
-    }
-
+    process.chdir(originalCwd);
     await fs.rm(root, { recursive: true, force: true });
   }
 }

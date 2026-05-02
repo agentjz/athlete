@@ -63,7 +63,6 @@
     "docx": "^9.5.1",
     "dompurify": "^3.3.3",
     "dotenv": "^17.2.3",
-    "env-paths": "^3.0.0",
     "execa": "^9.6.0",
     "express": "^5.2.1",
     "fast-glob": "^3.3.3",

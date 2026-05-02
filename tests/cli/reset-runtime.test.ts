@@ -21,6 +21,7 @@ test("reset clears project runtime state but preserves env files and unrelated s
 
   const config = createTestRuntimeConfig(root);
   const sessionStore = new SessionStore(config.paths.sessionsDir);
+  const unrelatedSessionStore = new SessionStore(createTestRuntimeConfig(unrelatedRoot).paths.sessionsDir);
   const taskStore = new TaskStore(root);
   const backgroundStore = new BackgroundJobStore(root);
   const teamStore = new TeamStore(root);
@@ -92,8 +93,8 @@ test("reset clears project runtime state but preserves env files and unrelated s
   let descendantSession = await sessionStore.create(path.join(root, "pkg-a"));
   descendantSession = await sessionStore.save(descendantSession);
 
-  let unrelatedSession = await sessionStore.create(unrelatedRoot);
-  unrelatedSession = await sessionStore.save(unrelatedSession);
+  let unrelatedSession = await unrelatedSessionStore.create(unrelatedRoot);
+  unrelatedSession = await unrelatedSessionStore.save(unrelatedSession);
 
   const result = await handleLocalCommand("reset", {
     cwd: root,
@@ -116,7 +117,10 @@ test("reset clears project runtime state but preserves env files and unrelated s
 
   assert.equal(await pathExists(path.join(config.paths.sessionsDir, `${currentSession.id}.json`)), false);
   assert.equal(await pathExists(path.join(config.paths.sessionsDir, `${descendantSession.id}.json`)), false);
-  assert.equal(await pathExists(path.join(config.paths.sessionsDir, `${unrelatedSession.id}.json`)), true);
+  assert.equal(
+    await pathExists(path.join(createTestRuntimeConfig(unrelatedRoot).paths.sessionsDir, `${unrelatedSession.id}.json`)),
+    true,
+  );
 
   assert.equal(isProcessAlive(backgroundChild.pid ?? -1), false);
   assert.equal(isProcessAlive(teammateChild.pid ?? -1), false);
