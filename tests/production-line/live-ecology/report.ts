@@ -23,5 +23,8 @@ export function printLiveEcologySummary(summary: LiveEcologySummary): void {
     if (group.failedTools.length > 0) {
       console.log(`  failed: ${group.failedTools.map((item) => item.tool).join(", ")}`);
     }
+    if (group.reportProblems.length > 0) {
+      console.log(`  report: ${group.reportProblems.join("; ")}`);
+    }
   }
 }

@@ -25,11 +25,11 @@ export interface FailedToolSummary {
   error: string;
 }
 
-export async function readSessionRecord(sessionId: string): Promise<SessionRecordLike | null> {
+export async function readSessionRecord(sessionId: string, rootDir = process.cwd()): Promise<SessionRecordLike | null> {
   if (!sessionId) {
     return null;
   }
-  const sessionPath = path.join(getLiveTaskSessionsDir(), `${sessionId}.json`);
+  const sessionPath = path.join(getLiveTaskSessionsDir(rootDir), `${sessionId}.json`);
   const raw = await fs.readFile(sessionPath, "utf8").catch(() => "");
   return raw ? JSON.parse(raw) as SessionRecordLike : null;
 }

@@ -12,6 +12,7 @@ import { buildLiveEcologyPrompt, getExpectedTools, getSkippedTools } from "./pro
 import { createTimestamp, runNodeProcess } from "./process.ts";
 import { writeJson } from "./report.ts";
 import { collectCoveredTools, collectFailedTools, readSessionRecord, type FailedToolSummary } from "./session.ts";
+import { readToolLedgerReport, type LiveEcologyToolReportEntry } from "./toolLedger.ts";
 import { loadRegisteredToolNames } from "./tools.ts";
 
 const DEFAULT_TIMEOUT_MS = 12 * 60 * 1000;
@@ -37,8 +38,24 @@ export interface LiveEcologyGroupSummary {
   coveredTools: string[];
   missingTools: string[];
   failedTools: FailedToolSummary[];
+  reportProblems: string[];
   skippedTools: string[];
   skipReasons: Record<string, string>;
+  promptPath: string;
+  outputPath: string;
+  cases: LiveEcologyToolCaseSummary[];
+}
+
+export interface LiveEcologyToolCaseSummary {
+  tool: string;
+  status: "passed" | "needs_review";
+  exitCode: number;
+  timedOut: boolean;
+  sessionId: string;
+  coveredTools: string[];
+  failedTools: FailedToolSummary[];
+  ledgerEntries: LiveEcologyToolReportEntry[];
+  reportProblems: string[];
   promptPath: string;
   outputPath: string;
 }
@@ -117,17 +134,46 @@ async function dryRunGroup(
   await fs.mkdir(groupDir, { recursive: true });
   await fs.mkdir(mirrorEvidenceDir, { recursive: true });
 
-  const prompt = buildLiveEcologyPrompt(group, mirrorEvidenceDir, toolNames);
-  const promptPath = path.join(groupDir, "prompt.txt");
+  const expectedTools = getExpectedTools(group);
+  const cases: LiveEcologyToolCaseSummary[] = [];
+  for (const tool of expectedTools) {
+    const caseDir = path.join(groupDir, tool);
+    const caseEvidenceDir = path.join(mirrorEvidenceDir, tool);
+    await fs.mkdir(caseDir, { recursive: true });
+    await fs.mkdir(caseEvidenceDir, { recursive: true });
+    const prompt = buildLiveEcologyPrompt(group, caseEvidenceDir, toolNames, { targetTool: tool });
+    const promptPath = path.join(caseDir, "prompt.txt");
+    const outputPath = path.join(caseDir, "cli-output.txt");
+    await fs.writeFile(promptPath, `${prompt}\n`, "utf8");
+    const caseSummary: LiveEcologyToolCaseSummary = {
+      tool,
+      status: "passed",
+      exitCode: 0,
+      timedOut: false,
+      sessionId: "",
+      coveredTools: [],
+      failedTools: [],
+      ledgerEntries: [],
+      reportProblems: [],
+      promptPath,
+      outputPath,
+    };
+    cases.push(caseSummary);
+    await writeJson(path.join(caseDir, "dry-run.json"), caseSummary);
+  }
+
+  const promptPath = path.join(groupDir, "machine-plan.json");
   const outputPath = path.join(groupDir, "cli-output.txt");
-  await fs.writeFile(promptPath, `${prompt}\n`, "utf8");
-  await writeJson(path.join(groupDir, "dry-run.json"), {
+  await writeJson(promptPath, {
     id: group.id,
     title: group.title,
-    expectedTools: getExpectedTools(group),
+    expectedTools,
     skippedTools: getSkippedTools(group),
-    promptPath,
-    outputPath,
+    cases: cases.map((item) => ({
+      tool: item.tool,
+      promptPath: item.promptPath,
+      outputPath: item.outputPath,
+    })),
   });
 
   return {
@@ -138,15 +184,17 @@ async function dryRunGroup(
     exitCode: 0,
     timedOut: false,
     sessionId: "",
-    expectedTools: getExpectedTools(group),
-    preparedTools: getExpectedTools(group),
+    expectedTools,
+    preparedTools: expectedTools,
     coveredTools: [],
     missingTools: [],
     failedTools: [],
+    reportProblems: [],
     skippedTools: getSkippedTools(group),
     skipReasons: Object.fromEntries(group.tools.filter((tool) => !tool.enabled).map((tool) => [tool.name, tool.skipReason ?? "disabled"])),
     promptPath,
     outputPath,
+    cases,
   };
 }
 
@@ -168,7 +216,10 @@ function enableAllTools(groups: LiveEcologyGroup[]): LiveEcologyGroup[] {
       name: tool.name,
       enabled: true,
     })),
-    promptLines: group.promptLines.map((line) => line.replaceAll("disabled 工具只写 skipped，不要调用。", "本轮所有工具都必须尝试调用，不使用 skipped。").replaceAll("不要调用 disabled 工具。", "本轮所有工具都必须尝试调用。")),
+    promptLines: group.promptLines.map((line) => line
+      .replaceAll("for disabled tools, write skipped only and do not call them.", "all tools must be attempted in this run; do not write skipped.")
+      .replaceAll("do not call disabled tools.", "all tools must be attempted in this run.")
+      .replaceAll("Do not call disabled tools.", "All tools must be attempted in this run.")),
   }));
 }
 
@@ -201,49 +252,125 @@ async function runGroup(
   await fs.mkdir(groupDir, { recursive: true });
   await fs.mkdir(mirrorEvidenceDir, { recursive: true });
 
-  const prompt = buildLiveEcologyPrompt(group, mirrorEvidenceDir, toolNames);
-  const promptPath = path.join(groupDir, "prompt.txt");
-  const outputPath = path.join(groupDir, "cli-output.txt");
-  const sessionPath = path.join(groupDir, "session-id.txt");
-  await fs.writeFile(promptPath, `${prompt}\n`, "utf8");
-
-  const processResult = await runNodeProcess(
-    ["node_modules/tsx/dist/cli.mjs", "tests/production-line/run-live-task.ts", promptPath, outputPath, sessionPath],
-    {
-      cwd: mirror.mirrorRoot,
+  const expectedTools = getExpectedTools(group);
+  const cases: LiveEcologyToolCaseSummary[] = [];
+  for (const tool of expectedTools) {
+    cases.push(await runToolCase({
+      mirror,
+      group,
+      toolNames,
       timeoutMs,
-      capturePath: path.join(groupDir, "runner-output.txt"),
-    },
-  );
-  const sessionId = (await fs.readFile(sessionPath, "utf8").catch(() => "")).trim();
-  const sessionRecord = await readSessionRecord(sessionId);
-  if (sessionRecord) {
-    await writeJson(path.join(groupDir, "session-record.json"), sessionRecord);
+      tool,
+      groupDir,
+      mirrorEvidenceDir,
+    }));
   }
 
-  const coveredTools = collectCoveredTools(sessionRecord);
-  const expectedTools = getExpectedTools(group);
+  const coveredTools = [...new Set(cases.flatMap((item) => item.coveredTools))].sort();
   const missingTools = expectedTools.filter((name) => !coveredTools.includes(name));
-  const failedTools = collectFailedTools(sessionRecord);
+  const failedTools = cases.flatMap((item) => item.failedTools);
+  const reportProblems = cases.flatMap((item) => item.reportProblems);
   const skippedTools = getSkippedTools(group);
   const groupSummary: LiveEcologyGroupSummary = {
     id: group.id,
     title: group.title,
     mode: "live",
-    status: processResult.exitCode === 0 && missingTools.length === 0 && failedTools.length === 0 ? "passed" : "needs_review",
-    exitCode: processResult.exitCode,
-    timedOut: processResult.timedOut,
-    sessionId,
+    status: cases.every((item) => item.status === "passed") && missingTools.length === 0 && failedTools.length === 0 && reportProblems.length === 0
+      ? "passed"
+      : "needs_review",
+    exitCode: cases.every((item) => item.exitCode === 0) ? 0 : 1,
+    timedOut: cases.some((item) => item.timedOut),
+    sessionId: cases.map((item) => item.sessionId).filter(Boolean).join(","),
     expectedTools,
     preparedTools: expectedTools,
     coveredTools,
     missingTools,
     failedTools,
+    reportProblems,
     skippedTools,
     skipReasons: Object.fromEntries(group.tools.filter((tool) => !tool.enabled).map((tool) => [tool.name, tool.skipReason ?? "disabled"])),
+    promptPath: path.join(groupDir, "machine-plan.json"),
+    outputPath: path.join(groupDir, "cli-output.txt"),
+    cases,
+  };
+  await writeJson(groupSummary.promptPath, {
+    id: group.id,
+    title: group.title,
+    expectedTools,
+    skippedTools,
+    cases: cases.map((item) => ({
+      tool: item.tool,
+      status: item.status,
+      promptPath: item.promptPath,
+      outputPath: item.outputPath,
+    })),
+  });
+  await writeJson(path.join(groupDir, "coverage.json"), groupSummary);
+  return groupSummary;
+}
+
+async function runToolCase(input: {
+  mirror: LiveEcologyMirror;
+  group: LiveEcologyGroup;
+  toolNames: string[];
+  timeoutMs: number;
+  tool: string;
+  groupDir: string;
+  mirrorEvidenceDir: string;
+}): Promise<LiveEcologyToolCaseSummary> {
+  const caseDir = path.join(input.groupDir, input.tool);
+  const caseEvidenceDir = path.join(input.mirrorEvidenceDir, input.tool);
+  await fs.mkdir(caseDir, { recursive: true });
+  await fs.mkdir(caseEvidenceDir, { recursive: true });
+
+  const prompt = buildLiveEcologyPrompt(input.group, caseEvidenceDir, input.toolNames, {
+    targetTool: input.tool,
+  });
+  const promptPath = path.join(caseDir, "prompt.txt");
+  const outputPath = path.join(caseDir, "cli-output.txt");
+  const sessionPath = path.join(caseDir, "session-id.txt");
+  await fs.writeFile(promptPath, `${prompt}\n`, "utf8");
+
+  const processResult = await runNodeProcess(
+    ["node_modules/tsx/dist/cli.mjs", "tests/production-line/run-live-task.ts", promptPath, outputPath, sessionPath],
+    {
+      cwd: input.mirror.mirrorRoot,
+      timeoutMs: input.timeoutMs,
+      capturePath: path.join(caseDir, "runner-output.txt"),
+    },
+  );
+  const sessionId = (await fs.readFile(sessionPath, "utf8").catch(() => "")).trim();
+  const sessionRecord = await readSessionRecord(sessionId, input.mirror.mirrorRoot);
+  if (sessionRecord) {
+    await writeJson(path.join(caseDir, "session-record.json"), sessionRecord);
+  }
+
+  const coveredTools = collectCoveredTools(sessionRecord);
+  const toolReport = await readToolLedgerReport(caseEvidenceDir, [input.tool]);
+  const failedTools = collectFailedTools(sessionRecord);
+  const reportProblems = [
+    ...toolReport.problems,
+    ...toolReport.unreportedTools.map((tool) => `Tool not reported in ledger: ${tool}`),
+  ];
+  const caseSummary: LiveEcologyToolCaseSummary = {
+    tool: input.tool,
+    status: processResult.exitCode === 0 &&
+      coveredTools.includes(input.tool) &&
+      failedTools.length === 0 &&
+      toolReport.unreportedTools.length === 0 &&
+      toolReport.problems.length === 0
+      ? "passed"
+      : "needs_review",
+    exitCode: processResult.exitCode,
+    timedOut: processResult.timedOut,
+    sessionId,
+    coveredTools,
+    failedTools,
+    ledgerEntries: toolReport.entries,
+    reportProblems,
     promptPath,
     outputPath,
   };
-  await writeJson(path.join(groupDir, "coverage.json"), groupSummary);
-  return groupSummary;
+  await writeJson(path.join(caseDir, "coverage.json"), caseSummary);
+  return caseSummary;
 }
