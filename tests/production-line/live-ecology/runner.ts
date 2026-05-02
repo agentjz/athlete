@@ -21,6 +21,7 @@ export interface LiveEcologyOptions {
   timeoutMs?: number;
   groupIds: Set<string>;
   dryRun?: boolean;
+  allTools?: boolean;
 }
 
 export interface LiveEcologyGroupSummary {
@@ -64,7 +65,9 @@ export async function runLiveEcology(rootDir: string, options: LiveEcologyOption
   const toolNames = await loadRegisteredToolNames(mirror.mirrorRoot);
   const inventoryGroups = await loadLiveEcologyGroups(mirror.mirrorRoot);
   const inventoryFindings = diagnoseLiveEcologyInventory(toolNames, inventoryGroups);
-  const groups = selectGroups(options.groupIds, inventoryGroups);
+  const groups = options.allTools === true
+    ? enableAllTools(selectGroups(options.groupIds, inventoryGroups))
+    : selectGroups(options.groupIds, inventoryGroups);
   const summary: LiveEcologySummary = {
     status: "running",
     mode: options.dryRun === true ? "dry-run" : "live",
@@ -156,6 +159,17 @@ function selectGroups(groupIds: Set<string>, inventoryGroups: LiveEcologyGroup[]
     throw new Error(`No live ecology test groups selected. Available: ${inventoryGroups.map((group) => group.id).join(", ")}`);
   }
   return groups;
+}
+
+function enableAllTools(groups: LiveEcologyGroup[]): LiveEcologyGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    tools: group.tools.map((tool) => ({
+      name: tool.name,
+      enabled: true,
+    })),
+    promptLines: group.promptLines.map((line) => line.replaceAll("disabled 工具只写 skipped，不要调用。", "本轮所有工具都必须尝试调用，不使用 skipped。").replaceAll("不要调用 disabled 工具。", "本轮所有工具都必须尝试调用。")),
+  }));
 }
 
 async function captureCliFacts(mirror: LiveEcologyMirror): Promise<void> {

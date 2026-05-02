@@ -10,6 +10,7 @@ interface LiveEcologyCliOptions {
   groupIds: Set<string>;
   help: boolean;
   dryRun: boolean;
+  allTools: boolean;
 }
 
 function parseOptions(args: string[]): LiveEcologyCliOptions {
@@ -19,6 +20,7 @@ function parseOptions(args: string[]): LiveEcologyCliOptions {
     groupIds: new Set<string>(),
     help: false,
     dryRun: false,
+    allTools: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -43,6 +45,10 @@ function parseOptions(args: string[]): LiveEcologyCliOptions {
       options.dryRun = true;
       continue;
     }
+    if (arg === "--all-tools") {
+      options.allTools = true;
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -62,7 +68,7 @@ async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
   if (options.help) {
     const groups = await loadLiveEcologyGroups(root);
-    console.log("Usage: npm.cmd run live:ecology -- [--dry-run] [--out <dir>] [--group <id>] [--timeout-ms <ms>]");
+    console.log("Usage: npm.cmd run live:ecology -- [--dry-run] [--all-tools] [--out <dir>] [--group <id>] [--timeout-ms <ms>]");
     console.log(`Groups: ${groups.map((group) => group.id).join(", ")}`);
     return;
   }
