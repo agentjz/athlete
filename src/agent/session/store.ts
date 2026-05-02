@@ -8,8 +8,14 @@ import { createEmptyRuntimeStats } from "../runtimeMetrics.js";
 import { createEmptyTaskState } from "./taskState.js";
 import { createEmptyVerificationState } from "../verification/state.js";
 import { createEmptySessionDiff } from "./sessionDiff.js";
-import { createSessionNotFoundError } from "./errors.js";
+import { createSessionNotFoundError, SessionStoreError } from "./errors.js";
 import { parseSessionSnapshot, prepareSessionRecordForSave, serializeSessionSnapshot } from "./snapshot.js";
+
+export interface SkippedSessionSnapshot {
+  path?: string;
+  code: string;
+  error: string;
+}
 
 export interface SessionStoreLike {
   create(cwd: string): Promise<SessionRecord>;
@@ -17,6 +23,10 @@ export interface SessionStoreLike {
   load(id: string): Promise<SessionRecord>;
   loadLatest(): Promise<SessionRecord | null>;
   list(limit?: number): Promise<SessionRecord[]>;
+  listReadable?(limit?: number): Promise<{
+    sessions: SessionRecord[];
+    skipped: SkippedSessionSnapshot[];
+  }>;
   appendMessages(session: SessionRecord, messages: StoredMessage[]): Promise<SessionRecord>;
 }
 
@@ -46,22 +56,34 @@ export class SessionStore implements SessionStoreLike {
   }
 
   async list(limit = 20): Promise<SessionRecord[]> {
+    return (await this.listReadable(limit)).sessions;
+  }
+
+  async listReadable(limit = 20): Promise<{
+    sessions: SessionRecord[];
+    skipped: SkippedSessionSnapshot[];
+  }> {
     await fs.mkdir(this.sessionsDir, { recursive: true });
     const entries = await fs.readdir(this.sessionsDir, { withFileTypes: true });
+    const sessions: SessionRecord[] = [];
+    const skipped: SkippedSessionSnapshot[] = [];
 
-    const sessions = await Promise.all(
-      entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map(async (entry) => {
-          const sessionPath = path.join(this.sessionsDir, entry.name);
-          const raw = await fs.readFile(sessionPath, "utf8");
-          return parseSessionSnapshot(raw, sessionPath);
-        }),
-    );
+    for (const entry of entries.filter((item) => item.isFile() && item.name.endsWith(".json"))) {
+      const sessionPath = path.join(this.sessionsDir, entry.name);
+      try {
+        const raw = await fs.readFile(sessionPath, "utf8");
+        sessions.push(parseSessionSnapshot(raw, sessionPath));
+      } catch (error) {
+        skipped.push(toSkippedSessionSnapshot(error, sessionPath));
+      }
+    }
 
-    return sessions
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, limit);
+    return {
+      sessions: sessions
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+        .slice(0, limit),
+      skipped,
+    };
   }
 
   async appendMessages(session: SessionRecord, messages: StoredMessage[]): Promise<SessionRecord> {
@@ -86,6 +108,22 @@ export class SessionStore implements SessionStoreLike {
       throw error;
     }
   }
+}
+
+function toSkippedSessionSnapshot(error: unknown, fallbackPath?: string): SkippedSessionSnapshot {
+  if (error instanceof SessionStoreError) {
+    return {
+      path: error.sessionPath ?? fallbackPath,
+      code: error.code,
+      error: error.message,
+    };
+  }
+
+  return {
+    path: fallbackPath,
+    code: "SESSION_READ_FAILED",
+    error: error instanceof Error ? error.message : String(error),
+  };
 }
 
 export class InProcessSessionStore implements SessionStoreLike {
@@ -119,6 +157,16 @@ export class InProcessSessionStore implements SessionStoreLike {
     return [...this.sessions.values()]
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, limit);
+  }
+
+  async listReadable(limit = 20): Promise<{
+    sessions: SessionRecord[];
+    skipped: SkippedSessionSnapshot[];
+  }> {
+    return {
+      sessions: await this.list(limit),
+      skipped: [],
+    };
   }
 
   async appendMessages(session: SessionRecord, messages: StoredMessage[]): Promise<SessionRecord> {

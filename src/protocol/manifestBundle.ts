@@ -12,7 +12,7 @@ import {
   type CapabilitySourceKind,
 } from "./package.js";
 
-export const CAPABILITY_MANIFEST_BUNDLE_PROTOCOL = "deadmouse.capability-manifest-bundle" as const;
+export const CAPABILITY_MANIFEST_BUNDLE_PROTOCOL = "kitty.capability-manifest-bundle" as const;
 
 export interface CapabilityManifestBundle {
   protocol: typeof CAPABILITY_MANIFEST_BUNDLE_PROTOCOL;

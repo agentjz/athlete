@@ -3,7 +3,7 @@ import path from "node:path";
 
 export interface ProjectStatePaths {
   rootDir: string;
-  deadmouseDir: string;
+  kittyDir: string;
   controlPlaneDbFile: string;
   teamDir: string;
   inboxDir: string;
@@ -19,24 +19,24 @@ export interface ProjectStatePaths {
 
 export function getProjectStatePaths(rootDir: string): ProjectStatePaths {
   const normalizedRoot = path.resolve(rootDir);
-  const deadmouseDir = path.join(normalizedRoot, ".deadmouse");
-  const teamDir = path.join(deadmouseDir, "team");
-  const worktreesDir = path.join(deadmouseDir, "worktrees");
-  const observabilityDir = path.join(deadmouseDir, "observability");
+  const kittyDir = path.join(normalizedRoot, ".kitty");
+  const teamDir = path.join(kittyDir, "team");
+  const worktreesDir = path.join(kittyDir, "worktrees");
+  const observabilityDir = path.join(kittyDir, "observability");
   return {
     rootDir: normalizedRoot,
-    deadmouseDir,
-    controlPlaneDbFile: path.join(deadmouseDir, "control-plane.sqlite"),
+    kittyDir,
+    controlPlaneDbFile: path.join(kittyDir, "control-plane.sqlite"),
     teamDir,
     inboxDir: path.join(teamDir, "inbox"),
     messageLogFile: path.join(teamDir, "messages.jsonl"),
-    toolResultsDir: path.join(deadmouseDir, "tool-results"),
+    toolResultsDir: path.join(kittyDir, "tool-results"),
     worktreesDir,
     worktreeEventsFile: path.join(worktreesDir, "events.jsonl"),
     observabilityDir,
     observabilityEventsDir: path.join(observabilityDir, "events"),
     observabilityCrashesDir: path.join(observabilityDir, "crashes"),
-    tracesDir: path.join(deadmouseDir, "traces"),
+    tracesDir: path.join(kittyDir, "traces"),
   };
 }
 

@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -10,6 +10,9 @@ import type { InteractionShell } from "../../src/interaction/shell.js";
 import { createReadlineInputPort } from "../../src/shell/cli/readlineInput.js";
 import { startInteractiveChat, type StartInteractiveChatDependencies } from "../../src/ui/interactive.js";
 import { mirrorProcessOutputToTerminalLog, type TerminalLogWriter } from "../../src/observability/terminalLog.js";
+import { createRuntimeUiEvent } from "../../src/runtime-ui/events.js";
+import { formatRuntimeUiEventLine } from "../../src/runtime-ui/terminalRenderer.js";
+import { formatRuntimeUiChannelHeader } from "../../src/runtime-ui/theme.js";
 import { writeStdoutLine } from "../../src/utils/stdio.js";
 import { createAbortError } from "../../src/utils/abort.js";
 import { createTempWorkspace, createTestRuntimeConfig, initGitRepo } from "../helpers.js";
@@ -278,7 +281,7 @@ test("startInteractiveChat mirrors terminal input and output into observability 
 
   const logDir = path.join(
     cwd,
-    ".deadmouse",
+    ".kitty",
     "observability",
     "terminal",
     new Date().toISOString().slice(0, 10).replaceAll("-", ""),
@@ -308,12 +311,17 @@ test("terminal output mirror records direct runtime stdout such as foreground ex
   const dispose = mirrorProcessOutputToTerminalLog(writer);
 
   try {
-    writeStdoutLine("[做梦] foreground started exec-1");
+    writeStdoutLine(formatRuntimeUiChannelHeader("dream"));
+    writeStdoutLine(formatRuntimeUiEventLine(createRuntimeUiEvent({
+      channel: "dream",
+      kind: "foreground_start",
+      executionId: "exec-1",
+    })));
   } finally {
     dispose();
   }
 
-  assert.match(writes.join(""), /\[做梦\] foreground started exec-1/);
+  assert.match(writes.join(""), /\[做梦\]\nforeground started exec-1/);
 });
 
 test("terminal output mirror suppresses transient thinking spinner frames", () => {
@@ -327,7 +335,12 @@ test("terminal output mirror suppresses transient thinking spinner frames", () =
 
   try {
     writeStdoutLine("\r[■   ] thinking");
-    writeStdoutLine("[tool] read_file package.json");
+    writeStdoutLine(formatRuntimeUiEventLine(createRuntimeUiEvent({
+      channel: "lead",
+      kind: "tool_call",
+      toolName: "read_file",
+      payload: JSON.stringify({ path: "package.json" }),
+    })));
   } finally {
     dispose();
   }

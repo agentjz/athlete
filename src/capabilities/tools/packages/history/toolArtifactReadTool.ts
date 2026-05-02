@@ -19,7 +19,7 @@ export const toolArtifactReadTool: RegisteredTool = {
         properties: {
           storage_path: {
             type: "string",
-            description: "Path relative to the project state root, such as .deadmouse/tool-results/... .",
+            description: "Path relative to the project state root, such as .kitty/tool-results/... .",
           },
           path: {
             type: "string",

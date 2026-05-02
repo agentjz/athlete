@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { buildProjectEnvTemplate } from "./projectEnvTemplate.js";
-import { getDefaultDeadmouseIgnoreContent } from "../utils/ignore.js";
+import { getDefaultKittyIgnoreContent } from "../utils/ignore.js";
 
 export interface InitProjectResult {
   created: string[];
@@ -13,15 +13,15 @@ export async function initializeProjectFiles(cwd: string): Promise<InitProjectRe
   const created: string[] = [];
   const skipped: string[] = [];
 
-  const deadmouseDir = path.join(cwd, ".deadmouse");
-  const envPath = path.join(deadmouseDir, ".env");
-  const envExamplePath = path.join(deadmouseDir, ".env.example");
-  const ignorePath = path.join(deadmouseDir, ".deadmouseignore");
+  const kittyDir = path.join(cwd, ".kitty");
+  const envPath = path.join(kittyDir, ".env");
+  const envExamplePath = path.join(kittyDir, ".env.example");
+  const ignorePath = path.join(kittyDir, ".kittyignore");
   const envTemplate = buildProjectEnvTemplate(false);
   const envExampleTemplate = buildProjectEnvTemplate(true);
 
-  // Ensure .deadmouse directory exists
-  await fs.mkdir(deadmouseDir, { recursive: true });
+  // Ensure .kitty directory exists
+  await fs.mkdir(kittyDir, { recursive: true });
 
   if (await fileExists(envPath)) {
     skipped.push(envPath);
@@ -40,7 +40,7 @@ export async function initializeProjectFiles(cwd: string): Promise<InitProjectRe
   if (await fileExists(ignorePath)) {
     skipped.push(ignorePath);
   } else {
-    await fs.writeFile(ignorePath, getDefaultDeadmouseIgnoreContent(), "utf8");
+    await fs.writeFile(ignorePath, getDefaultKittyIgnoreContent(), "utf8");
     created.push(ignorePath);
   }
 

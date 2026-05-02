@@ -6,23 +6,23 @@ import test from "node:test";
 import { resolveRuntimeConfig } from "../../src/config/store.js";
 import { createTempWorkspace } from "../helpers.js";
 
-test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env and ignores TT-config auth sidecars", async (t) => {
+test("resolveRuntimeConfig takes provider truth from the project .kitty/.env and ignores TT-config auth sidecars", async (t) => {
   const root = await createTempWorkspace("provider-runtime-config", t);
   const nestedCwd = path.join(root, "packages", "app");
   const ttConfigDir = path.join(root, "TT-config auth");
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
   await fs.mkdir(nestedCwd, { recursive: true });
   await fs.mkdir(ttConfigDir, { recursive: true });
 
   await fs.writeFile(
-    path.join(root, ".deadmouse", ".env"),
+    path.join(root, ".kitty", ".env"),
     [
-      "DEADMOUSE_PROVIDER=openai",
-      "DEADMOUSE_API_KEY=project-key",
-      "DEADMOUSE_BASE_URL=https://relay.example.test/v1",
-      "DEADMOUSE_MODEL=gpt-5.4",
-      "DEADMOUSE_PROFILE=intp",
-      "DEADMOUSE_REASONING_EFFORT=medium",
+      "KITTY_PROVIDER=openai",
+      "KITTY_API_KEY=project-key",
+      "KITTY_BASE_URL=https://relay.example.test/v1",
+      "KITTY_MODEL=gpt-5.4",
+      "KITTY_PROFILE=intp",
+      "KITTY_REASONING_EFFORT=medium",
     ].join("\n"),
     "utf8",
   );
@@ -47,24 +47,24 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
   );
 
   const previous = snapshotEnv([
-    "DEADMOUSE_PROVIDER",
-    "DEADMOUSE_API_KEY",
-    "DEADMOUSE_BASE_URL",
-    "DEADMOUSE_MODEL",
-    "DEADMOUSE_PROFILE",
-    "DEADMOUSE_THINKING",
-    "DEADMOUSE_REASONING_EFFORT",
+    "KITTY_PROVIDER",
+    "KITTY_API_KEY",
+    "KITTY_BASE_URL",
+    "KITTY_MODEL",
+    "KITTY_PROFILE",
+    "KITTY_THINKING",
+    "KITTY_REASONING_EFFORT",
   ]);
 
   try {
     restoreEnv({
-      DEADMOUSE_PROVIDER: undefined,
-      DEADMOUSE_API_KEY: undefined,
-      DEADMOUSE_BASE_URL: undefined,
-      DEADMOUSE_MODEL: undefined,
-      DEADMOUSE_PROFILE: undefined,
-      DEADMOUSE_THINKING: undefined,
-      DEADMOUSE_REASONING_EFFORT: undefined,
+      KITTY_PROVIDER: undefined,
+      KITTY_API_KEY: undefined,
+      KITTY_BASE_URL: undefined,
+      KITTY_MODEL: undefined,
+      KITTY_PROFILE: undefined,
+      KITTY_THINKING: undefined,
+      KITTY_REASONING_EFFORT: undefined,
     });
 
     const runtime = await resolveRuntimeConfig({ cwd: nestedCwd });
@@ -80,26 +80,26 @@ test("resolveRuntimeConfig takes provider truth from the project .deadmouse/.env
   }
 });
 
-test("resolveRuntimeConfig lets DEADMOUSE_PROFILE override the project env file", async (t) => {
+test("resolveRuntimeConfig lets KITTY_PROFILE override the project env file", async (t) => {
   const root = await createTempWorkspace("profile-runtime-config", t);
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
   await fs.writeFile(
-    path.join(root, ".deadmouse", ".env"),
+    path.join(root, ".kitty", ".env"),
     [
-      "DEADMOUSE_PROVIDER=deepseek",
-      "DEADMOUSE_API_KEY=project-key",
-      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
-      "DEADMOUSE_MODEL=deepseek-v4-flash",
-      "DEADMOUSE_PROFILE=intp",
+      "KITTY_PROVIDER=deepseek",
+      "KITTY_API_KEY=project-key",
+      "KITTY_BASE_URL=https://api.deepseek.com",
+      "KITTY_MODEL=deepseek-v4-flash",
+      "KITTY_PROFILE=intp",
     ].join("\n"),
     "utf8",
   );
 
-  const previous = snapshotEnv(["DEADMOUSE_PROFILE"]);
+  const previous = snapshotEnv(["KITTY_PROFILE"]);
 
   try {
     restoreEnv({
-      DEADMOUSE_PROFILE: "grok",
+      KITTY_PROFILE: "grok",
     });
 
     const runtime = await resolveRuntimeConfig({ cwd: root });
@@ -111,51 +111,51 @@ test("resolveRuntimeConfig lets DEADMOUSE_PROFILE override the project env file"
 
 test("resolveRuntimeConfig reads runtime budget values from the project env file", async (t) => {
   const root = await createTempWorkspace("runtime-budget-env-config", t);
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
   await fs.writeFile(
-    path.join(root, ".deadmouse", ".env"),
+    path.join(root, ".kitty", ".env"),
     [
-      "DEADMOUSE_PROVIDER=deepseek",
-      "DEADMOUSE_API_KEY=project-key",
-      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
-      "DEADMOUSE_MODEL=deepseek-v4-flash",
-      "DEADMOUSE_PROFILE=intp",
-      "DEADMOUSE_CONTEXT_WINDOW_MESSAGES=77",
-      "DEADMOUSE_MAX_CONTEXT_CHARS=123456",
-      "DEADMOUSE_CONTEXT_SUMMARY_CHARS=12345",
-      "DEADMOUSE_MAX_OUTPUT_TOKENS=23456",
-      "DEADMOUSE_YIELD_AFTER_TOOL_STEPS=9",
-      "DEADMOUSE_MAX_TOOL_ITERATIONS=7",
-      "DEADMOUSE_MAX_CONTINUATION_BATCHES=6",
-      "DEADMOUSE_MANAGED_TURN_MAX_SLICES=5",
-      "DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS=234567",
+      "KITTY_PROVIDER=deepseek",
+      "KITTY_API_KEY=project-key",
+      "KITTY_BASE_URL=https://api.deepseek.com",
+      "KITTY_MODEL=deepseek-v4-flash",
+      "KITTY_PROFILE=intp",
+      "KITTY_CONTEXT_WINDOW_MESSAGES=77",
+      "KITTY_MAX_CONTEXT_CHARS=123456",
+      "KITTY_CONTEXT_SUMMARY_CHARS=12345",
+      "KITTY_MAX_OUTPUT_TOKENS=23456",
+      "KITTY_YIELD_AFTER_TOOL_STEPS=9",
+      "KITTY_MAX_TOOL_ITERATIONS=7",
+      "KITTY_MAX_CONTINUATION_BATCHES=6",
+      "KITTY_MANAGED_TURN_MAX_SLICES=5",
+      "KITTY_MANAGED_TURN_MAX_ELAPSED_MS=234567",
     ].join("\n"),
     "utf8",
   );
 
   const previous = snapshotEnv([
-    "DEADMOUSE_CONTEXT_WINDOW_MESSAGES",
-    "DEADMOUSE_MAX_CONTEXT_CHARS",
-    "DEADMOUSE_CONTEXT_SUMMARY_CHARS",
-    "DEADMOUSE_MAX_OUTPUT_TOKENS",
-    "DEADMOUSE_YIELD_AFTER_TOOL_STEPS",
-    "DEADMOUSE_MAX_TOOL_ITERATIONS",
-    "DEADMOUSE_MAX_CONTINUATION_BATCHES",
-    "DEADMOUSE_MANAGED_TURN_MAX_SLICES",
-    "DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS",
+    "KITTY_CONTEXT_WINDOW_MESSAGES",
+    "KITTY_MAX_CONTEXT_CHARS",
+    "KITTY_CONTEXT_SUMMARY_CHARS",
+    "KITTY_MAX_OUTPUT_TOKENS",
+    "KITTY_YIELD_AFTER_TOOL_STEPS",
+    "KITTY_MAX_TOOL_ITERATIONS",
+    "KITTY_MAX_CONTINUATION_BATCHES",
+    "KITTY_MANAGED_TURN_MAX_SLICES",
+    "KITTY_MANAGED_TURN_MAX_ELAPSED_MS",
   ]);
 
   try {
     restoreEnv({
-      DEADMOUSE_CONTEXT_WINDOW_MESSAGES: undefined,
-      DEADMOUSE_MAX_CONTEXT_CHARS: undefined,
-      DEADMOUSE_CONTEXT_SUMMARY_CHARS: undefined,
-      DEADMOUSE_MAX_OUTPUT_TOKENS: undefined,
-      DEADMOUSE_YIELD_AFTER_TOOL_STEPS: undefined,
-      DEADMOUSE_MAX_TOOL_ITERATIONS: undefined,
-      DEADMOUSE_MAX_CONTINUATION_BATCHES: undefined,
-      DEADMOUSE_MANAGED_TURN_MAX_SLICES: undefined,
-      DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS: undefined,
+      KITTY_CONTEXT_WINDOW_MESSAGES: undefined,
+      KITTY_MAX_CONTEXT_CHARS: undefined,
+      KITTY_CONTEXT_SUMMARY_CHARS: undefined,
+      KITTY_MAX_OUTPUT_TOKENS: undefined,
+      KITTY_YIELD_AFTER_TOOL_STEPS: undefined,
+      KITTY_MAX_TOOL_ITERATIONS: undefined,
+      KITTY_MAX_CONTINUATION_BATCHES: undefined,
+      KITTY_MANAGED_TURN_MAX_SLICES: undefined,
+      KITTY_MANAGED_TURN_MAX_ELAPSED_MS: undefined,
     });
 
     const runtime = await resolveRuntimeConfig({ cwd: root });
@@ -175,23 +175,23 @@ test("resolveRuntimeConfig reads runtime budget values from the project env file
 
 test("resolveRuntimeConfig fails closed when no agent profile is explicitly configured", async (t) => {
   const root = await createTempWorkspace("missing-profile-runtime-config", t);
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
   await fs.writeFile(
-    path.join(root, ".deadmouse", ".env"),
+    path.join(root, ".kitty", ".env"),
     [
-      "DEADMOUSE_PROVIDER=deepseek",
-      "DEADMOUSE_API_KEY=project-key",
-      "DEADMOUSE_BASE_URL=https://api.deepseek.com",
-      "DEADMOUSE_MODEL=deepseek-v4-flash",
+      "KITTY_PROVIDER=deepseek",
+      "KITTY_API_KEY=project-key",
+      "KITTY_BASE_URL=https://api.deepseek.com",
+      "KITTY_MODEL=deepseek-v4-flash",
     ].join("\n"),
     "utf8",
   );
 
-  const previous = snapshotEnv(["DEADMOUSE_PROFILE"]);
+  const previous = snapshotEnv(["KITTY_PROFILE"]);
 
   try {
     restoreEnv({
-      DEADMOUSE_PROFILE: undefined,
+      KITTY_PROFILE: undefined,
     });
 
     await assert.rejects(

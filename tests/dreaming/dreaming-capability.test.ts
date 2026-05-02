@@ -64,7 +64,7 @@ test("dreaming_start creates Assignment-backed dreaming execution and foreground
 
   assert.equal(result.ok, true);
   assert.equal(payload.status, "launched");
-  assert.equal(payload.protocol.mirrorWorld, "deadmouse.mirror-world");
+  assert.equal(payload.protocol.mirrorWorld, "kitty.mirror-world");
   assert.equal(stored.profile, "dreaming");
   assert.equal(stored.launch, "worker");
   assert.equal(stored.status, "running");

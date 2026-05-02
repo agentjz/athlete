@@ -1,7 +1,7 @@
 import { okResult, parseArgs } from "../../core/shared.js";
 import {
   clampLimit,
-  createSessionStore,
+  listReadableSessions,
   summarizeSession,
 } from "./historyShared.js";
 import type { RegisteredTool } from "../../core/types.js";
@@ -27,12 +27,14 @@ export const sessionListTool: RegisteredTool = {
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
     const limit = clampLimit(args.limit, 20);
-    const sessions = await createSessionStore(context.config).list(limit);
+    const { sessions, skipped } = await listReadableSessions(context.config, limit);
     return okResult(
       JSON.stringify(
         {
           ok: true,
           sessions: sessions.map(summarizeSession),
+          skippedSessions: skipped,
+          skippedCount: skipped.length,
         },
         null,
         2,

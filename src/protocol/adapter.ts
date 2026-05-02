@@ -1,7 +1,7 @@
 import type { CapabilityKind } from "./capability.js";
 import type { CapabilityAdapterKind, CapabilityPackage, CapabilitySourceKind } from "./package.js";
 
-export const CAPABILITY_ADAPTER_PROTOCOL = "deadmouse.capability-adapter" as const;
+export const CAPABILITY_ADAPTER_PROTOCOL = "kitty.capability-adapter" as const;
 
 export interface CapabilityAdapter {
   protocol: typeof CAPABILITY_ADAPTER_PROTOCOL;

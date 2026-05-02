@@ -13,7 +13,7 @@ import { createTempWorkspace, initGitRepo } from "../helpers.js";
 
 test("Dreaming write boundary allows mirror-world writes and blocks real-world writes", () => {
   const real = path.resolve("C:/repo/real");
-  const mirror = path.resolve("C:/repo/real/.deadmouse/worktrees/dreaming-x");
+  const mirror = path.resolve("C:/repo/real/.kitty/worktrees/dreaming-x");
   const boundary = createDreamingWriteBoundary({
     realWorldPath: real,
     mirrorWorldPath: mirror,
@@ -33,7 +33,7 @@ test("Dreaming write boundary allows mirror-world writes and blocks real-world w
 
 test("Dreaming write boundary blocks patch targets outside Mirror World", () => {
   const real = path.resolve("C:/repo/real");
-  const mirror = path.resolve("C:/repo/real/.deadmouse/worktrees/dreaming-x");
+  const mirror = path.resolve("C:/repo/real/.kitty/worktrees/dreaming-x");
   const boundary = createDreamingWriteBoundary({
     realWorldPath: real,
     mirrorWorldPath: mirror,
@@ -65,7 +65,7 @@ test("Dreaming write boundary blocks patch targets outside Mirror World", () => 
 test("Dreaming blocks nested orchestration tools inside its own execution channel", () => {
   const boundary = createDreamingWriteBoundary({
     realWorldPath: path.resolve("C:/repo/real"),
-    mirrorWorldPath: path.resolve("C:/repo/real/.deadmouse/worktrees/dreaming-x"),
+    mirrorWorldPath: path.resolve("C:/repo/real/.kitty/worktrees/dreaming-x"),
   });
 
   assert.match(
@@ -81,8 +81,8 @@ test("Dreaming blocks nested orchestration tools inside its own execution channe
 test("Dreaming real-world unchanged guard ignores runtime ledger but rejects material repo changes", async (t) => {
   const root = await createTempWorkspace("dreaming-real-world-guard", t);
   await initGitRepo(root);
-  await fs.mkdir(path.join(root, ".deadmouse", "dreaming"), { recursive: true });
-  await fs.writeFile(path.join(root, ".deadmouse", "dreaming", "state.json"), "{}", "utf8");
+  await fs.mkdir(path.join(root, ".kitty", "dreaming"), { recursive: true });
+  await fs.writeFile(path.join(root, ".kitty", "dreaming", "state.json"), "{}", "utf8");
 
   await assert.doesNotReject(() => assertRealWorldGitUnchanged(root));
 

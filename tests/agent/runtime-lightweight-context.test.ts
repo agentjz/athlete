@@ -172,7 +172,7 @@ test("runtime context externalizes large tool results for continuation and prese
   assert.equal(result.yielded, false);
   assert.ok(requests.length >= 2);
   assert.equal(requests.length, 2);
-  assert.doesNotMatch(JSON.stringify(requests.at(-1)?.messages ?? []), /compress the just-finished Deadmouse turn/i);
+  assert.doesNotMatch(JSON.stringify(requests.at(-1)?.messages ?? []), /compress the just-finished Kitty turn/i);
 
   const continuationRequest = requests.slice(1).find((request) =>
     request.messages.some((message) => message.role === "tool"),

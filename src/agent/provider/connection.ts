@@ -58,7 +58,7 @@ export async function probeProviderConnection(
     if (response.status === 404) {
       lastFailure = {
         kind: "user",
-        message: `User-fixable error: ${endpoint} returned 404. Check whether \`DEADMOUSE_BASE_URL\` is the correct OpenAI-compatible API base URL.`,
+        message: `User-fixable error: ${endpoint} returned 404. Check whether \`KITTY_BASE_URL\` is the correct OpenAI-compatible API base URL.`,
         probeTimeoutMs,
       };
       continue;
@@ -67,7 +67,7 @@ export async function probeProviderConnection(
     if (response.status === 401 || response.status === 403) {
       return {
         kind: "user",
-        message: "User-fixable error: provider authentication failed. Check `DEADMOUSE_API_KEY`, or confirm this key is authorized for the base URL.",
+        message: "User-fixable error: provider authentication failed. Check `KITTY_API_KEY`, or confirm this key is authorized for the base URL.",
         probeTimeoutMs,
       };
     }
@@ -130,7 +130,7 @@ export function buildModelsEndpoint(baseUrl: string): string {
     return new URL("models", ensureTrailingSlash(baseUrl)).toString();
   } catch {
     throw new Error(
-      `User-fixable error: \`DEADMOUSE_BASE_URL\` is not a valid URL: ${baseUrl}. Fix it and rerun \`deadmouse doctor\`.`,
+      `User-fixable error: \`KITTY_BASE_URL\` is not a valid URL: ${baseUrl}. Fix it and rerun \`kitty doctor\`.`,
     );
   }
 }
@@ -152,7 +152,7 @@ function buildNetworkErrorMessage(baseUrl: string, error: unknown): string {
   const code = String((error as { code?: unknown }).code ?? "");
   const detail = error instanceof Error ? error.message : String(error);
   if (["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "ECONNRESET"].includes(code)) {
-    return `Environment error: unable to connect to ${baseUrl}. Check network, proxy settings, or whether \`DEADMOUSE_BASE_URL\` is reachable.`;
+    return `Environment error: unable to connect to ${baseUrl}. Check network, proxy settings, or whether \`KITTY_BASE_URL\` is reachable.`;
   }
 
   if (/fetch failed|network|timeout|socket hang up|econnrefused|enotfound|etimedout/i.test(detail)) {

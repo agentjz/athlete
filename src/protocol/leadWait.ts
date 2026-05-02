@@ -1,4 +1,4 @@
-export const LEAD_WAIT_PROTOCOL = "deadmouse.lead-wait-policy" as const;
+export const LEAD_WAIT_PROTOCOL = "kitty.lead-wait-policy" as const;
 
 export const LEAD_WAIT_TERMINAL_STATUSES = ["completed", "failed", "aborted", "paused"] as const;
 

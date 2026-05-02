@@ -89,7 +89,7 @@ test("capability packages carry explicit governance without granting machine str
 
 test("manifest parsing preserves install governance dependencies and diagnostics", () => {
   const manifest = parseCapabilityPackageManifest({
-    protocol: "deadmouse.capability-manifest",
+    protocol: "kitty.capability-manifest",
     packageId: "tool.alpha",
     version: "2.1.0",
     kind: "tool",

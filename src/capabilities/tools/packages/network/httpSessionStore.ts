@@ -151,7 +151,7 @@ function normalizeStringMap(value: unknown): Record<string, string> {
 
 function getSessionStoreFilePath(stateRootDir: string): string {
   const statePaths = getProjectStatePaths(stateRootDir);
-  return path.join(statePaths.deadmouseDir, "network", PERSISTENCE_FILENAME);
+  return path.join(statePaths.kittyDir, "network", PERSISTENCE_FILENAME);
 }
 
 async function flushPersistedSessions(stateRootDir: string, byId: Map<string, HttpSessionRecord>): Promise<void> {

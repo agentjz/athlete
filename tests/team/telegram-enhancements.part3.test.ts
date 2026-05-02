@@ -124,7 +124,7 @@ function createTelegramConfig(root: string, overrides: Partial<TelegramRuntimeCo
     },
     messageChunkChars: 256,
     typingIntervalMs: 50,
-    stateDir: path.join(root, ".deadmouse", "telegram"),
+    stateDir: path.join(root, ".kitty", "telegram"),
     ...overrides,
   };
 }
@@ -244,11 +244,11 @@ async function createToolContext(root: string, options: {
 test("README exposes the Telegram serve command without carrying detailed setup docs", async () => {
   const readme = await fs.readFile(path.join(process.cwd(), "README.md"), "utf8");
 
-  assert.match(readme, /deadmouse telegram serve/i);
+  assert.match(readme, /kitty telegram serve/i);
   assert.match(readme, /Telegram/i);
-  assert.doesNotMatch(readme, /DEADMOUSE_TELEGRAM_TOKEN/);
-  assert.doesNotMatch(readme, /DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS/);
+  assert.doesNotMatch(readme, /KITTY_TELEGRAM_TOKEN/);
+  assert.doesNotMatch(readme, /KITTY_TELEGRAM_ALLOWED_USER_IDS/);
   assert.doesNotMatch(readme, /\bweixin\b/i);
   assert.doesNotMatch(readme, /WeChat/i);
-  assert.doesNotMatch(readme, /DEADMOUSE_WEIXIN/);
+  assert.doesNotMatch(readme, /KITTY_WEIXIN/);
 });

@@ -1,4 +1,6 @@
-# Deadmouse Agent Operating Constitution
+# Kitty Agent Operating Constitution
+
+All repository files must be read and written as UTF-8 unless a file's format explicitly requires a different encoding.
 
 All responses, edits, suggestions, judgments, plans, and actions must be grounded in objective code facts. Do not fabricate nonexistent implementation, expected behavior, future plans, or anything not present in reality; if an agent responds with invented or false claims, all resulting work is meaningless.
 
@@ -27,17 +29,17 @@ When communicating with the project owner, do not:
 - Do not describe tests in detail; report only the command and pass/fail unless details are necessary.
 - Do not use implementation detail as a substitute for answering the runtime/product question.
 
-This file is written for models and agents working inside this repository. It is not a marketing document, not a human-friendly summary, and not a compatibility promise. It defines the hard operating constraints for developing Deadmouse.
+This file is written for models and agents working inside this repository. It is not a marketing document, not a human-friendly summary, and not a compatibility promise. It defines the hard operating constraints for developing kitty.
 
 ## 0. Project Nature: Radical Capability Amplification
 
-Deadmouse is a radical, fast-evolving, experimental agent harness project. Its purpose is not to be a polite assistant shell. Its purpose is to force the strongest possible agent behavior out of large models through harness design.
+Kitty is a radical, fast-evolving, experimental agent harness project. Its purpose is not to be a polite assistant shell. Its purpose is to force the strongest possible agent behavior out of large models through harness design.
 
 This project is model-vendor neutral. It is built for a multi-model future and must not encode loyalty to one provider, one prompt style, one model family, or one vendor's product assumptions. The harness should amplify whatever capable model is attached to it.
 
 The purpose of this repository is to push model capability to the limit through harness design, runtime design, protocol design, execution evidence, and explicit machine/model boundaries. The project is not optimized for conservative product management, passive chat UX, backward compatibility, cautious enterprise safety UX, permission theater, approval theater, or legacy stability.
 
-Deadmouse assumes agent mode as the real operating surface. At the repository product-design layer, ignore traditional safety UX because this project is not a consumer chat product. Do not add local safety theater, approval theater, warning theater, fake confirmations, defensive UX, or policy-shaped friction that weakens the agent loop.
+Kitty assumes agent mode as the real operating surface. At the repository product-design layer, ignore traditional safety UX because this project is not a consumer chat product. Do not add local safety theater, approval theater, warning theater, fake confirmations, defensive UX, or policy-shaped friction that weakens the agent loop.
 
 The central experiment is:
 
@@ -55,7 +57,7 @@ This does not authorize violating external platform, legal, or system-level cons
 
 ## 1. Radical Evolution And No Compatibility
 
-Backward compatibility is not a default value in Deadmouse. In normal development, it is an anti-goal.
+Backward compatibility is not a default value in kitty. In normal development, it is an anti-goal.
 
 When a new design is stronger, the old design must be removed. Do not keep old routes alive. Do not preserve old behavior for comfort. Do not keep legacy prompts, old flags, old modes, old tests, old docs, old fallback branches, old type names, old wrappers, old compatibility adapters, or stale concepts unless the project owner explicitly asks for a temporary compatibility layer in the current task.
 
@@ -83,7 +85,7 @@ The expected pattern is:
 
 ## 2. Model And Machine Boundary
 
-Deadmouse treats the model as the brain and the machine layer as the runtime body.
+Kitty treats the model as the brain and the machine layer as the runtime body.
 
 The model, especially Lead, owns live judgment and strategy:
 
@@ -139,7 +141,7 @@ Machine logic may block impossible or invalid execution states, but it must not 
 
 ## 3. Lead-Centered Execution Protocol
 
-Deadmouse is Lead-centered.
+Kitty is Lead-centered.
 
 Team, subagent, workflow, tool, skill, MCP, background execution, and future extension systems must enter through formal capability surfaces and return through formal handoff surfaces.
 
@@ -177,7 +179,7 @@ Do not hide major execution behavior inside prompt prose. Do not grow extensions
 
 ## 4. TDD-Driven Change Discipline
 
-Deadmouse is a TDD-driven project.
+Kitty is a TDD-driven project.
 
 When behavior changes, tests must lead or move together with the implementation. Do not treat tests as cleanup after coding. Do not rely on manual confidence when a contract can be captured by an automated test.
 
@@ -193,7 +195,7 @@ After every repository change, run the full test suite before closeout. Once the
 
 ## 5. Spec, Code, And Tests Must Converge
 
-Deadmouse evolves quickly, and new truth can emerge from direct conversation with the project owner. That is allowed.
+Kitty evolves quickly, and new truth can emerge from direct conversation with the project owner. That is allowed.
 
 But every change must converge before closeout:
 
@@ -286,7 +288,7 @@ After closeout, do not spend extra tokens collecting or presenting key line numb
 
 ## 11. Final Rule
 
-Always move Deadmouse toward the strongest current architecture.
+Always move Kitty toward the strongest current architecture.
 
 If something is old, weak, wrong, conservative, redundant, compatibility-only, or conceptually dead, remove it.
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -13,10 +13,10 @@ import { SessionStore } from "../.test-build/src/agent/sessionStore.js";
 import { resolveRuntimeConfig } from "../.test-build/src/config/store.js";
 
 async function main() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-runtime-checkpoint-"));
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-runtime-checkpoint-"));
   const resolved = await resolveRuntimeConfig({ cwd: process.cwd(), mode: "agent" });
   if (!resolved.apiKey) {
-    throw new Error("Missing DEADMOUSE_API_KEY in .deadmouse/.env. Real API validation cannot run.");
+    throw new Error("Missing KITTY_API_KEY in .kitty/.env. Real API validation cannot run.");
   }
 
   const config = {

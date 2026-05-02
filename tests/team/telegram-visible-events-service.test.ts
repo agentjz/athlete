@@ -91,7 +91,7 @@ function createTelegramConfig(root: string): TelegramRuntimeConfig {
     },
     messageChunkChars: 256,
     typingIntervalMs: 500,
-    stateDir: path.join(root, ".deadmouse", "telegram"),
+    stateDir: path.join(root, ".kitty", "telegram"),
   };
 }
 
@@ -244,7 +244,7 @@ test("telegram service emits non-streamed assistant stage text before todo previ
         JSON.stringify({
           entries: [
             { type: "file", path: "Desktop/.env" },
-            { type: "directory", path: "Desktop/deadmouse" },
+            { type: "directory", path: "Desktop/Kitty" },
           ],
         }),
       );

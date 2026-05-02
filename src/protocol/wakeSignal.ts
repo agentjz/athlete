@@ -2,7 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 
-export const WAKE_SIGNAL_PROTOCOL = "deadmouse.wake-signal" as const;
+export const WAKE_SIGNAL_PROTOCOL = "kitty.wake-signal" as const;
 
 export type WakeSignalReason = "completed" | "failed" | "budget_exhausted" | "aborted" | "paused";
 
@@ -18,7 +18,7 @@ export interface WakeSignalSnapshot {
   signal?: WakeSignal;
 }
 
-const WAKE_SIGNAL_FILE = path.join(".deadmouse", "execution-wake.signal.json");
+const WAKE_SIGNAL_FILE = path.join(".kitty", "execution-wake.signal.json");
 
 export async function publishExecutionWakeSignal(rootDir: string, signal: Omit<WakeSignal, "protocol" | "createdAt"> & {
   createdAt?: string;

@@ -171,7 +171,7 @@ export const editDocxTool: RegisteredTool = {
     const buffer = await buildDocxBuffer({
       title: renderedTitle?.content ?? existingDocument?.title,
       description: renderedDescription?.content,
-      creator: "Deadmouse",
+      creator: "Kitty",
       format: "markdown",
       content: finalMarkdown,
     });

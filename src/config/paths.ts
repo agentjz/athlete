@@ -4,7 +4,7 @@ import path from "node:path";
 import type { AppPaths } from "../types.js";
 
 export function getAppPaths(): AppPaths {
-  const resolved = envPaths("deadmouse", { suffix: "" });
+  const resolved = envPaths("kitty", { suffix: "" });
 
   return {
     configDir: resolved.config,

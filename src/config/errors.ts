@@ -23,7 +23,7 @@ export function createInvalidConfigJsonError(configFile: string, cause?: unknown
     [
       `Config error: unable to parse ${configFile}.`,
       "This file is not valid JSON.",
-      "Fix it, or delete/rebuild this file and run `deadmouse config set ...` again.",
+      "Fix it, or delete/rebuild this file and run `kitty config set ...` again.",
     ].join(" "),
     { cause },
   );
@@ -35,7 +35,7 @@ export function createInvalidConfigShapeError(configFile: string): ConfigFileErr
     configFile,
     [
       `Config error: ${configFile} must be a JSON object.`,
-      "Fix it, or delete/rebuild this file and run `deadmouse config set ...` again.",
+      "Fix it, or delete/rebuild this file and run `kitty config set ...` again.",
     ].join(" "),
   );
 }
@@ -46,7 +46,7 @@ export function createUnsupportedConfigSchemaError(configFile: string, receivedV
     configFile,
     [
       `Config error: ${configFile} has schemaVersion=${String(receivedVersion)}, but the current CLI only supports schemaVersion=${expectedVersion}.`,
-      "Delete/rebuild this file, then run `deadmouse config set ...` again.",
+      "Delete/rebuild this file, then run `kitty config set ...` again.",
     ].join(" "),
   );
 }

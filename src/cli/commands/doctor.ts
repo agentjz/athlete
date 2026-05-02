@@ -26,7 +26,7 @@ export function registerDoctorCommand(
     .action(async () => {
       const runtime = await options.resolveRuntime(options.getCliOverrides());
 
-      ui.heading("Deadmouse doctor");
+      ui.heading("kitty doctor");
       ui.info(`config: ${runtime.paths.configFile}`);
       ui.info(`provider: ${runtime.config.provider}`);
       ui.info(`model: ${runtime.config.model}`);
@@ -34,7 +34,7 @@ export function registerDoctorCommand(
 
       if (!runtime.config.apiKey.trim()) {
         throw new Error(
-          "User-fixable error: API key not found. Set `DEADMOUSE_API_KEY` in the current project `.deadmouse/.env`, then rerun `deadmouse doctor`.",
+          "User-fixable error: API key not found. Set `KITTY_API_KEY` in the current project `.kitty/.env`, then rerun `kitty doctor`.",
         );
       }
 

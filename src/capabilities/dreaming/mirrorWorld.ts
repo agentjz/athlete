@@ -3,7 +3,7 @@ import path from "node:path";
 import { WorktreeStore } from "../../worktrees/store.js";
 import type { WorktreeRecord } from "../../worktrees/types.js";
 
-export const MIRROR_WORLD_PROTOCOL = "deadmouse.mirror-world" as const;
+export const MIRROR_WORLD_PROTOCOL = "kitty.mirror-world" as const;
 
 export interface MirrorWorld {
   protocol: typeof MIRROR_WORLD_PROTOCOL;

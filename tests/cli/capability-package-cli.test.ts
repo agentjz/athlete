@@ -13,7 +13,7 @@ test("capability package cli installs disables enables diagnoses and tests local
   const config = createTestRuntimeConfig(root);
   const sourceManifest = path.join(root, "analysis.capability.json");
   await fs.writeFile(sourceManifest, JSON.stringify({
-    protocol: "deadmouse.capability-manifest",
+    protocol: "kitty.capability-manifest",
     packageId: "workflow.analysis",
     version: "1.0.0",
     kind: "workflow",

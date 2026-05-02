@@ -15,7 +15,7 @@ const PROFILES = new Map<string, AgentProfile>([
 export function resolveAgentProfile(id: string): AgentProfile {
   const normalized = id.trim();
   if (!normalized) {
-    throw new Error("Missing agent profile. Set DEADMOUSE_PROFILE explicitly.");
+    throw new Error("Missing agent profile. Set KITTY_PROFILE explicitly.");
   }
 
   const profile = PROFILES.get(normalized);

@@ -81,7 +81,7 @@ function createTelegramConfig(root: string, overrides: Partial<TelegramRuntimeCo
     },
     messageChunkChars: 256,
     typingIntervalMs: 500,
-    stateDir: path.join(root, ".deadmouse", "telegram"),
+    stateDir: path.join(root, ".kitty", "telegram"),
     ...overrides,
   };
 }
@@ -114,7 +114,7 @@ function createPrivateUpdate(
   };
 }
 
-test("telegram service runs private inbound messages through the Deadmouse turn/session runtime and replies through delivery", async (t) => {
+test("telegram service runs private inbound messages through the Kitty turn/session runtime and replies through delivery", async (t) => {
   const root = await createTempWorkspace("telegram-service-main", t);
   const runtime = createTestRuntimeConfig(root);
   const telegram = createTelegramConfig(root);
@@ -366,7 +366,7 @@ test("telegram service logs why ignored updates are dropped instead of failing s
       (entry) =>
         entry.event === "ignored inbound update" &&
         /reason=unauthorized_user/i.test(entry.detail ?? "") &&
-        /DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS/i.test(entry.detail ?? ""),
+        /KITTY_TELEGRAM_ALLOWED_USER_IDS/i.test(entry.detail ?? ""),
     ),
     true,
   );

@@ -58,7 +58,7 @@ export const mineruDocReadTool: RegisteredTool = {
     if (request.extension === ".docx" && !context.config.mineru.token) {
       return executeNativeDocxFallback(rawArgs, context, {
         trigger: "MINERU_TOKEN_MISSING",
-        reason: "Missing MINERU_API_TOKEN in .deadmouse/.env.",
+        reason: "Missing MINERU_API_TOKEN in .kitty/.env.",
       });
     }
 

@@ -34,7 +34,7 @@ function createPrivateMessageUpdate(
     message: {
       message_id: 7,
       date: 0,
-      text: overrides.text ?? "hello deadmouse",
+      text: overrides.text ?? "hello Kitty",
       from: {
         id: overrides.userId ?? 1001,
         is_bot: false,
@@ -107,7 +107,7 @@ test("telegram update filter accepts only authorized private chats", () => {
   assert.equal(accepted.userId, 1001);
   assert.equal(accepted.chatId, 2001);
   assert.equal(accepted.peerKey, "telegram:private:2001");
-  assert.equal(accepted.text, "hello deadmouse");
+  assert.equal(accepted.text, "hello Kitty");
 
   const unauthorized = classifyTelegramUpdate(createPrivateMessageUpdate(), {
     allowedUserIds: [2002],
@@ -180,7 +180,7 @@ test("telegram session map store persists and restores telegram-to-session bindi
 
 test("telegram message chunking splits oversized replies without losing content", () => {
   const text = [
-    "Deadmouse can now stream results back to Telegram.",
+    "Kitty can now stream results back to Telegram.",
     "",
     "This paragraph is intentionally long so that the chunker has to split on whitespace instead of chopping in the middle of a word.",
     "",
@@ -272,34 +272,34 @@ test("telegram console logger prints operator-friendly status lines and trims re
   assert.doesNotMatch(lines[1] ?? "", /SHOULD_NOT_APPEAR/);
 });
 
-test("resolveRuntimeConfig reads DEADMOUSE_TELEGRAM_PROXY_URL from the project .env file", async (t) => {
+test("resolveRuntimeConfig reads KITTY_TELEGRAM_PROXY_URL from the project .env file", async (t) => {
   const root = await createTempWorkspace("telegram-proxy-env", t);
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
   await fs.writeFile(
-    path.join(root, ".deadmouse", ".env"),
+    path.join(root, ".kitty", ".env"),
     [
-      "DEADMOUSE_API_KEY=test-key",
-      "DEADMOUSE_PROFILE=intp",
-      "DEADMOUSE_TELEGRAM_TOKEN=test-telegram-token",
-      "DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS=1001",
-      "DEADMOUSE_TELEGRAM_PROXY_URL=http://127.0.0.1:7897",
+      "KITTY_API_KEY=test-key",
+      "KITTY_PROFILE=intp",
+      "KITTY_TELEGRAM_TOKEN=test-telegram-token",
+      "KITTY_TELEGRAM_ALLOWED_USER_IDS=1001",
+      "KITTY_TELEGRAM_PROXY_URL=http://127.0.0.1:7897",
     ].join("\n"),
     "utf8",
   );
   const previous = {
-    DEADMOUSE_API_KEY: process.env.DEADMOUSE_API_KEY,
-    DEADMOUSE_PROFILE: process.env.DEADMOUSE_PROFILE,
-    DEADMOUSE_TELEGRAM_TOKEN: process.env.DEADMOUSE_TELEGRAM_TOKEN,
-    DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS: process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS,
-    DEADMOUSE_TELEGRAM_PROXY_URL: process.env.DEADMOUSE_TELEGRAM_PROXY_URL,
+    KITTY_API_KEY: process.env.KITTY_API_KEY,
+    KITTY_PROFILE: process.env.KITTY_PROFILE,
+    KITTY_TELEGRAM_TOKEN: process.env.KITTY_TELEGRAM_TOKEN,
+    KITTY_TELEGRAM_ALLOWED_USER_IDS: process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS,
+    KITTY_TELEGRAM_PROXY_URL: process.env.KITTY_TELEGRAM_PROXY_URL,
   };
 
   try {
-    delete process.env.DEADMOUSE_API_KEY;
-    delete process.env.DEADMOUSE_PROFILE;
-    delete process.env.DEADMOUSE_TELEGRAM_TOKEN;
-    delete process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS;
-    delete process.env.DEADMOUSE_TELEGRAM_PROXY_URL;
+    delete process.env.KITTY_API_KEY;
+    delete process.env.KITTY_PROFILE;
+    delete process.env.KITTY_TELEGRAM_TOKEN;
+    delete process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS;
+    delete process.env.KITTY_TELEGRAM_PROXY_URL;
 
     const runtime = await resolveRuntimeConfig({
       cwd: root,

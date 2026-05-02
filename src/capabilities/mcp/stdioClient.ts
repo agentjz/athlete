@@ -19,7 +19,7 @@ const STDERR_HISTORY_LIMIT = 40;
 export class StdioMcpClient implements McpClient {
   private readonly client = new Client(
     {
-      name: "deadmouse",
+      name: "Kitty",
       version: "0.1.2",
     },
     {

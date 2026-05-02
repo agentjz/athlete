@@ -266,8 +266,8 @@ function touchBinding(binding: TelegramSessionBinding, sessionId: string): Teleg
 }
 
 function resolveHostStateRoot(stateDir: string, fallbackCwd: string): string {
-  const deadmouseDir = path.dirname(stateDir);
-  return path.basename(deadmouseDir).toLowerCase() === ".deadmouse"
-    ? path.dirname(deadmouseDir)
+  const kittyDir = path.dirname(stateDir);
+  return path.basename(kittyDir).toLowerCase() === ".kitty"
+    ? path.dirname(kittyDir)
     : fallbackCwd;
 }

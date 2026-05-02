@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -306,7 +306,7 @@ test("runtime checkpoint archives the old checkpoint until current-objective fac
           {
             kind: "externalized_tool_result",
             toolName: "emit_large_checkpoint",
-            storagePath: ".deadmouse/tool-results/old.json",
+            storagePath: ".kitty/tool-results/old.json",
             label: "old artifact",
           },
         ],

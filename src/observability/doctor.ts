@@ -4,7 +4,7 @@ import type { ObservabilityReport } from "./report.js";
 
 export function formatObservabilityDoctorReport(report: ObservabilityReport): string[] {
   const lines = [
-    "Deadmouse doctor observability",
+    "kitty doctor observability",
     `observability path: ${report.observabilityDir}`,
     `recent event file: ${report.latestEventFile ?? "none yet"}`,
     `recent crashes: ${report.crashCount}`,

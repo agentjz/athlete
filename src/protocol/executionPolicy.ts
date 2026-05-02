@@ -2,7 +2,7 @@ import type { LeadWaitPolicy } from "./leadWait.js";
 import { normalizeLeadWaitPolicy } from "./leadWait.js";
 import type { CapabilityRunnerDescriptor, CapabilityRunnerType } from "./runner.js";
 
-export const EXECUTION_POLICY_PROTOCOL = "deadmouse.execution-policy" as const;
+export const EXECUTION_POLICY_PROTOCOL = "kitty.execution-policy" as const;
 
 export interface ExecutionPolicySnapshot {
   protocol: typeof EXECUTION_POLICY_PROTOCOL;

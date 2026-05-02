@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { SessionStore } from "../../../../agent/session/store.js";
+import type { SkippedSessionSnapshot } from "../../../../agent/session/store.js";
 import { getProjectStatePaths } from "../../../../project/statePaths.js";
 import type { RuntimeConfig, SessionRecord, StoredMessage } from "../../../../types.js";
 import type { ToolContext } from "../../core/types.js";
@@ -23,8 +24,25 @@ export interface MessageSnapshot {
   externalizedToolResult?: StoredMessage["externalizedToolResult"];
 }
 
+export interface HistorySessionIndex {
+  sessions: SessionRecord[];
+  skipped: SkippedSessionSnapshot[];
+}
+
 export function createSessionStore(config: Pick<RuntimeConfig, "paths">): SessionStore {
   return new SessionStore(config.paths.sessionsDir);
+}
+
+export async function listReadableSessions(
+  config: Pick<RuntimeConfig, "paths">,
+  limit: number,
+): Promise<HistorySessionIndex> {
+  const store = createSessionStore(config);
+  const { sessions, skipped } = await store.listReadable(limit);
+  return {
+    sessions,
+    skipped,
+  };
 }
 
 export function clampLimit(value: unknown, fallback = DEFAULT_HISTORY_LIMIT): number {

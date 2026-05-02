@@ -199,7 +199,7 @@ test("telegram turn display emits non-streamed assistant stage text before todo 
     JSON.stringify({
       entries: [
         { type: "file", path: "Desktop/.env" },
-        { type: "directory", path: "Desktop/deadmouse" },
+        { type: "directory", path: "Desktop/Kitty" },
       ],
     }),
   );

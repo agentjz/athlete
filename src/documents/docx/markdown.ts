@@ -17,7 +17,7 @@ export async function buildDocxBuffer(options: DocxWriteOptions): Promise<Buffer
   const blocks = parseDocxSource(options.content, options.format);
   const children = blocks.map((block) => blockToDocxNode(block));
   const document = new Document({
-    creator: options.creator ?? "Deadmouse",
+    creator: options.creator ?? "Kitty",
     title: options.title,
     description: options.description,
     sections: [

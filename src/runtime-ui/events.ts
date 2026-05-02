@@ -1,4 +1,4 @@
-export const RUNTIME_UI_EVENT_PROTOCOL = "deadmouse.runtime-ui-event" as const;
+export const RUNTIME_UI_EVENT_PROTOCOL = "kitty.runtime-ui-event" as const;
 
 export type RuntimeUiChannel =
   | "lead"

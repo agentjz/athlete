@@ -1,4 +1,4 @@
-﻿# 🐭Deadmouse-agent
+# 🐱kitty-agent
 
 <p align="center">
   <strong>A task execution harness where the Lead keeps the wheel and the machine layer keeps the ledger and brakes</strong>
@@ -16,9 +16,9 @@
   <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-Deadmouse does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, and evidence records. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
+Kitty does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, and evidence records. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
 
-The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, evidence cannot be faked as passing, and ledgers cannot become strategy. In short, Deadmouse is neither autopilot nor an approval system. It is an agent harness that keeps large-model execution durable, recoverable, and traceable.
+The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, evidence cannot be faked as passing, and ledgers cannot become strategy. In short, Kitty is neither autopilot nor an approval system. It is an agent harness that keeps large-model execution durable, recoverable, and traceable.
 
 ## Developer commands
 
@@ -46,20 +46,20 @@ The steering wheel always stays with the Lead, but pending work cannot pretend t
 
 | Command | Meaning |
 | --- | --- |
-| `npm install -g @jun133/deadmouse` | Install the CLI globally |
-| `deadmouse init` | Initialize `.deadmouse/` for the current project |
-| `deadmouse` | Enter interactive mode |
-| `deadmouse "Help me inspect this project"` | Run a one-shot task |
-| `deadmouse run "Help me inspect this project"` | Explicitly run a one-shot task |
-| `deadmouse resume [sessionId]` | Resume the latest or a specific session |
-| `deadmouse sessions -n 20` | List recent sessions |
-| `deadmouse diff [path]` | Show the current project's Git diff |
-| `deadmouse changes [changeId]` | Show recorded changes |
-| `deadmouse undo [changeId]` | Roll back the latest or a specific change |
-| `deadmouse config show` | Show the current configuration |
-| `deadmouse config path` | Show the configuration file path |
-| `deadmouse doctor` | Check local configuration and API connectivity |
-| `deadmouse telegram serve` | Start the Telegram direct-message service |
+| `npm install -g @jun133/kitty` | Install the CLI globally |
+| `kitty init` | Initialize `.kitty/` for the current project |
+| `kitty` | Enter interactive mode |
+| `kitty "Help me inspect this project"` | Run a one-shot task |
+| `kitty run "Help me inspect this project"` | Explicitly run a one-shot task |
+| `kitty resume [sessionId]` | Resume the latest or a specific session |
+| `kitty sessions -n 20` | List recent sessions |
+| `kitty diff [path]` | Show the current project's Git diff |
+| `kitty changes [changeId]` | Show recorded changes |
+| `kitty undo [changeId]` | Roll back the latest or a specific change |
+| `kitty config show` | Show the current configuration |
+| `kitty config path` | Show the configuration file path |
+| `kitty doctor` | Check local configuration and API connectivity |
+| `kitty telegram serve` | Start the Telegram direct-message service |
 
 ## Release commands
 

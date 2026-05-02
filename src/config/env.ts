@@ -45,7 +45,7 @@ function findProjectDotEnvFiles(cwd: string): string[] {
   let currentDir = path.resolve(cwd);
 
   while (true) {
-    candidates.push(path.join(currentDir, ".deadmouse", ".env"));
+    candidates.push(path.join(currentDir, ".kitty", ".env"));
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
       break;

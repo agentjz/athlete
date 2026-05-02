@@ -83,7 +83,7 @@ export async function handleLocalCommand(
         "q            Exit the session",
         "/quit /exit  Exit the session",
         "",
-        "Any other input is sent directly to Deadmouse.",
+        "Any other input is sent directly to kitty.",
       ].join("\n"),
     );
     return "handled";

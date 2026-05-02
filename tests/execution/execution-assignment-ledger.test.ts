@@ -24,12 +24,12 @@ test("subagent execution creation snapshots assignment, capability, and executio
   });
   const stored = await new ExecutionStore(root).load(execution.id);
 
-  assert.equal(stored.assignmentSnapshot?.protocol, "deadmouse.assignment");
+  assert.equal(stored.assignmentSnapshot?.protocol, "kitty.assignment");
   assert.equal(stored.assignmentSnapshot?.capabilityId, "subagent.explore");
   assert.equal(stored.capabilityId, "subagent.explore");
   assert.equal(stored.capabilityKind, "subagent");
-  assert.equal(stored.capabilityPackageSnapshot?.protocol, "deadmouse.capability-package");
-  assert.equal(stored.executionPolicy?.protocol, "deadmouse.execution-policy");
+  assert.equal(stored.capabilityPackageSnapshot?.protocol, "kitty.capability-package");
+  assert.equal(stored.executionPolicy?.protocol, "kitty.execution-policy");
   assert.deepEqual(stored.waitPolicy, stored.executionPolicy?.leadWaitPolicy);
 });
 

@@ -21,7 +21,7 @@ test("execution lanes share one worker launch protocol instead of lane-specific 
   const root = await createTempWorkspace("execution-worker-launch", t);
   const staleKeys = ["LEAD", "TEAMMATE", "SUBAGENT"].flatMap((identity) => {
     return ["API_KEY", "BASE_URL", "MODEL", "PROVIDER", "THINKING", "REASONING_EFFORT"].map((field) => {
-      return `DEADMOUSE_${identity}_${field}`;
+      return `KITTY_${identity}_${field}`;
     });
   });
   const previous = Object.fromEntries(staleKeys.map((key) => [key, process.env[key]]));
@@ -40,10 +40,10 @@ test("execution lanes share one worker launch protocol instead of lane-specific 
       ["__worker__", "run", "--execution-id", "exec-123"],
     );
     assert.equal(launch.args.includes("--model"), false);
-    assert.equal(launch.env.DEADMOUSE_MODEL, "deepseek-v4-flash");
-    assert.equal(launch.env.DEADMOUSE_THINKING, "enabled");
+    assert.equal(launch.env.KITTY_MODEL, "deepseek-v4-flash");
+    assert.equal(launch.env.KITTY_THINKING, "enabled");
     const identityModelEnv = Object.keys(launch.env).filter((key) => {
-      return ["LEAD", "TEAMMATE", "SUBAGENT"].some((identity) => key.startsWith(`DEADMOUSE_${identity}_`));
+      return ["LEAD", "TEAMMATE", "SUBAGENT"].some((identity) => key.startsWith(`KITTY_${identity}_`));
     });
     assert.deepEqual(identityModelEnv, []);
   } finally {
@@ -167,12 +167,12 @@ test("execution creation applies one boundary protocol across all execution lane
     stallTimeoutMs: 1,
   });
 
-  assert.equal(subagent.boundary.protocol, "deadmouse.execution-boundary");
+  assert.equal(subagent.boundary.protocol, "kitty.execution-boundary");
   assert.equal(subagent.boundary.returnTo, "lead");
   assert.equal(subagent.boundary.onBoundary, "return_to_lead_review");
   assert.equal(typeof subagent.boundary.maxRuntimeMs, "number");
   assert.equal(typeof subagent.boundary.maxIdleMs, "number");
-  assert.equal(teammate.boundary.protocol, "deadmouse.execution-boundary");
+  assert.equal(teammate.boundary.protocol, "kitty.execution-boundary");
   assert.equal(background.boundary.maxRuntimeMs, background.timeoutMs);
   assert.equal(background.boundary.maxIdleMs, background.stallTimeoutMs);
   assert.equal(background.timeoutMs! < 999_999, true);
@@ -182,7 +182,7 @@ test("execution creation applies one boundary protocol across all execution lane
 test("agent execution boundary is enforced by the machine instead of prompt text only", async () => {
   const result = await runWithinAgentExecutionBoundary({
     boundary: {
-      protocol: "deadmouse.execution-boundary",
+      protocol: "kitty.execution-boundary",
       returnTo: "lead",
       onBoundary: "return_to_lead_review",
       maxRuntimeMs: 10,
@@ -203,7 +203,7 @@ test("agent execution boundary is enforced by the machine instead of prompt text
 
   const idleResult = await runWithinAgentExecutionBoundary({
     boundary: {
-      protocol: "deadmouse.execution-boundary",
+      protocol: "kitty.execution-boundary",
       returnTo: "lead",
       onBoundary: "return_to_lead_review",
       maxRuntimeMs: 1_000,

@@ -1,8 +1,8 @@
-﻿# Provider 适配与 GPT-5.4 接入
+# Provider 适配与 GPT-5.4 接入
 
 ## 文档目的
 
-本文描述 Deadmouse 当前的 provider 适配边界、GPT-5.4 接入路径、配置归属和验证结果。
+本文描述 Kitty 当前的 provider 适配边界、GPT-5.4 接入路径、配置归属和验证结果。
 
 ## 模块目标与当前状态
 
@@ -44,7 +44,7 @@
 provider 相关正式状态当前归属如下：
 
 - 运行配置来自 `src/config/store.ts`
-- `.deadmouse/.env`、环境变量和 config file 由 `src/config/runtime.ts` 归一为 runtime config
+- `.kitty/.env`、环境变量和 config file 由 `src/config/runtime.ts` 归一为 runtime config
 - provider 能力判断由 `src/agent/provider.ts` 统一给出
 - 模型能力画像由 `src/agent/modelProfile.ts` 统一给出，并挂在 provider capabilities 上
 
@@ -109,7 +109,7 @@ provider 相关正式状态当前归属如下：
 - provider 差异收在 capability/profile 与 adapter 层，不再塞回 turn 主流程。
 - GPT-5.4 当前以 `responses` 作为正式接入协议。
 - DeepSeek 官方 V4 不再用旧 `chat/reasoner` 模型名表达思考模式。
-- `.deadmouse/.env` 与统一配置系统是唯一正式运行配置入口。
+- `.kitty/.env` 与统一配置系统是唯一正式运行配置入口。
 - 增加 provider 时，仍沿 capability/profile/adapter 三层结构接入，不回到 provider-specific 特判堆叠。
 - provider 差异必须能被脚本化 harness 捕获成离线回归证据；harness 只提供证据，不成为运行时第二 provider 策略脑。
 

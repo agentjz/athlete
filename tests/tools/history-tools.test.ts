@@ -17,7 +17,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
   const sessionStore = new SessionStore(config.paths.sessionsDir);
   const statePaths = getProjectStatePaths(root);
   const session = await sessionStore.create(root);
-  const artifactStoragePath = path.join(".deadmouse", "tool-results", session.id, "large-read.json");
+  const artifactStoragePath = path.join(".kitty", "tool-results", session.id, "large-read.json");
   const artifactPath = path.join(root, artifactStoragePath);
   const artifactContent = JSON.stringify({
     ok: true,
@@ -146,6 +146,44 @@ test("history tools expose persisted evidence without automatic prompt recall", 
     context,
   )).output) as Record<string, unknown>;
   assert.match(JSON.stringify(changeRecord), /changed file evidence/);
+});
+
+test("history index tools skip corrupt snapshots without weakening direct session load", async (t) => {
+  const root = await createTempWorkspace("history-corrupt-index", t);
+  const config = createTestRuntimeConfig(root);
+  const sessionStore = new SessionStore(config.paths.sessionsDir);
+  const goodSession = await sessionStore.save({
+    ...(await sessionStore.create(root)),
+    messages: [
+      createMessage("user", "searchable healthy session"),
+      createMessage("assistant", "healthy final output"),
+    ],
+  });
+  const corruptPath = path.join(config.paths.sessionsDir, "broken-history.json");
+  await fs.mkdir(config.paths.sessionsDir, { recursive: true });
+  await fs.writeFile(corruptPath, "{ invalid json", "utf8");
+
+  await assert.rejects(() => sessionStore.load("broken-history"), /corrupt|invalid/i);
+
+  const registry = createToolRegistry();
+  const context = makeToolContext(root, root, {
+    config,
+    sessionId: goodSession.id,
+  }) as never;
+  const list = JSON.parse((await registry.execute("session_list", "{}", context)).output) as Record<string, unknown>;
+  const search = JSON.parse((await registry.execute(
+    "session_search",
+    JSON.stringify({ query: "healthy", session_limit: 20 }),
+    context,
+  )).output) as Record<string, unknown>;
+
+  assert.equal(list.ok, true);
+  assert.equal(list.skippedCount, 1);
+  assert.match(JSON.stringify(list.sessions), new RegExp(goodSession.id));
+  assert.match(JSON.stringify(list.skippedSessions), /broken-history\.json/);
+  assert.equal(search.ok, true);
+  assert.equal(search.skippedCount, 1);
+  assert.match(JSON.stringify(search.matches), /healthy final output|searchable healthy session/);
 });
 
 test("history tools are governed as read-only capabilities", () => {

@@ -1,4 +1,4 @@
-﻿import { execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -6,10 +6,10 @@ import type { TestContext } from "node:test";
 
 import type { RuntimeConfig } from "../src/types.js";
 
-process.env.DEADMOUSE_TEST_WORKER_MODE = "stub";
+process.env.KITTY_TEST_WORKER_MODE = "stub";
 
 export async function createTempWorkspace(prefix: string, t: TestContext): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), `deadmouse-test-${prefix}-`));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), `Kitty-test-${prefix}-`));
   t.after(async () => {
     await removeTempWorkspace(dir);
   });
@@ -124,7 +124,7 @@ export function createTestRuntimeConfig(root: string): RuntimeConfig {
       },
       messageChunkChars: 3_500,
       typingIntervalMs: 4_000,
-      stateDir: path.join(root, ".deadmouse", "telegram"),
+      stateDir: path.join(root, ".kitty", "telegram"),
     },
     paths: {
       configDir: root,

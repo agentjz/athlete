@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { getProjectStatePaths } from "../project/statePaths.js";
 
-export const FOREGROUND_STREAM_PROTOCOL = "deadmouse.execution-foreground-stream" as const;
+export const FOREGROUND_STREAM_PROTOCOL = "kitty.execution-foreground-stream" as const;
 
 export interface ForegroundStreamRef {
   protocol: typeof FOREGROUND_STREAM_PROTOCOL;
@@ -14,7 +14,7 @@ export interface ForegroundStreamRef {
 }
 
 export function getForegroundStreamPath(rootDir: string, executionId: string): string {
-  return path.join(getProjectStatePaths(rootDir).deadmouseDir, "execution-streams", `${executionId}.jsonl`);
+  return path.join(getProjectStatePaths(rootDir).kittyDir, "execution-streams", `${executionId}.jsonl`);
 }
 
 export async function createForegroundStreamRef(input: {

@@ -16,7 +16,7 @@ export function describeIgnoredTelegramUpdate(update: TelegramIgnoredUpdate): st
       fragments.push("Telegram host only accepts private chats.");
       break;
     case "unauthorized_user":
-      fragments.push("Sender is not in DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS.");
+      fragments.push("Sender is not in KITTY_TELEGRAM_ALLOWED_USER_IDS.");
       break;
     case "empty_message":
       fragments.push("Message has no text/caption or supported Telegram document payload.");

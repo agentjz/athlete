@@ -1,4 +1,4 @@
-﻿# Harness主干四条强化路线
+# Harness主干四条强化路线
 
 ## 文档目的
 
@@ -112,7 +112,7 @@
 
 当前四条主干的正式决定如下：
 
-- 编辑锚点采用 Deadmouse 自己的“文件级 identity + 行级锚点”方案。
+- 编辑锚点采用 Kitty 自己的“文件级 identity + 行级锚点”方案。
 - 写后反馈先覆盖变更文件本身，并把会话级变化摘要落到 session snapshot。
 - 退化恢复走共享 `runTurn` 主路径，Lead、teammate、subagent 使用同一套恢复判断。
 - 工具批次制度统一走 shared tool batch protocol，不再各自拼接临时执行路径。

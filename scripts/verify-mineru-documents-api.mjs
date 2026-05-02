@@ -17,7 +17,7 @@ async function main() {
   const imagePath = path.join(smokeDir, "mineru-verify.png");
 
   await fs.mkdir(smokeDir, { recursive: true });
-  await fs.writeFile(pdfPath, createMinimalPdf("Hello from Deadmouse MinerU PDF verification."), "binary");
+  await fs.writeFile(pdfPath, createMinimalPdf("Hello from Kitty MinerU PDF verification."), "binary");
   await fs.writeFile(imagePath, Buffer.from(IMAGE_PNG_BASE64, "base64"));
 
   const projectContext = await loadProjectContext(repoRoot);

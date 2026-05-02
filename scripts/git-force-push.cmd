@@ -5,9 +5,9 @@ set /p message=Commit message:
 git init
 git remote get-url origin >nul 2>nul
 if errorlevel 1 (
-  git remote add origin git@github.com:agentjz/deadmouse-agent.git
+  git remote add origin git@github.com:agentjz/kitty.git
 ) else (
-  git remote set-url origin git@github.com:agentjz/deadmouse-agent.git
+  git remote set-url origin git@github.com:agentjz/kitty.git
 )
 git add .
 git commit -m "%message%"

@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -110,7 +110,7 @@ test("document acceptance phase advances from acquire_document to read_document 
           {
             ok: true,
             path: path.join(root, "source", "document.pdf"),
-            markdownPath: path.join(root, ".deadmouse", "mineru", "batch-1", "full.md"),
+            markdownPath: path.join(root, ".kitty", "mineru", "batch-1", "full.md"),
           },
           null,
           2,

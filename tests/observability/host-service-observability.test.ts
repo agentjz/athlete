@@ -127,7 +127,7 @@ function createTelegramConfig(root: string, overrides: Partial<TelegramRuntimeCo
     },
     messageChunkChars: 256,
     typingIntervalMs: 500,
-    stateDir: path.join(root, ".deadmouse", "telegram"),
+    stateDir: path.join(root, ".kitty", "telegram"),
     ...overrides,
   };
 }

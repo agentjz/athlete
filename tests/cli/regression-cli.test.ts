@@ -46,7 +46,7 @@ test("regression cli captures and runs recorded evidence cases", async (t) => {
   });
   assert.match(captureOutput, /captured cli.case/);
 
-  const casePath = path.join(root, ".deadmouse", "regression-cases", "cli.case.regression.json");
+  const casePath = path.join(root, ".kitty", "regression-cases", "cli.case.regression.json");
   const runOutput = await captureStdout(async () => {
     await parseCommander(program, ["regression", "run", casePath]);
   });

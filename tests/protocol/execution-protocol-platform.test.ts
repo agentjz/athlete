@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
@@ -96,7 +96,7 @@ test("protocol platform keeps capability, assignment, and closeout as generic co
     createdBy: "lead",
   });
 
-  assert.equal(pkg.protocol, "deadmouse.capability-package");
+  assert.equal(pkg.protocol, "kitty.capability-package");
   assert.equal(pkg.version, "1.0.0");
   assert.equal(pkg.runner.leadWaitPolicy.lead, "while_execution_active");
   assert.equal(pkg.runner.leadWaitPolicy.wake, "required");
@@ -106,8 +106,8 @@ test("protocol platform keeps capability, assignment, and closeout as generic co
     () => assertCapabilityPackageAcceptsAssignment(pkg, { ...assignment, capabilityId: "other.package" }),
     /not package 'workflow\.generic-workflow'/,
   );
-  assert.match(formatAssignmentContract(assignment), /deadmouse\.assignment/);
-  assert.match(formatCloseoutInstruction(), /deadmouse\.closeout/);
+  assert.match(formatAssignmentContract(assignment), /kitty\.assignment/);
+  assert.match(formatCloseoutInstruction(), /kitty\.closeout/);
   assert.match(normalizeCloseoutText("raw result"), /status: blocked/);
 });
 
@@ -164,7 +164,7 @@ test("capability registry explains availability without creating machine intent"
   ]);
 
   assert.match(registry, /Presentation order and summaries are options for Lead, not machine intent/);
-  assert.match(registry, /deadmouse\.capability-port/);
+  assert.match(registry, /kitty\.capability-port/);
   assert.match(registry, /CloseoutContract/);
 });
 
@@ -221,7 +221,7 @@ test("capability packages freeze machine permissions away from strategy decision
   assert.equal(pkg.machinePermissions.autoSelect, false);
   assert.equal(pkg.machinePermissions.autoDispatch, false);
   assert.equal(pkg.machinePermissions.decideStrategy, false);
-  assert.equal(pkg.port.protocol, "deadmouse.capability-port");
+  assert.equal(pkg.port.protocol, "kitty.capability-port");
   assert.equal(pkg.port.autonomyOwner, "ecosystem");
   assert.equal(pkg.port.foregroundOutput.sink, "runtime-ui");
   assert.equal(pkg.port.closeout.contract, "CloseoutContract");

@@ -19,8 +19,8 @@ export async function loadProjectIgnoreRules(rootDir: string, cwd: string): Prom
     .filter((rule): rule is ProjectIgnoreRule => Boolean(rule));
 
   const candidateFiles = uniquePaths([
-    path.join(rootDir, ".deadmouse", ".deadmouseignore"),
-    path.join(cwd, ".deadmouse", ".deadmouseignore"),
+    path.join(rootDir, ".kitty", ".kittyignore"),
+    path.join(cwd, ".kitty", ".kittyignore"),
   ]);
 
   for (const filePath of candidateFiles) {
@@ -68,7 +68,7 @@ export function isPathIgnored(
   return ignored;
 }
 
-export function getDefaultDeadmouseIgnoreContent(): string {
+export function getDefaultKittyIgnoreContent(): string {
   return [
     ".git/",
     "node_modules/",

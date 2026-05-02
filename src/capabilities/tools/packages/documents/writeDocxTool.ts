@@ -104,7 +104,7 @@ export const writeDocxTool: RegisteredTool = {
     const buffer = await buildDocxBuffer({
       title: renderedTitle?.content,
       description: renderedDescription?.content,
-      creator: "Deadmouse",
+      creator: "Kitty",
       format,
       content: renderedContent.content,
     });

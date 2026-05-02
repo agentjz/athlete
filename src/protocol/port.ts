@@ -2,7 +2,7 @@ import type { ArtifactKind } from "./artifact.js";
 import type { LeadWaitPolicyInput } from "./leadWait.js";
 import { type CapabilityRunnerType, isCapabilityRunnerType } from "./runner.js";
 
-export const CAPABILITY_PORT_PROTOCOL = "deadmouse.capability-port" as const;
+export const CAPABILITY_PORT_PROTOCOL = "kitty.capability-port" as const;
 
 export type CapabilityForegroundMode = "foreground_stream" | "inline_events" | "silent";
 

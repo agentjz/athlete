@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -161,7 +161,7 @@ test("getLightweightVerificationAttempt matches persisted absolute observed path
   const attempt = getLightweightVerificationAttempt({
     toolName: "read_file",
     rawArgs: JSON.stringify({ path: TARGET_FILE }),
-    observedPaths: ["C:\\Users\\Administrator\\Desktop\\deadmouse\\validation\\helldivers2-latest.md"],
+    observedPaths: ["C:\\Users\\Administrator\\Desktop\\Kitty\\validation\\helldivers2-latest.md"],
     resultOk: true,
   });
 

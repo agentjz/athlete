@@ -130,7 +130,7 @@ function concatInstructionFiles(files: LoadedInstructionFile[]): { content: stri
 }
 
 function readProjectDocMaxBytes(): number {
-  const raw = process.env.DEADMOUSE_PROJECT_DOC_MAX_BYTES;
+  const raw = process.env.KITTY_PROJECT_DOC_MAX_BYTES;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PROJECT_DOC_MAX_BYTES;
 }

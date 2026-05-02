@@ -4,7 +4,7 @@ import path from "node:path";
 import { getProjectStatePaths } from "../../project/statePaths.js";
 import { ExecutionStore } from "../../execution/store.js";
 
-export const DREAMING_LOOP_STATE_PROTOCOL = "deadmouse.dreaming-loop-state" as const;
+export const DREAMING_LOOP_STATE_PROTOCOL = "kitty.dreaming-loop-state" as const;
 
 export interface DreamingLoopRound {
   roundNumber: number;
@@ -34,7 +34,7 @@ export interface DreamingLoopState {
 }
 
 export function getDreamingLoopDir(rootDir: string, loopId: string): string {
-  return path.join(getProjectStatePaths(rootDir).deadmouseDir, "dreaming-loops", normalizeId(loopId));
+  return path.join(getProjectStatePaths(rootDir).kittyDir, "dreaming-loops", normalizeId(loopId));
 }
 
 export function getDreamingLoopStatePath(rootDir: string, loopId: string): string {

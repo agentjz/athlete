@@ -23,71 +23,71 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
   const paths = await ensureAppDirectories();
   const fileConfig = await loadConfig();
   const projectRoots = await resolveProjectRoots(cwd);
-  const telegramAllowedUserIds = process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS
-    ? parseTelegramAllowedUserIds(process.env.DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS)
+  const telegramAllowedUserIds = process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS
+    ? parseTelegramAllowedUserIds(process.env.KITTY_TELEGRAM_ALLOWED_USER_IDS)
     : fileConfig.telegram.allowedUserIds;
 
   const telegramConfig = normalizeTelegramConfig({
     ...fileConfig.telegram,
-    token: process.env.DEADMOUSE_TELEGRAM_TOKEN ?? fileConfig.telegram.token,
-    apiBaseUrl: process.env.DEADMOUSE_TELEGRAM_API_BASE_URL ?? fileConfig.telegram.apiBaseUrl,
-    proxyUrl: process.env.DEADMOUSE_TELEGRAM_PROXY_URL ?? fileConfig.telegram.proxyUrl,
+    token: process.env.KITTY_TELEGRAM_TOKEN ?? fileConfig.telegram.token,
+    apiBaseUrl: process.env.KITTY_TELEGRAM_API_BASE_URL ?? fileConfig.telegram.apiBaseUrl,
+    proxyUrl: process.env.KITTY_TELEGRAM_PROXY_URL ?? fileConfig.telegram.proxyUrl,
     allowedUserIds: telegramAllowedUserIds,
     polling: {
       ...fileConfig.telegram.polling,
       timeoutSeconds:
-        parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_POLLING_TIMEOUT_SECONDS) ?? fileConfig.telegram.polling.timeoutSeconds,
-      limit: parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_POLLING_LIMIT) ?? fileConfig.telegram.polling.limit,
+        parseIntegerEnv(process.env.KITTY_TELEGRAM_POLLING_TIMEOUT_SECONDS) ?? fileConfig.telegram.polling.timeoutSeconds,
+      limit: parseIntegerEnv(process.env.KITTY_TELEGRAM_POLLING_LIMIT) ?? fileConfig.telegram.polling.limit,
       retryBackoffMs:
-        parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_POLLING_RETRY_BACKOFF_MS) ??
+        parseIntegerEnv(process.env.KITTY_TELEGRAM_POLLING_RETRY_BACKOFF_MS) ??
         fileConfig.telegram.polling.retryBackoffMs,
     },
     delivery: {
       ...fileConfig.telegram.delivery,
       maxRetries:
-        parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_DELIVERY_MAX_RETRIES) ?? fileConfig.telegram.delivery.maxRetries,
+        parseIntegerEnv(process.env.KITTY_TELEGRAM_DELIVERY_MAX_RETRIES) ?? fileConfig.telegram.delivery.maxRetries,
       baseDelayMs:
-        parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_DELIVERY_BASE_DELAY_MS) ??
+        parseIntegerEnv(process.env.KITTY_TELEGRAM_DELIVERY_BASE_DELAY_MS) ??
         fileConfig.telegram.delivery.baseDelayMs,
       maxDelayMs:
-        parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_DELIVERY_MAX_DELAY_MS) ?? fileConfig.telegram.delivery.maxDelayMs,
+        parseIntegerEnv(process.env.KITTY_TELEGRAM_DELIVERY_MAX_DELAY_MS) ?? fileConfig.telegram.delivery.maxDelayMs,
     },
     messageChunkChars:
-      parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_MESSAGE_CHUNK_CHARS) ?? fileConfig.telegram.messageChunkChars,
+      parseIntegerEnv(process.env.KITTY_TELEGRAM_MESSAGE_CHUNK_CHARS) ?? fileConfig.telegram.messageChunkChars,
     typingIntervalMs:
-      parseIntegerEnv(process.env.DEADMOUSE_TELEGRAM_TYPING_INTERVAL_MS) ?? fileConfig.telegram.typingIntervalMs,
+      parseIntegerEnv(process.env.KITTY_TELEGRAM_TYPING_INTERVAL_MS) ?? fileConfig.telegram.typingIntervalMs,
   });
 
   const merged = normalizeConfig(
     {
       ...fileConfig,
-      provider: process.env.DEADMOUSE_PROVIDER ?? fileConfig.provider,
-      model: process.env.DEADMOUSE_MODEL ?? overrides.model ?? fileConfig.model,
-      profile: process.env.DEADMOUSE_PROFILE ?? fileConfig.profile,
-      thinking: parseThinkingEnv(process.env.DEADMOUSE_THINKING) ?? fileConfig.thinking,
-      reasoningEffort: parseReasoningEffortEnv(process.env.DEADMOUSE_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
+      provider: process.env.KITTY_PROVIDER ?? fileConfig.provider,
+      model: process.env.KITTY_MODEL ?? overrides.model ?? fileConfig.model,
+      profile: process.env.KITTY_PROFILE ?? fileConfig.profile,
+      thinking: parseThinkingEnv(process.env.KITTY_THINKING) ?? fileConfig.thinking,
+      reasoningEffort: parseReasoningEffortEnv(process.env.KITTY_REASONING_EFFORT) ?? fileConfig.reasoningEffort,
       maxOutputTokens:
-        parseIntegerEnv(process.env.DEADMOUSE_MAX_OUTPUT_TOKENS) ?? fileConfig.maxOutputTokens,
-      baseUrl: process.env.DEADMOUSE_BASE_URL ?? fileConfig.baseUrl,
+        parseIntegerEnv(process.env.KITTY_MAX_OUTPUT_TOKENS) ?? fileConfig.maxOutputTokens,
+      baseUrl: process.env.KITTY_BASE_URL ?? fileConfig.baseUrl,
       yieldAfterToolSteps:
-        parseIntegerEnv(process.env.DEADMOUSE_YIELD_AFTER_TOOL_STEPS) ?? fileConfig.yieldAfterToolSteps,
+        parseIntegerEnv(process.env.KITTY_YIELD_AFTER_TOOL_STEPS) ?? fileConfig.yieldAfterToolSteps,
       contextWindowMessages:
-        parseIntegerEnv(process.env.DEADMOUSE_CONTEXT_WINDOW_MESSAGES) ?? fileConfig.contextWindowMessages,
+        parseIntegerEnv(process.env.KITTY_CONTEXT_WINDOW_MESSAGES) ?? fileConfig.contextWindowMessages,
       maxContextChars:
-        parseIntegerEnv(process.env.DEADMOUSE_MAX_CONTEXT_CHARS) ?? fileConfig.maxContextChars,
+        parseIntegerEnv(process.env.KITTY_MAX_CONTEXT_CHARS) ?? fileConfig.maxContextChars,
       contextSummaryChars:
-        parseIntegerEnv(process.env.DEADMOUSE_CONTEXT_SUMMARY_CHARS) ?? fileConfig.contextSummaryChars,
+        parseIntegerEnv(process.env.KITTY_CONTEXT_SUMMARY_CHARS) ?? fileConfig.contextSummaryChars,
       maxToolIterations:
-        parseIntegerEnv(process.env.DEADMOUSE_MAX_TOOL_ITERATIONS) ?? fileConfig.maxToolIterations,
+        parseIntegerEnv(process.env.KITTY_MAX_TOOL_ITERATIONS) ?? fileConfig.maxToolIterations,
       maxContinuationBatches:
-        parseIntegerEnv(process.env.DEADMOUSE_MAX_CONTINUATION_BATCHES) ?? fileConfig.maxContinuationBatches,
+        parseIntegerEnv(process.env.KITTY_MAX_CONTINUATION_BATCHES) ?? fileConfig.maxContinuationBatches,
       managedTurnMaxSlices:
-        parseIntegerEnv(process.env.DEADMOUSE_MANAGED_TURN_MAX_SLICES) ?? fileConfig.managedTurnMaxSlices,
+        parseIntegerEnv(process.env.KITTY_MANAGED_TURN_MAX_SLICES) ?? fileConfig.managedTurnMaxSlices,
       managedTurnMaxElapsedMs:
-        parseIntegerEnv(process.env.DEADMOUSE_MANAGED_TURN_MAX_ELAPSED_MS) ?? fileConfig.managedTurnMaxElapsedMs,
+        parseIntegerEnv(process.env.KITTY_MANAGED_TURN_MAX_ELAPSED_MS) ?? fileConfig.managedTurnMaxElapsedMs,
       mcp: {
         ...fileConfig.mcp,
-        enabled: parseBooleanEnv(process.env.DEADMOUSE_MCP_ENABLED) ?? fileConfig.mcp.enabled,
+        enabled: parseBooleanEnv(process.env.KITTY_MCP_ENABLED) ?? fileConfig.mcp.enabled,
       },
       telegram: telegramConfig,
     },
@@ -99,13 +99,13 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
   );
 
   if (!merged.profile) {
-    throw new Error("Missing agent profile. Set DEADMOUSE_PROFILE explicitly in the project's .deadmouse/.env file.");
+    throw new Error("Missing agent profile. Set KITTY_PROFILE explicitly in the project's .kitty/.env file.");
   }
   resolveAgentProfile(merged.profile);
 
   return {
     ...merged,
-    apiKey: process.env.DEADMOUSE_API_KEY ?? "",
+    apiKey: process.env.KITTY_API_KEY ?? "",
     mineru: readMineruRuntimeConfig(),
     paths,
     telegram: resolveTelegramRuntimeConfig(merged.telegram, projectRoots.stateRootDir),

@@ -22,9 +22,9 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
   const getCliOverrides = () => extractCliOverrides(program.opts());
 
   program
-    .name("deadmouse")
-    .description("Deadmouse - an agent harness for durable execution.")
-    .version(packageJson.version, "-v, --version", "Print the current Deadmouse version.")
+    .name("kitty")
+    .description("Kitty - an agent harness for durable execution.")
+    .version(packageJson.version, "-v, --version", "Print the current Kitty version.")
     .configureOutput({
       writeOut: (text) => {
         writeStdout(text);
@@ -41,7 +41,7 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
 
   program
     .command("version")
-    .description("Print the current Deadmouse version.")
+    .description("Print the current Kitty version.")
     .action(() => {
       writeStdoutLine(packageJson.version);
     });

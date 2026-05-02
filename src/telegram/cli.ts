@@ -98,11 +98,11 @@ export function registerTelegramCommands(
     .action(async () => {
       const runtime = await dependencies.resolveRuntime(dependencies.getCliOverrides());
       if (!runtime.config.telegram.token) {
-        throw new Error("Telegram token missing. Set DEADMOUSE_TELEGRAM_TOKEN or config.telegram.token.");
+        throw new Error("Telegram token missing. Set KITTY_TELEGRAM_TOKEN or config.telegram.token.");
       }
 
       if (runtime.config.telegram.allowedUserIds.length === 0) {
-        throw new Error("Telegram whitelist is empty. Set DEADMOUSE_TELEGRAM_ALLOWED_USER_IDS or config.telegram.allowedUserIds.");
+        throw new Error("Telegram whitelist is empty. Set KITTY_TELEGRAM_ALLOWED_USER_IDS or config.telegram.allowedUserIds.");
       }
 
       const acquireProcessLock =

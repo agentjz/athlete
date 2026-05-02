@@ -4,7 +4,7 @@ import path from "node:path";
 import { getProjectStatePaths } from "../../project/statePaths.js";
 import type { MirrorWorld } from "./mirrorWorld.js";
 
-export const DREAMING_STATE_PROTOCOL = "deadmouse.dreaming-state" as const;
+export const DREAMING_STATE_PROTOCOL = "kitty.dreaming-state" as const;
 
 export interface DreamingState {
   protocol: typeof DREAMING_STATE_PROTOCOL;
@@ -21,7 +21,7 @@ export interface DreamingState {
 }
 
 export function getDreamingDir(rootDir: string, executionId: string): string {
-  return path.join(getProjectStatePaths(rootDir).deadmouseDir, "dreaming", executionId);
+  return path.join(getProjectStatePaths(rootDir).kittyDir, "dreaming", executionId);
 }
 
 export function getDreamingStatePath(rootDir: string, executionId: string): string {

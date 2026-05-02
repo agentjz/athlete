@@ -102,7 +102,7 @@ export function resolveTelegramRuntimeConfig(
   const normalized = normalizeTelegramConfig(config);
   return {
     ...normalized,
-    stateDir: path.join(getProjectStatePaths(stateRootDir).deadmouseDir, "telegram"),
+    stateDir: path.join(getProjectStatePaths(stateRootDir).kittyDir, "telegram"),
   };
 }
 

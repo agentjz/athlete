@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildInternalWakeInput } from "../../src/agent/checkpoint/prompt.js";
@@ -36,7 +36,7 @@ test("new user objective starts a fresh current task frame", async (t) => {
       evidenceArtifacts: [{
         kind: "tool_preview",
         label: "old news evidence",
-        path: ".deadmouse/tool-results/old-news.json",
+        path: ".kitty/tool-results/old-news.json",
       }],
     }) as unknown as SessionCheckpoint,
   });

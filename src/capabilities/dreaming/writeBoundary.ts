@@ -8,7 +8,7 @@ import type {
 } from "../../agent/types.js";
 import { parseArgs } from "../tools/core/shared.js";
 
-export const DREAMING_WRITE_BOUNDARY_PROTOCOL = "deadmouse.dreaming-write-boundary" as const;
+export const DREAMING_WRITE_BOUNDARY_PROTOCOL = "kitty.dreaming-write-boundary" as const;
 
 const FILE_PATH_ARG_TOOLS = new Map<string, readonly string[]>([
   ["write_file", ["path"]],
@@ -194,7 +194,7 @@ function normalizePatchPath(value: string): string | null {
 
 function isRuntimeStateStatusLine(line: string): boolean {
   const pathPart = line.slice(3).replace(/\\/g, "/");
-  return pathPart === ".deadmouse" || pathPart.startsWith(".deadmouse/");
+  return pathPart === ".kitty" || pathPart.startsWith(".kitty/");
 }
 
 function normalizeStatusLines(lines: readonly string[]): string[] {

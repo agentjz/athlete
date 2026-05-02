@@ -54,7 +54,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const turnModelConfig = options.config;
   const profile = resolveAgentProfile(options.config.profile);
   if (!turnModelConfig.apiKey) {
-    throw new Error("Missing API key. Open the project's .env file and add DEADMOUSE_API_KEY.");
+    throw new Error("Missing API key. Open the project's .env file and add KITTY_API_KEY.");
   }
   let session = await initializeTurnSession(options.session, options.input, options.sessionStore);
   traceScope.sessionId = session.id;

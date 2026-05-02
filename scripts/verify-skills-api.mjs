@@ -10,12 +10,12 @@ import { buildSkillRuntimeState } from "../.test-build/src/capabilities/skills/s
 import { createToolRegistry } from "../.test-build/src/capabilities/tools/index.js";
 
 async function main() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-skills-"));
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-skills-"));
   await writeSkill(workspace);
 
   const resolved = await resolveRuntimeConfig({ cwd: process.cwd() });
   if (!resolved.apiKey) {
-    throw new Error("Missing DEADMOUSE_API_KEY in .deadmouse/.env. Real API validation cannot run.");
+    throw new Error("Missing KITTY_API_KEY in .kitty/.env. Real API validation cannot run.");
   }
 
   const config = {

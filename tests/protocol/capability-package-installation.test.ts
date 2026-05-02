@@ -9,12 +9,12 @@ import { createTempWorkspace } from "../helpers.js";
 
 test("manifest capability packages are installable discoverable disableable and diagnosable", async (t) => {
   const root = await createTempWorkspace("capability-package-install", t);
-  const packageDir = path.join(root, ".deadmouse", "capabilities");
+  const packageDir = path.join(root, ".kitty", "capabilities");
   await fs.mkdir(packageDir, { recursive: true });
   await fs.writeFile(
     path.join(packageDir, "analysis.capability.json"),
     JSON.stringify({
-      protocol: "deadmouse.capability-manifest",
+      protocol: "kitty.capability-manifest",
       packageId: "workflow.analysis",
       version: "3.2.1",
       kind: "workflow",
@@ -23,7 +23,7 @@ test("manifest capability packages are installable discoverable disableable and 
       description: "Installed analysis workflow",
       source: {
         kind: "workflow",
-        path: ".deadmouse/capabilities/analysis.capability.json",
+        path: ".kitty/capabilities/analysis.capability.json",
         builtIn: false,
       },
       adapter: {
@@ -70,7 +70,7 @@ test("manifest capability packages are installable discoverable disableable and 
   await fs.writeFile(
     path.join(packageDir, "disabled.capability.json"),
     JSON.stringify({
-      protocol: "deadmouse.capability-manifest",
+      protocol: "kitty.capability-manifest",
       packageId: "workflow.disabled",
       kind: "workflow",
       id: "disabled",

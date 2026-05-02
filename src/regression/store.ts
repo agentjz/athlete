@@ -90,7 +90,7 @@ export async function runRegressionCases(input: {
 }
 
 export function getRegressionCaseRoot(rootDir: string): string {
-  return path.join(getProjectStatePaths(rootDir).deadmouseDir, "regression-cases");
+  return path.join(getProjectStatePaths(rootDir).kittyDir, "regression-cases");
 }
 
 function getRegressionCasePath(rootDir: string, caseId: string): string {

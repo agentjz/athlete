@@ -1,7 +1,7 @@
 import type { LeadWaitPolicy, LeadWaitPolicyInput } from "./leadWait.js";
 import { createLeadWaitPolicyForRunner } from "./leadWait.js";
 
-export const CAPABILITY_RUNNER_PROTOCOL = "deadmouse.capability-runner" as const;
+export const CAPABILITY_RUNNER_PROTOCOL = "kitty.capability-runner" as const;
 
 export type CapabilityRunnerType = string;
 

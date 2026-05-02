@@ -1,4 +1,4 @@
-export const CAPABILITY_PROTOCOL = "deadmouse.capability" as const;
+export const CAPABILITY_PROTOCOL = "kitty.capability" as const;
 
 export const CAPABILITY_COSTS = ["low", "medium", "high"] as const;
 

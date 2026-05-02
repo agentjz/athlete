@@ -43,7 +43,7 @@ export function spawnExecutionWorker(input: {
   executionId: string;
   actorName?: string;
 }): number {
-  if (process.env.DEADMOUSE_TEST_WORKER_MODE === "stub") {
+  if (process.env.KITTY_TEST_WORKER_MODE === "stub") {
     return process.pid;
   }
 
@@ -75,14 +75,14 @@ function buildExecutionWorkerEnv(input: {
 }): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    DEADMOUSE_API_KEY: input.config.apiKey,
-    DEADMOUSE_BASE_URL: input.config.baseUrl,
-    DEADMOUSE_MODEL: input.config.model,
-    DEADMOUSE_PROVIDER: input.config.provider,
-    DEADMOUSE_THINKING: input.config.thinking,
+    KITTY_API_KEY: input.config.apiKey,
+    KITTY_BASE_URL: input.config.baseUrl,
+    KITTY_MODEL: input.config.model,
+    KITTY_PROVIDER: input.config.provider,
+    KITTY_THINKING: input.config.thinking,
   };
   if (input.config.reasoningEffort) {
-    env.DEADMOUSE_REASONING_EFFORT = input.config.reasoningEffort;
+    env.KITTY_REASONING_EFFORT = input.config.reasoningEffort;
   }
   deleteObsoleteIdentityModelEnv(env);
 
@@ -92,7 +92,7 @@ function buildExecutionWorkerEnv(input: {
 function deleteObsoleteIdentityModelEnv(env: NodeJS.ProcessEnv): void {
   for (const identity of ["LEAD", "TEAMMATE", "SUBAGENT"]) {
     for (const field of ["API_KEY", "BASE_URL", "MODEL", "PROVIDER", "THINKING", "REASONING_EFFORT"]) {
-      delete env[`DEADMOUSE_${identity}_${field}`];
+      delete env[`KITTY_${identity}_${field}`];
     }
   }
 }

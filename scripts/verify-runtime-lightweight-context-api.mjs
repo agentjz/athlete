@@ -8,10 +8,10 @@ import { SessionStore } from "../.test-build/src/agent/sessionStore.js";
 import { resolveRuntimeConfig } from "../.test-build/src/config/store.js";
 
 async function main() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-runtime-context-"));
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-runtime-context-"));
   const resolved = await resolveRuntimeConfig({ cwd: process.cwd(), mode: "agent" });
   if (!resolved.apiKey) {
-    throw new Error("Missing DEADMOUSE_API_KEY in .deadmouse/.env. Real API validation cannot run.");
+    throw new Error("Missing KITTY_API_KEY in .kitty/.env. Real API validation cannot run.");
   }
 
   const config = {
@@ -33,7 +33,7 @@ async function main() {
 
   const result = await runManagedAgentTurn({
     input: [
-      "Validate Deadmouse runtime lightweight context behavior.",
+      "Validate Kitty runtime lightweight context behavior.",
       "First call emit_large_validation exactly once, and do not call any other tool in the same response.",
       "After the turn resumes, continue from that stored result instead of restarting.",
       "Then call write_validation_note to create validation/runtime-context-summary.md.",

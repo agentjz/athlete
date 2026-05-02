@@ -26,11 +26,11 @@ test("reset clears project runtime state but preserves env files and unrelated s
   const teamStore = new TeamStore(root);
   const requestStore = new ProtocolRequestStore(root);
   const worktreeStore = new WorktreeStore(root);
-  const projectStateDir = path.join(root, ".deadmouse");
+  const projectStateDir = path.join(root, ".kitty");
 
   await fs.mkdir(projectStateDir, { recursive: true });
-  await fs.writeFile(path.join(projectStateDir, ".env"), "DEADMOUSE_API_KEY=test-key\n", "utf8");
-  await fs.writeFile(path.join(projectStateDir, ".env.example"), "DEADMOUSE_API_KEY=\n", "utf8");
+  await fs.writeFile(path.join(projectStateDir, ".env"), "KITTY_API_KEY=test-key\n", "utf8");
+  await fs.writeFile(path.join(projectStateDir, ".env.example"), "KITTY_API_KEY=\n", "utf8");
   await fs.mkdir(path.join(projectStateDir, "tool-results", "session-a"), { recursive: true });
   await fs.writeFile(path.join(projectStateDir, "tool-results", "session-a", "artifact.txt"), "artifact\n", "utf8");
 
@@ -132,8 +132,8 @@ test("reset command is available through slash-prefixed local command", async (t
   const config = createTestRuntimeConfig(root);
   const sessionStore = new SessionStore(config.paths.sessionsDir);
   const session = await sessionStore.create(root);
-  await fs.mkdir(path.join(root, ".deadmouse"), { recursive: true });
-  await fs.writeFile(path.join(root, ".deadmouse", ".env"), "DEADMOUSE_API_KEY=test-key\n", "utf8");
+  await fs.mkdir(path.join(root, ".kitty"), { recursive: true });
+  await fs.writeFile(path.join(root, ".kitty", ".env"), "KITTY_API_KEY=test-key\n", "utf8");
 
   const result = await handleLocalCommand("/reset", {
     cwd: root,
@@ -142,7 +142,7 @@ test("reset command is available through slash-prefixed local command", async (t
   });
 
   assert.equal(result, "quit");
-  assert.equal(await pathExists(path.join(root, ".deadmouse", ".env")), true);
+  assert.equal(await pathExists(path.join(root, ".kitty", ".env")), true);
 });
 
 function isProcessAlive(pid: number): boolean {

@@ -10,7 +10,7 @@ import { getProjectStatePaths } from "./statePaths.js";
 import { isSameOrDescendant, waitForRemovedPaths } from "./resetSupport.js";
 import { WorktreeStore } from "../worktrees/store.js";
 
-const PRESERVED_DEADMOUSE_ENTRIES = new Set([".env", ".env.example"]);
+const PRESERVED_KITTY_ENTRIES = new Set([".env", ".env.example"]);
 
 export interface ResetProjectRuntimeInput {
   cwd: string;
@@ -32,7 +32,7 @@ export interface ResetProjectRuntimeResult {
 export async function resetProjectRuntime(input: ResetProjectRuntimeInput): Promise<ResetProjectRuntimeResult> {
   const roots = await resolveProjectRoots(input.cwd);
   const statePaths = getProjectStatePaths(roots.stateRootDir);
-  const deadmouseDir = statePaths.deadmouseDir;
+  const kittyDir = statePaths.kittyDir;
 
   const [worktrees, teamMembers, backgroundJobs] = await Promise.all([
     readTrackedWorktrees(roots.stateRootDir),
@@ -57,8 +57,8 @@ export async function resetProjectRuntime(input: ResetProjectRuntimeInput): Prom
     stateRootDir: roots.stateRootDir,
     removedSessionIds,
   });
-  const { removedEntries, preservedEntries } = await clearProjectDeadmouseDirectory(deadmouseDir);
-  await waitForRemovedPaths(removedEntries.map((entry) => path.join(deadmouseDir, entry)));
+  const { removedEntries, preservedEntries } = await clearProjectKittyDirectory(kittyDir);
+  await waitForRemovedPaths(removedEntries.map((entry) => path.join(kittyDir, entry)));
 
   return {
     rootDir: roots.rootDir,
@@ -187,7 +187,7 @@ async function removeProjectChanges(input: {
   return removedIds;
 }
 
-async function clearProjectDeadmouseDirectory(deadmouseDir: string): Promise<{
+async function clearProjectKittyDirectory(kittyDir: string): Promise<{
   removedEntries: string[];
   preservedEntries: string[];
 }> {
@@ -195,10 +195,10 @@ async function clearProjectDeadmouseDirectory(deadmouseDir: string): Promise<{
   const preservedEntries: string[] = [];
 
   try {
-    const entries = await fs.readdir(deadmouseDir, { withFileTypes: true });
+    const entries = await fs.readdir(kittyDir, { withFileTypes: true });
     for (const entry of entries) {
-      const absolutePath = path.join(deadmouseDir, entry.name);
-      if (PRESERVED_DEADMOUSE_ENTRIES.has(entry.name)) {
+      const absolutePath = path.join(kittyDir, entry.name);
+      if (PRESERVED_KITTY_ENTRIES.has(entry.name)) {
         preservedEntries.push(entry.name);
         continue;
       }

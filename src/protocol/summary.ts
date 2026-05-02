@@ -15,7 +15,7 @@ export function formatCapabilityRegistrySummary(
     "Capability presentation layer:",
     "This layer summarizes, orders, and de-noises available capability packages for Lead.",
     "Presentation order and summaries are options for Lead, not machine intent.",
-    "Every package docks through deadmouse.capability-port before it can expose execution behavior.",
+    "Every package docks through kitty.capability-port before it can expose execution behavior.",
     "Port declares Assignment -> Execution/Progress/Artifact -> CloseoutContract -> WakeSignal behavior without driving the ecosystem internals.",
     "Lead wait behavior is derived from port runner data snapshotted into Execution records, not a concrete capability name branch.",
     "Machine permissions are fixed: expose and execute explicit assignments only; never auto-select or auto-dispatch.",

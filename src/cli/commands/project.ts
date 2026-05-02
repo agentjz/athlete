@@ -19,7 +19,7 @@ export function registerProjectCommands(
 ): void {
   program
     .command("init")
-    .description("Create local .deadmouse/.env and .deadmouse/.deadmouseignore files in the current project.")
+    .description("Create local .kitty/.env and .kitty/.kittyignore files in the current project.")
     .action(async () => {
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const { initializeProjectFiles } = await import("../../config/init.js");

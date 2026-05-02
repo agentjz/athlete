@@ -46,7 +46,7 @@ test("launchSubagentWorkerExecution creates a worker-backed subagent execution",
   assert.equal(stored.status, "running");
   assert.equal(stored.pid, 1357);
   assert.equal(stored.taskId, task.id);
-  assert.equal(stored.boundary.protocol, "deadmouse.execution-boundary");
+  assert.equal(stored.boundary.protocol, "kitty.execution-boundary");
   assert.equal(stored.boundary.onBoundary, "return_to_lead_review");
 });
 

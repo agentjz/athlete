@@ -11,10 +11,10 @@ import { SessionStore } from "../.test-build/src/agent/sessionStore.js";
 import { resolveRuntimeConfig } from "../.test-build/src/config/store.js";
 import { formatSessionRuntimeSummary } from "../.test-build/src/ui/runtimeSummary.js";
 async function main() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-runtime-observability-"));
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-runtime-observability-"));
   const resolved = await resolveRuntimeConfig({ cwd: process.cwd(), mode: "agent" });
   if (!resolved.apiKey) {
-    throw new Error("Missing DEADMOUSE_API_KEY in .deadmouse/.env. Real API validation cannot run.");
+    throw new Error("Missing KITTY_API_KEY in .kitty/.env. Real API validation cannot run.");
   }
 
   const config = {

@@ -16,7 +16,7 @@ export type ExecutionStatus = "queued" | "running" | "paused" | "completed" | "f
 export type ExecutionCloseStatus = Exclude<ExecutionStatus, "queued" | "running">;
 
 export interface ExecutionBoundaryProtocol {
-  protocol: "deadmouse.execution-boundary";
+  protocol: "kitty.execution-boundary";
   returnTo: "lead";
   onBoundary: "return_to_lead_review";
   maxRuntimeMs: number;

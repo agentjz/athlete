@@ -22,7 +22,7 @@ export function registerConfigCommands(
     }>;
   },
 ): void {
-  const configCommand = program.command("config").description("Read or update Deadmouse config.");
+  const configCommand = program.command("config").description("Read or update kitty config.");
 
   configCommand
     .command("show")
@@ -99,7 +99,7 @@ export function registerConfigCommands(
       }
 
       if (!isMutableConfigKey(key)) {
-        throw new Error(`${key} is managed by Deadmouse and cannot be changed with config set.`);
+        throw new Error(`${key} is managed by Kitty and cannot be changed with config set.`);
       }
 
       const { updateConfig } = await import("../../config/store.js");

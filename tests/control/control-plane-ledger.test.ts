@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -116,7 +116,7 @@ test("control-plane stores bootstrap a sqlite ledger as the only control-plane t
 
   const worktree = await worktreeStore.create("ledger-bootstrap", claimed.id);
 
-  const ledgerFile = path.join(root, ".deadmouse", "control-plane.sqlite");
+  const ledgerFile = path.join(root, ".kitty", "control-plane.sqlite");
   assert.equal(await pathExists(ledgerFile), true);
 
   const reloadedTask = await new TaskStore(root).load(claimed.id);

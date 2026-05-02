@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -243,7 +243,7 @@ test("runtime checkpoint exposes only current-objective runtime facts when histo
       {
         kind: "externalized_tool_result",
         toolName: "emit_large_checkpoint",
-        storagePath: ".deadmouse/tool-results/session-a/large.json",
+        storagePath: ".kitty/tool-results/session-a/large.json",
         preview: "checkpoint preview",
         label: "stored artifact",
       },
@@ -304,7 +304,7 @@ test("runtime checkpoint exposes only current-objective runtime facts when histo
   assert.match(String(built.messages[0]?.content ?? ""), /Runtime Facts:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
-  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /\.deadmouse\/tool-results\/session-a\/large\.json/i);
+  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /\.kitty\/tool-results\/session-a\/large\.json/i);
   assert.match(String(built.messages[0]?.content ?? ""), /1 artifact reference\(s\) stored/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Completed actions:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Current step:/i);

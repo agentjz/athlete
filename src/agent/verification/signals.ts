@@ -3,7 +3,7 @@ import path from "node:path";
 import type { SessionRecord, VerificationAttempt } from "../../types.js";
 
 const LIGHTWEIGHT_VERIFICATION_EXTENSIONS = new Set([".md", ".txt"]);
-const DISALLOWED_LIGHTWEIGHT_ROOTS = new Set([".deadmouse", ".test-build", "dist", "scripts", "src", "tests"]);
+const DISALLOWED_LIGHTWEIGHT_ROOTS = new Set([".kitty", ".test-build", "dist", "scripts", "src", "tests"]);
 
 export function getLightweightVerificationAttempt(input: {
   toolName: string;

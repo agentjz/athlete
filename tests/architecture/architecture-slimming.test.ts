@@ -20,6 +20,56 @@ const FORBIDDEN_TYPE_FAMILIES = [
     pattern: /export interface AcceptanceContract\b/,
     module: "src/types/acceptance.ts",
   },
+  {
+    file: "src/types.ts",
+    pattern: /export interface SessionRecord\b/,
+    module: "src/types/session.ts",
+  },
+  {
+    file: "src/types.ts",
+    pattern: /export interface RuntimeConfig\b/,
+    module: "src/types/config.ts",
+  },
+  {
+    file: "src/types.ts",
+    pattern: /export interface ToolExecutionMetadata\b/,
+    module: "src/types/toolExecution.ts",
+  },
+  {
+    file: "src/types.ts",
+    pattern: /export interface ProjectContext\b/,
+    module: "src/types/project.ts",
+  },
+  {
+    file: "src/control/ledger/executionRepo.ts",
+    pattern: /function normalizeExecution\b/,
+    module: "src/control/ledger/executionRecord.ts",
+  },
+  {
+    file: "src/control/ledger/executionRepo.ts",
+    pattern: /interface ExecutionRow\b/,
+    module: "src/control/ledger/executionRow.ts",
+  },
+  {
+    file: "src/control/ledger/migrations.ts",
+    pattern: /function createExecutionSchema\b/,
+    module: "src/control/ledger/executionSchema.ts",
+  },
+  {
+    file: "src/protocol/package.ts",
+    pattern: /export function diagnoseCapabilityPackages\b/,
+    module: "src/protocol/packageDiagnosis.ts",
+  },
+  {
+    file: "src/protocol/package.ts",
+    pattern: /function satisfiesVersionConstraint\b/,
+    module: "src/protocol/packageVersion.ts",
+  },
+  {
+    file: "src/protocol/package.ts",
+    pattern: /function normalizeCapabilityPackageGovernance\b/,
+    module: "src/protocol/packageGovernance.ts",
+  },
 ] as const;
 
 function countLines(content: string): number {

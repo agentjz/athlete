@@ -1,4 +1,4 @@
-﻿# Deadmouse SPEC
+# Kitty Spec
 
 `spec/` 是仓库级真相源，按两棵树维护：
 

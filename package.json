@@ -1,17 +1,17 @@
 {
-  "name": "@jun133/deadmouse",
-  "version": "0.1.1",
+  "name": "@jun133/kitty",
+  "version": "0.0.1",
   "description": "An agent harness for durable execution.",
   "license": "MIT",
   "keywords": [
-    "deadmouse",
+    "kitty",
     "agent",
     "automation",
     "runtime",
     "harness"
   ],
   "bin": {
-    "deadmouse": "dist/cli.js"
+    "kitty": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -36,6 +36,8 @@
     "verify:runtime-checkpoint-api": "npm run test:build && node scripts/verify-runtime-checkpoint-api.mjs",
     "verify:runtime-observability-api": "npm run test:build && node scripts/verify-runtime-observability-api.mjs",
     "verify:mineru-documents-api": "npm run test:build && node scripts/verify-mineru-documents-api.mjs",
+    "verify:repo-contracts": "node scripts/verify-repo-contracts.mjs",
+    "verify": "npm run verify:repo-contracts && npm test",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "test": "npm run check && npm run test:core"

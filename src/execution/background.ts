@@ -313,7 +313,7 @@ function isProcessAlive(pid: number): boolean {
 }
 
 function terminateProcess(pid: number, signal: NodeJS.Signals): void {
-  if (process.env.DEADMOUSE_TEST_WORKER_MODE === "stub" && pid === process.pid) {
+  if (process.env.KITTY_TEST_WORKER_MODE === "stub" && pid === process.pid) {
     return;
   }
 

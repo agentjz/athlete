@@ -152,7 +152,7 @@ test("fetchAssistantResponse uses the responses adapter for GPT-5.4 instead of f
   assert.deepEqual(seenRequests, ["responses:stream"]);
 });
 
-test("fetchAssistantResponse forwards DEADMOUSE_REASONING_EFFORT to responses reasoning.effort", async () => {
+test("fetchAssistantResponse forwards KITTY_REASONING_EFFORT to responses reasoning.effort", async () => {
   let seenEffort: string | undefined;
   const client = {
     responses: {

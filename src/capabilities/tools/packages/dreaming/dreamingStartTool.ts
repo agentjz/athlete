@@ -133,11 +133,11 @@ export const dreamingStartTool: RegisteredTool = {
       realWorld: context.projectContext.rootDir,
       foregroundStream: foreground,
       protocol: {
-        assignment: "deadmouse.assignment",
-        mirrorWorld: "deadmouse.mirror-world",
+        assignment: "kitty.assignment",
+        mirrorWorld: "kitty.mirror-world",
         foregroundStream: foreground.protocol,
-        closeout: "deadmouse.closeout",
-        wakeSignal: "deadmouse.wake-signal",
+        closeout: "kitty.closeout",
+        wakeSignal: "kitty.wake-signal",
       },
       preview: `Dreaming started execution '${execution.id}'. Real World remains unchanged; Mirror World will be created by the worker.`,
     }, null, 2), metadata);
@@ -150,7 +150,7 @@ function buildDreamingPrompt(input: {
   expectedOutput: string;
 }): string {
   return [
-    "You are Dreaming, Deadmouse's autonomous mirror-world self-improvement ecology.",
+    "You are Dreaming, Kitty's autonomous mirror-world self-improvement ecology.",
     "",
     "Core boundary:",
     "- Real World is the source repository. Do not modify it.",

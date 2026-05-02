@@ -8,7 +8,7 @@ import { createTempWorkspace } from "../helpers.js";
 
 test("telegram process lock blocks a second live service instance", async (t) => {
   const root = await createTempWorkspace("telegram-process-lock-live", t);
-  const stateDir = path.join(root, ".deadmouse", "telegram");
+  const stateDir = path.join(root, ".kitty", "telegram");
   await fs.mkdir(stateDir, { recursive: true });
   await fs.writeFile(path.join(stateDir, "service.pid"), "4242\n", "utf8");
 
@@ -27,7 +27,7 @@ test("telegram process lock blocks a second live service instance", async (t) =>
 
 test("telegram process lock replaces a stale pid file and removes it on release", async (t) => {
   const root = await createTempWorkspace("telegram-process-lock-stale", t);
-  const stateDir = path.join(root, ".deadmouse", "telegram");
+  const stateDir = path.join(root, ".kitty", "telegram");
   await fs.mkdir(stateDir, { recursive: true });
   await fs.writeFile(path.join(stateDir, "service.pid"), "4242\n", "utf8");
 

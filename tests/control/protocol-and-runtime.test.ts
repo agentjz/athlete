@@ -42,7 +42,7 @@ test("ProtocolRequestStore summarizes pending and resolved protocol requests", a
 
 test("MessageBus converts malformed inbox lines into safe protocol error messages", async (t) => {
   const root = await createTempWorkspace("mailbox", t);
-  const inboxDir = path.join(root, ".deadmouse", "team", "inbox");
+  const inboxDir = path.join(root, ".kitty", "team", "inbox");
   await fs.mkdir(inboxDir, { recursive: true });
   await fs.writeFile(
     path.join(inboxDir, "alpha.jsonl"),

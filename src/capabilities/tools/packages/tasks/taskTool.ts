@@ -86,9 +86,9 @@ export const taskTool: RegisteredTool = {
       agentType,
       executionId: execution.id,
       protocol: {
-        assignment: "deadmouse.assignment",
-        closeout: "deadmouse.closeout",
-        wakeSignal: "deadmouse.wake-signal",
+        assignment: "kitty.assignment",
+        closeout: "kitty.closeout",
+        wakeSignal: "kitty.wake-signal",
       },
       pid,
       boundary: execution.boundary,

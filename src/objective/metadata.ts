@@ -8,7 +8,7 @@ import type {
   ObjectiveTaskSnapshot,
 } from "./types.js";
 
-const OBJECTIVE_METADATA_MARKER = "[deadmouse-objective]";
+const OBJECTIVE_METADATA_MARKER = "[kitty-objective]";
 
 export function buildObjectiveFrame(text: string): ObjectiveFrame {
   const normalized = normalizeText(text) || "current task";

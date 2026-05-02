@@ -92,7 +92,7 @@ test("regression case runner reports missing captured trace facts", async (t) =>
     sessionId: session.id,
   });
 
-  const traceFile = path.join(root, ".deadmouse", "traces", `${session.id}.jsonl`);
+  const traceFile = path.join(root, ".kitty", "traces", `${session.id}.jsonl`);
   await import("node:fs/promises").then((fs) => fs.writeFile(traceFile, "", "utf8"));
 
   const results = await runRegressionCases({

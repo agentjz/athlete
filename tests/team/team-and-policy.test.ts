@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -35,7 +35,7 @@ test("team messaging keeps inbox archived until the model explicitly reads it", 
   assert.equal(injected.messages.length, 0);
   assert.equal((await bus.peekInbox("alpha")).length, 1);
 
-  const log = await fs.readFile(path.join(root, ".deadmouse", "team", "messages.jsonl"), "utf8");
+  const log = await fs.readFile(path.join(root, ".kitty", "team", "messages.jsonl"), "utf8");
   assert.match(log, /"to":"alpha"/);
 });
 

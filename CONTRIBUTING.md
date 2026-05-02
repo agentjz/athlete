@@ -1,6 +1,6 @@
 # Contributing
 
-Deadmouse is an experimental agent harness. Contributions should move the project toward stronger runtime behavior, clearer boundaries, and better evidence.
+Kitty is an experimental agent harness. Contributions should move the project toward stronger runtime behavior, clearer boundaries, and better evidence.
 
 ## Rules
 

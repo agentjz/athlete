@@ -3,7 +3,7 @@ import {
   buildMatchPreview,
   buildSearchText,
   clampLimit,
-  createSessionStore,
+  listReadableSessions,
   readBoolean,
   summarizeSession,
 } from "./historyShared.js";
@@ -46,7 +46,7 @@ export const sessionSearchTool: RegisteredTool = {
     const caseSensitive = readBoolean(args.case_sensitive);
     const limit = clampLimit(args.limit, 40);
     const sessionLimit = clampLimit(args.session_limit, 80);
-    const sessions = await createSessionStore(context.config).list(sessionLimit);
+    const { sessions, skipped } = await listReadableSessions(context.config, sessionLimit);
     const needle = caseSensitive ? query : query.toLowerCase();
     const matches: Array<Record<string, unknown>> = [];
 
@@ -73,11 +73,11 @@ export const sessionSearchTool: RegisteredTool = {
         });
 
         if (matches.length >= limit) {
-          return okResult(JSON.stringify({ ok: true, query, matches, truncated: true }, null, 2));
+          return okResult(JSON.stringify({ ok: true, query, matches, truncated: true, skippedSessions: skipped, skippedCount: skipped.length }, null, 2));
         }
       }
     }
 
-    return okResult(JSON.stringify({ ok: true, query, matches, truncated: false }, null, 2));
+    return okResult(JSON.stringify({ ok: true, query, matches, truncated: false, skippedSessions: skipped, skippedCount: skipped.length }, null, 2));
   },
 };

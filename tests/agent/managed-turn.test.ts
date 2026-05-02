@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
@@ -59,7 +59,7 @@ function createConfig(): RuntimeConfig {
       },
       messageChunkChars: 3_500,
       typingIntervalMs: 4_000,
-      stateDir: ".deadmouse/telegram",
+      stateDir: ".kitty/telegram",
     },
     paths: {
       configDir: ".",

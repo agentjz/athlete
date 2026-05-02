@@ -4,7 +4,7 @@ import { validateToolExecutionResult } from "./governance.js";
 import type { ToolRegistryEntry } from "./types.js";
 import type { PreparedToolExecution } from "./toolPrepare.js";
 
-const TOOL_EXECUTION_PROTOCOL_SYMBOL = Symbol.for("deadmouse.toolExecutionProtocol");
+const TOOL_EXECUTION_PROTOCOL_SYMBOL = Symbol.for("kitty.toolExecutionProtocol");
 
 export function finalizeToolExecution(
   entry: Pick<ToolRegistryEntry, "name" | "governance">,

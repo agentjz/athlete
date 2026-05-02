@@ -11,7 +11,7 @@ const LARGE_ARTIFACT_MARKER = "ROUND1-ARTIFACT::" + "Z".repeat(24_000);
 
 test("read_file returns a compact artifact view for externalized tool-result files", async (t) => {
   const root = await createTempWorkspace("tool-artifact-read", t);
-  const artifactPath = path.join(root, ".deadmouse", "tool-results", "session-a", "artifact.json");
+  const artifactPath = path.join(root, ".kitty", "tool-results", "session-a", "artifact.json");
   await fs.mkdir(path.dirname(artifactPath), { recursive: true });
   await fs.writeFile(artifactPath, buildLargeArtifactOutput(), "utf8");
 

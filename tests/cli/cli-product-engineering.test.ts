@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -183,7 +183,7 @@ async function captureStdout(run: () => Promise<void>): Promise<string> {
 }
 
 async function withTempAppDirs(run: () => Promise<void>): Promise<void> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "deadmouse-cli-config-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "Kitty-cli-config-"));
   const original = {
     APPDATA: process.env.APPDATA,
     LOCALAPPDATA: process.env.LOCALAPPDATA,

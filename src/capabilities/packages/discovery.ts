@@ -8,7 +8,7 @@ import { createCapabilityPackageFromManifest } from "../../protocol/manifest.js"
 import type { CapabilityPackage } from "../../protocol/package.js";
 
 const MANIFEST_GLOB = "**/*.capability.json";
-export const CAPABILITY_PACKAGE_ROOT = ".deadmouse/capabilities";
+export const CAPABILITY_PACKAGE_ROOT = ".kitty/capabilities";
 
 export async function discoverCapabilityPackages(rootDir: string): Promise<CapabilityPackage[]> {
   const packageRoot = getCapabilityPackageRoot(rootDir);
@@ -29,7 +29,7 @@ export async function discoverCapabilityPackages(rootDir: string): Promise<Capab
 }
 
 export function getCapabilityPackageRoot(rootDir: string): string {
-  return path.join(rootDir, ".deadmouse", "capabilities");
+  return path.join(rootDir, ".kitty", "capabilities");
 }
 
 export async function listCapabilityPackageManifestFiles(rootDir: string): Promise<string[]> {

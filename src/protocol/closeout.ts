@@ -1,4 +1,4 @@
-export const CLOSEOUT_PROTOCOL = "deadmouse.closeout" as const;
+export const CLOSEOUT_PROTOCOL = "kitty.closeout" as const;
 
 export type CloseoutStatus = "done" | "failed" | "blocked" | "budget_exhausted";
 

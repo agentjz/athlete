@@ -63,7 +63,7 @@ export const httpSessionTool: RegisteredTool = {
           },
           persist: {
             type: "boolean",
-            description: "When true, write session into .deadmouse/network/http-sessions.json.",
+            description: "When true, write session into .kitty/network/http-sessions.json.",
           },
           replace: {
             type: "boolean",
@@ -161,7 +161,7 @@ export const httpSessionTool: RegisteredTool = {
     await putHttpSession(context.projectContext.stateRootDir, next);
 
     const changedPath = next.persist
-      ? ".deadmouse/network/http-sessions.json"
+      ? ".kitty/network/http-sessions.json"
       : undefined;
 
     return okResult(

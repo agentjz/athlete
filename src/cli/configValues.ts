@@ -70,7 +70,7 @@ export function isMutableConfigKey(key: keyof AppConfig): boolean {
 export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppConfig[keyof AppConfig] {
   switch (key) {
     case "schemaVersion":
-      throw new Error("schemaVersion is managed by Deadmouse and cannot be set manually.");
+      throw new Error("schemaVersion is managed by Kitty and cannot be set manually.");
     case "showReasoning":
       return (rawValue === "true" || rawValue === "1") as AppConfig[keyof AppConfig];
     case "maxOutputTokens":

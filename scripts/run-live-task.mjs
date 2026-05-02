@@ -14,7 +14,7 @@ const prompt = await fs.readFile(promptPath, "utf8");
 await fs.mkdir(path.dirname(cliOutputPath), { recursive: true });
 const startedAt = Date.now();
 const promptNeedle = prompt.slice(0, 160);
-const sessionsDir = path.join(envPaths("deadmouse").data, "sessions");
+const sessionsDir = path.join(envPaths("kitty").data, "sessions");
 
 const child = spawn(
   process.execPath,

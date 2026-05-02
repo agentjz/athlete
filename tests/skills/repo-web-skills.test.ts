@@ -22,7 +22,7 @@ test("load_skill can load the repo web research workflow on demand", async () =>
     JSON.stringify({ name: "web-research" }),
     makeToolContext(root, root, {
       projectContext: {
-        stateRootDir: path.join(root, ".deadmouse"),
+        stateRootDir: path.join(root, ".kitty"),
         skills,
       },
     }) as any,

@@ -11,7 +11,7 @@ import {
 } from "./package.js";
 import type { CapabilityPortInput } from "./port.js";
 
-export const CAPABILITY_MANIFEST_PROTOCOL = "deadmouse.capability-manifest" as const;
+export const CAPABILITY_MANIFEST_PROTOCOL = "kitty.capability-manifest" as const;
 
 export interface CapabilityPackageManifest {
   protocol: typeof CAPABILITY_MANIFEST_PROTOCOL;

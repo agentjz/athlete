@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
 import { resolveUserPath } from "../../../../utils/fs.js";
+import { decodeTextBuffer } from "../../../../utils/text.js";
 import { ToolExecutionError } from "../../core/errors.js";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -38,7 +39,7 @@ export async function loadOpenApiDocument(input: {
 
   const raw = isHttpSource(source)
     ? await fetchSourceText(source, timeoutMs, input.abortSignal)
-    : await fs.readFile(resolveUserPath(source, input.cwd), "utf8");
+    : await readLocalSourceText(resolveUserPath(source, input.cwd), source);
   const parsed = parseOpenApiDocument(raw, source);
 
   return {
@@ -47,6 +48,21 @@ export async function loadOpenApiDocument(input: {
     document: parsed,
     raw,
   };
+}
+
+async function readLocalSourceText(resolvedSource: string, source: string): Promise<string> {
+  const decoded = decodeTextBuffer(await fs.readFile(resolvedSource));
+  if (!decoded) {
+    throw new ToolExecutionError(`openapi source is not a readable text file: ${source}`, {
+      code: "OPENAPI_SOURCE_NOT_TEXT",
+      details: {
+        source,
+        resolvedSource,
+      },
+    });
+  }
+
+  return decoded.text;
 }
 
 export function collectOpenApiOperations(document: Record<string, unknown>): OpenApiOperationSummary[] {

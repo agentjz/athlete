@@ -129,7 +129,7 @@ export async function executePreparedMineruRead(
   options: MineruReadExecutionOptions,
 ) {
   if (!context.config.mineru.token) {
-    throw new ToolExecutionError("Missing MINERU_API_TOKEN in .deadmouse/.env.", {
+    throw new ToolExecutionError("Missing MINERU_API_TOKEN in .kitty/.env.", {
       code: "MINERU_TOKEN_MISSING",
     });
   }
@@ -175,7 +175,7 @@ export async function executePreparedMineruRead(
       );
     }
 
-    const artifactDir = path.join(context.projectContext.stateRootDir, ".deadmouse", "mineru", batch.batchId);
+    const artifactDir = path.join(context.projectContext.stateRootDir, ".kitty", "mineru", batch.batchId);
     const archivePath = path.join(artifactDir, "result.zip");
     const markdownPath = path.join(artifactDir, "full.md");
     const markdown = await persistMineruMarkdownArtifacts(client, result, {
