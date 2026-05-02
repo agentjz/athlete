@@ -17,5 +17,17 @@ export async function scanPackageScripts({ root }) {
       message: "scripts.verify:repo-contracts must run scripts/verify-repo-contracts.mjs.",
     });
   }
+  if (scripts.sync !== "node scripts/sync-generated.mjs") {
+    findings.push({
+      file: "package.json",
+      message: "scripts.sync must run the standard generated artifact sync entry.",
+    });
+  }
+  if (scripts["verify:generated"] !== "node scripts/verify-generated.mjs") {
+    findings.push({
+      file: "package.json",
+      message: "scripts.verify:generated must run the standard generated artifact check entry.",
+    });
+  }
   return findings;
 }

@@ -3,6 +3,7 @@ import { scanPackageScripts } from "./packageScriptContracts.mjs";
 import { scanCapabilityEcosystemResidue, scanLegacyPackageResidue } from "./residueContracts.mjs";
 import { scanRuntimeUiStringResidue } from "./runtimeUiContracts.mjs";
 import { scanKittyNamingResidue } from "./kittyNamingContracts.mjs";
+import { scanGeneratedArtifacts } from "./generatedContracts.mjs";
 
 export const REPO_CONTRACTS = [
   {
@@ -29,6 +30,11 @@ export const REPO_CONTRACTS = [
     id: "standard-verify-entry",
     description: "package scripts must expose one standard repository verification entry",
     scan: scanPackageScripts,
+  },
+  {
+    id: "generated-artifacts-current",
+    description: "generated repository artifacts must stay synced with source facts",
+    scan: scanGeneratedArtifacts,
   },
   {
     id: "kitty-naming-only",
