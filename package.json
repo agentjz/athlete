@@ -36,6 +36,8 @@
     "verify:runtime-checkpoint-api": "npm run test:build && node scripts/verify-runtime-checkpoint-api.mjs",
     "verify:runtime-observability-api": "npm run test:build && node scripts/verify-runtime-observability-api.mjs",
     "verify:mineru-documents-api": "npm run test:build && node scripts/verify-mineru-documents-api.mjs",
+    "sync:readme-capabilities": "node scripts/sync-readme-capabilities.mjs",
+    "verify:readme-capabilities": "node scripts/sync-readme-capabilities.mjs --check",
     "verify:repo-contracts": "node scripts/verify-repo-contracts.mjs",
     "verify": "npm run verify:repo-contracts && npm test",
     "typecheck": "tsc --noEmit",

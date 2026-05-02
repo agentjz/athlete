@@ -1,0 +1,706 @@
+{
+  "profiles": [
+    {
+      "id": "intp",
+      "status": "✅",
+      "en": "Turns messy work into clear boundaries, responsibilities, evidence, and next steps.",
+      "zh": "把混乱任务拆成清楚的边界、责任、证据和下一步。"
+    },
+    {
+      "id": "grok",
+      "status": "✅",
+      "en": "Pushes against weak assumptions, fake certainty, and decorative complexity.",
+      "zh": "挑穿弱前提、假确定性和装饰性复杂度。"
+    },
+    {
+      "id": "caveman",
+      "status": "✅",
+      "en": "Keeps output short, direct, and information-dense without losing facts.",
+      "zh": "输出更短、更直接、更高密度，但不丢事实。"
+    },
+    {
+      "id": "buddha",
+      "status": "✅",
+      "en": "Keeps long work calm, visible, and moving until evidence closes the loop.",
+      "zh": "让长任务保持平静、可见、持续推进，直到证据闭环。"
+    }
+  ],
+  "capabilityCategories": [
+    {
+      "title": {
+        "en": "Execution Ecology",
+        "zh": "执行生态"
+      },
+      "items": [
+        {
+          "name": "Dreaming",
+          "status": "🚧",
+          "en": "Works inside a Mirror World, explores improvements, preserves evidence, and returns merge proposals without touching the real project directly.",
+          "zh": "在 Mirror World 里探索改进、保留证据、交回 merge proposal，不直接破坏真实项目。"
+        },
+        {
+          "name": "Dreaming Loop",
+          "status": "✅",
+          "en": "Runs repeated Dreaming rounds while keeping every continuation decision with Lead.",
+          "zh": "跑多轮做梦，但是否继续下一轮仍由 Lead 判断。"
+        },
+        {
+          "name": "Subagent `explore`",
+          "status": "✅",
+          "en": "Read-only codebase exploration for concrete facts.",
+          "zh": "只读探索代码，收集事实。"
+        },
+        {
+          "name": "Subagent `plan`",
+          "status": "✅",
+          "en": "Read-only design analysis for implementation planning.",
+          "zh": "只读分析设计，产出实现计划。"
+        },
+        {
+          "name": "Subagent `code`",
+          "status": "✅",
+          "en": "Focused implementation lane with edit and validation tools.",
+          "zh": "聚焦写代码，带编辑和验证工具。"
+        },
+        {
+          "name": "Team",
+          "status": "✅",
+          "en": "Coordinates teammates through inbox, task, execution, and closeout records.",
+          "zh": "让多个队友通过 inbox、task、execution 和 closeout 正式协作。"
+        },
+        {
+          "name": "Workflow",
+          "status": "✅",
+          "en": "Offers reusable work methods while Lead keeps strategy control.",
+          "zh": "提供可复用工作方法，但策略仍由 Lead 控制。"
+        },
+        {
+          "name": "Background",
+          "status": "✅",
+          "en": "Runs slow commands in recorded execution lanes.",
+          "zh": "把慢命令放进可记录的执行通道。"
+        },
+        {
+          "name": "Skills",
+          "status": "✅",
+          "en": "Loads focused local knowledge only when Lead asks for it.",
+          "zh": "只在 Lead 需要时加载本地知识包。"
+        },
+        {
+          "name": "MCP",
+          "status": "✅",
+          "en": "Connects configured external tool servers through the governed capability surface.",
+          "zh": "把配置过的外部工具服务器接入同一套能力治理面。"
+        },
+        {
+          "name": "Capability Package",
+          "status": "✅",
+          "en": "Lets external ecosystems dock through a formal port instead of one-off glue logic.",
+          "zh": "让外部生态通过正式 port 停靠进来。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Built-in Skill Packages",
+        "zh": "内置 Skill 包"
+      },
+      "items": [
+        {
+          "name": "`mineru-doc-reading`",
+          "status": "✅",
+          "en": "Adds focused guidance for reading document files through MinerU.",
+          "zh": "提供用 MinerU 读取文档文件的专门方法。"
+        },
+        {
+          "name": "`mineru-image-reading`",
+          "status": "✅",
+          "en": "Adds focused guidance for image reading through MinerU.",
+          "zh": "提供用 MinerU 读取图片的专门方法。"
+        },
+        {
+          "name": "`mineru-pdf-reading`",
+          "status": "✅",
+          "en": "Adds focused guidance for PDF reading through MinerU.",
+          "zh": "提供用 MinerU 读取 PDF 的专门方法。"
+        },
+        {
+          "name": "`mineru-ppt-reading`",
+          "status": "✅",
+          "en": "Adds focused guidance for presentation reading through MinerU.",
+          "zh": "提供用 MinerU 读取演示文稿的专门方法。"
+        },
+        {
+          "name": "`spec-alignment`",
+          "status": "✅",
+          "en": "Keeps spec, code, and tests aligned after changes.",
+          "zh": "用于变更后同步 spec、代码和测试。"
+        },
+        {
+          "name": "`test-guardrails`",
+          "status": "✅",
+          "en": "Keeps verification grounded in repository contracts.",
+          "zh": "用于把验证约束在仓库契约里。"
+        },
+        {
+          "name": "`web-research`",
+          "status": "✅",
+          "en": "Adds focused guidance for evidence-based web research.",
+          "zh": "提供基于证据的网页研究方法。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "CLI Surface",
+        "zh": "CLI 功能面"
+      },
+      "items": [
+        {
+          "name": "`kitty`",
+          "status": "✅",
+          "en": "Starts interactive mode or runs a one-shot prompt.",
+          "zh": "进入交互模式，或执行一次性 prompt。"
+        },
+        {
+          "name": "`kitty run`",
+          "status": "✅",
+          "en": "Runs a one-shot task explicitly.",
+          "zh": "显式执行一次性任务。"
+        },
+        {
+          "name": "`kitty resume`",
+          "status": "✅",
+          "en": "Resumes the latest or selected saved session.",
+          "zh": "恢复最近一次或指定历史会话。"
+        },
+        {
+          "name": "`kitty sessions`",
+          "status": "✅",
+          "en": "Lists recent sessions.",
+          "zh": "列出最近会话。"
+        },
+        {
+          "name": "`kitty init`",
+          "status": "✅",
+          "en": "Creates project-local `.kitty` files.",
+          "zh": "创建项目本地 `.kitty` 文件。"
+        },
+        {
+          "name": "`kitty diff`",
+          "status": "✅",
+          "en": "Shows the current project Git diff.",
+          "zh": "查看当前项目 Git diff。"
+        },
+        {
+          "name": "`kitty changes`",
+          "status": "✅",
+          "en": "Lists or reads recorded file changes.",
+          "zh": "列出或读取已记录的文件变更。"
+        },
+        {
+          "name": "`kitty undo`",
+          "status": "✅",
+          "en": "Undoes the latest or selected recorded change.",
+          "zh": "回滚最近一次或指定变更记录。"
+        },
+        {
+          "name": "`kitty config`",
+          "status": "✅",
+          "en": "Reads and updates local Kitty configuration.",
+          "zh": "读取和更新本地 Kitty 配置。"
+        },
+        {
+          "name": "`kitty doctor`",
+          "status": "✅",
+          "en": "Checks provider, runtime, and observability health.",
+          "zh": "检查模型连接、运行时和观测状态。"
+        },
+        {
+          "name": "`kitty capability package`",
+          "status": "✅",
+          "en": "Installs, lists, enables, disables, diagnoses, and tests capability packages.",
+          "zh": "安装、查看、启停、诊断和测试能力包。"
+        },
+        {
+          "name": "`kitty regression`",
+          "status": "✅",
+          "en": "Captures and runs evidence-backed regression cases.",
+          "zh": "捕获并运行有证据支撑的回归案例。"
+        },
+        {
+          "name": "`kitty telegram serve`",
+          "status": "✅",
+          "en": "Starts the Telegram direct-message service.",
+          "zh": "启动 Telegram 私聊服务。"
+        }
+      ]
+    }
+  ],
+  "toolCategories": [
+    {
+      "title": {
+        "en": "Dreaming Tools",
+        "zh": "Dreaming 工具"
+      },
+      "tools": [
+        {
+          "name": "dreaming_start",
+          "status": "🚧",
+          "en": "Starts one Mirror World Dreaming execution.",
+          "zh": "启动一次 Mirror World 做梦执行。"
+        },
+        {
+          "name": "dreaming_loop_start",
+          "status": "✅",
+          "en": "Creates a Dreaming Loop ledger.",
+          "zh": "创建 Dreaming Loop 账本。"
+        },
+        {
+          "name": "dreaming_loop_next",
+          "status": "✅",
+          "en": "Starts one explicit Dreaming round from a loop.",
+          "zh": "从 loop 启动一轮明确的 Dreaming。"
+        },
+        {
+          "name": "dreaming_loop_status",
+          "status": "✅",
+          "en": "Reads Dreaming Loop state and round evidence.",
+          "zh": "查看 Dreaming Loop 状态和轮次证据。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "File And Code Tools",
+        "zh": "文件与代码工具"
+      },
+      "tools": [
+        {
+          "name": "list_files",
+          "status": "✅",
+          "en": "Lists files and directories.",
+          "zh": "列出文件和目录。"
+        },
+        {
+          "name": "find_files",
+          "status": "✅",
+          "en": "Finds files by path pattern.",
+          "zh": "按路径模式找文件。"
+        },
+        {
+          "name": "read_file",
+          "status": "✅",
+          "en": "Reads local files with anchors for later edits.",
+          "zh": "读取文件，并给后续编辑提供锚点。"
+        },
+        {
+          "name": "search_files",
+          "status": "✅",
+          "en": "Searches file contents.",
+          "zh": "搜索文件内容。"
+        },
+        {
+          "name": "write_file",
+          "status": "✅",
+          "en": "Creates new files.",
+          "zh": "创建新文件。"
+        },
+        {
+          "name": "edit_file",
+          "status": "✅",
+          "en": "Edits existing files with read anchors.",
+          "zh": "基于锚点编辑已有文件。"
+        },
+        {
+          "name": "apply_patch",
+          "status": "✅",
+          "en": "Applies structured patches.",
+          "zh": "应用结构化补丁。"
+        },
+        {
+          "name": "undo_last_change",
+          "status": "✅",
+          "en": "Reverts the latest recorded file change.",
+          "zh": "回滚最近一次记录的文件修改。"
+        },
+        {
+          "name": "code_symbols",
+          "status": "✅",
+          "en": "Lists code symbols.",
+          "zh": "列出代码符号。"
+        },
+        {
+          "name": "code_references",
+          "status": "✅",
+          "en": "Finds code references.",
+          "zh": "查找代码引用。"
+        },
+        {
+          "name": "code_pattern",
+          "status": "✅",
+          "en": "Finds structural code patterns.",
+          "zh": "查找代码结构模式。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Document Tools",
+        "zh": "文档工具"
+      },
+      "tools": [
+        {
+          "name": "mineru_pdf_read",
+          "status": "✅",
+          "en": "Reads PDFs through MinerU.",
+          "zh": "用 MinerU 读取 PDF。"
+        },
+        {
+          "name": "mineru_image_read",
+          "status": "✅",
+          "en": "Reads images through MinerU.",
+          "zh": "用 MinerU 读取图片。"
+        },
+        {
+          "name": "mineru_doc_read",
+          "status": "✅",
+          "en": "Reads document files through MinerU.",
+          "zh": "用 MinerU 读取文档。"
+        },
+        {
+          "name": "mineru_ppt_read",
+          "status": "✅",
+          "en": "Reads presentations through MinerU.",
+          "zh": "用 MinerU 读取演示文稿。"
+        },
+        {
+          "name": "read_docx",
+          "status": "✅",
+          "en": "Reads DOCX files.",
+          "zh": "读取 DOCX。"
+        },
+        {
+          "name": "write_docx",
+          "status": "✅",
+          "en": "Writes DOCX files.",
+          "zh": "写入 DOCX。"
+        },
+        {
+          "name": "edit_docx",
+          "status": "✅",
+          "en": "Edits DOCX files.",
+          "zh": "编辑 DOCX。"
+        },
+        {
+          "name": "read_spreadsheet",
+          "status": "✅",
+          "en": "Reads spreadsheet files.",
+          "zh": "读取表格文件。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Network And API Tools",
+        "zh": "网络与 API 工具"
+      },
+      "tools": [
+        {
+          "name": "http_probe",
+          "status": "✅",
+          "en": "Checks a URL quickly.",
+          "zh": "快速探测 URL。"
+        },
+        {
+          "name": "http_request",
+          "status": "✅",
+          "en": "Sends one HTTP request.",
+          "zh": "发送一次 HTTP 请求。"
+        },
+        {
+          "name": "http_session",
+          "status": "✅",
+          "en": "Manages reusable HTTP session state.",
+          "zh": "管理可复用 HTTP 会话状态。"
+        },
+        {
+          "name": "http_suite",
+          "status": "✅",
+          "en": "Runs a small HTTP check suite.",
+          "zh": "运行一组轻量 HTTP 检查。"
+        },
+        {
+          "name": "network_trace",
+          "status": "✅",
+          "en": "Records network evidence.",
+          "zh": "记录网络取证。"
+        },
+        {
+          "name": "openapi_inspect",
+          "status": "✅",
+          "en": "Inspects OpenAPI documents.",
+          "zh": "检查 OpenAPI 文档。"
+        },
+        {
+          "name": "openapi_lint",
+          "status": "✅",
+          "en": "Lints OpenAPI documents.",
+          "zh": "校验 OpenAPI 文档。"
+        },
+        {
+          "name": "download_url",
+          "status": "✅",
+          "en": "Downloads a URL into a file.",
+          "zh": "下载 URL 到文件。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "History And Trace Tools",
+        "zh": "历史与 Trace 工具"
+      },
+      "tools": [
+        {
+          "name": "session_list",
+          "status": "✅",
+          "en": "Lists saved sessions.",
+          "zh": "列出历史会话。"
+        },
+        {
+          "name": "session_read",
+          "status": "✅",
+          "en": "Reads one saved session.",
+          "zh": "读取一个历史会话。"
+        },
+        {
+          "name": "session_search",
+          "status": "✅",
+          "en": "Searches session history.",
+          "zh": "搜索历史会话。"
+        },
+        {
+          "name": "session_final_output",
+          "status": "✅",
+          "en": "Reads a session's final output.",
+          "zh": "读取会话最终输出。"
+        },
+        {
+          "name": "tool_artifact_read",
+          "status": "✅",
+          "en": "Reads stored tool artifacts.",
+          "zh": "读取工具产物。"
+        },
+        {
+          "name": "runtime_event_search",
+          "status": "✅",
+          "en": "Searches runtime events.",
+          "zh": "搜索运行事件。"
+        },
+        {
+          "name": "change_record_read",
+          "status": "✅",
+          "en": "Reads recorded changes.",
+          "zh": "读取变更记录。"
+        },
+        {
+          "name": "agent_trace_list",
+          "status": "✅",
+          "en": "Lists agent traces.",
+          "zh": "列出 agent trace。"
+        },
+        {
+          "name": "agent_trace_read",
+          "status": "✅",
+          "en": "Reads one agent trace.",
+          "zh": "读取一个 agent trace。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Task And Team Tools",
+        "zh": "任务与队友工具"
+      },
+      "tools": [
+        {
+          "name": "todo_write",
+          "status": "✅",
+          "en": "Updates the visible todo list.",
+          "zh": "更新可见 todo。"
+        },
+        {
+          "name": "task",
+          "status": "✅",
+          "en": "Creates a delegated task with a selected subagent type.",
+          "zh": "创建带 subagent 类型的委派任务。"
+        },
+        {
+          "name": "task_create",
+          "status": "✅",
+          "en": "Creates a persistent task.",
+          "zh": "创建持久任务。"
+        },
+        {
+          "name": "task_get",
+          "status": "✅",
+          "en": "Reads one task.",
+          "zh": "读取一个任务。"
+        },
+        {
+          "name": "task_list",
+          "status": "✅",
+          "en": "Lists tasks.",
+          "zh": "列出任务。"
+        },
+        {
+          "name": "task_update",
+          "status": "✅",
+          "en": "Updates task state.",
+          "zh": "更新任务状态。"
+        },
+        {
+          "name": "claim_task",
+          "status": "✅",
+          "en": "Claims a task and binds a worktree.",
+          "zh": "认领任务并绑定 worktree。"
+        },
+        {
+          "name": "coordination_policy",
+          "status": "✅",
+          "en": "Updates team coordination policy.",
+          "zh": "更新团队协作策略。"
+        },
+        {
+          "name": "spawn_teammate",
+          "status": "✅",
+          "en": "Starts a teammate execution.",
+          "zh": "启动队友执行。"
+        },
+        {
+          "name": "list_teammates",
+          "status": "✅",
+          "en": "Lists teammates.",
+          "zh": "列出队友。"
+        },
+        {
+          "name": "send_message",
+          "status": "✅",
+          "en": "Sends a message to a teammate.",
+          "zh": "给队友发消息。"
+        },
+        {
+          "name": "read_inbox",
+          "status": "✅",
+          "en": "Reads Lead inbox messages.",
+          "zh": "读取 Lead inbox。"
+        },
+        {
+          "name": "broadcast",
+          "status": "✅",
+          "en": "Broadcasts a message to teammates.",
+          "zh": "向队友广播消息。"
+        },
+        {
+          "name": "shutdown_request",
+          "status": "✅",
+          "en": "Requests teammate shutdown.",
+          "zh": "请求队友关闭。"
+        },
+        {
+          "name": "shutdown_response",
+          "status": "✅",
+          "en": "Responds to a shutdown request.",
+          "zh": "响应关闭请求。"
+        },
+        {
+          "name": "plan_approval",
+          "status": "✅",
+          "en": "Records plan approval state.",
+          "zh": "记录计划批准状态。"
+        },
+        {
+          "name": "idle",
+          "status": "✅",
+          "en": "Records idle state.",
+          "zh": "记录空闲状态。"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Worktree, Shell, Background, And Skill Tools",
+        "zh": "Worktree、Shell、后台与 Skill 工具"
+      },
+      "tools": [
+        {
+          "name": "worktree_list",
+          "status": "✅",
+          "en": "Lists worktrees.",
+          "zh": "列出 worktree。"
+        },
+        {
+          "name": "worktree_get",
+          "status": "✅",
+          "en": "Reads one worktree record.",
+          "zh": "读取一个 worktree 记录。"
+        },
+        {
+          "name": "worktree_events",
+          "status": "✅",
+          "en": "Reads worktree events.",
+          "zh": "读取 worktree 事件。"
+        },
+        {
+          "name": "worktree_create",
+          "status": "✅",
+          "en": "Creates an isolated worktree.",
+          "zh": "创建隔离 worktree。"
+        },
+        {
+          "name": "worktree_keep",
+          "status": "✅",
+          "en": "Marks a worktree to keep.",
+          "zh": "标记保留 worktree。"
+        },
+        {
+          "name": "worktree_remove",
+          "status": "✅",
+          "en": "Removes a worktree.",
+          "zh": "删除 worktree。"
+        },
+        {
+          "name": "run_shell",
+          "status": "✅",
+          "en": "Runs a foreground shell command.",
+          "zh": "运行前台 shell 命令。"
+        },
+        {
+          "name": "background_run",
+          "status": "✅",
+          "en": "Starts a background command.",
+          "zh": "启动后台命令。"
+        },
+        {
+          "name": "background_check",
+          "status": "✅",
+          "en": "Reads background command status.",
+          "zh": "查看后台命令状态。"
+        },
+        {
+          "name": "background_terminate",
+          "status": "✅",
+          "en": "Terminates a background command.",
+          "zh": "终止后台命令。"
+        },
+        {
+          "name": "load_skill",
+          "status": "✅",
+          "en": "Loads a local skill package.",
+          "zh": "加载本地 skill 包。"
+        }
+      ]
+    }
+  ]
+}

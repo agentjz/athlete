@@ -1,67 +1,182 @@
 # 🐱kitty-agent
 
 <p align="center">
-  <strong>A task execution harness where the Lead keeps the wheel and the machine layer keeps the ledger and brakes</strong>
-</p>
-
-<p align="center">
   <a href="./README.zh.md">Chinese README</a>
 </p>
 
 <p align="center">
-  <img alt="lead harness" src="https://img.shields.io/badge/lead-harness-c0c0c0?style=for-the-badge&labelColor=111827">
-  <img alt="durable runtime" src="https://img.shields.io/badge/durable-runtime-9ca3af?style=for-the-badge&labelColor=1f2937">
-  <img alt="gpt-5.4 supported" src="https://img.shields.io/badge/GPT--5.4-supported-d6d3d1?style=for-the-badge&labelColor=292524">
-  <img alt="checkpoint persisted" src="https://img.shields.io/badge/checkpoint-persisted-64748b?style=for-the-badge&labelColor=0f172a">
-  <img alt="runtime stats" src="https://img.shields.io/badge/runtime-stats-d4af37?style=for-the-badge&labelColor=1c1917">
+  <img alt="agent" src="https://img.shields.io/badge/agent-kitty-c0c0c0?style=for-the-badge&labelColor=111827">
+  <img alt="harness" src="https://img.shields.io/badge/harness-runtime-9ca3af?style=for-the-badge&labelColor=1f2937">
+  <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-d4af37?style=for-the-badge&labelColor=1c1917">
 </p>
 
-Kitty does not ask the machine layer to do the Lead model's thinking, and it does not turn the machine layer into a second commander. Its job is to equip the Lead with a ledger, boundaries, loop guards, and evidence records. The user provides the objective; the Lead interprets that objective, chooses the route, calls tools, delegates to teammates or subagents, starts background work, gathers results, and decides what happens next. The machine layer turns that execution into a process with records, state, and evidence.
+Kitty is open source under the MIT License.
 
-The steering wheel always stays with the Lead, but pending work cannot pretend to be finished, execution lanes cannot run forever, evidence cannot be faked as passing, and ledgers cannot become strategy. In short, Kitty is neither autopilot nor an approval system. It is an agent harness that keeps large-model execution durable, recoverable, and traceable.
+<!-- capability-ecology:start -->
 
-## Developer commands
+## Built-in Profiles
 
-| Command | Meaning |
-| --- | --- |
-| `npm.cmd install` | Install project dependencies |
-| `npm.cmd run typecheck` | Run TypeScript type checking |
-| `npm.cmd run build` | Build the CLI into `dist/cli.js` |
-| `npm.cmd run check` | Run `typecheck + build` |
-| `npm.cmd test` | Run the full test suite, including `check + test:core` |
-| `npm.cmd run test:build` | Build test artifacts into `.test-build/` |
-| `npm.cmd run test:core` | Run the core test suite |
-| `npm.cmd run verify:skills-api` | Verify the skills API |
-| `npm.cmd run verify:runtime-context-api` | Verify the runtime lightweight context API |
-| `npm.cmd run verify:runtime-checkpoint-api` | Verify the runtime checkpoint API |
-| `npm.cmd run verify:runtime-observability-api` | Verify the runtime observability API |
-| `npm.cmd run verify:mineru-documents-api` | Verify the MinerU document capability API |
-| `npm.cmd run dev` | Start the CLI from source |
-| `npm.cmd run dev -- "Help me inspect this project"` | Run a one-shot task from source |
-| `node dist/cli.js` | Start interactive mode from the built artifact |
-| `node dist/cli.js "Help me inspect this project"` | Run a one-shot task from the built artifact |
-| `node dist/cli.js telegram serve` | Start the Telegram service from the built artifact |
+| Profile | What it does | Status |
+| --- | --- | --- |
+| `intp` | Turns messy work into clear boundaries, responsibilities, evidence, and next steps. | ✅ |
+| `grok` | Pushes against weak assumptions, fake certainty, and decorative complexity. | ✅ |
+| `caveman` | Keeps output short, direct, and information-dense without losing facts. | ✅ |
+| `buddha` | Keeps long work calm, visible, and moving until evidence closes the loop. | ✅ |
 
-## User commands
+## Capability Ecology
 
-| Command | Meaning |
-| --- | --- |
-| `npm install -g @jun133/kitty` | Install the CLI globally |
-| `kitty init` | Initialize `.kitty/` for the current project |
-| `kitty` | Enter interactive mode |
-| `kitty "Help me inspect this project"` | Run a one-shot task |
-| `kitty run "Help me inspect this project"` | Explicitly run a one-shot task |
-| `kitty resume [sessionId]` | Resume the latest or a specific session |
-| `kitty sessions -n 20` | List recent sessions |
-| `kitty diff [path]` | Show the current project's Git diff |
-| `kitty changes [changeId]` | Show recorded changes |
-| `kitty undo [changeId]` | Roll back the latest or a specific change |
-| `kitty config show` | Show the current configuration |
-| `kitty config path` | Show the configuration file path |
-| `kitty doctor` | Check local configuration and API connectivity |
-| `kitty telegram serve` | Start the Telegram direct-message service |
+### Execution Ecology
 
-## Release commands
+| Capability | What it does | Status |
+| --- | --- | --- |
+| Dreaming | Works inside a Mirror World, explores improvements, preserves evidence, and returns merge proposals without touching the real project directly. | 🚧 |
+| Dreaming Loop | Runs repeated Dreaming rounds while keeping every continuation decision with Lead. | ✅ |
+| Subagent `explore` | Read-only codebase exploration for concrete facts. | ✅ |
+| Subagent `plan` | Read-only design analysis for implementation planning. | ✅ |
+| Subagent `code` | Focused implementation lane with edit and validation tools. | ✅ |
+| Team | Coordinates teammates through inbox, task, execution, and closeout records. | ✅ |
+| Workflow | Offers reusable work methods while Lead keeps strategy control. | ✅ |
+| Background | Runs slow commands in recorded execution lanes. | ✅ |
+| Skills | Loads focused local knowledge only when Lead asks for it. | ✅ |
+| MCP | Connects configured external tool servers through the governed capability surface. | ✅ |
+| Capability Package | Lets external ecosystems dock through a formal port instead of one-off glue logic. | ✅ |
+
+### Built-in Skill Packages
+
+| Capability | What it does | Status |
+| --- | --- | --- |
+| `mineru-doc-reading` | Adds focused guidance for reading document files through MinerU. | ✅ |
+| `mineru-image-reading` | Adds focused guidance for image reading through MinerU. | ✅ |
+| `mineru-pdf-reading` | Adds focused guidance for PDF reading through MinerU. | ✅ |
+| `mineru-ppt-reading` | Adds focused guidance for presentation reading through MinerU. | ✅ |
+| `spec-alignment` | Keeps spec, code, and tests aligned after changes. | ✅ |
+| `test-guardrails` | Keeps verification grounded in repository contracts. | ✅ |
+| `web-research` | Adds focused guidance for evidence-based web research. | ✅ |
+
+### CLI Surface
+
+| Capability | What it does | Status |
+| --- | --- | --- |
+| `kitty` | Starts interactive mode or runs a one-shot prompt. | ✅ |
+| `kitty run` | Runs a one-shot task explicitly. | ✅ |
+| `kitty resume` | Resumes the latest or selected saved session. | ✅ |
+| `kitty sessions` | Lists recent sessions. | ✅ |
+| `kitty init` | Creates project-local `.kitty` files. | ✅ |
+| `kitty diff` | Shows the current project Git diff. | ✅ |
+| `kitty changes` | Lists or reads recorded file changes. | ✅ |
+| `kitty undo` | Undoes the latest or selected recorded change. | ✅ |
+| `kitty config` | Reads and updates local Kitty configuration. | ✅ |
+| `kitty doctor` | Checks provider, runtime, and observability health. | ✅ |
+| `kitty capability package` | Installs, lists, enables, disables, diagnoses, and tests capability packages. | ✅ |
+| `kitty regression` | Captures and runs evidence-backed regression cases. | ✅ |
+| `kitty telegram serve` | Starts the Telegram direct-message service. | ✅ |
+
+### Dreaming Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `dreaming_start` | Starts one Mirror World Dreaming execution. | 🚧 |
+| `dreaming_loop_start` | Creates a Dreaming Loop ledger. | ✅ |
+| `dreaming_loop_next` | Starts one explicit Dreaming round from a loop. | ✅ |
+| `dreaming_loop_status` | Reads Dreaming Loop state and round evidence. | ✅ |
+
+### File And Code Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `list_files` | Lists files and directories. | ✅ |
+| `find_files` | Finds files by path pattern. | ✅ |
+| `read_file` | Reads local files with anchors for later edits. | ✅ |
+| `search_files` | Searches file contents. | ✅ |
+| `write_file` | Creates new files. | ✅ |
+| `edit_file` | Edits existing files with read anchors. | ✅ |
+| `apply_patch` | Applies structured patches. | ✅ |
+| `undo_last_change` | Reverts the latest recorded file change. | ✅ |
+| `code_symbols` | Lists code symbols. | ✅ |
+| `code_references` | Finds code references. | ✅ |
+| `code_pattern` | Finds structural code patterns. | ✅ |
+
+### Document Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `mineru_pdf_read` | Reads PDFs through MinerU. | ✅ |
+| `mineru_image_read` | Reads images through MinerU. | ✅ |
+| `mineru_doc_read` | Reads document files through MinerU. | ✅ |
+| `mineru_ppt_read` | Reads presentations through MinerU. | ✅ |
+| `read_docx` | Reads DOCX files. | ✅ |
+| `write_docx` | Writes DOCX files. | ✅ |
+| `edit_docx` | Edits DOCX files. | ✅ |
+| `read_spreadsheet` | Reads spreadsheet files. | ✅ |
+
+### Network And API Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `http_probe` | Checks a URL quickly. | ✅ |
+| `http_request` | Sends one HTTP request. | ✅ |
+| `http_session` | Manages reusable HTTP session state. | ✅ |
+| `http_suite` | Runs a small HTTP check suite. | ✅ |
+| `network_trace` | Records network evidence. | ✅ |
+| `openapi_inspect` | Inspects OpenAPI documents. | ✅ |
+| `openapi_lint` | Lints OpenAPI documents. | ✅ |
+| `download_url` | Downloads a URL into a file. | ✅ |
+
+### History And Trace Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `session_list` | Lists saved sessions. | ✅ |
+| `session_read` | Reads one saved session. | ✅ |
+| `session_search` | Searches session history. | ✅ |
+| `session_final_output` | Reads a session's final output. | ✅ |
+| `tool_artifact_read` | Reads stored tool artifacts. | ✅ |
+| `runtime_event_search` | Searches runtime events. | ✅ |
+| `change_record_read` | Reads recorded changes. | ✅ |
+| `agent_trace_list` | Lists agent traces. | ✅ |
+| `agent_trace_read` | Reads one agent trace. | ✅ |
+
+### Task And Team Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `todo_write` | Updates the visible todo list. | ✅ |
+| `task` | Creates a delegated task with a selected subagent type. | ✅ |
+| `task_create` | Creates a persistent task. | ✅ |
+| `task_get` | Reads one task. | ✅ |
+| `task_list` | Lists tasks. | ✅ |
+| `task_update` | Updates task state. | ✅ |
+| `claim_task` | Claims a task and binds a worktree. | ✅ |
+| `coordination_policy` | Updates team coordination policy. | ✅ |
+| `spawn_teammate` | Starts a teammate execution. | ✅ |
+| `list_teammates` | Lists teammates. | ✅ |
+| `send_message` | Sends a message to a teammate. | ✅ |
+| `read_inbox` | Reads Lead inbox messages. | ✅ |
+| `broadcast` | Broadcasts a message to teammates. | ✅ |
+| `shutdown_request` | Requests teammate shutdown. | ✅ |
+| `shutdown_response` | Responds to a shutdown request. | ✅ |
+| `plan_approval` | Records plan approval state. | ✅ |
+| `idle` | Records idle state. | ✅ |
+
+### Worktree, Shell, Background, And Skill Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
+| `worktree_list` | Lists worktrees. | ✅ |
+| `worktree_get` | Reads one worktree record. | ✅ |
+| `worktree_events` | Reads worktree events. | ✅ |
+| `worktree_create` | Creates an isolated worktree. | ✅ |
+| `worktree_keep` | Marks a worktree to keep. | ✅ |
+| `worktree_remove` | Removes a worktree. | ✅ |
+| `run_shell` | Runs a foreground shell command. | ✅ |
+| `background_run` | Starts a background command. | ✅ |
+| `background_check` | Reads background command status. | ✅ |
+| `background_terminate` | Terminates a background command. | ✅ |
+| `load_skill` | Loads a local skill package. | ✅ |
+
+<!-- capability-ecology:end -->
+
+## Release Guide
 
 | Command | Meaning |
 | --- | --- |
@@ -69,6 +184,7 @@ The steering wheel always stays with the Lead, but pending work cannot pretend t
 | `npm whoami` | Confirm the current publishing account |
 | `npm.cmd run check` | Run type checking and build before publishing |
 | `npm.cmd test` | Run the full test suite before publishing |
+| `npm.cmd run verify:mineru-documents-api` | Verify the MinerU document capability API |
 | `npm pack --dry-run` | Preview the files that would be published to NPM |
 | `npm version patch` | Publish a patch version |
 | `npm version minor` | Publish a minor version |
