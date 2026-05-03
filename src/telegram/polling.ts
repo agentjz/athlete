@@ -1,4 +1,4 @@
-import type { TelegramRuntimeConfig } from "./config.js";
+﻿import type { TelegramRuntimeConfig } from "../config/hosts.js";
 import type { TelegramBotApiClient } from "./botApiClient.js";
 import type { TelegramUpdate } from "./types.js";
 import type { TelegramOffsetStoreLike } from "./offsetStore.js";

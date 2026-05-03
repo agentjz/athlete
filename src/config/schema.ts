@@ -1,8 +1,8 @@
-import { getDefaultMcpConfig, normalizeMcpConfig } from "../capabilities/mcp/config.js";
+﻿import { getDefaultMcpConfig, normalizeMcpConfig } from "../capabilities/mcp/config.js";
 import {
   DEFAULT_TELEGRAM_CONFIG,
   normalizeTelegramConfig,
-} from "../telegram/config.js";
+} from "../config/hosts.js";
 import type { AppConfig } from "../types.js";
 
 export const CURRENT_CONFIG_SCHEMA_VERSION = 1 as const;

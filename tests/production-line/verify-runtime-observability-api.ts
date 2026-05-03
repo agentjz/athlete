@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+﻿import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -10,7 +10,7 @@ import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import type { AgentIdentity } from "../../src/agent/types.js";
 import { resolveRuntimeConfig } from "../../src/config/store.js";
 import type { SessionRuntimeStats, ToolExecutionResult } from "../../src/types.js";
-import { formatSessionRuntimeSummary } from "../../src/ui/runtimeSummary.js";
+import { formatSessionRuntimeSummary } from "../../src/host/summary.js";
 import {
   createCapturingToolRegistry,
   createFunctionTool,

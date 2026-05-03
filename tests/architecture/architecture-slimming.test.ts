@@ -152,3 +152,55 @@ test("spec mode keeps domain state separate from capability tools", () => {
   );
   assert.doesNotMatch(fs.readFileSync(path.join(specRoot, "store.ts"), "utf8"), /capabilities[\\/]/);
 });
+
+test("agent runtime and host boundary do not depend on concrete shells", () => {
+  const sourceRoot = path.resolve(process.cwd(), "src");
+  const coreDirectories = [
+    "agent",
+    "capabilities",
+    "config",
+    "context",
+    "execution",
+    "host",
+    "interaction",
+    "protocol",
+    "spec",
+    "types",
+  ];
+  const forbiddenShellImports = /from\s+["'][^"']*(?:\.\.\/)+(?:cli|shell|telegram|ui)\//;
+
+  for (const directory of coreDirectories) {
+    for (const file of listTypeScriptFiles(path.join(sourceRoot, directory))) {
+      const relative = path.relative(sourceRoot, file).replace(/\\/g, "/");
+      const content = fs.readFileSync(file, "utf8");
+      assert.doesNotMatch(
+        content,
+        forbiddenShellImports,
+        `${relative} must not import concrete shell or host adapters`,
+      );
+    }
+  }
+
+  assert.equal(fs.existsSync(path.join(sourceRoot, "telegram", "config.ts")), false);
+  assert.equal(fs.existsSync(path.join(sourceRoot, "config", "hosts.ts")), true);
+  assert.doesNotMatch(
+    fs.readFileSync(path.join(sourceRoot, "types", "config.ts"), "utf8"),
+    /telegram[\\/]config/,
+    "shared config types must not depend on the Telegram shell directory",
+  );
+});
+
+function listTypeScriptFiles(root: string): string[] {
+  if (!fs.existsSync(root)) {
+    return [];
+  }
+
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return listTypeScriptFiles(fullPath);
+    }
+    return entry.isFile() && entry.name.endsWith(".ts") ? [fullPath] : [];
+  });
+}

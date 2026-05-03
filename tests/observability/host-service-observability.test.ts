@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
 import { SessionStore } from "../../src/agent/session.js";
 import type { TelegramBotApiClient, TelegramSendMessageRequest } from "../../src/telegram/botApiClient.js";
-import type { TelegramRuntimeConfig } from "../../src/telegram/config.js";
+import type { TelegramRuntimeConfig } from "../../src/config/hosts.js";
 import { TelegramDeliveryQueue } from "../../src/telegram/deliveryQueue.js";
 import { FileTelegramOffsetStore } from "../../src/telegram/offsetStore.js";
 import { FileTelegramSessionMapStore } from "../../src/telegram/sessionMapStore.js";

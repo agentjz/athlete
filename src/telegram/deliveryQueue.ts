@@ -1,10 +1,10 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 
 import type {
   TelegramSendDocumentRequest,
   TelegramSendMessageRequest,
 } from "./botApiClient.js";
-import type { TelegramConfig } from "./config.js";
+import type { TelegramConfig } from "../config/hosts.js";
 import { readJsonFile, writeJsonFileAtomically } from "./storage.js";
 
 export interface TelegramDeliveryTarget {

@@ -1,4 +1,4 @@
-import { loadDotEnvFiles } from "./env.js";
+﻿import { loadDotEnvFiles } from "./env.js";
 import { ensureAppDirectories, loadConfig } from "./fileStore.js";
 import {
   parseBooleanEnv,
@@ -14,7 +14,7 @@ import {
   parseTelegramAllowedUserIds,
   resolveTelegramRuntimeConfig,
   normalizeTelegramConfig,
-} from "../telegram/config.js";
+} from "../config/hosts.js";
 import type { CliOverrides, RuntimeConfig } from "../types.js";
 
 export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promise<RuntimeConfig> {

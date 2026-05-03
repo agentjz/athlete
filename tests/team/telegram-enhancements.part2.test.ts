@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -15,7 +15,7 @@ import type {
   TelegramBotApiClient,
   TelegramSendMessageRequest,
 } from "../../src/telegram/botApiClient.js";
-import type { TelegramRuntimeConfig } from "../../src/telegram/config.js";
+import type { TelegramRuntimeConfig } from "../../src/config/hosts.js";
 import type { TelegramUpdate } from "../../src/telegram/types.js";
 import { classifyTelegramUpdate } from "../../src/telegram/updateFilter.js";
 import { createAbortError } from "../../src/utils/abort.js";

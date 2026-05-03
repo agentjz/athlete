@@ -1,4 +1,4 @@
-import { buildSessionRuntimeSummary } from "../agent/runtimeMetrics.js";
+﻿import { buildSessionRuntimeSummary } from "../agent/runtimeMetrics.js";
 import type { RuntimePromptDiagnostics, SessionRuntimeSummary } from "../agent/runtimeMetrics.js";
 import type { SessionRecord } from "../types.js";
 import {
@@ -10,7 +10,7 @@ import {
   formatSlowFactors,
   formatUsage,
   formatVerification,
-} from "./runtimeSummaryFormat.js";
+} from "./summaryFormat.js";
 
 export function formatSessionRuntimeSummary(
   session: Pick<SessionRecord, "runtimeStats" | "checkpoint" | "verificationState">,
@@ -98,14 +98,4 @@ function formatRecentActivity(summary: SessionRuntimeSummary): string {
   }
 
   return "Runtime has not recorded a structured transition yet.";
-}
-
-function formatPathList(paths: string[]): string {
-  const items = paths.filter(Boolean).slice(0, 2);
-  if (items.length === 0) {
-    return "current task outputs";
-  }
-
-  const extra = paths.length - items.length;
-  return extra > 0 ? `${items.join(", ")} (+${extra} more)` : items.join(", ");
 }

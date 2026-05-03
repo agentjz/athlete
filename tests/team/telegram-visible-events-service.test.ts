@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
@@ -8,7 +8,7 @@ import { FileTelegramOffsetStore } from "../../src/telegram/offsetStore.js";
 import { FileTelegramSessionMapStore } from "../../src/telegram/sessionMapStore.js";
 import { TelegramService } from "../../src/telegram/service.js";
 import type { TelegramBotApiClient } from "../../src/telegram/botApiClient.js";
-import type { TelegramRuntimeConfig } from "../../src/telegram/config.js";
+import type { TelegramRuntimeConfig } from "../../src/config/hosts.js";
 import type { TelegramUpdate } from "../../src/telegram/types.js";
 import { createTestRuntimeConfig, createTempWorkspace } from "../helpers.js";
 

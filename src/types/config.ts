@@ -1,5 +1,5 @@
-import type { McpConfig } from "../capabilities/mcp/types.js";
-import type { TelegramConfig, TelegramRuntimeConfig } from "../telegram/config.js";
+﻿import type { McpConfig } from "../capabilities/mcp/types.js";
+import type { TelegramConfig, TelegramRuntimeConfig } from "../config/hosts.js";
 
 export type ModelThinkingMode = "enabled" | "disabled";
 export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";

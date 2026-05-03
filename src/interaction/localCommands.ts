@@ -1,4 +1,4 @@
-import { formatTodoBlock } from "../agent/session.js";
+﻿import { formatTodoBlock } from "../agent/session.js";
 import { reconcileBackgroundJobs, BackgroundJobStore } from "../execution/background.js";
 import { reconcileActiveExecutions } from "../execution/reconcile.js";
 import { loadProjectContext } from "../context/projectContext.js";
@@ -9,8 +9,8 @@ import { reconcileTeamState } from "../capabilities/team/reconcile.js";
 import { TeamStore } from "../capabilities/team/store.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { WorktreeStore } from "../worktrees/store.js";
-import { formatSessionRuntimeSummary } from "../ui/runtimeSummary.js";
-import { buildRuntimePromptDiagnostics } from "../ui/runtimeSummaryData.js";
+import { formatSessionRuntimeSummary } from "../host/summary.js";
+import { buildRuntimePromptDiagnostics } from "../host/summaryData.js";
 import type { ShellOutputPort } from "./shell.js";
 
 export interface LocalCommandContext {

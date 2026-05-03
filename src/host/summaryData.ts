@@ -1,12 +1,12 @@
-import { loadPromptRuntimeState } from "../agent/runtimeState.js";
 import {
   buildContextRuntimePromptLayers,
   buildContextRuntimeRequest,
 } from "../agent/contextRuntime/index.js";
 import { resolveAgentProfile } from "../agent/profiles/registry.js";
 import type { RuntimePromptDiagnostics } from "../agent/runtimeMetrics.js";
-import type { RuntimeConfig, SessionRecord } from "../types.js";
+import { loadPromptRuntimeState } from "../agent/runtimeState.js";
 import { loadProjectContext } from "../context/projectContext.js";
+import type { RuntimeConfig, SessionRecord } from "../types.js";
 
 const RUNTIME_SUMMARY_IDENTITY = { kind: "lead" as const, name: "lead" };
 

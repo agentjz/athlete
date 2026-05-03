@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -7,7 +7,7 @@ import { getDefaultConfig, resolveRuntimeConfig } from "../../src/config/store.j
 import {
   normalizeTelegramConfig,
   parseTelegramAllowedUserIds,
-} from "../../src/telegram/config.js";
+} from "../../src/config/hosts.js";
 import { createConsoleTelegramLogger } from "../../src/telegram/logger.js";
 import { chunkTelegramMessage } from "../../src/telegram/messageChunking.js";
 import { FileTelegramOffsetStore } from "../../src/telegram/offsetStore.js";
