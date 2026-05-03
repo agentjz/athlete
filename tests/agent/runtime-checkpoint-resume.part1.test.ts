@@ -3,7 +3,6 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../../src/agent/context.js";
 import { buildInternalWakeInput, normalizeSessionCheckpoint, noteCheckpointToolBatch, noteCheckpointYield } from "../../src/agent/checkpoint.js";
 import { createMessage } from "../../src/agent/session.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";

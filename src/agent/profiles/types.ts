@@ -1,4 +1,6 @@
 import type { PromptRuntimeState } from "../prompt/types.js";
+import type { SessionConversationBrief } from "../contextRuntime/sessionBrief/types.js";
+import type { AgentWorkingMemory } from "../contextRuntime/workingMemory/types.js";
 import type {
   AcceptanceState,
   ProjectContext,
@@ -23,6 +25,8 @@ export interface RuntimeFactsProfileInput {
   acceptanceState?: AcceptanceState;
   runtimeState: PromptRuntimeState;
   skillRuntimeState: SkillRuntimeState;
+  sessionBrief?: SessionConversationBrief;
+  workingMemory: AgentWorkingMemory;
   checkpoint?: SessionCheckpoint;
 }
 

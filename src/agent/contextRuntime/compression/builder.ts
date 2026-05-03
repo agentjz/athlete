@@ -1,31 +1,24 @@
-import { expandStartToToolBoundary, shouldIncludeStoredAssistantReasoning } from "../session/messages.js";
-import { createPromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
-import { measurePromptLayers, renderPromptLayers } from "../promptSections.js";
-import { compactToolPayload } from "../toolResults/preview.js";
-import { findLatestUserInputIndex, isInternalMessage, sliceCurrentUserInputFrame } from "../session/turnFrame.js";
-import type { ProviderMessage } from "../provider/contract.js";
-import type { PromptLayerMetrics, PromptLayers } from "../promptSections.js";
-import type { RuntimeConfig, StoredMessage } from "../../types.js";
-import type { PromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
+import { expandStartToToolBoundary, shouldIncludeStoredAssistantReasoning } from "../../session/messages.js";
+import { createPromptContextDiagnostics } from "../../prompt/requestDiagnostics.js";
+import { renderPromptLayers } from "../../prompt/format.js";
+import { measurePromptLayers } from "../../prompt/metrics.js";
+import { compactToolPayload } from "../../toolResults/preview.js";
+import { findLatestUserInputIndex, isInternalMessage, sliceCurrentUserInputFrame } from "../../session/turnFrame.js";
+import type { ProviderMessage } from "../../provider/contract.js";
+import type { PromptLayerMetrics, PromptLayers } from "../../prompt/types.js";
+import type { RuntimeConfig, StoredMessage } from "../../../types.js";
+import type { PromptContextDiagnostics } from "../../prompt/requestDiagnostics.js";
+import type { ContextRuntimeRequest } from "../types.js";
 
 const MIN_TAIL_MESSAGES = 8;
 const DETAILED_RECENT_MESSAGES = 8;
 const MAX_SUMMARY_MESSAGE_COUNT = 48;
 
-export interface BuiltRequestContext {
-  messages: ProviderMessage[];
-  compressed: boolean;
-  estimatedChars: number;
-  summary?: string;
-  promptMetrics?: PromptLayerMetrics;
-  contextDiagnostics: PromptContextDiagnostics;
-}
-
-export function buildRequestContext(
+export function buildCompressedContextRequest(
   systemPrompt: string | PromptLayers,
   messages: StoredMessage[],
   config: Pick<RuntimeConfig, "contextWindowMessages" | "model" | "maxContextChars" | "contextSummaryChars">,
-): BuiltRequestContext {
+): ContextRuntimeRequest {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
   const frameMessages = sliceCurrentUserInputFrame(messages);
   const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, frameMessages, config.model));

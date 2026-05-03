@@ -1,8 +1,7 @@
 import { renderPromptLayers } from "./prompt/format.js";
 import { measurePromptLayers } from "./prompt/metrics.js";
-import { buildStaticPromptBlocks } from "./prompt/static.js";
 import type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./prompt/types.js";
-import { buildProfilePersonaPromptBlocks, resolveAgentProfile } from "./profiles/registry.js";
+import { buildContextRuntimePromptLayers } from "./contextRuntime/index.js";
 import type { AgentProfile } from "./profiles/types.js";
 import type {
   ProjectContext,
@@ -13,6 +12,7 @@ import type {
   TaskState,
   TodoItem,
   VerificationState,
+  StoredMessage,
 } from "../types.js";
 
 export type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "./prompt/types.js";
@@ -31,34 +31,20 @@ export function buildSystemPromptLayers(
   checkpoint?: SessionCheckpoint,
   acceptanceState?: AcceptanceState,
   profile?: AgentProfile,
+  messages: StoredMessage[] = [],
 ): PromptLayers {
-  const resolvedSkillRuntimeState = skillRuntimeState ?? createEmptySkillRuntimeState();
-  const resolvedProfile = profile ?? resolveAgentProfile(config.profile);
-
-  return {
-    staticBlocks: buildStaticPromptBlocks({
-      config,
-      projectContext,
-      runtimeState,
-    }),
-    profilePersonaBlocks: buildProfilePersonaPromptBlocks(resolvedProfile),
-    runtimeFactBlocks: resolvedProfile.runtimeFacts.buildBlocks({
-      cwd,
-      config,
-      projectContext,
-      taskState,
-      verificationState,
-      runtimeState,
-      skillRuntimeState: resolvedSkillRuntimeState,
-      checkpoint,
-      acceptanceState,
-    }),
-  };
-}
-
-function createEmptySkillRuntimeState(): SkillRuntimeState {
-  return {
-    loadedSkills: [],
-    loadedSkillNames: new Set<string>(),
-  };
+  return buildContextRuntimePromptLayers({
+    cwd,
+    config,
+    projectContext,
+    taskState,
+    todoItems,
+    verificationState,
+    runtimeState,
+    skillRuntimeState,
+    checkpoint,
+    acceptanceState,
+    profile,
+    messages,
+  });
 }

@@ -1,4 +1,4 @@
-import { execa } from "execa";
+import { loadExeca } from "../utils/execa.js";
 
 export async function ensureGitRepository(rootDir: string): Promise<void> {
   try {
@@ -18,6 +18,7 @@ export async function branchExists(rootDir: string, branch: string): Promise<boo
 }
 
 export async function runGitCommand(rootDir: string, args: string[]): Promise<void> {
+  const execa = await loadExeca();
   await execa("git", ["-C", rootDir, ...args], {
     reject: true,
     timeout: 120_000,

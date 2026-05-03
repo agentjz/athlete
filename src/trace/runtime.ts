@@ -5,7 +5,7 @@ import path from "node:path";
 import { getProjectStatePaths } from "../project/statePaths.js";
 import { recordAgentTraceEvent } from "./store.js";
 import type { AgentIdentity } from "../agent/types.js";
-import type { BuiltRequestContext } from "../agent/context/builder.js";
+import type { ContextRuntimeRequest } from "../agent/contextRuntime/index.js";
 import type { FunctionToolDefinition } from "../capabilities/tools/index.js";
 import type { AssistantResponse } from "../agent/types.js";
 import type { ExternalizedToolResultReference, ToolCallRecord, ToolExecutionResult } from "../types.js";
@@ -43,7 +43,7 @@ export async function traceModelRequest(scope: TraceRuntimeScope, input: {
   provider: string;
   configuredModel: string;
   requestModel: string;
-  requestContext: BuiltRequestContext;
+  requestContext: ContextRuntimeRequest;
   toolDefinitions: FunctionToolDefinition[];
 }): Promise<void> {
   const artifact = await tryWriteTraceArtifact(scope, "model-request", {

@@ -6,8 +6,9 @@ import {
   measurePromptLayers,
   renderPromptLayers,
 } from "../../src/agent/promptSections.js";
-import { buildRequestContext } from "../../src/agent/context.js";
+import { buildContextRuntimeRequest } from "../../src/agent/contextRuntime/index.js";
 import { formatSkillPromptBlock } from "../../src/capabilities/skills/prompt.js";
+import { createCheckpointForObjective } from "../../src/agent/checkpoint/base.js";
 import { resolveAgentProfile } from "../../src/agent/profiles/registry.js";
 import type { AgentProfile } from "../../src/agent/profiles/types.js";
 import type { LoadedSkill, ProjectContext, SkillRuntimeState } from "../../src/types.js";
@@ -135,7 +136,7 @@ test("system prompt can inject a different profile with its own persona and runt
   assert.equal(layers.runtimeFactBlocks.length, 1);
   assert.match(prompt, /All responses, edits, suggestions, judgments, plans, and actions must be grounded in objective facts/i);
   assert.doesNotMatch(prompt, /Structural clarity:/);
-  assert.doesNotMatch(prompt, /Current Objective:/);
+  assert.doesNotMatch(prompt, /Current workset:/);
   assert.match(prompt, /explain this behavior/);
   assert.match(prompt, /Tool-use contract:/);
 });
@@ -229,7 +230,8 @@ test("caveman profile injects compression persona without losing evidence bounda
   assert.match(profileLayer, /Do not perform the persona\. Do not write parody\./);
   assert.match(profileLayer, /Expand when compression would harm correctness, safety, irreversible action clarity, multi-step ordering, or user understanding\./);
   assert.match(runtimeFactsLayer, /Signal facts:/);
-  assert.match(runtimeFactsLayer, /Evidence facts:/);
+  assert.match(runtimeFactsLayer, /Work memory:/);
+  assert.match(runtimeFactsLayer, /Verification: passed/);
   assert.match(runtimeFactsLayer, /compress the answer without losing facts/);
   assert.match(prompt, /Tool-use contract:/);
   assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
@@ -279,7 +281,8 @@ test("buddha profile injects calm resolve without weakening evidence boundaries"
   assert.match(runtimeFactsLayer, /Unresolved work:/);
   assert.match(runtimeFactsLayer, /Defect state: known failure remains/);
   assert.match(runtimeFactsLayer, /checkout flow still red/);
-  assert.match(runtimeFactsLayer, /Evidence facts:/);
+  assert.match(runtimeFactsLayer, /Steady working memory:/);
+  assert.match(runtimeFactsLayer, /Verification: failed/);
   assert.match(prompt, /Tool-use contract:/);
   assert.match(staticLayer, /Lead decides whether to use those capabilities/i);
   assert.doesNotMatch(profileLayer, /Structural clarity:/);
@@ -326,14 +329,14 @@ test("system prompt does not carry previous final output into a new objective", 
     ),
   );
 
-  assert.match(prompt, /Current Objective:/);
+  assert.match(prompt, /Current workset:/);
   assert.match(prompt, /current objective: inspect the CLI/);
   assert.doesNotMatch(prompt, /Carryover:/);
   assert.doesNotMatch(prompt, /browser runtime is stable/);
   assert.doesNotMatch(prompt, /old objective: inspect browser runtime/);
 });
 
-test("system prompt keeps history as explicit evidence lookup instead of automatic recall", () => {
+test("system prompt keeps raw history as explicit evidence lookup while allowing current working memory", () => {
   const prompt = renderPromptLayers(
     buildSystemPromptLayers(
       ROOT,
@@ -342,11 +345,150 @@ test("system prompt keeps history as explicit evidence lookup instead of automat
     ),
   );
 
-  assert.match(prompt, /History is never automatically injected into the current objective/i);
+  assert.match(prompt, /Raw history is never automatically injected as a full transcript or old-task carryover/i);
+  assert.match(prompt, /Same-session conversation brief is automatic user-facing continuity/i);
+  assert.match(prompt, /current-objective working memory is automatic execution continuity/i);
+  assert.match(prompt, /When the user asks about what happened earlier in this same session/i);
   assert.match(prompt, /use session_list to inspect recent session summaries first/i);
   assert.match(prompt, /then session_final_output for a specific session's complete final output when necessary/i);
   assert.doesNotMatch(prompt, /if.*previous/i);
   assert.doesNotMatch(prompt, /if.*上一轮/i);
+});
+
+test("system prompt keeps memory layers separated without productizing hidden long-term user memory", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+      {
+        objective: "current objective: refine memory boundaries",
+        activeFiles: [],
+        plannedActions: [],
+        completedActions: [],
+        blockers: [],
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      [
+        createMessage("user", "确认：长期记忆暂时不做，先做好同 session 连续性。"),
+        createMessage("assistant", "我会保留同 session 简报和当前任务工作记忆。"),
+        createMessage("user", "当前 objective 是 refine memory boundaries。"),
+      ],
+    ),
+  );
+
+  assert.match(prompt, /Current session conversation brief:/);
+  assert.match(prompt, /Current workset:/);
+  assert.match(prompt, /History boundary:/);
+  assert.match(prompt, /Raw session history stays in the evidence store/i);
+  assert.doesNotMatch(prompt, /Long-term user memory:/i);
+  assert.doesNotMatch(prompt, /user profile memory/i);
+  assert.doesNotMatch(prompt, /personal preference store/i);
+});
+
+test("system prompt injects same-session conversation brief without rebuilding raw history recall", () => {
+  const prompt = renderPromptLayers(
+    buildSystemPromptLayers(
+      ROOT,
+      createTestRuntimeConfig(ROOT),
+      createProjectContext(),
+      {
+        objective: "当前这一轮的上下文是什么",
+        activeFiles: [],
+        plannedActions: [],
+        completedActions: [],
+        blockers: [],
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      [
+        createMessage("user", "你好，你好"),
+        createMessage("assistant", "你好，有什么我可以帮你？"),
+        createMessage("user", "请问你有什么能力"),
+        createMessage("assistant", "我可以查代码、改文件、跑测试。"),
+        createMessage("user", "当前这一轮的上下文是什么"),
+      ],
+    ),
+  );
+
+  assert.match(prompt, /Current session conversation brief:/);
+  assert.match(prompt, /Briefed turns: 3 user turn\(s\).*2 assistant response\(s\)/);
+  assert.match(prompt, /user: 请问你有什么能力/);
+  assert.match(prompt, /assistant: 我可以查代码、改文件、跑测试。/);
+  assert.match(prompt, /Current workset:/);
+  assert.match(prompt, /User input: 当前这一轮的上下文是什么/);
+  assert.doesNotMatch(prompt, /Compressed conversation memory/);
+  assert.doesNotMatch(prompt, /Earlier turn summary/);
+});
+
+test("system prompt injects current-objective working memory without carrying stale checkpoint facts", () => {
+  const timestamp = new Date().toISOString();
+  const staleCheckpoint = createCheckpointForObjective("old objective: inspect browser runtime", timestamp);
+  staleCheckpoint.completedSteps = ["old browser runtime is stable"];
+  staleCheckpoint.recentToolBatch = {
+    tools: ["read_file"],
+    summary: "Ran read_file; changed old/path.ts",
+    changedPaths: ["old/path.ts"],
+    artifacts: [],
+    recordedAt: timestamp,
+  };
+
+  const layers = buildSystemPromptLayers(
+    ROOT,
+    createTestRuntimeConfig(ROOT),
+    createProjectContext(),
+    {
+      objective: "current objective: inspect the CLI",
+      activeFiles: ["src/cli.ts"],
+      plannedActions: ["Read CLI entry"],
+      completedActions: ["Confirmed package entry"],
+      blockers: ["Need command contract evidence"],
+      lastUpdatedAt: timestamp,
+    },
+    [
+      { id: "todo-1", text: "Read CLI entry", status: "in_progress" },
+      { id: "todo-2", text: "Run targeted CLI tests", status: "pending" },
+    ],
+    {
+      status: "failed",
+      attempts: 1,
+      observedPaths: ["tests/cli/regression-cli.test.ts"],
+      lastCommand: "npm.cmd run test:core",
+      lastKind: "test",
+      lastExitCode: 1,
+      updatedAt: timestamp,
+    },
+    undefined,
+    undefined,
+    staleCheckpoint,
+  );
+  const runtimeFactsLayer = layers.runtimeFactBlocks.join("\n\n");
+
+  assert.match(runtimeFactsLayer, /Current workset:/);
+  assert.match(runtimeFactsLayer, /current objective: inspect the CLI/);
+  assert.match(runtimeFactsLayer, /In progress: Read CLI entry/);
+  assert.match(runtimeFactsLayer, /Session working memory:/);
+  assert.match(runtimeFactsLayer, /Completed: Confirmed package entry/);
+  assert.match(runtimeFactsLayer, /Pending todos: Run targeted CLI tests/);
+  assert.match(runtimeFactsLayer, /Verification: failed/);
+  assert.match(runtimeFactsLayer, /History boundary:/);
+  assert.match(runtimeFactsLayer, /Raw session history stays in the evidence store/i);
+  assert.doesNotMatch(runtimeFactsLayer, /old browser runtime is stable/);
+  assert.doesNotMatch(runtimeFactsLayer, /old\/path\.ts/);
+  assert.doesNotMatch(runtimeFactsLayer, /old objective: inspect browser runtime/);
 });
 
 test("system prompt states that budget anxiety is not a valid reason for shallow work or premature closeout", () => {
@@ -375,7 +517,7 @@ test("intp profile contributes one persona layer and the structured runtime fact
 
   assert.match(prompt, /Structural clarity:/);
   assert.match(prompt, /Runtime environment:/);
-  assert.doesNotMatch(prompt, /Current Objective:/);
+  assert.doesNotMatch(prompt, /Current workset:/);
   assert.doesNotMatch(prompt, /Cut line:/);
   assert.doesNotMatch(prompt, /Decision facts:/);
   assert.doesNotMatch(prompt, /Grok cut:/);
@@ -511,19 +653,23 @@ test("prompt metrics expose per-layer size data and request-context prompt obser
   assert.equal(topHotspot.chars >= (metrics.hotspots[1]?.chars ?? 0), true);
   assert.equal(topHotspot.title.length > 0, true);
 
-  const built = buildRequestContext(
-    layers,
-    [
-      createMessage("user", "Please keep refining the prompt contract."),
-      createMessage("assistant", "Working on it."),
-      createMessage("assistant", "Measure the current prompt size."),
-      createMessage("assistant", "Make sure this current objective still carries the compact summary."),
-    ],
+  const built = buildContextRuntimeRequest(
     {
-      contextWindowMessages: 2,
-      model: "deepseek-v4-flash",
-      maxContextChars: 8_500,
-      contextSummaryChars: 320,
+      prompt: layers,
+      session: {
+        messages: [
+          createMessage("user", "Please keep refining the prompt contract."),
+          createMessage("assistant", "Working on it."),
+          createMessage("assistant", "Measure the current prompt size."),
+          createMessage("assistant", "Make sure this current objective still carries the compact summary."),
+        ],
+      },
+      config: {
+        contextWindowMessages: 2,
+        model: "deepseek-v4-flash",
+        maxContextChars: 8_500,
+        contextSummaryChars: 320,
+      },
     },
   );
 

@@ -1,6 +1,6 @@
 import process from "node:process";
 
-import { execa } from "execa";
+import { loadExeca } from "./execa.js";
 
 export async function terminateKnownProcesses(
   pids: Array<number | undefined>,
@@ -41,6 +41,7 @@ async function terminateProcessTree(pid: number): Promise<boolean> {
   }
 
   if (process.platform === "win32") {
+    const execa = await loadExeca();
     await execa("taskkill", ["/PID", String(pid), "/T", "/F"], {
       reject: false,
       timeout: 10_000,

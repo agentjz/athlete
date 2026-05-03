@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { createStoredToolMessage } from "../../src/agent/context.js";
+import { createStoredToolMessage } from "../../src/agent/toolResults/storage.js";
 import { readFileTool } from "../../src/capabilities/tools/packages/files/readFileTool.js";
 import { createTempWorkspace, makeToolContext } from "../helpers.js";
 

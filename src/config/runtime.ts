@@ -81,10 +81,30 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
         parseIntegerEnv(process.env.KITTY_MAX_TOOL_ITERATIONS) ?? fileConfig.maxToolIterations,
       maxContinuationBatches:
         parseIntegerEnv(process.env.KITTY_MAX_CONTINUATION_BATCHES) ?? fileConfig.maxContinuationBatches,
+      providerRecoveryMaxAttempts:
+        parseIntegerEnv(process.env.KITTY_PROVIDER_RECOVERY_MAX_ATTEMPTS) ?? fileConfig.providerRecoveryMaxAttempts,
+      providerRecoveryMaxElapsedMs:
+        parseIntegerEnv(process.env.KITTY_PROVIDER_RECOVERY_MAX_ELAPSED_MS) ?? fileConfig.providerRecoveryMaxElapsedMs,
       managedTurnMaxSlices:
         parseIntegerEnv(process.env.KITTY_MANAGED_TURN_MAX_SLICES) ?? fileConfig.managedTurnMaxSlices,
       managedTurnMaxElapsedMs:
         parseIntegerEnv(process.env.KITTY_MANAGED_TURN_MAX_ELAPSED_MS) ?? fileConfig.managedTurnMaxElapsedMs,
+      maxReadBytes:
+        parseIntegerEnv(process.env.KITTY_MAX_READ_BYTES) ?? fileConfig.maxReadBytes,
+      maxSearchResults:
+        parseIntegerEnv(process.env.KITTY_MAX_SEARCH_RESULTS) ?? fileConfig.maxSearchResults,
+      maxSpreadsheetPreviewRows:
+        parseIntegerEnv(process.env.KITTY_MAX_SPREADSHEET_PREVIEW_ROWS) ?? fileConfig.maxSpreadsheetPreviewRows,
+      maxSpreadsheetPreviewColumns:
+        parseIntegerEnv(process.env.KITTY_MAX_SPREADSHEET_PREVIEW_COLUMNS) ?? fileConfig.maxSpreadsheetPreviewColumns,
+      commandStallTimeoutMs:
+        parseIntegerEnv(process.env.KITTY_COMMAND_STALL_TIMEOUT_MS) ?? fileConfig.commandStallTimeoutMs,
+      commandMaxRetries:
+        parseIntegerEnv(process.env.KITTY_COMMAND_MAX_RETRIES) ?? fileConfig.commandMaxRetries,
+      commandRetryBackoffMs:
+        parseIntegerEnv(process.env.KITTY_COMMAND_RETRY_BACKOFF_MS) ?? fileConfig.commandRetryBackoffMs,
+      showReasoning:
+        parseBooleanEnv(process.env.KITTY_SHOW_REASONING) ?? fileConfig.showReasoning,
       mcp: {
         ...fileConfig.mcp,
         enabled: parseBooleanEnv(process.env.KITTY_MCP_ENABLED) ?? fileConfig.mcp.enabled,

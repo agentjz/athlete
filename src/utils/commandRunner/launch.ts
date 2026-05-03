@@ -1,7 +1,28 @@
-import { execa } from "execa";
+import { loadExeca } from "../execa.js";
+import type { ResultPromise } from "execa";
 
-export function launchCommand(command: string, cwd: string, timeoutMs: number, abortSignal?: AbortSignal) {
-  return process.platform === "win32"
+type LaunchedCommand = ResultPromise<{
+  cwd: string;
+  timeout: number;
+  cancelSignal: AbortSignal | undefined;
+  all: true;
+  buffer: false;
+  reject: false;
+  env: NodeJS.ProcessEnv;
+}>;
+
+export interface LaunchedCommandHandle {
+  subprocess: LaunchedCommand;
+}
+
+export async function launchCommand(
+  command: string,
+  cwd: string,
+  timeoutMs: number,
+  abortSignal?: AbortSignal,
+): Promise<LaunchedCommandHandle> {
+  const execa = await loadExeca();
+  const subprocess = process.platform === "win32"
     ? execa("powershell.exe", ["-NoLogo", "-NoProfile", "-EncodedCommand", encodePowerShellCommand(command)], {
         cwd,
         timeout: timeoutMs,
@@ -20,6 +41,7 @@ export function launchCommand(command: string, cwd: string, timeoutMs: number, a
         reject: false,
         env: buildCommandEnvironment(),
       });
+  return { subprocess: subprocess as LaunchedCommand };
 }
 
 function encodePowerShellCommand(command: string): string {

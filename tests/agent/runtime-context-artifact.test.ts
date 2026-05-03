@@ -5,7 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../../src/agent/context.js";
+import { buildContextRuntimeRequest } from "../../src/agent/contextRuntime/index.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { createMessage } from "../../src/agent/session.js";
 import { shrinkMessagesForContextLimit } from "../../src/agent/turn.js";
@@ -247,11 +247,17 @@ test("runtime context keeps externalized tool previews across compression and re
     ...session.messages.slice(1),
   ].filter((message): message is StoredMessage => Boolean(message));
 
-  const built = buildRequestContext("system", [...olderMessages, ...currentFrameMessages], {
-    contextWindowMessages: 16,
-    model: "deepseek-v4-flash",
-    maxContextChars: 8_500,
-    contextSummaryChars: 1_400,
+  const built = buildContextRuntimeRequest({
+    prompt: "system",
+    session: {
+      messages: [...olderMessages, ...currentFrameMessages],
+    },
+    config: {
+      contextWindowMessages: 16,
+      model: "deepseek-v4-flash",
+      maxContextChars: 8_500,
+      contextSummaryChars: 1_400,
+    },
   });
 
   assert.equal(built.compressed, true);
@@ -369,11 +375,17 @@ test("runtime context externalizes only large tool results while small results s
   assert.doesNotMatch(String(continuedToolMessages[0]?.content ?? ""), /ROUND1-LARGE-ONE::/);
   assert.doesNotMatch(String(continuedToolMessages[2]?.content ?? ""), /ROUND1-LARGE-TWO::/);
 
-  const built = buildRequestContext("system", result.session.messages, {
-    contextWindowMessages: 10,
-    model: "deepseek-v4-flash",
-    maxContextChars: 10_000,
-    contextSummaryChars: 1_600,
+  const built = buildContextRuntimeRequest({
+    prompt: "system",
+    session: {
+      messages: result.session.messages,
+    },
+    config: {
+      contextWindowMessages: 10,
+      model: "deepseek-v4-flash",
+      maxContextChars: 10_000,
+      contextSummaryChars: 1_600,
+    },
   });
   assert.ok(built.estimatedChars <= 10_000);
   assert.equal(

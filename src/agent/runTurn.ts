@@ -1,12 +1,15 @@
-import { buildRequestContext } from "./context/builder.js";
 import { AgentTurnError, getErrorMessage } from "./errors.js";
 import { fetchAssistantResponse } from "./api.js";
 import { evaluateProviderRecoveryBudget, resolveProviderRecoveryBudget } from "./recoveryBudget.js";
 import { createProviderClientPool } from "./provider/client.js";
 import { buildRecoveryRequestConfig, buildRecoveryStatus, computeRecoveryDelayMs, isRecoverableTurnError, pickRequestModel, sleep } from "./retryPolicy.js";
 import { noteRuntimeCompression, noteRuntimeModelRequests, type ModelRequestMetric } from "./runtimeMetrics.js";
-import { injectInboxMessagesIfNeeded, loadPromptRuntimeState, shouldYieldTurn } from "./runtimeState.js";
-import { buildSystemPromptLayers } from "./systemPrompt.js";
+import { injectInboxMessagesIfNeeded, loadPromptRuntimeState } from "./runtimeState.js";
+import {
+  buildContextRuntimePromptLayers,
+  buildContextRuntimeRequest,
+  buildContextRuntimeToolProgress,
+} from "./contextRuntime/index.js";
 import { buildRunTurnResult, createExecutionDispatchYieldTransition, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "./runtimeTransition.js";
 import { orderToolDefinitionsForLead, orderToolEntriesForLead } from "./capabilityPresentation.js";
 import { resolveAgentProfile } from "./profiles/registry.js";
@@ -80,7 +83,13 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   try {
     for (let iteration = 0; ; iteration += 1) {
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
-      if (shouldYieldTurn(options.yieldAfterToolSteps, iteration)) {
+      const toolProgress = buildContextRuntimeToolProgress({
+        iteration,
+        maxToolIterations: options.config.maxToolIterations,
+        maxContinuationBatches: options.config.maxContinuationBatches,
+        yieldAfterToolSteps: options.yieldAfterToolSteps,
+      });
+      if (toolProgress.shouldYield) {
         const transition = createYieldTransition(iteration, options.yieldAfterToolSteps);
         session = await persistYieldedTurn(session, options.sessionStore, transition);
         options.callbacks?.onStatus?.(`Yielding after ${iteration} tool steps so the managed runtime can reconcile state.`);
@@ -120,23 +129,28 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         skills: projectContext.skills,
         session,
       });
-      let promptLayers = buildSystemPromptLayers(
-        options.cwd,
-        turnModelConfig,
+      let promptLayers = buildContextRuntimePromptLayers({
+        cwd: options.cwd,
+        config: turnModelConfig,
         projectContext,
-        session.taskState,
-        session.todoItems,
-        session.verificationState,
+        taskState: session.taskState,
+        todoItems: session.todoItems,
+        verificationState: session.verificationState,
         runtimeState,
         skillRuntimeState,
-        session.checkpoint,
-        session.acceptanceState,
+        checkpoint: session.checkpoint,
+        acceptanceState: session.acceptanceState,
         profile,
-      );
+        messages: session.messages,
+      });
       promptLayers = extendPromptLayersForTurnState(promptLayers, iteration, softToolLimit, consecutiveRequestFailures);
       const requestModel = pickRequestModel(turnModelConfig.provider, turnModelConfig.model, consecutiveRequestFailures);
       const requestConfig = buildRecoveryRequestConfig(options.config, requestModel, consecutiveRequestFailures);
-      const requestContext = buildRequestContext(promptLayers, session.messages, requestConfig);
+      const requestContext = buildContextRuntimeRequest({
+        prompt: promptLayers,
+        session,
+        config: requestConfig,
+      });
       const leadVisibleToolDefinitions = toolRegistry.entries
         ? orderToolEntriesForLead(toolRegistry.entries, {
             input: options.input,

@@ -1,6 +1,8 @@
-import { buildRequestContext } from "../agent/context.js";
 import { loadPromptRuntimeState } from "../agent/runtimeState.js";
-import { buildSystemPromptLayers } from "../agent/systemPrompt.js";
+import {
+  buildContextRuntimePromptLayers,
+  buildContextRuntimeRequest,
+} from "../agent/contextRuntime/index.js";
 import { resolveAgentProfile } from "../agent/profiles/registry.js";
 import type { RuntimePromptDiagnostics } from "../agent/runtimeMetrics.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
@@ -16,20 +18,24 @@ export async function buildRuntimePromptDiagnostics(input: {
   try {
     const projectContext = await loadProjectContext(input.cwd);
     const runtimeState = await loadPromptRuntimeState(projectContext.stateRootDir, RUNTIME_SUMMARY_IDENTITY, input.cwd);
-    const promptLayers = buildSystemPromptLayers(
-      input.cwd,
-      input.config,
+    const promptLayers = buildContextRuntimePromptLayers({
+      cwd: input.cwd,
+      config: input.config,
       projectContext,
-      input.session.taskState,
-      input.session.todoItems,
-      input.session.verificationState,
+      taskState: input.session.taskState,
+      todoItems: input.session.todoItems,
+      verificationState: input.session.verificationState,
       runtimeState,
-      undefined,
-      input.session.checkpoint,
-      input.session.acceptanceState,
-      resolveAgentProfile(input.config.profile),
-    );
-    const requestContext = buildRequestContext(promptLayers, input.session.messages, input.config);
+      checkpoint: input.session.checkpoint,
+      acceptanceState: input.session.acceptanceState,
+      profile: resolveAgentProfile(input.config.profile),
+      messages: input.session.messages,
+    });
+    const requestContext = buildContextRuntimeRequest({
+      prompt: promptLayers,
+      session: input.session,
+      config: input.config,
+    });
 
     return {
       compressed: requestContext.compressed,

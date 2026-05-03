@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { execa } from "execa";
+import { loadExeca } from "../utils/execa.js";
 
 export interface ProjectRoots {
   rootDir: string;
@@ -38,6 +38,7 @@ async function findExecutionRoot(startDir: string): Promise<string> {
 
 async function findStateRoot(executionRoot: string): Promise<string> {
   try {
+    const execa = await loadExeca();
     const result = await execa(
       "git",
       ["-C", executionRoot, "rev-parse", "--path-format=absolute", "--git-common-dir"],

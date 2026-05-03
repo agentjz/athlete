@@ -127,8 +127,18 @@ test("resolveRuntimeConfig reads runtime budget values from the project env file
       "KITTY_YIELD_AFTER_TOOL_STEPS=9",
       "KITTY_MAX_TOOL_ITERATIONS=7",
       "KITTY_MAX_CONTINUATION_BATCHES=6",
+      "KITTY_PROVIDER_RECOVERY_MAX_ATTEMPTS=4",
+      "KITTY_PROVIDER_RECOVERY_MAX_ELAPSED_MS=345678",
       "KITTY_MANAGED_TURN_MAX_SLICES=5",
       "KITTY_MANAGED_TURN_MAX_ELAPSED_MS=234567",
+      "KITTY_MAX_READ_BYTES=222222",
+      "KITTY_MAX_SEARCH_RESULTS=123",
+      "KITTY_MAX_SPREADSHEET_PREVIEW_ROWS=33",
+      "KITTY_MAX_SPREADSHEET_PREVIEW_COLUMNS=22",
+      "KITTY_COMMAND_STALL_TIMEOUT_MS=45678",
+      "KITTY_COMMAND_MAX_RETRIES=2",
+      "KITTY_COMMAND_RETRY_BACKOFF_MS=2345",
+      "KITTY_SHOW_REASONING=false",
     ].join("\n"),
     "utf8",
   );
@@ -141,8 +151,18 @@ test("resolveRuntimeConfig reads runtime budget values from the project env file
     "KITTY_YIELD_AFTER_TOOL_STEPS",
     "KITTY_MAX_TOOL_ITERATIONS",
     "KITTY_MAX_CONTINUATION_BATCHES",
+    "KITTY_PROVIDER_RECOVERY_MAX_ATTEMPTS",
+    "KITTY_PROVIDER_RECOVERY_MAX_ELAPSED_MS",
     "KITTY_MANAGED_TURN_MAX_SLICES",
     "KITTY_MANAGED_TURN_MAX_ELAPSED_MS",
+    "KITTY_MAX_READ_BYTES",
+    "KITTY_MAX_SEARCH_RESULTS",
+    "KITTY_MAX_SPREADSHEET_PREVIEW_ROWS",
+    "KITTY_MAX_SPREADSHEET_PREVIEW_COLUMNS",
+    "KITTY_COMMAND_STALL_TIMEOUT_MS",
+    "KITTY_COMMAND_MAX_RETRIES",
+    "KITTY_COMMAND_RETRY_BACKOFF_MS",
+    "KITTY_SHOW_REASONING",
   ]);
 
   try {
@@ -154,8 +174,18 @@ test("resolveRuntimeConfig reads runtime budget values from the project env file
       KITTY_YIELD_AFTER_TOOL_STEPS: undefined,
       KITTY_MAX_TOOL_ITERATIONS: undefined,
       KITTY_MAX_CONTINUATION_BATCHES: undefined,
+      KITTY_PROVIDER_RECOVERY_MAX_ATTEMPTS: undefined,
+      KITTY_PROVIDER_RECOVERY_MAX_ELAPSED_MS: undefined,
       KITTY_MANAGED_TURN_MAX_SLICES: undefined,
       KITTY_MANAGED_TURN_MAX_ELAPSED_MS: undefined,
+      KITTY_MAX_READ_BYTES: undefined,
+      KITTY_MAX_SEARCH_RESULTS: undefined,
+      KITTY_MAX_SPREADSHEET_PREVIEW_ROWS: undefined,
+      KITTY_MAX_SPREADSHEET_PREVIEW_COLUMNS: undefined,
+      KITTY_COMMAND_STALL_TIMEOUT_MS: undefined,
+      KITTY_COMMAND_MAX_RETRIES: undefined,
+      KITTY_COMMAND_RETRY_BACKOFF_MS: undefined,
+      KITTY_SHOW_REASONING: undefined,
     });
 
     const runtime = await resolveRuntimeConfig({ cwd: root });
@@ -166,8 +196,18 @@ test("resolveRuntimeConfig reads runtime budget values from the project env file
     assert.equal(runtime.yieldAfterToolSteps, 9);
     assert.equal(runtime.maxToolIterations, 7);
     assert.equal(runtime.maxContinuationBatches, 6);
+    assert.equal(runtime.providerRecoveryMaxAttempts, 4);
+    assert.equal(runtime.providerRecoveryMaxElapsedMs, 345_678);
     assert.equal(runtime.managedTurnMaxSlices, 5);
     assert.equal(runtime.managedTurnMaxElapsedMs, 234_567);
+    assert.equal(runtime.maxReadBytes, 222_222);
+    assert.equal(runtime.maxSearchResults, 123);
+    assert.equal(runtime.maxSpreadsheetPreviewRows, 33);
+    assert.equal(runtime.maxSpreadsheetPreviewColumns, 22);
+    assert.equal(runtime.commandStallTimeoutMs, 45_678);
+    assert.equal(runtime.commandMaxRetries, 2);
+    assert.equal(runtime.commandRetryBackoffMs, 2_345);
+    assert.equal(runtime.showReasoning, false);
   } finally {
     restoreEnv(previous);
   }

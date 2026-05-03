@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../../src/agent/context.js";
+import { buildContextRuntimeRequest } from "../../src/agent/contextRuntime/index.js";
 import { createMessage } from "../../src/agent/session.js";
 import { buildSystemPromptLayers, renderPromptLayers } from "../../src/agent/promptSections.js";
 import { discoverSkills } from "../../src/capabilities/skills/catalog.js";
@@ -48,7 +48,7 @@ test("discoverSkills + load_skill load skill bodies on demand", async (t) => {
   assert.match(output.output, /Use this specialized workflow\./);
 });
 
-test("buildRequestContext compresses oversized histories with a summary", () => {
+test("context runtime request compresses oversized histories with a summary", () => {
   const messages = [
     createMessage("user", "current objective"),
     ...Array.from({ length: 39 }, (_, index) => {
@@ -57,7 +57,7 @@ test("buildRequestContext compresses oversized histories with a summary", () => 
     }),
   ];
 
-  const built = buildRequestContext("system", messages, {
+  const built = buildRuntimeRequestForMessages("system", messages, {
     contextWindowMessages: 30,
     model: "deepseek-v4-flash",
     maxContextChars: 8_000,
@@ -70,7 +70,7 @@ test("buildRequestContext compresses oversized histories with a summary", () => 
   assert.ok(built.estimatedChars > 0);
 });
 
-test("buildRequestContext keeps the latest tool boundary intact when histories are compressed", () => {
+test("context runtime request keeps the latest tool boundary intact when histories are compressed", () => {
   const messages = [
     createMessage("user", `current objective ${"x".repeat(600)}`),
     ...Array.from({ length: 24 }, (_, index) =>
@@ -92,7 +92,7 @@ test("buildRequestContext keeps the latest tool boundary intact when histories a
           })),
   ];
 
-  const built = buildRequestContext("system", messages, {
+  const built = buildRuntimeRequestForMessages("system", messages, {
     contextWindowMessages: 18,
     model: "deepseek-v4-flash",
     maxContextChars: 6_000,
@@ -104,7 +104,7 @@ test("buildRequestContext keeps the latest tool boundary intact when histories a
   assert.equal(built.messages.at(-2)?.role, "assistant");
 });
 
-test("buildRequestContext preserves DeepSeek V4 reasoning_content for every included assistant message", () => {
+test("context runtime request preserves DeepSeek V4 reasoning_content for every included assistant message", () => {
   const toolCallingAssistant = createMessage("assistant", null, {
     reasoningContent: "I need the file list before answering.",
     toolCalls: [
@@ -125,7 +125,7 @@ test("buildRequestContext preserves DeepSeek V4 reasoning_content for every incl
     reasoningContent: "This ordinary reasoning should not be replayed.",
   });
 
-  const built = buildRequestContext("system", [
+  const built = buildRuntimeRequestForMessages("system", [
     createMessage("user", "Inspect the repo."),
     toolCallingAssistant,
     createMessage("tool", JSON.stringify({ files: ["README.md"] }), {
@@ -149,8 +149,8 @@ test("buildRequestContext preserves DeepSeek V4 reasoning_content for every incl
   assert.equal(replayedOrdinaryAssistant?.reasoningContent, "This ordinary reasoning should not be replayed.");
 });
 
-test("buildRequestContext keeps DeepSeek reasoning_content for included post-tool assistant replies", () => {
-  const built = buildRequestContext("system", [
+test("context runtime request keeps DeepSeek reasoning_content for included post-tool assistant replies", () => {
+  const built = buildRuntimeRequestForMessages("system", [
     createMessage("user", "Run the tool."),
     createMessage("assistant", null, {
       reasoningContent: "I will call the tool.",
@@ -183,7 +183,7 @@ test("buildRequestContext keeps DeepSeek reasoning_content for included post-too
   assert.equal(finalAssistant?.reasoningContent, "I can now summarize the result.");
 });
 
-test("buildRequestContext summarizes recent context without pinning the first stale user request", () => {
+test("context runtime request summarizes recent context without pinning the first stale user request", () => {
   const messages = [
     createMessage("user", `old objective ${"A".repeat(1_000)}`),
     createMessage("assistant", `old answer ${"B".repeat(1_000)}`),
@@ -194,7 +194,7 @@ test("buildRequestContext summarizes recent context without pinning the first st
     ),
   ];
 
-  const built = buildRequestContext("system", messages, {
+  const built = buildRuntimeRequestForMessages("system", messages, {
     contextWindowMessages: 4,
     model: "deepseek-v4-flash",
     maxContextChars: 8_500,
@@ -206,8 +206,8 @@ test("buildRequestContext summarizes recent context without pinning the first st
   assert.match(built.summary ?? "", /current objective|recent assistant/);
 });
 
-test("buildRequestContext does not carry the previous user frame into a new objective prompt", () => {
-  const built = buildRequestContext("system", [
+test("context runtime request does not carry the previous user frame into a new objective prompt", () => {
+  const built = buildRuntimeRequestForMessages("system", [
     createMessage("user", "old objective: browse Wikipedia"),
     createMessage("assistant", "old answer: Wikipedia report"),
     createMessage("user", "current objective: close all teammates"),
@@ -224,7 +224,7 @@ test("buildRequestContext does not carry the previous user frame into a new obje
   assert.doesNotMatch(requestText, /old answer: Wikipedia report/);
 });
 
-test("buildRequestContext does not carry prior turn final output into a new objective", () => {
+test("context runtime request does not carry prior turn final output into a new objective", () => {
   const root = process.cwd();
   const config = createTestRuntimeConfig(root);
   const prompt = renderPromptLayers(buildSystemPromptLayers(
@@ -253,7 +253,7 @@ test("buildRequestContext does not carry prior turn final output into a new obje
     undefined,
   ));
 
-  const built = buildRequestContext(prompt, [
+  const built = buildRuntimeRequestForMessages(prompt, [
     createMessage("user", "old objective: browse Wikipedia"),
     createMessage("assistant", "old raw answer: very long Wikipedia report"),
     createMessage("user", "current objective: close teammates"),
@@ -270,3 +270,17 @@ test("buildRequestContext does not carry prior turn final output into a new obje
   assert.doesNotMatch(requestText, /old raw answer: very long Wikipedia report/);
   assert.doesNotMatch(requestText, /old objective: browse Wikipedia/);
 });
+
+function buildRuntimeRequestForMessages(
+  prompt: Parameters<typeof buildContextRuntimeRequest>[0]["prompt"],
+  messages: Parameters<typeof buildContextRuntimeRequest>[0]["session"]["messages"],
+  config: Parameters<typeof buildContextRuntimeRequest>[0]["config"],
+) {
+  return buildContextRuntimeRequest({
+    prompt,
+    session: {
+      messages,
+    },
+    config,
+  });
+}

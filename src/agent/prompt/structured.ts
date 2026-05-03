@@ -18,6 +18,16 @@ export function buildFieldBlock(title: string, fields: PromptField[]): string | 
   return lines.length > 0 ? formatPromptBlock(title, lines.join("\n")) : undefined;
 }
 
+export function formatLimitedList(values: string[], limit: number): string {
+  const items = values.filter((value) => value.trim().length > 0).slice(0, limit);
+  if (items.length === 0) {
+    return "none";
+  }
+
+  const extra = values.length - items.length;
+  return extra > 0 ? `${items.join(" | ")} | +${extra} more` : items.join(" | ");
+}
+
 export function buildSectionedListBlock(
   title: string,
   sections: PromptListSection[],

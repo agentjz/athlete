@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { buildRequestContext } from "../../src/agent/context/builder.js";
+import { buildContextRuntimeRequest } from "../../src/agent/contextRuntime/index.js";
 import { SessionStore } from "../../src/agent/session.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
 import { resolveRuntimeConfig } from "../../src/config/store.js";
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
 
   const result = await runManagedAgentTurn({
     input: [
-      "Validate Kitty runtime lightweight context behavior.",
+      "Validate Kitty Context Runtime artifact handling behavior.",
       "First call emit_large_validation exactly once, and do not call any other tool in the same response.",
       "After the turn resumes, continue from that stored result instead of restarting.",
       "Then call write_validation_note to create validation/runtime-context-summary.md.",
@@ -77,11 +77,19 @@ async function main(): Promise<void> {
   const storageFullPath = storagePath ? path.join(workspace, storagePath) : null;
   const summaryPath = path.join(workspace, "validation", "runtime-context-summary.md");
   const summaryText = await fs.readFile(summaryPath, "utf8");
-  const requestContext = buildRequestContext("system", reloaded.messages, {
-    contextWindowMessages: 12,
-    model: config.model,
-    maxContextChars: 8_500,
-    contextSummaryChars: 1_400,
+  const requestContext = buildContextRuntimeRequest({
+    prompt: {
+      staticBlocks: ["system"],
+      profilePersonaBlocks: [],
+      runtimeFactBlocks: [],
+    },
+    session: reloaded,
+    config: {
+      contextWindowMessages: 12,
+      model: config.model,
+      maxContextChars: 8_500,
+      contextSummaryChars: 1_400,
+    },
   });
 
   const output = {
@@ -130,7 +138,7 @@ function createRound1ApiRegistry(workspace: string) {
     [
       createFunctionTool(
         "emit_large_validation",
-        "Required first step. Returns a large structured validation corpus for the runtime lightweight-context check. Call this before writing the note.",
+        "Required first step. Returns a large structured validation corpus for the Context Runtime artifact handling check. Call this before writing the note.",
       ),
       createFunctionTool(
         "write_validation_note",
@@ -183,7 +191,7 @@ function buildLargeValidationPayload(callCount: number): string {
   return JSON.stringify(
     {
       ok: true,
-      title: "Round1 lightweight validation corpus",
+      title: "Round1 Context Runtime artifact validation corpus",
       format: "markdown",
       callCount,
       content: `ROUND1-REAL-API::${"L".repeat(24_000)}`,

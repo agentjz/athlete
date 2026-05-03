@@ -273,6 +273,15 @@ Do not solve architectural problems by adding loose prompt paragraphs. If a beha
 
 Prompt text may define principles, evidence discipline, and hard boundaries. It must not become a hidden trigger-action table. Do not encode rules such as "if web then browser", "if files changed then test", "if a skill exists then load it", "if acceptance is pending then continue", or "if complex then delegate". Capability availability, ledger facts, verification facts, and skill indexes are evidence, not instructions.
 
+Context management must keep four things separate:
+
+- Current session conversation brief is user-facing continuity. It may be injected automatically, but only as a short, structured summary of recent visible turns inside the same session.
+- Current task working memory is Agent execution state. It may be injected automatically when it is short, structured, and tied to the current objective.
+- Raw history is an evidence store. It is durable and queryable, but it must not be automatically injected as a full transcript or old-task carryover.
+- Current context is the model's live work surface. It should contain the current user input, same-session conversation brief, current task working memory, and the smallest useful workset, not old task residue.
+
+Do not rebuild compressed conversation memory that mixes old tasks into the present. Do not make the model start every turn with an empty desk either. The correct boundary is: same-session conversation brief gives the user continuity; current task working memory gives Agent execution continuity; full history stays in evidence tools; Lead chooses when to query history.
+
 ## 10. Communication With The Project Owner
 
 Communicate with the project owner in Simplified Chinese.

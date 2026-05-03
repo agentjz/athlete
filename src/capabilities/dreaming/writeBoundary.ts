@@ -1,11 +1,11 @@
 import path from "node:path";
-import { execa } from "execa";
 
 import type {
   AgentCallbacks,
   BeforeToolCallHookContext,
   BeforeToolCallHookResult,
 } from "../../agent/types.js";
+import { loadExeca } from "../../utils/execa.js";
 import { parseArgs } from "../tools/core/shared.js";
 
 export const DREAMING_WRITE_BOUNDARY_PROTOCOL = "kitty.dreaming-write-boundary" as const;
@@ -128,6 +128,7 @@ export function enforceDreamingToolBoundary(
 }
 
 export async function snapshotRealWorldGitStatus(rootDir: string): Promise<string[]> {
+  const execa = await loadExeca();
   const { stdout } = await execa("git", ["-C", rootDir, "status", "--porcelain=v1", "--untracked-files=normal"], {
     reject: true,
     timeout: 120_000,

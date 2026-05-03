@@ -1,4 +1,5 @@
 ref/
+SPEC_PLAN.md
 dist
 node_modules
 .DS_Store

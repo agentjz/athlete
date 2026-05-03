@@ -14,7 +14,7 @@ Kitty Agent is an open source agent framework that uses harness design to force 
 
 🐎 The model is a wild horse, the harness is the rein, and the capability ecology is the open field. The rein concentrates power by connecting speed, direction, and evidence; the field provides action space where file editing, code research, document parsing, network tools, teammates, subagents, workflows, Dreaming, MCP, and external capability packages can dock into one protocol and grow freely.
 
-🧠 In agent design, if history, preferences, and old tasks are automatically pushed into the present, old inertia starts pretending to be current intent. Kitty Agent focuses on the present: conversations, final outputs, tool artifacts, runtime events, change records, traces, and ledgers are preserved, but they enter current judgment only through query tools. Ecology is available capability, not intent; nothing executes until Lead explicitly chooses it.
+🧠 In agent design, if old tasks are pushed wholesale into the present, old inertia starts pretending to be current intent; if the same-session thread disappears, every message feels like a cold start. Kitty separates the layers: recent same-session conversation gives user-facing continuity, current task working memory keeps execution alive, and full history, final outputs, tool artifacts, runtime events, change records, traces, and ledgers stay in the evidence store for explicit lookup. Ecology is available capability, not intent; nothing executes until Lead explicitly chooses it.
 
 🔌 Kitty Agent is provider-friendly and avoids being trapped by one model vendor. Different models and external ecosystems can dock into the same boundaries, using protocol, evidence, and runtime constraints to force the strongest real capability out of the model.
 
@@ -23,7 +23,7 @@ Kitty is open source under the MIT License.
 If you're interested in **building your own Agent** from scratch, join our group chat and let's grow together.
 
 <p align="center">
-  <img src="assets/wechat-group.jpg" alt="WeChat Group" width="300">
+  <img src="assets/community-group.jpg" alt="Community group" width="300">
 </p>
 
 <!-- capability-ecology:start -->

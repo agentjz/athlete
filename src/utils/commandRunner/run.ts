@@ -83,7 +83,7 @@ async function runCommandOnce(options: CommandRunOptions): Promise<CommandRunRes
   let stallTimer: NodeJS.Timeout | null = null;
   let forceKillTimer: NodeJS.Timeout | null = null;
 
-  const subprocess = launchCommand(options.command, options.cwd, options.timeoutMs, options.abortSignal);
+  const { subprocess } = await launchCommand(options.command, options.cwd, options.timeoutMs, options.abortSignal);
   const outputCapture = await createShellOutputCapture(options.outputCapture ?? {});
 
   const clearTimers = () => {

@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 
-import { buildRequestContext } from "../../src/agent/context.js";
+import { buildContextRuntimeRequest } from "../../src/agent/contextRuntime/index.js";
 import { normalizeSessionCheckpoint, noteCheckpointToolBatch, noteCheckpointYield } from "../../src/agent/checkpoint.js";
 import { createMessage } from "../../src/agent/session.js";
 import { runManagedAgentTurn } from "../../src/agent/turn.js";
@@ -293,19 +293,27 @@ test("runtime checkpoint exposes only current-objective runtime facts when histo
       : createMessage("assistant", `older-assistant-${index} ${"V".repeat(1_500)}`),
   );
 
-  const built = buildRequestContext(prompt, olderMessages, {
-    contextWindowMessages: 14,
-    model: config.model,
-    maxContextChars: 8_500,
-    contextSummaryChars: 1_200,
+  const built = buildContextRuntimeRequest({
+    prompt,
+    session: {
+      messages: olderMessages,
+    },
+    config: {
+      contextWindowMessages: 14,
+      model: config.model,
+      maxContextChars: 8_500,
+      contextSummaryChars: 1_200,
+    },
   });
 
   assert.equal(built.compressed, true);
-  assert.match(String(built.messages[0]?.content ?? ""), /Runtime Facts:/i);
-  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
-  assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Current workset:/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Session working memory:/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Loaded the persisted setup artifact/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Write validation\/round2-resume-summary\.md/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /\.kitty\/tool-results\/session-a\/large\.json/i);
-  assert.match(String(built.messages[0]?.content ?? ""), /1 artifact reference\(s\) stored/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /Evidence artifacts: stored artifact/i);
+  assert.match(String(built.messages[0]?.content ?? ""), /History boundary:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Completed actions:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Current step:/i);
   assert.doesNotMatch(String(built.messages[0]?.content ?? ""), /Next step:/i);
