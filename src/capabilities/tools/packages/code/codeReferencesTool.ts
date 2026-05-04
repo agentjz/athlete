@@ -12,7 +12,7 @@ export const codeReferencesTool: RegisteredTool = {
     type: "function",
     function: {
       name: "code_references",
-      description: "Find identifier reference facts across local source files. Use this after identifying a symbol name; it returns line evidence and read_file continuation args, not edit decisions.",
+      description: "Find identifier reference facts across local source files. Use this after identifying a symbol name; it returns line evidence and read continuation args, not edit decisions.",
       parameters: {
         type: "object",
         properties: {

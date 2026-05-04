@@ -33,6 +33,7 @@ export async function runSpecOneShotPrompt(
     session,
     sessionStore,
     callbacks: runtimeUi.callbacks,
+    mode: "spec",
     extraTools: specRuntime.tools,
     runtimePromptState: {
       mode: "spec",

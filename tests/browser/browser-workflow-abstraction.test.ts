@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { orderToolDefinitionsForLead } from "../../src/agent/capabilityPresentation.js";
@@ -21,13 +21,12 @@ function createTool(name: string, description = name): FunctionToolDefinition {
 test("tool presentation order recognizes browser capability tools without depending on provider naming", () => {
   const ordered = orderToolDefinitionsForLead(
     [
-      createTool("list_files"),
-      createTool("read_file"),
-      createTool("run_shell"),
+      createTool("read"),
+      createTool("bash"),
       createTool("mcp_webpilot_browser_navigate", "Browser navigate step"),
       createTool("mcp_webpilot_browser_snapshot", "Browser snapshot step"),
       createTool("mcp_webpilot_browser_click", "Browser click step"),
-      createTool("write_file"),
+      createTool("write"),
     ],
     {
       input: "Open the website, inspect the live page in the browser, then summarize the latest public news.",
@@ -39,6 +38,7 @@ test("tool presentation order recognizes browser capability tools without depend
     "mcp_webpilot_browser_navigate",
     "mcp_webpilot_browser_snapshot",
   ]);
-  assert(names.indexOf("mcp_webpilot_browser_click") < names.indexOf("list_files"));
-  assert(names.indexOf("run_shell") > names.indexOf("write_file"));
+  assert(names.indexOf("mcp_webpilot_browser_click") < names.indexOf("read"));
+  assert(names.indexOf("bash") > names.indexOf("write"));
 });
+

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createScriptedProviderHarness } from "../../src/agent/provider/harness.js";
@@ -16,7 +16,7 @@ test("scripted provider harness replays text tool empty and error steps without 
     },
     {
       kind: "tool_calls",
-      toolCalls: [{ name: "read_file", arguments: { path: "README.md" } }],
+      toolCalls: [{ name: "read", arguments: { path: "README.md" } }],
     },
     { kind: "empty" },
     { kind: "error", message: "provider failed" },
@@ -40,9 +40,9 @@ test("scripted provider harness replays text tool empty and error steps without 
       onToolCall: (name, args) => events.push(`tool:${name}:${args}`),
     },
   }));
-  assert.equal(tool.toolCalls[0]?.function.name, "read_file");
+  assert.equal(tool.toolCalls[0]?.function.name, "read");
   assert.equal(tool.toolCalls[0]?.function.arguments, "{\"path\":\"README.md\"}");
-  assert.equal(events.at(-1), "tool:read_file:{\"path\":\"README.md\"}");
+  assert.equal(events.at(-1), "tool:read:{\"path\":\"README.md\"}");
 
   const empty = await harness.adapter.fetchNonStreaming({} as never, createRequest());
   assert.equal(empty.content, null);
@@ -76,3 +76,4 @@ function createRequest(overrides: Partial<ProviderAdapterRequest> = {}): Provide
     ...overrides,
   };
 }
+

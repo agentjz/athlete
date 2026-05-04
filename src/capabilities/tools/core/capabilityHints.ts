@@ -136,7 +136,7 @@ function buildDocumentCapabilityHint(kind: ToolCapabilityHint["documentKind"]): 
     case "image":
       return "Detected image document input. Document-read capability can convert image content into structured Markdown output.";
     case "pdf":
-      return "Detected PDF input. Document-read capability can convert PDF content into Markdown output; raw read_file is not suitable.";
+      return "Detected PDF input. Document-read capability can convert PDF content into Markdown output; raw read is not suitable.";
     case "ppt":
       return "Detected presentation deck input. Document-read capability can extract slides into Markdown artifacts.";
     default:

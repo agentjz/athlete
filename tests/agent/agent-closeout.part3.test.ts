@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -159,7 +159,7 @@ async function readRequestBody(request: http.IncomingMessage): Promise<string> {
 
 test("getLightweightVerificationAttempt matches persisted absolute observed paths after continuation", () => {
   const attempt = getLightweightVerificationAttempt({
-    toolName: "read_file",
+    toolName: "read",
     rawArgs: JSON.stringify({ path: TARGET_FILE }),
     observedPaths: ["C:\\Users\\Administrator\\Desktop\\Kitty\\validation\\helldivers2-latest.md"],
     resultOk: true,
@@ -167,16 +167,16 @@ test("getLightweightVerificationAttempt matches persisted absolute observed path
 
   assert.deepEqual(attempt, {
     attempted: true,
-    command: `read_file ${TARGET_FILE}`,
+    command: `read ${TARGET_FILE}`,
     exitCode: 0,
-    kind: "read_file",
+    kind: "read",
     passed: true,
   });
 });
 
 test("getLightweightVerificationAttempt does not clear verification for source-code reads", () => {
   const attempt = getLightweightVerificationAttempt({
-    toolName: "read_file",
+    toolName: "read",
     rawArgs: JSON.stringify({ path: "src/agent/runTurn.ts" }),
     observedPaths: ["src/agent/runTurn.ts"],
     resultOk: true,
@@ -184,4 +184,5 @@ test("getLightweightVerificationAttempt does not clear verification for source-c
 
   assert.equal(attempt, null);
 });
+
 

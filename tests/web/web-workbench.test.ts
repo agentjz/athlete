@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -166,14 +166,14 @@ test("web HTTP file endpoints create, read, write, rename, and reject unsafe pat
   assert.match((await unsafe.json() as { error: string }).error, /outside the project root/);
 });
 
-test("web writes participate in runtime read_file and edit_file target-text semantics", async (t) => {
+test("web writes participate in runtime read and edit target-text semantics", async (t) => {
   const root = await createTempWorkspace("web-runtime-edit-target", t);
   const target = path.join(root, "story.txt");
   await fs.writeFile(target, "alpha\nbeta\ngamma\n", "utf8");
   const registry = createToolRegistry();
   const context = makeToolContext(root, root) as never;
   const firstRead = JSON.parse((await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({ path: "story.txt" }),
     context,
   )).output) as { content: string };
@@ -181,18 +181,18 @@ test("web writes participate in runtime read_file and edit_file target-text sema
 
   await writeProjectFile(root, "story.txt", "alpha changed\nbeta\ngamma\n");
   const secondRead = JSON.parse((await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({ path: "story.txt" }),
     context,
   )).output) as { content: string };
   assert.match(secondRead.content, /alpha changed/);
   const edit = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [{
-        old_string: "beta",
-        new_string: "BETA",
+        oldText: "beta",
+        newText: "BETA",
         line: 2,
       }],
     }),
@@ -204,12 +204,12 @@ test("web writes participate in runtime read_file and edit_file target-text sema
   await writeProjectFile(root, "story.txt", "alpha changed\nbeta changed\ngamma\n");
   await assert.rejects(
     () => registry.execute(
-      "edit_file",
+      "edit",
       JSON.stringify({
         path: "story.txt",
         edits: [{
-          old_string: "beta\n",
-          new_string: "BETA",
+          oldText: "beta\n",
+          newText: "BETA",
           line: 2,
         }],
       }),
@@ -223,14 +223,14 @@ test("web runtime line events carry compact display text instead of raw JSON", (
   const event = createRuntimeLineEvent({
     channel: "lead",
     kind: "error",
-    message: "read_file failed",
-    detail: "read_file offset must be a 1-based line number.",
+    message: "read failed",
+    detail: "read offset must be a 1-based line number.",
   });
 
   assert(event);
   assert.equal(event.type, "runtime.line");
   assert.equal(event.kind, "error");
-  assert.equal(event.message, "read_file failed");
+  assert.equal(event.message, "read failed");
   assert.doesNotMatch(event.detail ?? "", /"protocol"|"phases"|\{|\}/);
 });
 
@@ -287,16 +287,16 @@ test("web todo extraction follows tool payload instead of protocol wrapper noise
 test("web tool result display suppresses successful tool JSON and keeps failures compact", () => {
   assert.equal(createToolResultRuntimeLine({
     channel: "lead",
-    name: "read_file",
+    name: "read",
     output: JSON.stringify({ ok: true, path: "package.json", content: "{}" }),
   }), null);
 
   const failed = createToolResultRuntimeLine({
     channel: "lead",
-    name: "read_file",
+    name: "read",
     output: JSON.stringify({
       ok: false,
-      error: "read_file offset must be a 1-based line number.",
+      error: "read offset must be a 1-based line number.",
       protocol: {
         phases: ["prepare", "execute", "finalize"],
       },
@@ -422,7 +422,7 @@ test("web session replay includes compact tool call runtime lines without tool J
         id: "call-1",
         type: "function",
         function: {
-          name: "read_file",
+          name: "read",
           arguments: JSON.stringify({ path: "package.json", offset: 1, limit: 5 }),
         },
       }],
@@ -437,7 +437,7 @@ test("web session replay includes compact tool call runtime lines without tool J
 
   const line = replay.messages[0]?.toolCalls?.[0]?.runtimeLine;
   assert(line);
-  assert.match(line.message, /read_file package\.json/);
+  assert.match(line.message, /read package\.json/);
   assert.doesNotMatch(line.message, /\{|\}/);
 });
 
@@ -651,8 +651,8 @@ test("execution foreground callbacks write ordered runtime-ui events for web and
 
   callbacks.onAssistantDelta?.("先看");
   callbacks.onReasoningDelta?.("思考中");
-  callbacks.onToolCall?.("read_file", JSON.stringify({ path: "package.json" }));
-  callbacks.onToolResult?.("read_file", JSON.stringify({ ok: true }));
+  callbacks.onToolCall?.("read", JSON.stringify({ path: "package.json" }));
+  callbacks.onToolResult?.("read", JSON.stringify({ ok: true }));
   callbacks.onAssistantDelta?.("看完了");
 
   const lines = (await fs.readFile(getForegroundStreamPath(root, "exec-1"), "utf8"))
@@ -886,3 +886,5 @@ function findModuleCycles(graph: Map<string, string[]>): string[] {
   }
   return [...cycles].sort();
 }
+
+

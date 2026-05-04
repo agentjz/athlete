@@ -6,7 +6,7 @@ export async function scanGeneratedArtifacts({ root }: RepoContractScanInput): P
   const result = await syncReadmeCapabilities(root, { check: true });
   if (result.staleFiles.length > 0) {
     findings.push({
-      file: "spec/用户审阅/capability-ecology.json",
+      file: "spec/capability-ecology.json",
       message: `generated README capability ecology is stale: ${result.staleFiles.join(", ")}`,
     });
     for (const file of result.staleFiles) {

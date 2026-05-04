@@ -1,4 +1,4 @@
-import { readCapabilityEcologySpec } from "../readme-capabilities/core.ts";
+﻿import { readCapabilityEcologySpec } from "../readme-capabilities/core.ts";
 
 export interface LiveEcologyToolSwitch {
   name: string;
@@ -20,8 +20,8 @@ export interface LiveEcologyInventoryFinding {
 }
 
 const LIVE_GROUP_TITLES: Record<string, string> = {
-  "foundation-tools": "foundation read, Git, and shell tools",
-  "patch-edit-tools": "foundation write, patch, edit, and undo tools",
+  "foundation-tools": "foundation four-tool coding loop",
+  "patch-edit-tools": "foundation write and edit tools",
   "code-intelligence": "code intelligence read-only tools",
   documents: "document tools",
   "network-http": "HTTP and download tools",
@@ -37,29 +37,25 @@ const LIVE_GROUP_TITLES: Record<string, string> = {
 
 const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
   "foundation-tools": [
-    "Run a real API smoke test for foundation read, Git, and shell tools.",
+    "Run a real API smoke test for the four foundation tools: read, edit, write, bash.",
     "Hard constraints: generated evidence is allowed only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Use todo_write first to record the test plan. The todo text must be Simplified Chinese.",
-    "Actually call list_files on __RUN_DIR__ to confirm the test directory.",
-    "Actually call find_files from the repository root to locate package.json and README.md.",
-    "Actually call search_files from the repository root with a narrow pattern that should exist in package.json or README.md.",
-    "Actually call read_file to read a small part of package.json and README.md.",
-    "Actually call git_status and git_diff from the repository root. Do not replace these Git tools with run_shell.",
-    "Call run_shell for exactly these read-only checks: node --version and git status --short.",
+    "Use bash from the repository root to locate package.json and README.md.",
+    "Actually call read to read a small part of package.json and README.md.",
+    "Call bash for these read-only checks: node --version, git status --short, and git diff --stat.",
     "If useful, write one non-empty report file under __RUN_DIR__. The recommended path is __RUN_DIR__/foundation-tools-report.md.",
     "When writing a report, include each tool result, success or failure, original failure summary, and evidence path in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
   "patch-edit-tools": [
-    "Run a real API smoke test for write_file, patch_file, edit_file, and undo_last_change only.",
+    "Run a real API smoke test for write, edit, read, and bash only.",
     "Hard constraints: write, edit, undo, and generated evidence are allowed only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Use todo_write first to record the test plan. The todo text must be Simplified Chinese.",
-    "Inside __RUN_DIR__, first use write_file to create utf8-sample.txt with exactly these three lines: alpha, beta, gamma.",
-    "Then call read_file on utf8-sample.txt to observe the current content.",
-    "Then call patch_file for a successful minimal unified diff that changes only beta to BETA in utf8-sample.txt. Do not skip patch_file. Do not replace this step with edit_file. A parse or hunk failure is a real tool failure and does not count as coverage.",
-    "Then call read_file again and use edit_file to change gamma to GAMMA from the current target text, with a line hint if useful.",
-    "Then call undo_last_change once, undoing only the edit_file change created inside __RUN_DIR__, leaving the patch_file change in place.",
-    "After undo_last_change, call read_file to verify the final sample content is alpha, BETA, gamma.",
+    "Inside __RUN_DIR__, first use write to create utf8-sample.txt with exactly these three lines: alpha, beta, gamma.",
+    "Then call read on utf8-sample.txt to observe the current content.",
+    "Then call edit to change beta to BETA from the current target text, with a line hint if useful.",
+    "Then call read again and use edit to change gamma to GAMMA from the current target text, with a line hint if useful.",
+    "After editing, call read to verify the final sample content is alpha, BETA, GAMMA.",
     "If useful, write one non-empty report file under __RUN_DIR__. The recommended path is __RUN_DIR__/patch-edit-tools-report.md.",
     "When writing a report, include each tool result, success or failure, original failure summary, and evidence path in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
@@ -68,7 +64,7 @@ const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
     "Run a real API smoke test for read-only code intelligence tools.",
     "Hard constraints: generated evidence may be written only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call code_symbols, code_references, and code_pattern for minimal read-only code observation.",
-    "Use read_file only when needed to inspect the returned readArgs, and do not edit files in this group.",
+    "Use read only when needed to inspect the returned readArgs, and do not edit files in this group.",
     "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/code-intelligence-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
@@ -147,7 +143,7 @@ const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
     "Run a real API smoke test for skill and capability package ecology.",
     "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call load_skill with test-guardrails or spec-alignment.",
-    "Use run_shell to exercise the kitty capability package CLI: create a minimal external manifest inside __RUN_DIR__ and produce install, list, doctor, and test evidence.",
+    "Use bash to exercise the kitty capability package CLI: create a minimal external manifest inside __RUN_DIR__ and produce install, list, doctor, and test evidence.",
     "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/skill-package-ecology-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
@@ -254,3 +250,4 @@ export function diagnoseLiveEcologyInventory(
 
   return findings.sort((left, right) => left.tool.localeCompare(right.tool) || left.kind.localeCompare(right.kind));
 }
+

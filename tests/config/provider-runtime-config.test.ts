@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { resolveRuntimeConfig } from "../../src/config/store.js";
+import { ensureAppDirectories } from "../../src/config/fileStore.js";
 import { createTempWorkspace } from "../helpers.js";
 
 test("resolveRuntimeConfig takes provider truth from the project .kitty/.env and ignores TT-config auth sidecars", async (t) => {
@@ -79,6 +80,33 @@ test("resolveRuntimeConfig takes provider truth from the project .kitty/.env and
     restoreEnv(previous);
   }
 });
+
+test("ensureAppDirectories keeps kitty runtime state out of local git status", async (t) => {
+  const root = await createTempWorkspace("kitty-runtime-git-exclude", t);
+  await execGit(root, ["init", "--quiet"]);
+  await execGit(root, ["config", "user.name", "Kitty Test"]);
+  await execGit(root, ["config", "user.email", "kitty-test@example.com"]);
+  await fs.writeFile(path.join(root, "README.md"), "# test\n", "utf8");
+  await execGit(root, ["add", "."]);
+  await execGit(root, ["commit", "--quiet", "-m", "init"]);
+
+  await ensureAppDirectories(root);
+
+  const exclude = await fs.readFile(path.join(root, ".git", "info", "exclude"), "utf8");
+  const status = await execGit(root, ["status", "--short"]);
+
+  assert.match(exclude, /^\/\.kitty\/$/m);
+  assert.equal(status.trim(), "");
+});
+
+async function execGit(cwd: string, args: string[]): Promise<string> {
+  const { execa } = await import("execa");
+  const result = await execa("git", args, {
+    cwd,
+    windowsHide: true,
+  });
+  return result.stdout;
+}
 
 test("resolveRuntimeConfig lets KITTY_PROFILE override the project env file", async (t) => {
   const root = await createTempWorkspace("profile-runtime-config", t);

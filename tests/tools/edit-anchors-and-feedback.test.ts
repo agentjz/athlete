@@ -9,14 +9,14 @@ import { InProcessSessionStore } from "../../src/agent/session.js";
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
 
-test("edit_file uses an optional line hint to disambiguate repeated matches", async (t) => {
+test("edit uses an optional line hint to disambiguate repeated matches", async (t) => {
   const root = await createTempWorkspace("edit-line-hint", t);
   const filePath = path.join(root, "story.txt");
   await fs.writeFile(filePath, "beta\nalpha\nbeta\n", "utf8");
 
   const registry = createToolRegistry();
   const readResult = await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({
       path: "story.txt",
     }),
@@ -28,13 +28,13 @@ test("edit_file uses an optional line hint to disambiguate repeated matches", as
   assert.equal(Object.hasOwn(readPayload, "identity"), false);
 
   const editResult = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [
         {
-          old_string: "beta",
-          new_string: "BETA",
+          oldText: "beta",
+          newText: "BETA",
           line: 3,
         },
       ],
@@ -50,7 +50,7 @@ test("edit_file uses an optional line hint to disambiguate repeated matches", as
   assert.equal(updated, "beta\nalpha\nBETA\n");
 });
 
-test("edit_file rejects ambiguous edits and returns fresh read evidence", async (t) => {
+test("edit rejects ambiguous edits and returns fresh read evidence", async (t) => {
   const root = await createTempWorkspace("edit-ambiguous", t);
   await fs.writeFile(path.join(root, "story.txt"), "alpha\nbeta\n", "utf8");
 
@@ -58,13 +58,13 @@ test("edit_file rejects ambiguous edits and returns fresh read evidence", async 
   await assert.rejects(
     () =>
       registry.execute(
-        "edit_file",
+        "edit",
         JSON.stringify({
           path: "story.txt",
           edits: [
             {
-              old_string: "a",
-              new_string: "BETA",
+              oldText: "a",
+              newText: "BETA",
             },
           ],
         }),
@@ -79,7 +79,7 @@ test("edit_file rejects ambiguous edits and returns fresh read evidence", async 
   );
 });
 
-test("edit_file preserves UTF-8 BOM and CRLF while editing current target text", async (t) => {
+test("edit preserves UTF-8 BOM and CRLF while editing current target text", async (t) => {
   const root = await createTempWorkspace("edit-bom-crlf", t);
   const filePath = path.join(root, "story.txt");
   await fs.writeFile(filePath, Buffer.concat([
@@ -89,7 +89,7 @@ test("edit_file preserves UTF-8 BOM and CRLF while editing current target text",
 
   const registry = createToolRegistry();
   const readResult = await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({
       path: "story.txt",
     }),
@@ -98,13 +98,13 @@ test("edit_file preserves UTF-8 BOM and CRLF while editing current target text",
   assert.match(readResult.output, /2 \| beta/);
 
   const editResult = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [
         {
-          old_string: "beta",
-          new_string: "BETA",
+          oldText: "beta",
+          newText: "BETA",
           line: 2,
         },
       ],
@@ -118,14 +118,14 @@ test("edit_file preserves UTF-8 BOM and CRLF while editing current target text",
   assert.equal(after.toString("utf8"), "\uFEFFalpha\r\nBETA\r\ngamma\r\n");
 });
 
-test("edit_file can apply two independent edits without refreshing the whole file", async (t) => {
+test("edit can apply two independent edits without refreshing the whole file", async (t) => {
   const root = await createTempWorkspace("edit-repeat-without-refresh", t);
   const filePath = path.join(root, "story.txt");
   await fs.writeFile(filePath, "alpha\nbeta\ngamma\n", "utf8");
 
   const registry = createToolRegistry();
   const readResult = await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({
       path: "story.txt",
     }),
@@ -134,13 +134,13 @@ test("edit_file can apply two independent edits without refreshing the whole fil
   assert.match(readResult.output, /2 \| beta/);
 
   const first = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [
         {
-          old_string: "beta",
-          new_string: "BETA",
+          oldText: "beta",
+          newText: "BETA",
           line: 2,
         },
       ],
@@ -148,13 +148,13 @@ test("edit_file can apply two independent edits without refreshing the whole fil
     makeToolContext(root, root) as never,
   );
   const second = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [
         {
-          old_string: "gamma",
-          new_string: "GAMMA",
+          oldText: "gamma",
+          newText: "GAMMA",
           line: 3,
         },
       ],
@@ -167,13 +167,13 @@ test("edit_file can apply two independent edits without refreshing the whole fil
   assert.equal(await fs.readFile(filePath, "utf8"), "alpha\nBETA\nGAMMA\n");
 });
 
-test("write_file can create an empty file without routing through shell", async (t) => {
+test("write can create an empty file without routing through shell", async (t) => {
   const root = await createTempWorkspace("write-empty-file", t);
   const filePath = path.join(root, "empty.txt");
 
   const registry = createToolRegistry();
   const result = await registry.execute(
-    "write_file",
+    "write",
     JSON.stringify({
       path: "empty.txt",
       content: "",
@@ -185,12 +185,12 @@ test("write_file can create an empty file without routing through shell", async 
   assert.equal(await fs.readFile(filePath, "utf8"), "");
 });
 
-test("write_file returns short success output while metadata keeps diagnostics and session diff", async (t) => {
+test("write returns short success output while metadata keeps diagnostics and session diff", async (t) => {
   const root = await createTempWorkspace("write-feedback", t);
   const registry = createToolRegistry();
 
   const result = await registry.execute(
-    "write_file",
+    "write",
     JSON.stringify({
       path: "broken.json",
       content: "{\n  \"broken\": true,\n}\n",
@@ -252,7 +252,7 @@ test("runManagedAgentTurn persists session diff into the formal session truth af
         toolCalls: [
           {
             id: "tool-1",
-            name: "write_file",
+            name: "write",
             args: {
               path: "artifact.json",
               content: "{\n  \"artifact\": true\n}\n",
@@ -289,7 +289,7 @@ test("runManagedAgentTurn persists session diff into the formal session truth af
   });
 
   assert.equal(result.session.sessionDiff?.changes?.length, 1);
-  assert.equal(result.session.sessionDiff?.changes?.[0]?.toolName, "write_file");
+  assert.equal(result.session.sessionDiff?.changes?.[0]?.toolName, "write");
   assert.deepEqual(result.session.sessionDiff?.changedPaths, [path.join(root, "artifact.json")]);
 });
 
@@ -393,4 +393,6 @@ async function readRequestBody(request: http.IncomingMessage): Promise<string> {
   }
   return Buffer.concat(chunks).toString("utf8");
 }
+
+
 

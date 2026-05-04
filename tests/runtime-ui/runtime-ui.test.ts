@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createRuntimeUiEvent, normalizeRuntimeUiChannel } from "../../src/runtime-ui/events.js";
@@ -20,13 +20,13 @@ test("runtime UI renders Dreaming foreground tool events through the shared tool
     renderer.render(createRuntimeUiEvent({
       channel: "dream",
       kind: "tool_call",
-      toolName: "read_file",
+      toolName: "read",
       payload: JSON.stringify({ path: "package.json", offset: 1, limit: 10 }),
     }));
     renderer.render(createRuntimeUiEvent({
       channel: "dream",
       kind: "tool_result",
-      toolName: "read_file",
+      toolName: "read",
       payload: JSON.stringify({ path: "package.json", content: "large body" }),
     }));
     renderer.render(createRuntimeUiEvent({
@@ -38,8 +38,8 @@ test("runtime UI renders Dreaming foreground tool events through the shared tool
   const plain = stripAnsi(output);
 
   assert.match(plain, /\[做梦\]\nforeground started exec-dream/);
-  assert.match(plain, /\[tool\] read_file package\.json:1-10/);
-  assert.doesNotMatch(plain, /\[result\] read_file package\.json ok/);
+  assert.match(plain, /\[tool\] read package\.json:1-10/);
+  assert.doesNotMatch(plain, /\[result\] read package\.json ok/);
   assert.match(plain, /foreground ended exec-dream/);
   assert.doesNotMatch(plain, /\[做梦\] tool|\[做梦\] result/);
   assert.doesNotMatch(plain, /large body/);
@@ -54,13 +54,13 @@ test("runtime UI renders only failed tool results", async () => {
     renderer.render(createRuntimeUiEvent({
       channel: "lead",
       kind: "tool_result",
-      toolName: "read_file",
+      toolName: "read",
       payload: JSON.stringify({ ok: false, error: "blocked by contract" }),
     }));
   });
   const plain = stripAnsi(output);
 
-  assert.match(plain, /\[决策主脑\]\n\[result\] read_file failed: error: blocked by contract/);
+  assert.match(plain, /\[决策主脑\]\n\[result\] read failed: error: blocked by contract/);
 });
 
 test("runtime UI renders Chinese channel headers from the central identity map", async () => {
@@ -161,3 +161,4 @@ test("runtime UI event labels come from the shared channel identity registry", (
 function stripAnsi(value: string): string {
   return value.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");
 }
+

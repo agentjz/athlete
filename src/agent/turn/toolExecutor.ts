@@ -99,7 +99,7 @@ function buildToolRecoveryHint(toolName: string, rawArgs: string, message: strin
   }
 
   if (lower.includes("enoent") || lower.includes("no such file") || lower.includes("file not found")) {
-    return `The path used by ${toolName} does not exist. Filesystem discovery evidence is available from list_files, find_files, search_files, and path suggestions.`;
+    return `The path used by ${toolName} does not exist. Use bash to locate the path, then read the target area.`;
   }
 
   if (lower.includes("unsupported binary") || lower.includes("binary file detected")) {
@@ -114,12 +114,8 @@ function buildToolRecoveryHint(toolName: string, rawArgs: string, message: strin
     return `The arguments for ${toolName} were malformed. The tool schema is the argument contract.`;
   }
 
-  if (toolName === "patch_file") {
-    return "Rewrite the unified diff, do not blindly retry. Use this shape: --- a/path, +++ b/path, @@ -oldStart,oldCount +newStart,newCount @@, then hunk lines with - for removed text and + for added text. Context lines may be bare or prefixed with one space. If content may be stale, fresh read_file the target area before retrying patch_file or switching to edit_file.";
-  }
-
-  if (toolName === "edit_file") {
-    return "Fresh read_file the target area, then retry edit_file with the current old_string/new_string and a line hint when useful.";
+  if (toolName === "edit") {
+    return "Read the target area, then retry edit with current oldText/newText and a line hint when useful.";
   }
 
   return `The ${toolName} tool failed. Use the error facts to choose the next tool call.`;

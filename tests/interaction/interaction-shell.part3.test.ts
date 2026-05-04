@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -268,8 +268,8 @@ test("startInteractiveChat mirrors terminal input and output into observability 
                 abortSignal: new AbortController().signal,
               });
               display.callbacks.onAssistantText?.("assistant says hello\n");
-              display.callbacks.onToolCall?.("read_file", "{\"path\":\"secret.txt\",\"content\":\"large noise\"}");
-              display.callbacks.onToolResult?.("read_file", "very large tool result body that should not be mirrored");
+              display.callbacks.onToolCall?.("read", "{\"path\":\"secret.txt\",\"content\":\"large noise\"}");
+              display.callbacks.onToolResult?.("read", "very large tool result body that should not be mirrored");
               options.shell.output.plain(`echo ${prompt.value}`);
             }
             return session;
@@ -294,8 +294,8 @@ test("startInteractiveChat mirrors terminal input and output into observability 
   assert.match(log, /intro output/);
   assert.match(log, /> hello terminal/);
   assert.match(log, /assistant says hello/);
-  assert.match(log, /\[tool\] read_file/);
-  assert.doesNotMatch(log, /\[result\] read_file ok/);
+  assert.match(log, /\[tool\] read/);
+  assert.doesNotMatch(log, /\[result\] read ok/);
   assert.doesNotMatch(log, /secret\.txt/);
   assert.doesNotMatch(log, /very large tool result body/);
   assert.match(log, /echo hello terminal/);
@@ -338,7 +338,7 @@ test("terminal output mirror suppresses transient thinking spinner frames", () =
     writeStdoutLine(formatRuntimeUiEventLine(createRuntimeUiEvent({
       channel: "lead",
       kind: "tool_call",
-      toolName: "read_file",
+      toolName: "read",
       payload: JSON.stringify({ path: "package.json" }),
     })));
   } finally {
@@ -347,7 +347,7 @@ test("terminal output mirror suppresses transient thinking spinner frames", () =
 
   const log = writes.join("");
   assert.doesNotMatch(log, /thinking/);
-  assert.match(log, /\[tool\] read_file package\.json/);
+  assert.match(log, /\[tool\] read package\.json/);
 });
 
 test("startInteractiveChat surfaces shell bootstrap failures directly", async () => {
@@ -373,4 +373,5 @@ test("startInteractiveChat surfaces shell bootstrap failures directly", async ()
     /shell bootstrap failed/,
   );
 });
+
 

@@ -29,7 +29,7 @@ test("observability events write JSONL under project state and do not mutate ses
     event: "tool.execution",
     status: "completed",
     sessionId: session.id,
-    toolName: "write_file",
+    toolName: "write",
     durationMs: 24,
     identityKind: "lead",
     identityName: "lead",
@@ -51,7 +51,7 @@ test("observability events write JSONL under project state and do not mutate ses
   assert.equal(events[0]?.event, "tool.execution");
   assert.equal(events[0]?.status, "completed");
   assert.equal(events[0]?.sessionId, session.id);
-  assert.equal(events[0]?.toolName, "write_file");
+  assert.equal(events[0]?.toolName, "write");
   assert.equal(before, after);
   assert.equal(before.includes("\"observability\""), false);
   assert.equal(before.includes("\"tool.execution\""), false);
@@ -151,7 +151,7 @@ test("doctor observability command prints the operator view without requiring a 
     status: "failed",
     host: "cli",
     sessionId: "session-1",
-    toolName: "run_shell",
+    toolName: "bash",
     durationMs: 145,
     error: {
       message: "command failed",
@@ -195,8 +195,9 @@ test("doctor observability command prints the operator view without requiring a 
   assert.match(output, new RegExp(paths.observabilityDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(output, /recent event file/i);
   assert.match(output, /recent crashes: 1/i);
-  assert.match(output, /run_shell/i);
+  assert.match(output, /bash/i);
   assert.match(output, /command failed/i);
   assert.match(output, /deepseek-v4-flash/i);
   assert.doesNotMatch(output, /provider reachable/i);
 });
+

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createCheckpointForObjective } from "../../src/agent/checkpoint/base.js";
@@ -9,7 +9,7 @@ test("working memory keeps current objective facts and rejects stale checkpoint 
   const staleCheckpoint = createCheckpointForObjective("old task", timestamp);
   staleCheckpoint.completedSteps = ["old completed step"];
   staleCheckpoint.recentToolBatch = {
-    tools: ["read_file"],
+    tools: ["read"],
     summary: "old tool batch",
     changedPaths: ["old.ts"],
     artifacts: [],
@@ -45,8 +45,8 @@ test("working memory preserves current checkpoint evidence as short task state",
   const checkpoint = createCheckpointForObjective("current task", timestamp);
   checkpoint.completedSteps = ["captured requirements", "wrote design"];
   checkpoint.recentToolBatch = {
-    tools: ["write_file", "run_shell"],
-    summary: "Ran write_file, run_shell; changed spec.md",
+    tools: ["write", "bash"],
+    summary: "Ran write, bash; changed spec.md",
     changedPaths: ["spec.md"],
     artifacts: [
       {
@@ -82,8 +82,9 @@ test("working memory preserves current checkpoint evidence as short task state",
   });
 
   assert.deepEqual(memory.completedActions, ["captured requirements", "wrote design"]);
-  assert.equal(memory.recentToolBatch?.tools.join(","), "write_file,run_shell");
+  assert.equal(memory.recentToolBatch?.tools.join(","), "write,bash");
   assert.equal(memory.recentToolBatch?.changedPaths[0], "spec.md");
   assert.equal(memory.evidenceArtifacts[0]?.label, "spec.md");
   assert.equal(memory.verification?.status, "passed");
 });
+

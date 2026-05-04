@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -42,7 +42,8 @@ test("wrapped callbacks stop spinner on first visible activity", () => {
   );
 
   wrapped.onAssistantDelta?.("a");
-  wrapped.onToolCall?.("read_file", "{}");
+  wrapped.onToolCall?.("read", "{}");
 
   assert.equal(stopCount, 2);
 });
+

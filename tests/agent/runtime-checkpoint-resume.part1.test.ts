@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -333,14 +333,14 @@ test("runtime checkpoint archives the old checkpoint until current-objective fac
   assert.equal(normalized.checkpoint?.recentToolBatch?.tools?.[0], "emit_large_checkpoint");
 
   const afterCurrentToolFact = noteCheckpointToolBatch(normalized, {
-    toolNames: ["read_file"],
+    toolNames: ["read"],
     toolMessages: [],
     changedPaths: [],
   });
 
   assert.equal(afterCurrentToolFact.checkpoint?.objective, "Start a brand new PDF extraction task.");
   assert.deepEqual(afterCurrentToolFact.checkpoint?.completedSteps ?? [], []);
-  assert.equal(afterCurrentToolFact.checkpoint?.recentToolBatch?.tools?.[0], "read_file");
+  assert.equal(afterCurrentToolFact.checkpoint?.recentToolBatch?.tools?.[0], "read");
 });
 
 test("checkpoint runState stays busy across tool-batch persistence and only returns to idle when the turn yields", async () => {
@@ -367,7 +367,7 @@ test("checkpoint runState stays busy across tool-batch persistence and only retu
   } as any;
 
   const afterToolBatch = noteCheckpointToolBatch(session, {
-    toolNames: ["read_file"],
+    toolNames: ["read"],
     toolMessages: [],
     changedPaths: [],
   }, timestamp);
@@ -386,3 +386,4 @@ test("checkpoint runState stays busy across tool-batch persistence and only retu
   assert.equal(afterYield.checkpoint?.flow?.runState?.status, "idle");
   assert.equal(afterYield.checkpoint?.flow?.runState?.source, "checkpoint");
 });
+

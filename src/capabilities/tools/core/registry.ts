@@ -7,11 +7,15 @@ import { finalizeToolExecution, attachToolExecutionProtocol } from "./toolFinali
 import { prepareToolExecution } from "./toolPrepare.js";
 import type { ToolExecutionResult } from "../../../types.js";
 import type {
+  PreparedToolRegistryCall,
   RegisteredTool,
+  ToolContext,
   ToolRegistry,
   ToolRegistryOptions,
+  ToolRegistryPreparation,
   ToolRegistrySource,
 } from "./types.js";
+import type { PreparedToolExecution } from "./toolPrepare.js";
 
 export { createToolSource } from "./sources.js";
 
@@ -28,74 +32,71 @@ export function createToolRegistry(options: ToolRegistryOptions = {}): ToolRegis
     entries.set(entry.name, entry);
   }
 
+  async function prepare(name: string, rawArgs: string, context: ToolContext): Promise<ToolRegistryPreparation> {
+    const tool = tools.get(name);
+    const entry = entries.get(name);
+    if (!tool || !entry) {
+      throw new Error(`Unknown tool: ${name}`);
+    }
+
+    const preparation = await prepareToolExecution(entry, rawArgs, context);
+    const preparedCall: PreparedToolRegistryCall = {
+      name,
+      rawArgs: preparation.prepared.rawArgs,
+      entry,
+      execute: tool.execute,
+      prepared: preparation.prepared,
+    };
+
+    return preparation.ok
+      ? { ok: true, preparedCall }
+      : { ok: false, preparedCall, result: preparation.result };
+  }
+
+  async function runPrepared(preparedCall: PreparedToolRegistryCall, context: ToolContext): Promise<ToolExecutionResult> {
+    return preparedCall.execute(preparedCall.rawArgs, context);
+  }
+
+  function finalize(
+    preparedCall: PreparedToolRegistryCall,
+    result: ToolExecutionResult,
+    options?: Parameters<typeof finalizeToolExecution>[3],
+  ): ToolExecutionResult {
+    return finalizeToolExecution(preparedCall.entry, result, preparedCall.prepared as PreparedToolExecution, options);
+  }
+
+  async function execute(name: string, rawArgs: string, context: ToolContext): Promise<ToolExecutionResult> {
+    const preparation = await prepare(name, rawArgs, context);
+
+    if (!preparation.ok) {
+      return finalize(preparation.preparedCall, preparation.result, {
+        status: "blocked",
+        blockedIn: "prepare",
+      });
+    }
+
+    try {
+      const result = await runPrepared(preparation.preparedCall, context);
+      return finalize(preparation.preparedCall, result, {
+        status: result.ok ? "completed" : "failed",
+        blockedIn: result.ok ? undefined : "execute",
+      });
+    } catch (error) {
+      return attachToolExecutionProtocol(error, preparation.preparedCall.prepared as PreparedToolExecution, {
+        status: "failed",
+        blockedIn: "execute",
+      });
+    }
+  }
+
   return {
     definitions: [...entries.values()].map((entry) => entry.definition),
     entries: [...entries.values()],
     blocked,
-    async prepare(name, rawArgs, context) {
-      const tool = tools.get(name);
-      const entry = entries.get(name);
-      if (!tool || !entry) {
-        throw new Error(`Unknown tool: ${name}`);
-      }
-
-      const preparation = await prepareToolExecution(entry, rawArgs, context);
-      const preparedCall = {
-        name,
-        rawArgs: preparation.prepared.rawArgs,
-        entry,
-        execute: tool.execute,
-        prepared: preparation.prepared,
-      };
-
-      if (!preparation.ok) {
-        return {
-          ok: false,
-          preparedCall,
-          result: preparation.result,
-        };
-      }
-
-      return {
-        ok: true,
-        preparedCall,
-      };
-    },
-    async runPrepared(preparedCall, context) {
-      return preparedCall.execute(preparedCall.rawArgs, context);
-    },
-    finalize(preparedCall, result, options) {
-      return finalizeToolExecution(preparedCall.entry, result, preparedCall.prepared as never, options);
-    },
-    async execute(name, rawArgs, context) {
-      const preparation = await this.prepare?.(name, rawArgs, context);
-      if (!preparation) {
-        throw new Error(`Tool preparation is unavailable for ${name}.`);
-      }
-
-      if (!preparation.ok) {
-        return this.finalize?.(preparation.preparedCall, preparation.result, {
-          status: "blocked",
-          blockedIn: "prepare",
-        }) as ToolExecutionResult;
-      }
-
-      try {
-        const result = await this.runPrepared?.(preparation.preparedCall, context);
-        if (!result) {
-          throw new Error(`Prepared tool execution is unavailable for ${name}.`);
-        }
-        return this.finalize?.(preparation.preparedCall, result, {
-          status: result.ok ? "completed" : "failed",
-          blockedIn: result.ok ? undefined : "execute",
-        }) as ToolExecutionResult;
-      } catch (error) {
-        return attachToolExecutionProtocol(error, preparation.preparedCall.prepared as never, {
-          status: "failed",
-          blockedIn: "execute",
-        });
-      }
-    },
+    prepare,
+    runPrepared,
+    finalize,
+    execute,
     async close() {
       return;
     },
@@ -146,9 +147,25 @@ function assertRequestedToolNamesResolved(
 
   const unresolved = [...onlyNames].filter((name) => !available.has(name)).sort();
   if (unresolved.length > 0) {
-    throw new Error(
-      `Requested onlyNames include unregistered tools: ${unresolved.join(", ")}.`,
-    );
+    throw new Error(`Requested onlyNames include unregistered tools: ${unresolved.join(", ")}.`);
+  }
+}
+
+function assertNoDuplicateToolNames(selectedTools: readonly { tool: RegisteredTool }[]): void {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const { tool } of selectedTools) {
+    const name = tool.definition.function.name;
+    if (seen.has(name)) {
+      duplicates.add(name);
+      continue;
+    }
+    seen.add(name);
+  }
+
+  if (duplicates.size > 0) {
+    throw new Error(`Duplicate tools are not allowed: ${[...duplicates].sort().join(", ")}.`);
   }
 }
 
@@ -169,24 +186,4 @@ function applySourceDefaults(source: ToolRegistrySource, tool: RegisteredTool): 
       readOnlyHint: tool.origin?.readOnlyHint,
     },
   };
-}
-
-function assertNoDuplicateToolNames(
-  tools: Array<{
-    source: ToolRegistrySource;
-    tool: RegisteredTool;
-  }>,
-): void {
-  const seen = new Map<string, string>();
-
-  for (const entry of tools) {
-    const name = entry.tool.definition.function.name;
-    const sourceLabel = `${entry.source.kind}:${entry.source.id}`;
-    const existing = seen.get(name);
-    if (existing) {
-      throw new Error(`Duplicate tool registration detected for ${name}: ${existing} and ${sourceLabel}.`);
-    }
-
-    seen.set(name, sourceLabel);
-  }
 }

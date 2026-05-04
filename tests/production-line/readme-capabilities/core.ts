@@ -93,7 +93,7 @@ export async function syncReadmeCapabilities(
 }
 
 export async function readCapabilityEcologySpec(root: string): Promise<CapabilityEcologySpec> {
-  const specPath = path.join(root, "spec", "用户审阅", "capability-ecology.json");
+  const specPath = path.join(root, "spec", "capability-ecology.json");
   return parseCapabilityEcologySpec(JSON.parse(await fs.readFile(specPath, "utf8")));
 }
 

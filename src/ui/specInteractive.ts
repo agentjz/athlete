@@ -55,6 +55,7 @@ export async function startSpecInteractive(
       return {
         cwd: specRuntime.cwd,
         stateRootDir: specRuntime.stateRootDir,
+        mode: "spec",
         extraTools: specRuntime.tools,
         runtimePromptState: {
           mode: "spec",

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildInternalWakeInput } from "../../src/agent/checkpoint.js";
@@ -22,9 +22,8 @@ function createTool(name: string): FunctionToolDefinition {
 test("tool presentation order keeps web research lightweight ahead of generic tools", () => {
   const ordered = orderToolDefinitionsForLead(
     [
-      createTool("list_files"),
-      createTool("read_file"),
-      createTool("run_shell"),
+      createTool("read"),
+      createTool("bash"),
       createTool("http_probe"),
       createTool("http_request"),
       createTool("download_url"),
@@ -33,7 +32,7 @@ test("tool presentation order keeps web research lightweight ahead of generic to
       createTool("mcp_webpilot_browser_snapshot"),
       createTool("mcp_webpilot_browser_click"),
       createTool("mcp_webpilot_browser_type"),
-      createTool("write_file"),
+      createTool("write"),
     ],
     {
       input: "Please look up the latest public Helldivers 2 news on the web, summarize it in five bullets or fewer, and write it to a document.",
@@ -50,15 +49,14 @@ test("tool presentation order keeps web research lightweight ahead of generic to
 test("tool presentation order keeps continuation web hints on lightweight network tools", () => {
   const ordered = orderToolDefinitionsForLead(
     [
-      createTool("list_files"),
-      createTool("read_file"),
-      createTool("run_shell"),
+      createTool("read"),
+      createTool("bash"),
       createTool("http_probe"),
       createTool("http_request"),
       createTool("mcp_webpilot_browser_navigate"),
       createTool("mcp_webpilot_browser_snapshot"),
       createTool("mcp_webpilot_browser_take_screenshot"),
-      createTool("write_file"),
+      createTool("write"),
     ],
     {
       input: buildInternalWakeInput(undefined),
@@ -70,15 +68,14 @@ test("tool presentation order keeps continuation web hints on lightweight networ
   const names = ordered.map((tool) => tool.function.name);
   assert(names.indexOf("http_probe") < names.indexOf("mcp_webpilot_browser_navigate"));
   assert(names.indexOf("http_request") < names.indexOf("mcp_webpilot_browser_snapshot"));
-  assert(names.includes("run_shell"));
+  assert(names.includes("bash"));
   assert(names.includes("mcp_webpilot_browser_take_screenshot"));
 });
 
 test("tool presentation order leaves non-web turns in their original order", () => {
   const original = [
-    createTool("list_files"),
-    createTool("read_file"),
-    createTool("run_shell"),
+    createTool("read"),
+    createTool("bash"),
     createTool("http_probe"),
   ];
 
@@ -91,3 +88,4 @@ test("tool presentation order leaves non-web turns in their original order", () 
     original.map((tool) => tool.function.name),
   );
 });
+

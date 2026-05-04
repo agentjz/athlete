@@ -8,7 +8,7 @@ roles: implementer, reviewer, writer
 task_types: research, documentation, validation
 scenes: web, webpage, website, online
 required_tools:
-optional_tools: http_probe, http_request, http_session, http_suite, openapi_inspect, openapi_lint, download_url, write_file, read_file
+optional_tools: http_probe, http_request, http_session, http_suite, openapi_inspect, openapi_lint, download_url, write, read
 trigger_keywords: web, webpage, website, online, latest news, latest updates, public info, open the page, open the website
 trigger_patterns: ["https?://","(search|look up|find).*(web|website|webpage|online)","(open|visit).*(web|website|page)"]
 ---

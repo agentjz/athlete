@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { FunctionToolDefinition } from "../../src/capabilities/tools/index.js";
@@ -9,7 +9,7 @@ function createTool(): FunctionToolDefinition {
   return {
     type: "function",
     function: {
-      name: "read_file",
+      name: "read",
       description: "Read a file.",
       parameters: {
         type: "object",
@@ -107,7 +107,7 @@ test("buildProviderRequestBody replays DeepSeek reasoning_content for included a
             id: "call-1",
             type: "function",
             function: {
-              name: "read_file",
+              name: "read",
               arguments: "{\"path\":\"README.md\"}",
             },
           },
@@ -170,7 +170,7 @@ test("buildProviderRequestBody disables DeepSeek thinking when retained tool-cal
             id: "call-1",
             type: "function",
             function: {
-              name: "read_file",
+              name: "read",
               arguments: "{\"path\":\"README.md\"}",
             },
           },
@@ -215,3 +215,4 @@ test("buildProviderRequestBody maps generic effort names onto DeepSeek V4 high o
   assert.equal(xhighBody.reasoning_effort, "max");
   assert.deepEqual(lowBody.stream_options, { include_usage: true });
 });
+

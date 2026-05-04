@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
@@ -246,17 +246,17 @@ test("source adapters register built-in and external surfaces as capability pack
       patterns: [],
     },
     tools: {
-      required: ["read_file"],
-      optional: ["search_files"],
+      required: ["read"],
+      optional: ["bash"],
       incompatible: [],
     },
   };
   const toolEntry = {
-    name: "read_file",
+    name: "read",
     definition: {
       type: "function",
       function: {
-        name: "read_file",
+        name: "read",
         parameters: {},
       },
     },
@@ -734,3 +734,4 @@ function collectSourceFiles(dir: string): string[] {
     return entry.isFile() && entry.name.endsWith(".ts") ? [fullPath] : [];
   });
 }
+

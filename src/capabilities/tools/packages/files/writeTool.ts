@@ -4,16 +4,16 @@ import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from
 import { recordToolChange } from "../../core/changeTracking.js";
 import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { buildDiffPreview, okResult, parseArgs, readBoolean, readPossiblyEmptyString, readString } from "../../core/shared.js";
+import type { RegisteredTool } from "../../core/types.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
-import type { RegisteredTool } from "../../core/types.js";
 
-export const writeFileTool: RegisteredTool = {
+export const writeToolDefinition: RegisteredTool = {
   definition: {
     type: "function",
     function: {
-      name: "write_file",
-      description: "Write full file content. Use this for brand-new files or deliberate full-file rewrites; for small targeted changes, prefer edit_file or patch_file.",
+      name: "write",
+      description: "Write full file content. Use for new files or deliberate full-file rewrites; use edit for small targeted changes.",
       parameters: {
         type: "object",
         properties: {
@@ -52,8 +52,8 @@ export const writeFileTool: RegisteredTool = {
 
     await fs.writeFile(resolved, content, "utf8");
     const changeRecord = await recordToolChange(context, {
-      toolName: "write_file",
-      summary: `write_file ${displayPath}`,
+      toolName: "write",
+      summary: `write ${displayPath}`,
       preview,
       operations: [
         {
@@ -68,7 +68,7 @@ export const writeFileTool: RegisteredTool = {
     });
     const diagnostics = await collectWriteDiagnostics([resolved]);
     const feedback = buildToolChangeFeedback({
-      toolName: "write_file",
+      toolName: "write",
       changeId: changeRecord.change?.id,
       changedPaths: [resolved],
       diff: truncateText(preview, 6_000),
@@ -77,7 +77,7 @@ export const writeFileTool: RegisteredTool = {
 
     return okResult(
       JSON.stringify(
-          {
+        {
           path: displayPath,
           existed,
           bytes: Buffer.byteLength(content, "utf8"),

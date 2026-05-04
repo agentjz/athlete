@@ -67,11 +67,19 @@ function buildIdentityContract(
 
   lines.push(
     "You are the lead agent for this session.",
-    "Team, subagent, workflow, task board, coordination policy, protocol tools, background jobs, and worktrees are available by default.",
-    "Lead decides whether to use those capabilities for the current objective; the machine layer exposes, records, waits, and enforces hard boundaries without making that decision.",
-    "Use the execution protocol platform when delegating: select a capability, provide an AssignmentContract through the relevant tool arguments, wait for CloseoutContract handoff, then read Artifact/evidence refs and decide the next move.",
-    "Wake signals are only doorbells; execution records, closeout text, artifacts, and verification are the truth sources.",
   );
+  if (runtimeState.mode === "spec") {
+    lines.push(
+      "Spec mode exposes Kitty ecosystem capabilities for planning, delegation, documents, background work, and collaboration.",
+      "Lead decides whether to use those capabilities from the current objective and evidence; availability is not a command.",
+      "Wake signals are only doorbells; execution records, closeout text, artifacts, and verification are the truth sources.",
+    );
+  } else {
+    lines.push(
+      "Agent mode is a minimal coding workbench. Default execution uses only read, edit, write, and bash.",
+      "Use ecosystem capabilities only in a mode that explicitly exposes them.",
+    );
+  }
   return lines.join("\n");
 }
 
@@ -86,7 +94,7 @@ function buildWorkLoopContract(runtimeState: PromptRuntimeState): string {
     "Once the user's goal is satisfied and supported by evidence, stop instead of churning through extra housekeeping.",
   ];
 
-  if (!isSubagent) {
+  if (!isSubagent && runtimeState.mode === "spec") {
     lines.splice(
       3,
       0,
@@ -113,39 +121,29 @@ function buildToolUseContract(
 ): string {
   const isSubagent = runtimeState.identity?.kind === "subagent";
   const lines = [
-    "Use tool contracts instead of shell workarounds or unsupported assumptions.",
-    "For code work, follow the foundation-tool chain: locate facts -> focused read -> patch_file/edit_file/write_file -> git_diff -> run_shell.",
-    "Locate facts directly and briefly: use git_status for worktree state, git_diff for patch facts, find_files for path/name/glob discovery, list_files for directory inspection, and search_files only for text content matches before falling back to shell file-finding commands.",
-    "When the target is a filename, extension, known path, or glob pattern, use find_files. Do not use search_files to locate a file by its name.",
-    "Parallelize independent fact-location reads when useful, but stop broad discovery once you have the likely target.",
-    "Focused read comes before edits: read the specific relevant file windows or state before editing unless the user explicitly wants a brand-new file.",
-    "For edit tasks, avoid running validation shell commands before the edit/diff loop unless the command is needed to locate facts.",
-    "Do not churn through unrelated files after the target evidence is clear.",
-    "Use write_file for brand-new files.",
-    "Use patch_file for fast structural edits, multi-file edits, or changes that are naturally expressed as a unified diff.",
-    "Use edit_file for small precise replacements after read_file shows the current target text; provide exact old_string/new_string and a line hint when useful.",
-    "If patch_file fails, do not blindly retry and do not expect machine fallback. Read the failed area with read_file, then choose edit_file or rewrite patch_file from fresh evidence.",
-    "After edits, inspect git_diff or equivalent patch evidence before testing or final response.",
+    "Use the exposed tool list as the active capability boundary.",
+    "For code work, follow this loop: bash locate facts -> read focused file windows -> edit/write -> bash git diff/test.",
+    "Use bash for search, listing, git status, git diff, builds, tests, and other terminal work.",
+    "Use read for local text file windows only.",
+    "Use edit for exact targeted replacement with oldText/newText.",
+    "Use write for brand-new files or deliberate full-file rewrites.",
+    "Runtime-owned state directories such as .kitty are evidence stores, not source search targets; do not list, search, or inspect them during ordinary code tasks unless the objective is explicitly about runtime state, sessions, traces, or stored artifacts.",
+    "Stop broad discovery once the target evidence is clear.",
+    "Do not churn through unrelated files after you have enough evidence to act.",
+    "After edits, inspect the patch with bash before testing or final response when the risk justifies it.",
     "Treat runtime state, loaded skills, and tool results as evidence for machine-enforced constraints, not as route commands.",
     "Raw history is never automatically injected as a full transcript or old-task carryover. Same-session conversation brief is automatic user-facing continuity, and current-objective working memory is automatic execution continuity; both must stay short and structured.",
     "When the user asks about what happened earlier in this same session, answer from the same-session conversation brief when it is sufficient. Use history tools only when exact older content, cross-session evidence, final outputs, artifacts, traces, or ledgers are needed.",
-    "When historical evidence is needed, use session_list to inspect recent session summaries first, then session_final_output for a specific session's complete final output when necessary.",
-    "Skills are indexed capabilities; a skill body is active only after an explicit load_skill call succeeds.",
-    "Browser and document tools are capability surfaces. Use them only when their contract fits the current objective and evidence.",
-    "When file introspection or tool recovery points to a specialized tool, treat that as evidence, not a command.",
-    "Dedicated document editing tools expose structured document operations; use them only when their contract matches the requested artifact.",
     "Acceptance and verification runtime state are factual ledgers; decide closeout from the user objective, contract, and evidence.",
     "After changes or mutating commands, decide what verification is appropriate to the risk and artifact type. Targeted tests, builds, and readbacks are valid when sufficient.",
     "Known verification failures are evidence; resolve them or report the remaining blocker explicitly.",
   ];
 
 
-  if (!isSubagent) {
-    lines.splice(
-      6,
-      0,
-      "Skill loading is an explicit model choice for the current objective; skill capability index entries are not required actions.",
-      "Coordination, protocol, background, and worktree tools are explicit action surfaces; availability is not instruction.",
+  if (!isSubagent && runtimeState.mode === "spec") {
+    lines.push(
+      "Skills, documents, coordination, protocol, background, and worktree tools are explicit action surfaces; availability is not instruction.",
+      "Use ecosystem tools only when their contract fits the current objective and evidence.",
     );
   }
 

@@ -327,13 +327,13 @@ test("runtime observability summary separates durable truth from derived diagnos
         callCount: 2,
         durationMsTotal: 420,
         byName: {
-          run_shell: {
+          bash: {
             callCount: 1,
             durationMsTotal: 320,
             okCount: 0,
             errorCount: 1,
           },
-          read_file: {
+          read: {
             callCount: 1,
             durationMsTotal: 100,
             okCount: 1,
@@ -365,7 +365,7 @@ test("runtime observability summary separates durable truth from derived diagnos
           action: "continue",
           reason: {
             code: "continue.after_tool_batch",
-            toolNames: ["run_shell"],
+            toolNames: ["bash"],
             changedPaths: ["src/agent/runtimeMetrics/summary.ts"],
           },
           timestamp: new Date().toISOString(),
@@ -388,5 +388,6 @@ test("runtime observability summary separates durable truth from derived diagnos
   assert.equal(summary.derivedDiagnostics.controlFlow.whyContinue?.reasonCode, "continue.after_tool_batch");
   assert.match(summary.derivedDiagnostics.controlFlow.whyContinue?.summary ?? "", /tool batch/i);
   assert.match(summary.derivedDiagnostics.performance.whySlow.map((entry) => entry.summary).join("\n"), /model wait/i);
-  assert.equal(summary.derivedDiagnostics.performance.flakyTools[0]?.name, "run_shell");
+  assert.equal(summary.derivedDiagnostics.performance.flakyTools[0]?.name, "bash");
 });
+

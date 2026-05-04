@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { adaptDiscoveredMcpTools, formatMcpToolName } from "../../src/capabilities/mcp/toolAdapter.js";
@@ -12,7 +12,7 @@ test("tool registry exposes governed metadata and promotes specialized document 
   const registry = createToolRegistry();
   const entries = registry.entries ?? [];
 
-  const writeFileEntry = entries.find((entry) => entry.name === "write_file");
+  const writeFileEntry = entries.find((entry) => entry.name === "write");
   const mineruPdfEntry = entries.find((entry) => entry.name === "mineru_pdf_read");
   assert(writeFileEntry);
   assert(mineruPdfEntry);
@@ -26,24 +26,19 @@ test("tool registry exposes governed metadata and promotes specialized document 
 
   const names = registry.definitions.map((tool) => tool.function.name);
   assert(names.indexOf("mineru_pdf_read") >= 0);
-  assert(names.indexOf("mineru_pdf_read") < names.indexOf("read_file"));
-  assert(names.indexOf("run_shell") > names.indexOf("read_file"));
+  assert(names.indexOf("mineru_pdf_read") < names.indexOf("read"));
+  assert(names.indexOf("bash") > names.indexOf("read"));
 });
 
-test("governance workflow hints do not hide governed tools from the default agent surface", () => {
-  const registry = createToolRegistry();
+test("agent mode exposes only the four foundation tools", () => {
+  const registry = createToolRegistry({ onlyNames: ["read", "edit", "write", "bash"] });
   const names = new Set(registry.definitions.map((tool) => tool.function.name));
 
-  assert.equal(names.has("list_files"), true);
-  assert.equal(names.has("find_files"), true);
-  assert.equal(names.has("read_file"), true);
-  assert.equal(names.has("search_files"), true);
-  assert.equal(names.has("git_status"), true);
-  assert.equal(names.has("git_diff"), true);
-  assert.equal(names.has("run_shell"), true);
-  assert.equal(names.has("write_file"), true);
-  assert.equal(names.has("patch_file"), true);
-  assert.equal(names.has("edit_file"), true);
+  assert.equal(names.has("read"), true);
+  assert.equal(names.has("bash"), true);
+  assert.equal(names.has("write"), true);
+  assert.equal(names.has("edit"), true);
+  assert.equal(names.size, 4);
 });
 
 test("registry fails closed when an included tool omits governance metadata", () => {
@@ -200,3 +195,4 @@ test("tool registry fails closed when onlyNames requests an unregistered tool", 
     /onlyNames include unregistered tools/i,
   );
 });
+

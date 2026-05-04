@@ -172,10 +172,10 @@ test("telegram service emits assistant stages, todo previews, and the final repl
       options.callbacks?.onReasoningDelta?.("reasoning-1");
       options.callbacks?.onReasoningDelta?.("reasoning-2");
       options.callbacks?.onAssistantDelta?.("assistant stage");
-      options.callbacks?.onToolCall?.("search_files", "{}");
-      options.callbacks?.onToolCall?.("search_files", "{}");
-      options.callbacks?.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/app.ts line 10\"}");
-      options.callbacks?.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/ui.ts line 22\"}");
+      options.callbacks?.onToolCall?.("bash", "{}");
+      options.callbacks?.onToolCall?.("bash", "{}");
+      options.callbacks?.onToolResult?.("bash", "{\"output\":\"matched TODO in src/app.ts line 10\"}");
+      options.callbacks?.onToolResult?.("bash", "{\"output\":\"matched TODO in src/ui.ts line 22\"}");
       options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[ ] #1: same todo preview" }));
       options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[ ] #1: same todo preview" }));
       options.callbacks?.onAssistantDelta?.("assistant");
@@ -238,14 +238,11 @@ test("telegram service emits non-streamed assistant stage text before todo previ
           onAssistantStage?: (text: string) => void;
         } | undefined
       )?.onAssistantStage?.("I will inspect the desktop directory first.");
-      options.callbacks?.onToolCall?.("list_files", "{\"path\":\"Desktop\"}");
+      options.callbacks?.onToolCall?.("bash", "{\"command\":\"Get-ChildItem Desktop\"}");
       options.callbacks?.onToolResult?.(
-        "list_files",
+        "bash",
         JSON.stringify({
-          entries: [
-            { type: "file", path: "Desktop/.env" },
-            { type: "directory", path: "Desktop/Kitty" },
-          ],
+          output: "Desktop/.env\nDesktop/Kitty\n",
         }),
       );
       options.callbacks?.onToolResult?.("todo_write", JSON.stringify({ preview: "[x] #1: same todo preview" }));

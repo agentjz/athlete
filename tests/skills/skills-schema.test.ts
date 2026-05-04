@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
@@ -19,7 +19,7 @@ test("parseSkillSource normalizes supported skill metadata into machine-readable
       "task_types: review, documentation",
       "scenes: docx, word",
       "required_tools: read_docx, edit_docx",
-      "optional_tools: search_files",
+      "optional_tools: bash",
       "trigger_keywords: review, docx",
       "---",
       "# Docx Review",
@@ -38,7 +38,7 @@ test("parseSkillSource normalizes supported skill metadata into machine-readable
   assert.deepEqual(skill.taskTypes, ["review", "documentation"]);
   assert.deepEqual(skill.scenes, ["docx", "word"]);
   assert.deepEqual(skill.tools.required, ["read_docx", "edit_docx"]);
-  assert.deepEqual(skill.tools.optional, ["search_files"]);
+  assert.deepEqual(skill.tools.optional, ["bash"]);
   assert.deepEqual(skill.triggers.keywords, ["review", "docx"]);
   assert.match(skill.body, /preserve section structure/i);
 });
@@ -110,8 +110,8 @@ test("parseSkillSource rejects invalid metadata with explicit schema failures", 
           "schema_version: skill",
           "name: conflicting-tools",
           "description: Tool constraints conflict",
-          "required_tools: read_file",
-          "incompatible_tools: read_file",
+          "required_tools: read",
+          "incompatible_tools: read",
           "---",
           "Body",
         ].join("\n"),
@@ -123,3 +123,4 @@ test("parseSkillSource rejects invalid metadata with explicit schema failures", 
     /required_tools.*incompatible_tools/i,
   );
 });
+

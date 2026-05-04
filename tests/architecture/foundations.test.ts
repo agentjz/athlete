@@ -4,31 +4,30 @@ import test from "node:test";
 import { getSubagentProfile } from "../../src/capabilities/subagent/profiles.js";
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { handleLocalCommand, isExplicitExitCommand } from "../../src/ui/localCommands.js";
-
 test("agent registry exposes the core tool surface", () => {
-  const names = new Set(createToolRegistry().definitions.map((tool) => tool.function.name));
+  const names = new Set(createToolRegistry({ onlyNames: ["read", "edit", "write", "bash"] }).definitions.map((tool) => tool.function.name));
 
-  assert(names.has("todo_write"));
-  assert(names.has("load_skill"));
-  assert(names.has("write_file"));
-  assert(names.has("patch_file"));
-  assert(names.has("spawn_teammate"));
-  assert(names.has("coordination_policy"));
+  assert.deepEqual([...names], ["read", "write", "edit", "bash"]);
+  assert(names.has("read"));
+  assert(names.has("edit"));
+  assert(names.has("write"));
+  assert(names.has("bash"));
 });
 
 test("subagent profiles stay isolated from coordination tools", () => {
   const codeProfile = getSubagentProfile("code");
   const exploreProfile = getSubagentProfile("explore");
 
-  assert(codeProfile.toolNames.includes("write_file"));
-  assert(codeProfile.toolNames.includes("patch_file"));
+  assert(codeProfile.toolNames.includes("write"));
+  assert(codeProfile.toolNames.includes("edit"));
+  assert(codeProfile.toolNames.includes("bash"));
   assert.equal(codeProfile.toolNames.includes("spawn_teammate"), false);
   assert.equal(codeProfile.toolNames.includes("send_message"), false);
   assert.equal(codeProfile.toolNames.includes("coordination_policy"), false);
   assert.equal(codeProfile.toolNames.includes("task"), false);
 
-  assert.equal(exploreProfile.toolNames.includes("write_file"), false);
-  assert.equal(exploreProfile.toolNames.includes("patch_file"), false);
+  assert.equal(exploreProfile.toolNames.includes("write"), false);
+  assert.equal(exploreProfile.toolNames.includes("edit"), false);
 });
 
 test("local command layer recognizes English commands and multiline command", async () => {
@@ -53,3 +52,4 @@ test("local command layer recognizes English commands and multiline command", as
   assert.equal(await handleLocalCommand("/multi", context), "multiline");
   assert.equal(await handleLocalCommand("/help", context), "handled");
 });
+

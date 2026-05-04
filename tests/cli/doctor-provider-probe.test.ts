@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { probeProviderConnection } from "../../src/agent/provider/connection.js";
@@ -96,7 +96,7 @@ test("fetchAssistantResponse uses the responses adapter for GPT-5.4 instead of f
                 id: "item-call",
                 type: "function_call",
                 call_id: "call-1",
-                name: "read_file",
+                name: "read",
                 arguments: "{\"path\":\"README.md\"}",
                 status: "completed",
               },
@@ -120,7 +120,7 @@ test("fetchAssistantResponse uses the responses adapter for GPT-5.4 instead of f
     {
       type: "function",
       function: {
-        name: "read_file",
+        name: "read",
         description: "Read a file.",
         parameters: {
           type: "object",
@@ -147,7 +147,7 @@ test("fetchAssistantResponse uses the responses adapter for GPT-5.4 instead of f
   );
 
   assert.equal(response.content, "hello world");
-  assert.equal(response.toolCalls[0]?.function.name, "read_file");
+  assert.equal(response.toolCalls[0]?.function.name, "read");
   assert.equal(response.toolCalls[0]?.function.arguments, "{\"path\":\"README.md\"}");
   assert.deepEqual(seenRequests, ["responses:stream"]);
 });
@@ -194,3 +194,4 @@ test("fetchAssistantResponse forwards KITTY_REASONING_EFFORT to responses reason
   assert.equal(response.content, "done");
   assert.equal(seenEffort, "low");
 });
+

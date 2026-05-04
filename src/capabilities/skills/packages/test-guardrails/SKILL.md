@@ -8,7 +8,7 @@ roles: implementer, reviewer, writer
 task_types: implementation, validation, testing
 scenes: test, regression, fail-first
 required_tools: todo_write
-optional_tools: read_file, search_files, run_shell
+optional_tools: read, bash
 trigger_keywords: test, tests, regression, fail-first
 ---
 # Test Guardrails

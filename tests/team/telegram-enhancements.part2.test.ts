@@ -270,8 +270,8 @@ test("telegram service streams assistant stages, todo previews, and the final re
       options.callbacks?.onStatus?.("analyzing task");
       options.callbacks?.onReasoningDelta?.("This reasoning should stay hidden.");
       options.callbacks?.onAssistantDelta?.("Understanding requirements.");
-      options.callbacks?.onToolCall?.("search_files", "{\"pattern\":\"TODO\"}");
-      options.callbacks?.onToolResult?.("search_files", "tool output hidden");
+      options.callbacks?.onToolCall?.("bash", "{\"command\":\"rg TODO\"}");
+      options.callbacks?.onToolResult?.("bash", "tool output hidden");
       options.callbacks?.onToolCall?.(
         "todo_write",
         JSON.stringify({
@@ -451,7 +451,7 @@ test("telegram service can generate a file and send it back through the telegram
         sessionId: options.session.id,
       });
       await options.toolRegistry!.execute(
-        "write_file",
+        "write",
         JSON.stringify({
           path: "report.md",
           content: "# Remote Report\n\nDelivered from Telegram.\n",
@@ -518,23 +518,21 @@ test("telegram service can locate a workspace file and send it back through the 
         sessionId: options.session.id,
       });
       const searchResult = await options.toolRegistry!.execute(
-        "search_files",
+        "bash",
         JSON.stringify({
-          path: ".",
-          pattern: "send me",
-          mode: "matches",
+          command: "rg \"send me\" -l .",
         }),
         toolContext as never,
       );
-      const matches = JSON.parse(searchResult.output) as {
-        matches?: Array<{ path: string; absolutePath?: string }>;
+      const payload = JSON.parse(searchResult.output) as {
+        output?: string;
       };
-      assert.equal(Array.isArray(matches.matches) && matches.matches.length > 0, true);
-      const matchedPath = matches.matches?.[0]?.absolutePath ?? matches.matches?.[0]?.path ?? "";
+      const matchedPath = String(payload.output ?? "").trim().split(/\r?\n/)[0] ?? "";
+      assert.equal(matchedPath.length > 0, true);
       await options.toolRegistry!.execute(
         "telegram_send_file",
         JSON.stringify({
-          path: path.relative(root, matchedPath),
+          path: matchedPath,
         }),
         toolContext as never,
       );
@@ -554,3 +552,4 @@ test("telegram service can locate a workspace file and send it back through the 
 
   assert.deepEqual(bot.sentDocuments.map((entry) => entry.fileName), ["README.txt"]);
 });
+

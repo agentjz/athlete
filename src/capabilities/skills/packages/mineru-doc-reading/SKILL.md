@@ -7,7 +7,7 @@ agent_kinds: lead, teammate
 task_types: research, review, extraction, documentation
 scenes: doc, docx, word
 required_tools: mineru_doc_read
-optional_tools: read_docx, edit_docx, search_files
+optional_tools: read_docx, edit_docx
 trigger_keywords: doc, docx, word, proposal, contract, report
 ---
 # MinerU Doc Reading

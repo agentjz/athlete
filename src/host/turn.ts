@@ -58,6 +58,7 @@ export async function runHostTurn(
     }
 
     toolRegistry = await createToolRegistry(options.config, {
+      mode: options.mode ?? options.runtimePromptState?.mode ?? "agent",
       extraTools: options.extraTools,
     });
 
@@ -88,7 +89,10 @@ export async function runHostTurn(
       callbacks: options.callbacks,
       toolRegistry,
       identity: options.identity ?? DEFAULT_IDENTITY,
-      runtimePromptState: options.runtimePromptState,
+      runtimePromptState: {
+        mode: options.mode ?? options.runtimePromptState?.mode ?? "agent",
+        ...(options.runtimePromptState ?? {}),
+      },
     });
     dependencies.onRunTurnStarted?.();
     const result = await resultPromise;

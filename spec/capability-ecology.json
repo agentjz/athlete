@@ -288,80 +288,58 @@
     },
     {
       "title": {
-        "en": "File And Code Tools",
-        "zh": "文件与代码工具"
+        "en": "Agent Foundation Tools",
+        "zh": "Agent 基础工具"
       },
       "tools": [
         {
-          "name": "list_files",
+          "name": "read",
           "status": "✅",
-          "en": "Lists files and directories.",
-          "zh": "列出文件和目录。",
+          "en": "Reads focused local text file windows with numbered lines.",
+          "zh": "读取带行号的局部文本窗口。",
           "live": {
             "group": "foundation-tools",
             "enabled": true
           }
         },
         {
-          "name": "find_files",
+          "name": "edit",
           "status": "✅",
-          "en": "Finds files by path pattern.",
-          "zh": "按路径模式找文件。",
+          "en": "Edits existing files by replacing exact current text.",
+          "zh": "用当前精确文本替换来编辑已有文件。",
           "live": {
             "group": "foundation-tools",
             "enabled": true
           }
         },
         {
-          "name": "read_file",
+          "name": "write",
           "status": "✅",
-          "en": "Reads local files with anchors for later edits.",
-          "zh": "读取文件，并给后续编辑提供锚点。",
+          "en": "Creates or fully rewrites files.",
+          "zh": "新建或完整重写文件。",
           "live": {
             "group": "foundation-tools",
             "enabled": true
           }
         },
         {
-          "name": "search_files",
+          "name": "bash",
           "status": "✅",
-          "en": "Searches file contents.",
-          "zh": "搜索文件内容。",
+          "en": "Runs shell commands for search, listing, Git diff/status, builds, and tests.",
+          "zh": "运行搜索、列目录、Git diff/status、构建和测试等 shell 命令。",
           "live": {
             "group": "foundation-tools",
             "enabled": true
           }
-        },
-        {
-          "name": "write_file",
-          "status": "✅",
-          "en": "Creates new files.",
-          "zh": "创建新文件。",
-          "live": {
-            "group": "patch-edit-tools",
-            "enabled": true
-          }
-        },
-        {
-          "name": "patch_file",
-          "status": "✅",
-          "en": "Applies unified diff patches as the fast structured edit path.",
-          "zh": "应用 unified diff 补丁，作为快速结构化编辑通道。",
-          "live": {
-            "group": "patch-edit-tools",
-            "enabled": true
-          }
-        },
-        {
-          "name": "edit_file",
-          "status": "✅",
-          "en": "Edits existing files with read anchors.",
-          "zh": "基于锚点编辑已有文件。",
-          "live": {
-            "group": "patch-edit-tools",
-            "enabled": true
-          }
-        },
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Spec File And Code Ecology Tools",
+        "zh": "Spec 文件与代码生态工具"
+      },
+      "tools": [
         {
           "name": "undo_last_change",
           "status": "✅",
@@ -369,26 +347,6 @@
           "zh": "回滚最近一次记录的文件修改。",
           "live": {
             "group": "patch-edit-tools",
-            "enabled": true
-          }
-        },
-        {
-          "name": "git_status",
-          "status": "✅",
-          "en": "Reads structured Git worktree status facts.",
-          "zh": "读取结构化 Git 工作区状态事实。",
-          "live": {
-            "group": "foundation-tools",
-            "enabled": true
-          }
-        },
-        {
-          "name": "git_diff",
-          "status": "✅",
-          "en": "Reads Git diff facts for the worktree or one path.",
-          "zh": "读取工作区或单一路径的 Git diff 事实。",
-          "live": {
-            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -945,16 +903,6 @@
             "group": "worktree-ecology",
             "enabled": false,
             "skipReason": "Destructive worktree removal is disabled in the default live ecology pass; enable only for an explicit cleanup test."
-          }
-        },
-        {
-          "name": "run_shell",
-          "status": "✅",
-          "en": "Runs a foreground shell command.",
-          "zh": "运行前台 shell 命令。",
-          "live": {
-            "group": "foundation-tools",
-            "enabled": true
           }
         },
         {

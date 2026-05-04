@@ -15,34 +15,30 @@ export interface SubagentProfile {
 }
 
 const READ_ONLY_SUBAGENT_TOOLS = [
-  "list_files",
-  "find_files",
-  "read_file",
+  "read",
   "mineru_pdf_read",
   "mineru_image_read",
   "mineru_doc_read",
   "mineru_ppt_read",
   "read_docx",
   "read_spreadsheet",
-  "search_files",
   "load_skill",
+  "bash",
 ] as const;
 
 const CODE_SUBAGENT_TOOLS = [
   ...READ_ONLY_SUBAGENT_TOOLS,
-  "write_file",
+  "write",
   "write_docx",
   "edit_docx",
-  "patch_file",
-  "edit_file",
+  "edit",
   "undo_last_change",
-  "run_shell",
 ] as const;
 
 export const SUBAGENT_PROFILES: Record<SubagentType, SubagentProfile> = {
   explore: {
     type: "explore",
-    description: "Exploration for finding files, tracing behavior, and reporting concrete facts.",
+    description: "Exploration for tracing behavior and reporting concrete facts.",
     toolNames: READ_ONLY_SUBAGENT_TOOLS,
     cost: "low",
     assignmentPreamble:
@@ -58,7 +54,7 @@ export const SUBAGENT_PROFILES: Record<SubagentType, SubagentProfile> = {
   },
   code: {
     type: "code",
-    description: "Implementation-focused coding agent with edit and validation tools, but no coordination tools.",
+    description: "Implementation-focused coding agent with read, edit, write, and bash tools, but no coordination tools.",
     toolNames: CODE_SUBAGENT_TOOLS,
     cost: "high",
     assignmentPreamble:

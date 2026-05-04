@@ -502,9 +502,9 @@ test("runAgentTurn finalizes visible output without treating todo state as a str
   assert.equal(seenToolSets.length, 1);
 });
 
-test("getLightweightVerificationAttempt treats a targeted read_file of a written validation markdown as passed verification", () => {
+test("getLightweightVerificationAttempt treats a targeted read of a written validation markdown as passed verification", () => {
   const attempt = getLightweightVerificationAttempt({
-    toolName: "read_file",
+    toolName: "read",
     rawArgs: JSON.stringify({ path: TARGET_FILE }),
     observedPaths: [TARGET_FILE],
     resultOk: true,
@@ -512,10 +512,11 @@ test("getLightweightVerificationAttempt treats a targeted read_file of a written
 
   assert.deepEqual(attempt, {
     attempted: true,
-    command: `read_file ${TARGET_FILE}`,
+    command: `read ${TARGET_FILE}`,
     exitCode: 0,
-    kind: "read_file",
+    kind: "read",
     passed: true,
   });
 });
+
 

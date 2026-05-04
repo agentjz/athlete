@@ -1,15 +1,13 @@
 # Kitty Spec
 
-`spec/` 是仓库级真相源，按两棵树维护：
+`spec/` 是仓库级真相源，当前只保留活的实现真相和生成事实源：
 
-- `spec/用户审阅/`：目标、边界、主流程、验收。
 - `spec/技术实现/`：模块边界、状态、流程、测试与验证。
+- `spec/capability-ecology.json`：README 能力生态生成源。
 
-两棵树长期分离，但使用统一主题编号（`T01...`）对齐。
+历史审阅快照不再作为活文档保留。设计变更直接落到当前事实源，避免旧概念继续保活。
 
 ## 快速入口
 
-1. `spec/用户审阅/README.md`
-2. `spec/用户审阅/与技术实现映射.md`
-3. `spec/技术实现/README.md`
-4. `spec/技术实现/与用户审阅映射.md`
+1. `spec/技术实现/README.md`
+2. `spec/capability-ecology.json`

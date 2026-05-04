@@ -302,7 +302,7 @@ test("acceptance evaluation treats successful browser page evidence as a valid p
           null,
           2,
         ),
-        "read_file",
+        "read",
       ),
     ],
   });
@@ -354,4 +354,5 @@ test("acceptance stalled summary remains factual instead of demanding a route ch
   assert.match(evaluation.summary, /stalled for 3 consecutive evaluation/);
   assert.doesNotMatch(evaluation.summary, /Switch strategy|next concrete action|Do not continue/i);
 });
+
 

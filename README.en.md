@@ -94,20 +94,20 @@ If you're interested in **building your own Agent** from scratch, join our group
 | `dreaming_loop_next` | Starts one explicit Dreaming round from a loop. | ✅ |
 | `dreaming_loop_status` | Reads Dreaming Loop state and round evidence. | ✅ |
 
-### File And Code Tools
+### Agent Foundation Tools
 
 | Tool | What it does | Status |
 | --- | --- | --- |
-| `list_files` | Lists files and directories. | ✅ |
-| `find_files` | Finds files by path pattern. | ✅ |
-| `read_file` | Reads local files with anchors for later edits. | ✅ |
-| `search_files` | Searches file contents. | ✅ |
-| `write_file` | Creates new files. | ✅ |
-| `patch_file` | Applies unified diff patches as the fast structured edit path. | ✅ |
-| `edit_file` | Edits existing files with read anchors. | ✅ |
+| `read` | Reads focused local text file windows with numbered lines. | ✅ |
+| `edit` | Edits existing files by replacing exact current text. | ✅ |
+| `write` | Creates or fully rewrites files. | ✅ |
+| `bash` | Runs shell commands for search, listing, Git diff/status, builds, and tests. | ✅ |
+
+### Spec File And Code Ecology Tools
+
+| Tool | What it does | Status |
+| --- | --- | --- |
 | `undo_last_change` | Reverts the latest recorded file change. | ✅ |
-| `git_status` | Reads structured Git worktree status facts. | ✅ |
-| `git_diff` | Reads Git diff facts for the worktree or one path. | ✅ |
 | `code_symbols` | Lists code symbols. | ✅ |
 | `code_references` | Finds code references. | ✅ |
 | `code_pattern` | Finds structural code patterns. | ✅ |
@@ -184,7 +184,6 @@ If you're interested in **building your own Agent** from scratch, join our group
 | `worktree_create` | Creates an isolated worktree. | ✅ |
 | `worktree_keep` | Marks a worktree to keep. | ✅ |
 | `worktree_remove` | Removes a worktree. | ✅ |
-| `run_shell` | Runs a foreground shell command. | ✅ |
 | `background_run` | Starts a background command. | ✅ |
 | `background_check` | Reads background command status. | ✅ |
 | `background_terminate` | Terminates a background command. | ✅ |

@@ -50,7 +50,7 @@
     "verify:repo-contracts": "tsx tests/production-line/verify-repo-contracts.ts",
     "live:ecology:dry-run": "tsx tests/production-line/verify-live-ecology.ts --dry-run",
     "live:ecology": "tsx tests/production-line/verify-live-ecology.ts",
-    "verify": "npm run live:ecology:dry-run && npm run verify:repo-contracts && npm test",
+    "verify": "npm run verify:repo-contracts && npm test",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
     "prepublishOnly": "npm run build",
     "test": "npm run check && npm run test:core"

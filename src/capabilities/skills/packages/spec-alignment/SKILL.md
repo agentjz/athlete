@@ -7,8 +7,8 @@ agent_kinds: lead, teammate
 roles: reviewer, writer, implementer
 task_types: documentation, specification
 scenes: spec, docs, architecture
-required_tools: read_file, search_files
-optional_tools: write_file, edit_file
+required_tools: read
+optional_tools: write, edit, bash
 trigger_keywords: spec, docs, architecture, readme
 ---
 # Spec Alignment

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -19,32 +19,19 @@ test("Dreaming write boundary allows mirror-world writes and blocks real-world w
     mirrorWorldPath: mirror,
   });
 
-  assert.equal(enforceDreamingToolBoundary(context("write_file", { path: "src/new.ts" }), boundary), undefined);
-  assert.equal(
-    enforceDreamingToolBoundary(
-      context("patch_file", {
-        patch: ["--- a/src/a.ts", "+++ b/src/a.ts", "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n"),
-      }),
-      boundary,
-    ),
-    undefined,
-  );
+  assert.equal(enforceDreamingToolBoundary(context("write", { path: "src/new.ts" }), boundary), undefined);
+  assert.equal(enforceDreamingToolBoundary(context("edit", { path: "src/a.ts", edits: [] }), boundary), undefined);
   assert.equal(enforceDreamingToolBoundary(context("download_url", { url: "https://example.com/a", path: "tmp/a.pdf" }), boundary), undefined);
   assert.match(
-    enforceDreamingToolBoundary(context("write_file", { path: path.join(real, "src/main.ts") }), boundary)?.reason ?? "",
+    enforceDreamingToolBoundary(context("write", { path: path.join(real, "src/main.ts") }), boundary)?.reason ?? "",
     /Mirror World/i,
   );
   assert.match(
-    enforceDreamingToolBoundary(
-      context("patch_file", {
-        patch: ["--- a/src/main.ts", `+++ b/${path.join(real, "src/main.ts").replace(/\\/g, "/")}`, "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n"),
-      }),
-      boundary,
-    )?.reason ?? "",
+    enforceDreamingToolBoundary(context("edit", { path: path.join(real, "src/main.ts"), edits: [] }), boundary)?.reason ?? "",
     /Mirror World/i,
   );
   assert.match(
-    enforceDreamingToolBoundary(context("run_shell", { command: "npm test", cwd: real }), boundary)?.reason ?? "",
+    enforceDreamingToolBoundary(context("bash", { command: "npm test", cwd: real }), boundary)?.reason ?? "",
     /shell cwd/i,
   );
 });
@@ -115,3 +102,4 @@ function context(name: string, args: Record<string, unknown>): BeforeToolCallHoo
     },
   };
 }
+

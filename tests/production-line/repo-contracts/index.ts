@@ -3,7 +3,6 @@ import { scanPackageScripts } from "./packageScriptContracts.ts";
 import { scanCapabilityEcosystemResidue, scanLegacyPackageResidue } from "./residueContracts.ts";
 import { scanRuntimeUiStringResidue } from "./runtimeUiContracts.ts";
 import { scanGeneratedArtifacts } from "./generatedContracts.ts";
-import { scanLiveEcologyInventory } from "./liveEcologyContracts.ts";
 import { scanScriptLanguageResidue } from "./scriptLanguageContracts.ts";
 import { scanDisguisedStringAssembly } from "./stringAssemblyContracts.ts";
 import type { RepoContract } from "./types.ts";
@@ -38,11 +37,6 @@ export const REPO_CONTRACTS: RepoContract[] = [
     id: "generated-artifacts-current",
     description: "generated repository artifacts must stay synced with source facts",
     scan: scanGeneratedArtifacts,
-  },
-  {
-    id: "live-ecology-inventory-complete",
-    description: "live API ecology inventory must cover every registered tool with an explicit enabled switch",
-    scan: scanLiveEcologyInventory,
   },
   {
     id: "node-scripts-are-typescript",

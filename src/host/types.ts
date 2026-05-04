@@ -6,6 +6,7 @@ import type { RuntimeConfig, SessionRecord } from "../types.js";
 import type { PromptRuntimeState } from "../agent/prompt/types.js";
 
 export interface HostToolRegistryOptions {
+  mode?: "agent" | "spec";
   extraTools?: readonly RegisteredTool[];
 }
 
@@ -23,6 +24,7 @@ export interface HostTurnOptions {
   abortSignal?: AbortSignal;
   identity?: AgentIdentity;
   runtimePromptState?: Partial<PromptRuntimeState>;
+  mode?: "agent" | "spec";
   extraTools?: readonly RegisteredTool[];
 }
 

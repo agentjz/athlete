@@ -75,10 +75,10 @@ test("telegram turn display emits assistant stages, todo previews, and the final
   display.callbacks.onReasoningDelta?.("reasoning-1");
   display.callbacks.onReasoningDelta?.("reasoning-2");
   display.callbacks.onAssistantDelta?.("assistant stage");
-  display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
-  display.callbacks.onToolCall?.("search_files", "{\"pattern\":\"todo\"}");
-  display.callbacks.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/app.ts line 10\"}");
-  display.callbacks.onToolResult?.("search_files", "{\"preview\":\"matched TODO in src/ui.ts line 22\"}");
+  display.callbacks.onToolCall?.("bash", "{\"command\":\"rg todo\"}");
+  display.callbacks.onToolCall?.("bash", "{\"command\":\"rg todo\"}");
+  display.callbacks.onToolResult?.("bash", "{\"output\":\"matched TODO in src/app.ts line 10\"}");
+  display.callbacks.onToolResult?.("bash", "{\"output\":\"matched TODO in src/ui.ts line 22\"}");
   display.callbacks.onToolResult?.(
     "todo_write",
     JSON.stringify({
@@ -193,14 +193,11 @@ test("telegram turn display emits non-streamed assistant stage text before todo 
       onAssistantStage?: (text: string) => void;
     }
   ).onAssistantStage?.("I will inspect the directory first.");
-  display.callbacks.onToolCall?.("list_files", "{\"path\":\"Desktop\"}");
+  display.callbacks.onToolCall?.("bash", "{\"command\":\"Get-ChildItem Desktop\"}");
   display.callbacks.onToolResult?.(
-    "list_files",
+    "bash",
     JSON.stringify({
-      entries: [
-        { type: "file", path: "Desktop/.env" },
-        { type: "directory", path: "Desktop/Kitty" },
-      ],
+      output: "Desktop/.env\nDesktop/Kitty\n",
     }),
   );
   display.callbacks.onToolResult?.(
@@ -243,7 +240,7 @@ test("telegram turn display suppresses non-todo tool result previews", async () 
   });
 
   display.callbacks.onToolResult?.(
-    "search_files",
+    "bash",
     JSON.stringify({
       preview: "A".repeat(160),
     }),

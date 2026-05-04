@@ -25,7 +25,7 @@ export function evaluateCommandChecks(contract: AcceptanceContract, messages: St
 function hasSuccessfulCommand(messages: StoredMessage[], commandContains: string): boolean {
   const needle = commandContains.toLowerCase();
   return messages.some((message) => {
-    if (message.role !== "tool" || !message.content || (message.name !== "run_shell" && message.name !== "background_check")) {
+    if (message.role !== "tool" || !message.content || (message.name !== "bash" && message.name !== "background_check")) {
       return false;
     }
 

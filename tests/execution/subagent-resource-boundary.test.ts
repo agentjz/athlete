@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
@@ -15,7 +15,7 @@ test("subagent resource guard does not stop normal work after ten tool calls", a
   const server = await startFakeOpenAiServer(() => {
     requestCount += 1;
     return requestCount <= 12
-      ? toolCallResponse("read_file", { path: "README.md" })
+      ? toolCallResponse("read", { path: "README.md" })
       : textResponse("Subagent completed after extended research.");
   });
   t.after(async () => {
@@ -189,3 +189,4 @@ async function startFakeOpenAiServer(
     }),
   };
 }
+

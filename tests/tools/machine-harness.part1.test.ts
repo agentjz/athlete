@@ -49,14 +49,14 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
   };
 }
 
-test("read_file returns focused content, edit_file uses target text, and unrelated file changes do not block edits", async (t) => {
+test("read returns focused content, edit uses target text, and unrelated file changes do not block edits", async (t) => {
   const root = await createTempWorkspace("machine-identity", t);
   const filePath = path.join(root, "story.txt");
   await fs.writeFile(filePath, "alpha\nbeta\ngamma\n", "utf8");
 
   const registry = createToolRegistry();
   const readResult = await registry.execute(
-    "read_file",
+    "read",
     JSON.stringify({
       path: "story.txt",
     }),
@@ -71,13 +71,13 @@ test("read_file returns focused content, edit_file uses target text, and unrelat
 
   await fs.writeFile(filePath, "alpha\nbeta\nGAMMA\n", "utf8");
   const editResult = await registry.execute(
-    "edit_file",
+    "edit",
     JSON.stringify({
       path: "story.txt",
       edits: [
         {
-          old_string: "beta",
-          new_string: "BETA",
+          oldText: "beta",
+          newText: "BETA",
           line: 2,
         },
       ],
@@ -97,13 +97,13 @@ test("read_file returns focused content, edit_file uses target text, and unrelat
   await assert.rejects(
     () =>
       registry.execute(
-        "edit_file",
+        "edit",
         JSON.stringify({
           path: "story.txt",
           edits: [
             {
-              old_string: "beta\n",
-              new_string: "BETA",
+              oldText: "beta\n",
+              newText: "BETA",
               line: 2,
             },
           ],
@@ -114,13 +114,13 @@ test("read_file returns focused content, edit_file uses target text, and unrelat
   );
 });
 
-test("write_file can overwrite existing files and records the change instead of blocking speed", async (t) => {
+test("write can overwrite existing files and records the change instead of blocking speed", async (t) => {
   const root = await createTempWorkspace("machine-write-overwrite", t);
   await fs.writeFile(path.join(root, "existing.txt"), "old\n", "utf8");
 
   const registry = createToolRegistry();
   const result = await registry.execute(
-    "write_file",
+    "write",
     JSON.stringify({
       path: "existing.txt",
       content: "new\n",
@@ -136,13 +136,13 @@ test("write_file can overwrite existing files and records the change instead of 
   assert.equal(result.metadata?.protocol?.status, "completed");
 });
 
-test("run_shell allows direct shell reads when the model chooses that fast route", async (t) => {
+test("bash allows direct shell reads when the model chooses that fast route", async (t) => {
   const root = await createTempWorkspace("machine-shell-read", t);
   await fs.writeFile(path.join(root, "notes.txt"), "alpha\n", "utf8");
 
   const registry = createToolRegistry();
   const result = await registry.execute(
-    "run_shell",
+    "bash",
     JSON.stringify({
       command: "Get-Content notes.txt",
     }),
@@ -188,4 +188,6 @@ test("blocked tool results include a factual hint without a strategy next step",
   assert.equal(typeof payload.hint, "string");
   assert.equal(payload.next_step, undefined);
 });
+
+
 

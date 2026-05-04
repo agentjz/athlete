@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import http from "node:http";
@@ -293,7 +293,7 @@ test("recovery shrink preserves retained DeepSeek reasoning_content metadata", (
           id: "call-1",
           type: "function",
           function: {
-            name: "read_file",
+            name: "read",
             arguments: "{\"path\":\"README.md\"}",
           },
         },
@@ -637,3 +637,4 @@ function resolveArtifactPath(root: string, artifactPath: string): string {
 
   return resolved;
 }
+

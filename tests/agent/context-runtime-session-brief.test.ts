@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
@@ -44,20 +44,20 @@ test("session conversation brief excludes tool payloads and internal wake messag
             id: "tool-1",
             type: "function",
             function: {
-              name: "read_file",
+              name: "read",
               arguments: "{}",
             },
           },
         ],
       }),
-      createToolMessage("tool-1", "VERY LARGE TOOL PAYLOAD SHOULD NOT ENTER SESSION BRIEF", "read_file"),
+      createToolMessage("tool-1", "VERY LARGE TOOL PAYLOAD SHOULD NOT ENTER SESSION BRIEF", "read"),
       createMessage("assistant", "我已经读取了文件。"),
     ],
   });
   const block = buildSessionConversationBriefBlock(brief) ?? "";
 
   assert.match(block, /user: 先聊一下当前会话连续性/);
-  assert.match(block, /assistant: called tools: read_file/);
+  assert.match(block, /assistant: called tools: read/);
   assert.match(block, /assistant: 我已经读取了文件。/);
   assert.doesNotMatch(block, /VERY LARGE TOOL PAYLOAD/);
   assert.doesNotMatch(block, /Continue from checkpoint/);
@@ -116,3 +116,4 @@ test("session conversation brief compresses same-session turns into reviewable s
   assert.match(block, /Tool activity: called tools: session_search/);
   assert.match(block, /Open questions: .*没有对标好的地方/);
 });
+

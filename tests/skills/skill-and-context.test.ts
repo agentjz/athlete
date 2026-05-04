@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -112,7 +112,7 @@ test("context runtime request preserves DeepSeek V4 reasoning_content for every 
         id: "tool-call-1",
         type: "function",
         function: {
-          name: "list_files",
+                  name: "bash",
           arguments: "{}",
         },
       },
@@ -129,7 +129,7 @@ test("context runtime request preserves DeepSeek V4 reasoning_content for every 
     createMessage("user", "Inspect the repo."),
     toolCallingAssistant,
     createMessage("tool", JSON.stringify({ files: ["README.md"] }), {
-      name: "list_files",
+      name: "bash",
     }),
     postToolAssistant,
     ordinaryAssistant,
@@ -159,14 +159,14 @@ test("context runtime request keeps DeepSeek reasoning_content for included post
           id: "tool-call-1",
           type: "function",
           function: {
-            name: "read_file",
+            name: "read",
             arguments: "{}",
           },
         },
       ],
     }),
     createMessage("tool", JSON.stringify({ ok: true }), {
-      name: "read_file",
+      name: "read",
     }),
     createMessage("assistant", "The tool is done.", {
       reasoningContent: "I can now summarize the result.",
@@ -284,3 +284,4 @@ function buildRuntimeRequestForMessages(
     config,
   });
 }
+

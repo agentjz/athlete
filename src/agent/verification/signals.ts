@@ -11,7 +11,7 @@ export function getLightweightVerificationAttempt(input: {
   observedPaths: string[];
   resultOk: boolean;
 }): VerificationAttempt | null {
-  if (!input.resultOk || input.toolName !== "read_file") {
+  if (!input.resultOk || input.toolName !== "read") {
     return null;
   }
 
@@ -28,9 +28,9 @@ export function getLightweightVerificationAttempt(input: {
 
   return {
     attempted: true,
-    command: `read_file ${targetPath}`,
+    command: `read ${targetPath}`,
     exitCode: 0,
-    kind: "read_file",
+    kind: "read",
     passed: true,
   };
 }

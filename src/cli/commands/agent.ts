@@ -3,7 +3,7 @@ import type { Command } from "commander";
 import type { CliProgramDependencies } from "../dependencies.js";
 import { createHostSession } from "../../host/session.js";
 import type { CliOverrides, RuntimeConfig } from "../../types.js";
-import { writeStdoutLine } from "../../utils/stdio.js";
+import { ui } from "../../utils/console.js";
 import { createSessionStore, runOneShot, startInteractive } from "./sessionHelpers.js";
 
 export function registerAgentCommand(
@@ -46,7 +46,9 @@ export function registerAgentCommand(
         session,
         sessionStore,
       });
-      writeStdoutLine(JSON.stringify(result.closeout));
+      if (!result.closeout.completed) {
+        ui.error(result.closeout.unfinishedReason ?? "Agent one-shot did not complete.");
+        process.exitCode = 1;
+      }
     });
 }
-

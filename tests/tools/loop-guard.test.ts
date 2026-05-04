@@ -1,29 +1,28 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { ToolLoopGuard } from "../../src/agent/turn.js";
 import type { ToolCallRecord, ToolExecutionResult } from "../../src/types.js";
 
-test("loop guard blocks a repeated static action only after identical observations", () => {
+test("loop guard preflight-blocks a repeated static action after identical observations", () => {
   const loopGuard = new ToolLoopGuard();
-  const toolCall = createToolCall("read_file", { path: "README.md" });
+  const toolCall = createToolCall("read", { path: "README.md" });
   const result = okResult({ ok: true, content: "same content" });
 
   assert.equal(loopGuard.getPreflightBlockedResult(toolCall), null);
   assert.equal(loopGuard.noteToolResult(toolCall, result), null);
   assert.equal(loopGuard.getPreflightBlockedResult(toolCall), null);
   assert.equal(loopGuard.noteToolResult(toolCall, result), null);
-  assert.equal(loopGuard.getPreflightBlockedResult(toolCall), null);
 
-  const blocked = loopGuard.noteToolResult(toolCall, result);
+  const blocked = loopGuard.getPreflightBlockedResult(toolCall);
   assert.ok(blocked);
-  assert.match(String(blocked.output), /Loop guard blocked repeated read_file calls/i);
+  assert.match(String(blocked.output), /Loop guard blocked repeated read calls/i);
   assert.match(String(blocked.output), /same result/i);
 });
 
 test("loop guard treats changed observations as progress for the same action", () => {
   const loopGuard = new ToolLoopGuard();
-  const toolCall = createToolCall("read_file", { path: "README.md" });
+  const toolCall = createToolCall("read", { path: "README.md" });
 
   assert.equal(loopGuard.getPreflightBlockedResult(toolCall), null);
   assert.equal(loopGuard.noteToolResult(toolCall, okResult({ ok: true, content: "version one" })), null);
@@ -65,3 +64,4 @@ function okResult(payload: Record<string, unknown>): ToolExecutionResult {
     output: JSON.stringify(payload, null, 2),
   };
 }
+

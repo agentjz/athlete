@@ -17,17 +17,13 @@ import {
   dreamingLoopStatusTool,
 } from "../packages/dreaming/dreamingLoopTools.js";
 import { editDocxTool } from "../packages/documents/editDocxTool.js";
-import { editFileTool } from "../packages/files/editFileTool.js";
-import { findFilesTool } from "../packages/files/findFilesTool.js";
-import { gitDiffTool } from "../packages/git/gitDiffTool.js";
-import { gitStatusTool } from "../packages/git/gitStatusTool.js";
+import { editToolDefinition } from "../packages/files/editTool.js";
 import { idleTool } from "../packages/team/idleTool.js";
 import { httpProbeTool } from "../packages/network/httpProbeTool.js";
 import { httpRequestTool } from "../packages/network/httpRequestTool.js";
 import { httpSessionTool } from "../packages/network/httpSessionTool.js";
 import { httpSuiteTool } from "../packages/network/httpSuiteTool.js";
 import { changeRecordReadTool } from "../packages/history/changeRecordReadTool.js";
-import { listFilesTool } from "../packages/files/listFilesTool.js";
 import { listTeammatesTool } from "../packages/team/listTeammatesTool.js";
 import { loadSkillTool } from "../packages/skills/loadSkillTool.js";
 import { mineruDocReadTool } from "../packages/documents/mineruDocReadTool.js";
@@ -37,15 +33,13 @@ import { mineruPptReadTool } from "../packages/documents/mineruPptReadTool.js";
 import { networkTraceTool } from "../packages/network/networkTraceTool.js";
 import { openapiInspectTool } from "../packages/network/openapiInspectTool.js";
 import { openapiLintTool } from "../packages/network/openapiLintTool.js";
-import { patchFileTool } from "../packages/files/patchFileTool.js";
 import { planApprovalTool } from "../packages/team/planApprovalTool.js";
 import { readDocxTool } from "../packages/documents/readDocxTool.js";
-import { readFileTool } from "../packages/files/readFileTool.js";
+import { readToolDefinition } from "../packages/files/readTool.js";
 import { readInboxTool } from "../packages/team/readInboxTool.js";
 import { readSpreadsheetTool } from "../packages/documents/readSpreadsheetTool.js";
 import { runtimeEventSearchTool } from "../packages/history/runtimeEventSearchTool.js";
-import { runShellTool } from "../packages/shell/runShellTool.js";
-import { searchFilesTool } from "../packages/files/searchFilesTool.js";
+import { bashToolDefinition } from "../packages/shell/bashTool.js";
 import { sendMessageTool } from "../packages/team/sendMessageTool.js";
 import { sessionFinalOutputTool } from "../packages/history/sessionFinalOutputTool.js";
 import { sessionListTool } from "../packages/history/sessionListTool.js";
@@ -69,7 +63,7 @@ import { worktreeKeepTool } from "../packages/worktrees/worktreeKeepTool.js";
 import { worktreeListTool } from "../packages/worktrees/worktreeListTool.js";
 import { worktreeRemoveTool } from "../packages/worktrees/worktreeRemoveTool.js";
 import { writeDocxTool } from "../packages/documents/writeDocxTool.js";
-import { writeFileTool } from "../packages/files/writeFileTool.js";
+import { writeToolDefinition } from "../packages/files/writeTool.js";
 import {
   WEB_WORKFLOWS,
   documentReadTool,
@@ -86,12 +80,7 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(dreamingLoopStartTool, stateTool("task", { risk: "medium", changeSignal: "optional", verificationSignal: "optional" })),
   defineBuiltinTool(dreamingLoopNextTool, stateTool("task", { risk: "high", changeSignal: "optional", verificationSignal: "optional" })),
   defineBuiltinTool(dreamingLoopStatusTool, readTool("task", { concurrencySafe: true, verificationSignal: "optional" })),
-  defineBuiltinTool(listFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(findFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(readFileTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(searchFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
-  defineBuiltinTool(gitStatusTool, readTool("git", { concurrencySafe: true })),
-  defineBuiltinTool(gitDiffTool, readTool("git", { concurrencySafe: true })),
+  defineBuiltinTool(readToolDefinition, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
   defineBuiltinTool(codeSymbolsTool, readTool("code", { concurrencySafe: true })),
   defineBuiltinTool(codeReferencesTool, readTool("code", { concurrencySafe: true })),
   defineBuiltinTool(codePatternTool, readTool("code", { concurrencySafe: true })),
@@ -142,14 +131,13 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(shutdownResponseTool, stateTool("team", { risk: "high" })),
   defineBuiltinTool(planApprovalTool, stateTool("team", { risk: "medium" })),
   defineBuiltinTool(idleTool, stateTool("task")),
-  defineBuiltinTool(writeFileTool, writeTool("filesystem", { changeSignal: "required" })),
+  defineBuiltinTool(writeToolDefinition, writeTool("filesystem", { changeSignal: "required" })),
   defineBuiltinTool(writeDocxTool, writeTool("document", { changeSignal: "required" })),
   defineBuiltinTool(editDocxTool, writeTool("document", { changeSignal: "required" })),
-  defineBuiltinTool(patchFileTool, writeTool("filesystem", { changeSignal: "required" })),
-  defineBuiltinTool(editFileTool, writeTool("filesystem", { changeSignal: "required" })),
+  defineBuiltinTool(editToolDefinition, writeTool("filesystem", { changeSignal: "required" })),
   defineBuiltinTool(undoLastChangeTool, writeTool("filesystem", { risk: "high", destructive: true, changeSignal: "required" })),
   defineBuiltinTool(downloadUrlTool, writeTool("external", { changeSignal: "required" })),
-  defineBuiltinTool(runShellTool, writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", secondaryInWorkflows: WEB_WORKFLOWS })),
+  defineBuiltinTool(bashToolDefinition, writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", secondaryInWorkflows: WEB_WORKFLOWS })),
 ] as const;
 
 const BUILTIN_GOVERNANCE_BY_NAME = new Map(

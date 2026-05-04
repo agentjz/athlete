@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
@@ -53,12 +53,18 @@ test("system prompt keeps document capability guidance at the principle level in
         skills: [],
         ignoreRules: [],
       },
+      undefined,
+      undefined,
+      undefined,
+      {
+        mode: "spec",
+      },
     ),
   );
 
-  assert.match(prompt, /Browser and document tools are capability surfaces/i);
-  assert.match(prompt, /file introspection or tool recovery points to a specialized tool/i);
-  assert.match(prompt, /treat that as evidence, not a command/i);
+  assert.match(prompt, /Spec mode exposes Kitty ecosystem capabilities/i);
+  assert.match(prompt, /Skills, documents, coordination, protocol, background, and worktree tools are explicit action surfaces/i);
+  assert.match(prompt, /availability is not instruction/i);
   assert.doesNotMatch(prompt, /\bread_pdf\b/);
   assert.doesNotMatch(prompt, /mineru_doc_read|mineru_pdf_read|mineru_image_read|mineru_ppt_read/);
   assert.doesNotMatch(prompt, /Skip unsupported binary documents such as \.doc and \.pptx/i);
@@ -97,7 +103,7 @@ test("executeToolCallWithRecovery returns document capability hints for supporte
         id: "call-1",
         type: "function",
         function: {
-          name: "read_file",
+          name: "read",
           arguments: JSON.stringify({ path: "dummy" }),
         },
       },
@@ -207,3 +213,4 @@ async function captureStdout(run: () => Promise<void>): Promise<string> {
     (fs as typeof fs & { writeSync: typeof fs.writeSync }).writeSync = original;
   }
 }
+

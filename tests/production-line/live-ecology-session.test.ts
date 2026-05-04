@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
@@ -7,7 +7,7 @@ import { extractCloseoutSessionId, getLiveTaskSessionsDir } from "./live-ecology
 
 test("live ecology extracts session id from one-shot closeout JSON", () => {
   const output = [
-    "[tool] read_file package.json:1-20",
+    "[tool] read package.json:1-20",
     JSON.stringify({
       sessionId: "20260502031600-23deae54",
       completed: true,
@@ -23,3 +23,4 @@ test("live ecology session monitor uses the same runtime session directory as Ki
   assert.equal(getLiveTaskSessionsDir(root), path.join(getAppPaths(root).dataDir, "sessions"));
   assert.equal(getLiveTaskSessionsDir(root).replace(/\\/g, "/").endsWith("/.kitty/sessions"), true);
 });
+

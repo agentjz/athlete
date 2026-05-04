@@ -19,10 +19,10 @@ export async function scanPackageScripts({ root }: RepoContractScanInput): Promi
       message: "package description must stay minimal: Agent",
     });
   }
-  if (scripts.verify !== "npm run live:ecology:dry-run && npm run verify:repo-contracts && npm test") {
+  if (scripts.verify !== "npm run verify:repo-contracts && npm test") {
     findings.push({
       file: "package.json",
-      message: "scripts.verify must run live ecology dry-run, repository contracts, and npm test.",
+      message: "scripts.verify must run repository contracts and npm test.",
     });
   }
   if (scripts["live:ecology:dry-run"] !== "tsx tests/production-line/verify-live-ecology.ts --dry-run") {

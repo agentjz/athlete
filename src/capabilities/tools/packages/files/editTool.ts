@@ -6,32 +6,32 @@ import { recordToolChange } from "../../core/changeTracking.js";
 import { ToolExecutionError } from "../../core/errors.js";
 import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { buildDiffPreview, okResult, parseArgs, readOptionalNumber, readPossiblyEmptyString, readString } from "../../core/shared.js";
+import type { RegisteredTool } from "../../core/types.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
-import type { RegisteredTool } from "../../core/types.js";
 
 interface RequestedEdit {
-  oldString: string;
-  newString: string;
+  oldText: string;
+  newText: string;
   line?: number;
 }
 
 interface PlannedEdit {
   start: number;
   end: number;
-  oldString: string;
-  newString: string;
+  oldText: string;
+  newText: string;
   sourceIndex: number;
 }
 
 const fileEditLocks = new Map<string, Promise<void>>();
 
-export const editFileTool: RegisteredTool = {
+export const editToolDefinition: RegisteredTool = {
   definition: {
     type: "function",
     function: {
-      name: "edit_file",
-      description: "Edit an existing file by replacing exact text. Use read_file first for the target area, then provide old_string, new_string, and optionally the 1-based line near the edit.",
+      name: "edit",
+      description: "Edit an existing file by replacing exact current text. Use read first when the target area is not fresh.",
       parameters: {
         type: "object",
         properties: {
@@ -45,20 +45,20 @@ export const editFileTool: RegisteredTool = {
             items: {
               type: "object",
               properties: {
-                old_string: {
+                oldText: {
                   type: "string",
                   description: "Exact current text to replace.",
                 },
-                line: {
-                  type: "number",
-                  description: "Optional 1-based line near the edit. Use this when the same old_string appears more than once.",
-                },
-                new_string: {
+                newText: {
                   type: "string",
                   description: "Replacement text.",
                 },
+                line: {
+                  type: "number",
+                  description: "Optional 1-based line near the edit when oldText appears more than once.",
+                },
               },
-              required: ["old_string", "new_string"],
+              required: ["oldText", "newText"],
               additionalProperties: false,
             },
           },
@@ -79,33 +79,27 @@ export const editFileTool: RegisteredTool = {
       const beforeBuffer = await fs.readFile(resolved);
       const beforeEnvelope = decodeTextFileEnvelope(beforeBuffer);
       if (!beforeEnvelope) {
-        throw new ToolExecutionError(`edit_file cannot edit binary or unsupported text encoding for ${resolved}`, {
+        throw new ToolExecutionError(`edit cannot edit binary or unsupported text encoding for ${displayPath}`, {
           code: "EDIT_UNREADABLE_TEXT",
-          details: {
-            path: resolved,
-          },
+          details: { path: resolved },
         });
       }
 
       const before = beforeEnvelope.text;
       const plannedEdits = buildEditPlan(before, edits, displayPath);
       const after = applyEditPlan(before, plannedEdits);
-
       if (after === before) {
-        throw new ToolExecutionError(`edit_file did not change the file contents for ${resolved}`, {
+        throw new ToolExecutionError(`edit did not change ${displayPath}`, {
           code: "EDIT_NOOP",
-          details: {
-            path: resolved,
-          },
+          details: { path: resolved },
         });
       }
 
       const diff = buildDiffPreview(before, after);
-
       await fs.writeFile(resolved, encodeTextFileEnvelope(after, beforeEnvelope));
       const changeRecord = await recordToolChange(context, {
-        toolName: "edit_file",
-        summary: `edit_file ${displayPath}`,
+        toolName: "edit",
+        summary: `edit ${displayPath}`,
         preview: diff,
         operations: [
           {
@@ -120,7 +114,7 @@ export const editFileTool: RegisteredTool = {
       });
       const diagnostics = await collectWriteDiagnostics([resolved]);
       const feedback = buildToolChangeFeedback({
-        toolName: "edit_file",
+        toolName: "edit",
         changeId: changeRecord.change?.id,
         changedPaths: [resolved],
         diff: truncateText(diff, 6_000),
@@ -166,8 +160,8 @@ function readRequestedEdit(value: unknown, field: string): RequestedEdit {
 
   const record = value as Record<string, unknown>;
   return {
-    oldString: readPossiblyEmptyString(record.old_string, `${field}.old_string`),
-    newString: readPossiblyEmptyString(record.new_string, `${field}.new_string`),
+    oldText: readPossiblyEmptyString(record.oldText, `${field}.oldText`),
+    newText: readPossiblyEmptyString(record.newText, `${field}.newText`),
     line: readOptionalNumber(record.line),
   };
 }
@@ -176,38 +170,38 @@ function buildEditPlan(before: string, request: RequestedEdit[], displayPath: st
   const planned: PlannedEdit[] = [];
 
   request.forEach((edit, sourceIndex) => {
-    const matches = findEditOccurrences(before, edit.oldString, edit.line);
+    const matches = findEditOccurrences(before, edit.oldText, edit.line);
     if (matches.length === 0) {
-      throw new ToolExecutionError(`edit_file could not find edit ${sourceIndex + 1}. Fresh read_file around the target area, then retry with current old_string.`, {
+      throw new ToolExecutionError(`edit could not find edit ${sourceIndex + 1}. Read around the target area, then retry with current oldText.`, {
         code: "EDIT_NOT_FOUND",
         details: {
           editIndex: sourceIndex,
           line: edit.line,
-          readArgs: buildFreshReadArgs(displayPath, edit.line),
+          readArgs: buildReadArgs(displayPath, edit.line),
         },
       });
     }
 
     if (matches.length > 1) {
-      throw new ToolExecutionError(`edit_file edit ${sourceIndex + 1} matched multiple regions; add a line hint, merge the edit, or make old_string more specific.`, {
+      throw new ToolExecutionError(`edit ${sourceIndex + 1} matched multiple regions; add line or make oldText more specific.`, {
         code: "EDIT_AMBIGUOUS",
         details: {
           editIndex: sourceIndex,
           matches: matches.length,
           line: edit.line,
-          readArgs: buildFreshReadArgs(displayPath, edit.line),
+          readArgs: buildReadArgs(displayPath, edit.line),
         },
       });
     }
 
     const match = matches[0];
     if (!match) {
-      throw new ToolExecutionError(`edit_file lost its match for edit ${sourceIndex + 1}. Fresh read_file around the target area, then retry.`, {
+      throw new ToolExecutionError(`edit lost its match for edit ${sourceIndex + 1}. Read around the target area, then retry.`, {
         code: "EDIT_NOT_FOUND",
         details: {
           editIndex: sourceIndex,
           line: edit.line,
-          readArgs: buildFreshReadArgs(displayPath, edit.line),
+          readArgs: buildReadArgs(displayPath, edit.line),
         },
       });
     }
@@ -215,8 +209,8 @@ function buildEditPlan(before: string, request: RequestedEdit[], displayPath: st
     planned.push({
       start: match.start,
       end: match.end,
-      oldString: match.oldString,
-      newString: edit.newString,
+      oldText: match.oldText,
+      newText: edit.newText,
       sourceIndex,
     });
   });
@@ -226,20 +220,15 @@ function buildEditPlan(before: string, request: RequestedEdit[], displayPath: st
   return planned;
 }
 
-function findEditOccurrences(
-  before: string,
-  oldString: string,
-  lineHint: number | undefined,
-): Array<{ start: number; end: number; oldString: string }> {
-  const matches: Array<{ start: number; end: number; oldString: string; distance: number }> = [];
-  let offset = 0;
-
-  if (oldString.length === 0) {
+function findEditOccurrences(before: string, oldText: string, lineHint: number | undefined): Array<{ start: number; end: number; oldText: string }> {
+  if (oldText.length === 0) {
     return [];
   }
 
+  const matches: Array<{ start: number; end: number; oldText: string; distance: number }> = [];
+  let offset = 0;
   while (offset <= before.length) {
-    const index = before.indexOf(oldString, offset);
+    const index = before.indexOf(oldText, offset);
     if (index === -1) {
       break;
     }
@@ -247,21 +236,21 @@ function findEditOccurrences(
     const line = lineForOffset(before, index);
     matches.push({
       start: index,
-      end: index + oldString.length,
-      oldString,
+      end: index + oldText.length,
+      oldText,
       distance: lineHint === undefined ? 0 : Math.abs(line - lineHint),
     });
-    offset = index + Math.max(1, oldString.length);
+    offset = index + Math.max(1, oldText.length);
   }
 
   if (lineHint === undefined || matches.length <= 1) {
-    return matches.map(({ start, end, oldString }) => ({ start, end, oldString }));
+    return matches.map(({ start, end, oldText }) => ({ start, end, oldText }));
   }
 
   const closestDistance = Math.min(...matches.map((match) => match.distance));
   return matches
     .filter((match) => match.distance === closestDistance)
-    .map(({ start, end, oldString }) => ({ start, end, oldString }));
+    .map(({ start, end, oldText }) => ({ start, end, oldText }));
 }
 
 function lineForOffset(input: string, offset: number): number {
@@ -274,11 +263,7 @@ function lineForOffset(input: string, offset: number): number {
   return line;
 }
 
-function buildFreshReadArgs(path: string, line: number | undefined): {
-  path: string;
-  offset: number;
-  limit: number;
-} {
+function buildReadArgs(path: string, line: number | undefined): { path: string; offset: number; limit: number } {
   return {
     path,
     offset: Math.max(1, (line ?? 1) - 20),
@@ -295,31 +280,24 @@ function assertNoOverlappingEdits(edits: PlannedEdit[]): void {
     }
 
     if (current.start < previous.end) {
-      throw new ToolExecutionError(
-        `edit_file edits ${previous.sourceIndex + 1} and ${current.sourceIndex + 1} overlap in the original file. Merge adjacent edits or make them more specific.`,
-        {
-          code: "EDIT_OVERLAP",
-          details: {
-            leftEditIndex: previous.sourceIndex,
-            rightEditIndex: current.sourceIndex,
-          },
+      throw new ToolExecutionError(`edit entries ${previous.sourceIndex + 1} and ${current.sourceIndex + 1} overlap. Merge them or make oldText more specific.`, {
+        code: "EDIT_OVERLAP",
+        details: {
+          leftEditIndex: previous.sourceIndex,
+          rightEditIndex: current.sourceIndex,
         },
-      );
+      });
     }
   }
 }
 
 function applyEditPlan(before: string, edits: PlannedEdit[]): string {
-  if (edits.length === 0) {
-    return before;
-  }
-
   let cursor = 0;
   let result = "";
 
   for (const edit of edits) {
     result += before.slice(cursor, edit.start);
-    result += edit.newString;
+    result += edit.newText;
     cursor = edit.end;
   }
 

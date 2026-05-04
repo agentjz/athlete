@@ -17,6 +17,7 @@ import type { PromptRuntimeState } from "../agent/prompt/types.js";
 export interface InteractiveTurnContext {
   cwd?: string;
   stateRootDir?: string;
+  mode?: "agent" | "spec";
   extraTools?: readonly RegisteredTool[];
   runtimePromptState?: Partial<PromptRuntimeState>;
 }
@@ -282,6 +283,7 @@ export class InteractiveSessionDriver {
         input,
         cwd: turnContext?.cwd ?? this.options.cwd,
         stateRootDir: turnContext?.stateRootDir,
+        mode: turnContext?.mode ?? turnContext?.runtimePromptState?.mode ?? "agent",
         config: this.options.config,
         session: this.session,
         sessionStore: this.options.sessionStore,

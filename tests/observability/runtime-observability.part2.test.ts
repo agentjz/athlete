@@ -305,7 +305,7 @@ test("runtime observability local command prints a product-style summary that ex
             callCount: 2,
             durationMsTotal: 220,
             byName: {
-              read_file: {
+              read: {
                 callCount: 2,
                 durationMsTotal: 220,
                 okCount: 2,
@@ -337,7 +337,7 @@ test("runtime observability local command prints a product-style summary that ex
               action: "continue",
               reason: {
                 code: "continue.after_tool_batch",
-                toolNames: ["run_shell"],
+                toolNames: ["bash"],
                 changedPaths: ["src/ui/runtimeSummary.ts"],
               },
               timestamp: new Date().toISOString(),
@@ -379,3 +379,4 @@ test("runtime observability local command prints a product-style summary that ex
   assert.doesNotMatch(output, /durable truth/i);
   assert.doesNotMatch(output, /derived diagnostics/i);
 });
+

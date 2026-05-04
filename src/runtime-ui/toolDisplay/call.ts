@@ -21,7 +21,7 @@ export function buildToolCallDisplay(
   const path = normalizeDisplayPath(readStringField(args, "path"), cwd);
 
   switch (name) {
-    case "read_file": {
+    case "read": {
       const offset = typeof args.offset === "number" ? Math.trunc(args.offset) : undefined;
       const limit = typeof args.limit === "number" ? Math.trunc(args.limit) : undefined;
       const range = offset === undefined
@@ -44,41 +44,10 @@ export function buildToolCallDisplay(
       return {
         summary: `${name} ${path ?? readStringField(args, "url") ?? "(missing path)"}`,
       };
-    case "list_files":
-      return {
-        summary:
-          `${name} ${path ?? "(missing path)"}` +
-          (args.recursive === true ? " (recursive)" : ""),
-      };
-    case "find_files":
-      return {
-        summary:
-          `${name} ${path ?? "(missing path)"}` +
-          (typeof args.pattern === "string" ? ` pattern=${args.pattern}` : ""),
-      };
-    case "search_files":
-      return {
-        summary:
-          `${name} ${path ?? "(missing path)"}` +
-          (typeof args.pattern === "string" ? ` pattern=${args.pattern}` : ""),
-      };
-    case "write_file":
+    case "write":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
       };
-    case "patch_file": {
-      const patchText = readStringField(args, "patch") ?? "";
-      const files = Array.from(patchText.matchAll(/^\+\+\+\s+(?!\/dev\/null)(?:[ab]\/)?(.+)$/gm))
-        .map((match) => match[1])
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 3);
-      return {
-        summary:
-          `${name}` +
-          (files.length > 0 ? ` ${files.join(", ")}` : "") +
-          (args.dry_run === true ? " (dry run)" : ""),
-      };
-    }
     case "write_docx":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
@@ -93,7 +62,7 @@ export function buildToolCallDisplay(
           (heading ? ` heading=${heading}` : ""),
       };
     }
-    case "edit_file": {
+    case "edit": {
       const edits = Array.isArray(args.edits) ? args.edits : [];
       return {
         summary:
@@ -101,7 +70,7 @@ export function buildToolCallDisplay(
           (edits.length > 0 ? ` edits=${edits.length}` : ""),
       };
     }
-    case "run_shell": {
+    case "bash": {
       const command = readStringField(args, "command");
       const runCwd = readStringField(args, "cwd");
       return {

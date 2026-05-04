@@ -4,10 +4,6 @@ import type { ToolExecutionResult } from "../../types.js";
 const DEFAULT_MAX_CHARS = 4_000;
 const DIFF_MAX_CHARS = 3_000;
 const OUTPUT_MAX_CHARS = 1_500;
-const LIST_MAX_ITEMS = 30;
-const STATUS_MAX_FILES = 12;
-const DIFF_STAT_MAX_FILES = 12;
-const LARGE_DIFF_FILE_THRESHOLD = 8;
 
 export function projectToolResultForModel(input: {
   toolName: string;
@@ -23,32 +19,20 @@ export function projectToolResultForModel(input: {
   }
 
   switch (input.toolName) {
-    case "read_file":
-      return projectReadFile(parsed);
-    case "edit_file":
-      return projectEditFile(parsed);
-    case "patch_file":
-      return projectPatchFile(parsed);
-    case "write_file":
-      return projectWriteFile(parsed);
-    case "git_status":
-      return projectGitStatus(parsed);
-    case "git_diff":
-      return projectGitDiff(parsed);
-    case "run_shell":
-      return projectRunShell(parsed);
-    case "search_files":
-      return projectSearchFiles(parsed);
-    case "find_files":
-      return projectFindFiles(parsed);
-    case "list_files":
-      return projectListFiles(parsed);
+    case "read":
+      return projectRead(parsed);
+    case "edit":
+      return projectEdit(parsed);
+    case "write":
+      return projectWrite(parsed);
+    case "bash":
+      return projectBash(parsed);
     default:
       return projectGenericSuccess(parsed, input.result.output);
   }
 }
 
-function projectReadFile(payload: Record<string, unknown>): string {
+function projectRead(payload: Record<string, unknown>): string {
   const path = readString(payload.path) ?? readString(payload.requestedPath) ?? "file";
   if (payload.readable === false) {
     return joinLines([
@@ -67,11 +51,11 @@ function projectReadFile(payload: Record<string, unknown>): string {
   return joinLines([
     `${path}${startLine && endLine ? `:${startLine}-${endLine}` : ""}`,
     truncateText(content, DEFAULT_MAX_CHARS),
-    continuationArgs ? `next: read_file ${JSON.stringify(continuationArgs)}` : undefined,
+    continuationArgs ? `next: read ${JSON.stringify(continuationArgs)}` : undefined,
   ]);
 }
 
-function projectEditFile(payload: Record<string, unknown>): string {
+function projectEdit(payload: Record<string, unknown>): string {
   const path = readString(payload.path) ?? "file";
   const applied = readNumber(payload.appliedEdits) ?? readNumber(payload.requestedEdits);
   const diff = readString(payload.diff) ?? readString(payload.preview);
@@ -81,18 +65,7 @@ function projectEditFile(payload: Record<string, unknown>): string {
   ]);
 }
 
-function projectPatchFile(payload: Record<string, unknown>): string {
-  const files = readNumber(payload.files) ?? readArray(payload.appliedFiles)?.length;
-  const hunks = readNumber(payload.appliedHunks);
-  const dryRun = payload.dryRun === true;
-  const diff = readString(payload.diff) ?? readString(payload.preview);
-  return joinLines([
-    `${dryRun ? "patch dry-run ok" : "patched"}${files !== undefined ? ` ${files} file${files === 1 ? "" : "s"}` : ""}${hunks !== undefined ? `, ${hunks} hunk${hunks === 1 ? "" : "s"}` : ""}`,
-    diff ? truncateText(diff, DIFF_MAX_CHARS) : undefined,
-  ]);
-}
-
-function projectWriteFile(payload: Record<string, unknown>): string {
+function projectWrite(payload: Record<string, unknown>): string {
   const path = readString(payload.path) ?? "file";
   const bytes = readNumber(payload.bytes);
   const existed = payload.existed === true;
@@ -103,100 +76,7 @@ function projectWriteFile(payload: Record<string, unknown>): string {
   ]);
 }
 
-function projectGitStatus(payload: Record<string, unknown>): string {
-  const branch = readString(payload.branch);
-  const summary = readObject(payload.summary);
-  const files = readArray(payload.files);
-  const counts = [
-    ["modified", readNumber(summary?.modified)],
-    ["added", readNumber(summary?.added)],
-    ["deleted", readNumber(summary?.deleted)],
-    ["renamed", readNumber(summary?.renamed)],
-    ["untracked", readNumber(summary?.untracked)],
-    ["ignored", readNumber(summary?.ignored)],
-    ["conflicted", readNumber(summary?.conflicted)],
-  ]
-    .filter(([, value]) => typeof value === "number" && value > 0)
-    .map(([label, value]) => `${label} ${value}`)
-    .join(", ");
-
-  const fileLines = (files ?? [])
-    .slice(0, STATUS_MAX_FILES)
-    .map((item) => readObject(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .map((item) => `${readString(item.status) ?? ""} ${readString(item.path) ?? ""}`.trim())
-    .filter(Boolean);
-
-  return joinLines([
-    `git status${branch ? ` on ${branch}` : ""}: ${counts || "clean"}`,
-    ...fileLines,
-    files && files.length > STATUS_MAX_FILES ? `... ${files.length - STATUS_MAX_FILES} more` : undefined,
-  ]);
-}
-
-function projectGitDiff(payload: Record<string, unknown>): string {
-  const path = readString(payload.path);
-  const root = readString(payload.root);
-  const stats = readObject(payload.stats);
-  const filesChanged = readNumber(stats?.filesChanged);
-  const insertions = readNumber(stats?.insertions);
-  const deletions = readNumber(stats?.deletions);
-  const files = readArray(stats?.files);
-  const diff = readString(payload.diff);
-  const statLines = (files ?? [])
-    .slice(0, DIFF_STAT_MAX_FILES)
-    .map((item) => readObject(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .map((item) => {
-      const path = readString(item.path);
-      const adds = readNumber(item.insertions);
-      const dels = readNumber(item.deletions);
-      return path ? `${path} +${adds ?? "-"} -${dels ?? "-"}` : undefined;
-    })
-    .filter((line): line is string => Boolean(line));
-
-  return joinLines([
-    filesChanged !== undefined
-      ? `${filesChanged} files changed${path ? ` in ${path}` : ""}, +${insertions ?? 0} -${deletions ?? 0}`
-      : "git diff",
-    ...statLines,
-    files && files.length > DIFF_STAT_MAX_FILES ? `... ${files.length - DIFF_STAT_MAX_FILES} more` : undefined,
-    shouldIncludeDiffBody(path, root, filesChanged, diff) ? truncateText(diff ?? "", DIFF_MAX_CHARS) : undefined,
-    !shouldIncludeDiffBody(path, root, filesChanged, diff) && diff
-      ? "diff body omitted for large worktree diff; call git_diff with a specific path for focused patch evidence"
-      : undefined,
-    payload.truncated === true ? "diff truncated" : undefined,
-  ]);
-}
-
-function shouldIncludeDiffBody(
-  path: string | undefined,
-  root: string | undefined,
-  filesChanged: number | undefined,
-  diff: string | undefined,
-): boolean {
-  if (!diff?.trim()) {
-    return false;
-  }
-  if (path && !isWorktreeRootPath(path, root)) {
-    return true;
-  }
-  return (filesChanged ?? 0) <= LARGE_DIFF_FILE_THRESHOLD;
-}
-
-function isWorktreeRootPath(pathValue: string, root: string | undefined): boolean {
-  const normalizedPath = normalizePathLike(pathValue);
-  if (normalizedPath === "." || normalizedPath === "") {
-    return true;
-  }
-  return root !== undefined && normalizedPath === normalizePathLike(root);
-}
-
-function normalizePathLike(value: string): string {
-  return value.trim().replace(/\\/g, "/").replace(/\/+$/g, "");
-}
-
-function projectRunShell(payload: Record<string, unknown>): string {
+function projectBash(payload: Record<string, unknown>): string {
   const exitCode = readNumber(payload.exitCode);
   const durationMs = readNumber(payload.durationMs);
   const status = readString(payload.status);
@@ -211,67 +91,6 @@ function projectRunShell(payload: Record<string, unknown>): string {
     lines.push("output truncated");
   }
   return joinLines(lines);
-}
-
-function projectSearchFiles(payload: Record<string, unknown>): string {
-  const mode = readString(payload.mode) ?? "files";
-  const pattern = readString(payload.pattern);
-  const totalMatches = readNumber(payload.totalMatches);
-  const matchedFilesCount = readNumber(payload.matchedFilesCount);
-  const matches = readArray(payload.matches);
-  const files = readArray(payload.files);
-  const rows = (mode === "matches" ? matches : files) ?? [];
-  const lines = rows
-    .slice(0, LIST_MAX_ITEMS)
-    .map((item) => readObject(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .map((item) => {
-      const path = readString(item.path);
-      const line = readNumber(item.line) ?? readNumber(item.firstLine);
-      const text = readString(item.text);
-      const count = readNumber(item.matches);
-      const suffix = text ? ` ${text}` : count !== undefined ? ` (${count})` : "";
-      return `${path ?? "(match)"}${line ? `:${line}` : ""}${suffix}`.trim();
-    })
-    .filter(Boolean);
-
-  return joinLines([
-    `search "${pattern ?? ""}": ${totalMatches ?? 0} matches in ${matchedFilesCount ?? files?.length ?? 0} files`,
-    ...lines,
-    payload.truncated === true ? "results truncated" : undefined,
-  ]);
-}
-
-function projectFindFiles(payload: Record<string, unknown>): string {
-  const pattern = readString(payload.pattern);
-  const total = readNumber(payload.totalMatches);
-  const files = readArray(payload.files)?.map((item) => readString(item)).filter((item): item is string => Boolean(item)) ?? [];
-  return joinLines([
-    `find ${pattern ?? ""}: ${total ?? files.length} files`,
-    ...files.slice(0, LIST_MAX_ITEMS),
-    payload.truncated === true ? "results truncated" : undefined,
-  ]);
-}
-
-function projectListFiles(payload: Record<string, unknown>): string {
-  const path = readString(payload.path) ?? "path";
-  const type = readString(payload.type);
-  if (type === "file") {
-    return `${path} file`;
-  }
-
-  const entries = readArray(payload.entries) ?? [];
-  const lines = entries
-    .slice(0, LIST_MAX_ITEMS)
-    .map((item) => readObject(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .map((item) => `${readString(item.type) === "directory" ? "dir " : "file"} ${readString(item.path) ?? ""}`.trim())
-    .filter(Boolean);
-  return joinLines([
-    `${path}: ${readNumber(payload.total) ?? entries.length} entries`,
-    ...lines,
-    entries.length > LIST_MAX_ITEMS ? `... ${entries.length - LIST_MAX_ITEMS} more` : undefined,
-  ]);
 }
 
 function projectGenericSuccess(payload: Record<string, unknown>, rawOutput: string): string {
@@ -289,7 +108,6 @@ function projectGenericSuccess(payload: Record<string, unknown>, rawOutput: stri
   const fragments = [
     formatScalar("path", payload.path),
     formatScalar("title", payload.title),
-    formatArrayCount("entries", payload.entries),
     formatArrayCount("matches", payload.matches),
     formatScalar("total", payload.total),
     formatScalar("jobId", payload.jobId),
@@ -314,7 +132,7 @@ function projectFailure(toolName: string, rawOutput: string, payload: Record<str
     `${toolName} failed: ${readString(payload.error) ?? "unknown error"}`,
     readString(payload.code) ? `code: ${readString(payload.code)}` : undefined,
     readString(payload.hint) ? `hint: ${readString(payload.hint)}` : undefined,
-    readArgs ? `read: read_file ${JSON.stringify(readArgs)}` : undefined,
+    readArgs ? `read: read ${JSON.stringify(readArgs)}` : undefined,
     suggestions && suggestions.length > 0 ? `suggestions: ${suggestions.slice(0, 5).map((item) => String(item)).join(", ")}` : undefined,
   ];
 

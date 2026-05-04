@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -49,12 +49,12 @@ function createBlockedToolEntry(): Pick<ToolRegistryEntry, "name" | "governance"
   };
 }
 
-test("run_shell timeout returns structured timed_out runtime state", async (t) => {
+test("bash timeout returns structured timed_out runtime state", async (t) => {
   const root = await createTempWorkspace("machine-shell-runtime-timeout", t);
   const registry = createToolRegistry();
 
   const result = await registry.execute(
-    "run_shell",
+    "bash",
     JSON.stringify({
       command: "node -e \"setTimeout(() => {}, 4000)\"",
       timeout_ms: 150,
@@ -71,14 +71,14 @@ test("run_shell timeout returns structured timed_out runtime state", async (t) =
   assert.equal(result.metadata?.runtime?.timedOut, true);
 });
 
-test("run_shell abort returns structured aborted runtime state without throwing retry sleep errors", async (t) => {
+test("bash abort returns structured aborted runtime state without throwing retry sleep errors", async (t) => {
   const root = await createTempWorkspace("machine-shell-runtime-abort", t);
   const registry = createToolRegistry();
   const abortController = new AbortController();
   setTimeout(() => abortController.abort(new Error("abort test")), 150);
 
   const result = await registry.execute(
-    "run_shell",
+    "bash",
     JSON.stringify({
       command: "node -e \"setTimeout(() => {}, 4000)\"",
       timeout_ms: 5_000,
@@ -95,12 +95,12 @@ test("run_shell abort returns structured aborted runtime state without throwing 
   assert.equal(result.metadata?.runtime?.aborted, true);
 });
 
-test("run_shell fails closed when interactive process fields are sent to a non-interactive contract", async (t) => {
+test("bash fails closed when interactive process fields are sent to a non-interactive contract", async (t) => {
   const root = await createTempWorkspace("machine-shell-runtime-noninteractive", t);
   const registry = createToolRegistry();
 
   const result = await registry.execute(
-    "run_shell",
+    "bash",
     JSON.stringify({
       command: "echo hello",
       stdin: "hello from stdin",
@@ -180,4 +180,5 @@ test("background_run, background_check, and background_terminate expose one proc
   assert.equal(closedProcess.state, "closed");
   assert.equal((closedProcess.events as string[]).includes("process/closed"), true);
 });
+
 

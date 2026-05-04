@@ -207,6 +207,7 @@ export async function startWorkbenchServer(options: StartWorkbenchServerOptions)
       session: currentSession,
       sessionStore,
       abortSignal: activeAbortController.signal,
+      mode,
       extraTools: turnContext.extraTools,
       runtimePromptState: turnContext.runtimePromptState,
       callbacks: {

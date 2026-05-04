@@ -1,7 +1,5 @@
 import path from "node:path";
 
-import { parsePatch } from "diff";
-
 import type {
   AgentCallbacks,
   BeforeToolCallHookContext,
@@ -9,13 +7,12 @@ import type {
 } from "../../agent/types.js";
 import { loadExeca } from "../../utils/execa.js";
 import { parseArgs } from "../tools/core/shared.js";
-import { normalizeDiffPath } from "../tools/core/shared.js";
 
 export const DREAMING_WRITE_BOUNDARY_PROTOCOL = "kitty.dreaming-write-boundary" as const;
 
 const FILE_PATH_ARG_TOOLS = new Map<string, readonly string[]>([
-  ["write_file", ["path"]],
-  ["edit_file", ["path"]],
+  ["write", ["path"]],
+  ["edit", ["path"]],
   ["write_docx", ["path"]],
   ["edit_docx", ["path"]],
   ["download_url", ["path"]],
@@ -94,28 +91,13 @@ export function enforceDreamingToolBoundary(
     return undefined;
   }
 
-  if (toolName === "run_shell") {
+  if (toolName === "bash") {
     const cwd = typeof args.cwd === "string" && args.cwd.trim().length > 0
       ? args.cwd
       : boundary.mirrorWorldPath;
     const resolvedCwd = resolveAgainst(cwd, boundary.mirrorWorldPath);
     if (!isInsidePath(resolvedCwd, boundary.mirrorWorldPath)) {
       return block(`Dreaming shell cwd must stay inside Mirror World: ${boundary.mirrorWorldPath}`);
-    }
-    return undefined;
-  }
-
-  if (toolName === "patch_file") {
-    const patchText = typeof args.patch === "string" ? args.patch : "";
-    for (const patch of parsePatch(patchText)) {
-      const targetPath = normalizeDiffPath(patch.newFileName) ?? normalizeDiffPath(patch.oldFileName);
-      if (!targetPath) {
-        continue;
-      }
-      const resolved = resolveAgainst(targetPath, boundary.mirrorWorldPath);
-      if (!isInsidePath(resolved, boundary.mirrorWorldPath)) {
-        return block(`Dreaming patch path must stay inside Mirror World: ${targetPath}`);
-      }
     }
     return undefined;
   }

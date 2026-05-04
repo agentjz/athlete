@@ -28,6 +28,7 @@ export interface BoundHostTurnOptions<TActiveTurn> {
   output: BoundHostTurnOutput;
   display: BoundHostTurnDisplay;
   callbacks?: AgentCallbacks;
+  mode?: "agent" | "spec";
   extraTools?: readonly RegisteredTool[];
   shouldAbortOnStart?: () => boolean;
   markQueuedTurnStarted: () => void;
@@ -64,6 +65,7 @@ export async function runBoundHostTurn<TActiveTurn>(
         sessionStore: options.sessionStore,
         abortSignal: controller.signal,
         callbacks: options.callbacks,
+        mode: options.mode,
         extraTools: options.extraTools,
       },
       {

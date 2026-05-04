@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fetchAssistantResponse } from "../../src/agent/api.js";
@@ -35,7 +35,7 @@ test("fetchAssistantResponse does not downgrade DeepSeek when V4 tool use is rej
                       id: "call-1",
                       type: "function",
                       function: {
-                        name: "read_file",
+                        name: "read",
                         arguments: "{\"path\":\"README.md\"}",
                       },
                     },
@@ -53,7 +53,7 @@ test("fetchAssistantResponse does not downgrade DeepSeek when V4 tool use is rej
     {
       type: "function",
       function: {
-        name: "read_file",
+        name: "read",
         description: "Read a file.",
         parameters: {
           type: "object",
@@ -157,3 +157,4 @@ test("withApiRetries retries transient failures and preserves recovery behavior"
   assert.equal(result, "ok");
   assert.equal(attempts, 3);
 });
+

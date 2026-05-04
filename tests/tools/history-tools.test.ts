@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -38,7 +38,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
             id: "tool-call-1",
             type: "function",
             function: {
-              name: "read_file",
+              name: "read",
               arguments: JSON.stringify({ path: "large.json" }),
             },
           },
@@ -51,7 +51,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
           storagePath: artifactStoragePath,
           preview: "artifact preview needle",
         }, null, 2),
-        name: "read_file",
+        name: "read",
         tool_call_id: "tool-call-1",
         externalizedToolResult: {
           scope: "project_state_root",
@@ -70,7 +70,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
   const change = await new ChangeStore(config.paths.changesDir).record({
     sessionId: saved.id,
     cwd: root,
-    toolName: "edit_file",
+    toolName: "edit",
     summary: "changed file evidence",
     operations: [
       {
@@ -87,7 +87,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
     event: "tool.execution",
     status: "failed",
     sessionId: saved.id,
-    toolName: "read_file",
+    toolName: "read",
     error: {
       message: "recorded runtime failure",
     },
@@ -135,7 +135,7 @@ test("history tools expose persisted evidence without automatic prompt recall", 
 
   const eventSearch = JSON.parse((await registry.execute(
     "runtime_event_search",
-    JSON.stringify({ session_id: saved.id, tool_name: "read_file" }),
+    JSON.stringify({ session_id: saved.id, tool_name: "read" }),
     context,
   )).output) as Record<string, unknown>;
   assert.match(JSON.stringify(eventSearch), /recorded runtime failure/);
@@ -211,3 +211,4 @@ test("history tools are governed as read-only capabilities", () => {
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+

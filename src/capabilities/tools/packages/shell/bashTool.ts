@@ -1,21 +1,20 @@
-import { ToolExecutionError } from "../../core/errors.js";
 import { buildForegroundProcessProtocol } from "../../../../execution/processProtocol.js";
-import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
+import type { ToolExecutionMetadata } from "../../../../types.js";
 import { classifyCommand } from "../../../../utils/commandPolicy.js";
 import { runCommandWithPolicy } from "../../../../utils/commandRunner.js";
 import { getShellRuntimeInfo } from "../../../../utils/commandRunner/shellRuntime.js";
+import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
 import { clampNumber, okResult, parseArgs, readString } from "../../core/shared.js";
 import type { RegisteredTool } from "../../core/types.js";
-import type { ToolExecutionMetadata } from "../../../../types.js";
 
 const SHELL_RUNTIME = getShellRuntimeInfo();
 
-export const runShellTool: RegisteredTool = {
+export const bashToolDefinition: RegisteredTool = {
   definition: {
     type: "function",
     function: {
-      name: "run_shell",
-      description: `Run a local terminal command in the current working directory or another directory. Current default shell: ${SHELL_RUNTIME.shell} (${SHELL_RUNTIME.invocation}). ${SHELL_RUNTIME.guidance} For webpages, use lightweight network tools first and treat shell fetching as fallback.`,
+      name: "bash",
+      description: `Run a local terminal command. Current default shell: ${SHELL_RUNTIME.shell} (${SHELL_RUNTIME.invocation}). Use for search, listing, git status, git diff, builds, tests, and other terminal work.`,
       parameters: {
         type: "object",
         properties: {
@@ -45,12 +44,7 @@ export const runShellTool: RegisteredTool = {
     const resolvedCwd = resolveUserPath(shellCwd, context.cwd);
     const shell = getShellRuntimeInfo();
     const classification = classifyCommand(command);
-    const stallTimeoutMs = clampNumber(
-      context.config.commandStallTimeoutMs,
-      2_000,
-      300_000,
-      30_000,
-    );
+    const stallTimeoutMs = clampNumber(context.config.commandStallTimeoutMs, 2_000, 300_000, 30_000);
     const maxRetries = clampNumber(context.config.commandMaxRetries, 0, 3, 1);
     const retryBackoffMs = clampNumber(context.config.commandRetryBackoffMs, 200, 10_000, 1_500);
 
@@ -71,12 +65,12 @@ export const runShellTool: RegisteredTool = {
     const status = result.aborted
       ? "aborted"
       : result.stalled
-      ? "stalled"
-      : result.timedOut
-        ? "timed_out"
-        : result.exitCode === 0
-          ? "completed"
-          : "failed";
+        ? "stalled"
+        : result.timedOut
+          ? "timed_out"
+          : result.exitCode === 0
+            ? "completed"
+            : "failed";
     const process = buildForegroundProcessProtocol({
       sessionId: context.sessionId,
       runtimeStatus: status,
