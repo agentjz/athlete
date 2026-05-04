@@ -103,9 +103,11 @@ Kitty 遵循 MIT 开源协议。
 | `read_file` | 读取文件，并给后续编辑提供锚点。 | ✅ |
 | `search_files` | 搜索文件内容。 | ✅ |
 | `write_file` | 创建新文件。 | ✅ |
+| `patch_file` | 应用 unified diff 补丁，作为快速结构化编辑通道。 | ✅ |
 | `edit_file` | 基于锚点编辑已有文件。 | ✅ |
-| `apply_patch` | 应用结构化补丁。 | ✅ |
 | `undo_last_change` | 回滚最近一次记录的文件修改。 | ✅ |
+| `git_status` | 读取结构化 Git 工作区状态事实。 | ✅ |
+| `git_diff` | 读取工作区或单一路径的 Git diff 事实。 | ✅ |
 | `code_symbols` | 列出代码符号。 | ✅ |
 | `code_references` | 查找代码引用。 | ✅ |
 | `code_pattern` | 查找代码结构模式。 | ✅ |

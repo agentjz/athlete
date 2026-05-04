@@ -2,8 +2,8 @@ import { formatFileWithLineNumbers, resolveUserPath } from "../../../../utils/fs
 import { ToolExecutionError } from "../../core/errors.js";
 import { inspectTextFile } from "../../core/fileIntrospection.js";
 import { findPathSuggestions } from "../../core/pathSuggestions.js";
+import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { okResult, parseArgs, readOptionalNumber, readString } from "../../core/shared.js";
-import { buildToolResultArtifactReadPayload, isToolResultArtifactPath } from "./toolResultArtifact.js";
 import { buildFileEditIdentity } from "./editIdentity.js";
 import { buildReadFileAnchors } from "./readFileAnchors.js";
 import type { RegisteredTool } from "../../core/types.js";
@@ -19,7 +19,7 @@ export const readFileTool: RegisteredTool = {
     type: "function",
     function: {
       name: "read_file",
-      description: "Read a local text file from the local filesystem. Returns numbered lines, continuation metadata, and a stable file identity for follow-up edits. This is not for webpage content.",
+      description: "Read a local text file from the local filesystem. Returns numbered lines, continuation metadata, and a stable file identity with line anchors for follow-up edit_file calls. Use path/offset/limit only; offset is a 1-based line number. This is not for webpage content or history artifacts.",
       parameters: {
         type: "object",
         properties: {
@@ -27,21 +27,13 @@ export const readFileTool: RegisteredTool = {
             type: "string",
             description: "Path to the file to read.",
           },
-          start_line: {
-            type: "number",
-            description: "1-based start line. Optional.",
-          },
-          end_line: {
-            type: "number",
-            description: "1-based end line. Optional.",
-          },
           offset: {
             type: "number",
-            description: "0-based line offset for continuation-friendly reads.",
+            description: "1-based line number to start reading from. Optional; defaults to 1.",
           },
           limit: {
             type: "number",
-            description: "Maximum number of lines to return from the offset.",
+            description: "Maximum number of lines to return from offset. Optional.",
           },
         },
         required: ["path"],
@@ -52,15 +44,14 @@ export const readFileTool: RegisteredTool = {
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
     const targetPath = readString(args.path, "path");
-    const startLine = readOptionalNumber(args.start_line);
-    const endLine = readOptionalNumber(args.end_line);
     const offset = readOptionalNumber(args.offset);
     const limit = readOptionalNumber(args.limit);
     const resolved = resolveUserPath(targetPath, context.cwd);
+    const displayPath = toToolRelativePath(context.cwd, resolved);
     let inspected;
 
-    if ((startLine !== undefined || endLine !== undefined) && (offset !== undefined || limit !== undefined)) {
-      throw new Error('read_file accepts either "start_line/end_line" or "offset/limit", not both.');
+    if (offset !== undefined && offset < 1) {
+      throw new Error("read_file offset must be a 1-based line number.");
     }
 
     try {
@@ -85,7 +76,8 @@ export const readFileTool: RegisteredTool = {
       return okResult(
         JSON.stringify(
           {
-            path: resolved,
+            path: displayPath,
+            absolutePath: resolved,
             readable: false,
             reason: inspected.reason,
             size: inspected.size,
@@ -101,20 +93,11 @@ export const readFileTool: RegisteredTool = {
       );
     }
 
-    if (
-      startLine === undefined &&
-      endLine === undefined &&
-      offset === undefined &&
-      limit === undefined &&
-      isToolResultArtifactPath(resolved, context.projectContext.stateRootDir)
-    ) {
-      return okResult(
-        JSON.stringify(buildToolResultArtifactReadPayload(resolved, inspected), null, 2),
-      );
-    }
-
     const lines = (inspected.content ?? "").split(/\r?\n/);
-    const readWindow = resolveReadWindow(lines.length, startLine, endLine, offset, limit);
+    const readWindow = resolveReadWindow(lines.length, offset, limit);
+    if (readWindow.start >= lines.length && !(lines.length === 1 && lines[0] === "" && readWindow.start === 0)) {
+      throw new Error(`read_file offset ${offset ?? 1} is beyond end of file (${lines.length} lines total).`);
+    }
     const fittedEndExclusive = fitWindowWithinBudget(lines, readWindow.start, readWindow.endExclusive, context.config.maxReadBytes);
     const selected = lines.slice(readWindow.start, fittedEndExclusive).join("\n");
     const content = formatFileWithLineNumbers(selected, readWindow.start + 1);
@@ -124,7 +107,8 @@ export const readFileTool: RegisteredTool = {
     return okResult(
       JSON.stringify(
         {
-          path: resolved,
+          path: displayPath,
+          absolutePath: resolved,
           readable: true,
           size: inspected.size,
           extension: inspected.extension,
@@ -137,13 +121,12 @@ export const readFileTool: RegisteredTool = {
           continuation: hasMore
             ? {
                 hasMore: true,
-                nextOffset: fittedEndExclusive,
-                nextStartLine: fittedEndExclusive + 1,
+                nextOffset: fittedEndExclusive + 1,
                 limit: readWindow.requestedLimit ?? Math.max(1, fittedEndExclusive - readWindow.start),
                 remainingLines: lines.length - fittedEndExclusive,
                 continuationArgs: {
-                  path: targetPath,
-                  offset: fittedEndExclusive,
+                  path: displayPath,
+                  offset: fittedEndExclusive + 1,
                   limit: readWindow.requestedLimit ?? Math.max(1, fittedEndExclusive - readWindow.start),
                 },
               }
@@ -158,25 +141,15 @@ export const readFileTool: RegisteredTool = {
 
 function resolveReadWindow(
   totalLines: number,
-  startLine: number | undefined,
-  endLine: number | undefined,
   offset: number | undefined,
   limit: number | undefined,
 ): ReadWindow {
-  if (offset !== undefined || limit !== undefined) {
-    const start = Math.max(0, offset ?? 0);
-    const requestedLimit = Math.max(1, (limit ?? totalLines) || 1);
-    return {
-      start,
-      endExclusive: Math.min(totalLines, start + requestedLimit),
-      requestedLimit,
-    };
-  }
-
-  const start = startLine ? Math.max(startLine - 1, 0) : 0;
+  const start = Math.max(0, (offset ?? 1) - 1);
+  const requestedLimit = limit === undefined ? undefined : Math.max(1, limit || 1);
   return {
     start,
-    endExclusive: endLine ? Math.min(totalLines, Math.max(endLine, start + 1)) : totalLines,
+    endExclusive: requestedLimit === undefined ? totalLines : Math.min(totalLines, start + requestedLimit),
+    requestedLimit,
   };
 }
 

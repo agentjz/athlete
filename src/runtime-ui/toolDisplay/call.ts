@@ -1,7 +1,7 @@
 import { tryParseJson } from "../../utils/json.js";
 import { normalizeDisplayPath } from "../pathDisplay.js";
 import { truncate } from "../previewPolicy.js";
-import { formatLineRange, readStringField } from "./shared.js";
+import { readStringField } from "./shared.js";
 import type { ToolDisplay } from "./types.js";
 
 export function buildToolCallDisplay(
@@ -22,7 +22,13 @@ export function buildToolCallDisplay(
 
   switch (name) {
     case "read_file": {
-      const range = formatLineRange(args.start_line, args.end_line);
+      const offset = typeof args.offset === "number" ? Math.trunc(args.offset) : undefined;
+      const limit = typeof args.limit === "number" ? Math.trunc(args.limit) : undefined;
+      const range = offset === undefined
+        ? ""
+        : limit === undefined
+          ? `:${offset}`
+          : `:${offset}-${Math.max(offset, offset + limit - 1)}`;
       return {
         summary: `${name} ${path ?? "(missing path)"}${range}`,
       };
@@ -60,6 +66,19 @@ export function buildToolCallDisplay(
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
       };
+    case "patch_file": {
+      const patchText = readStringField(args, "patch") ?? "";
+      const files = Array.from(patchText.matchAll(/^\+\+\+\s+(?!\/dev\/null)(?:[ab]\/)?(.+)$/gm))
+        .map((match) => match[1])
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 3);
+      return {
+        summary:
+          `${name}` +
+          (files.length > 0 ? ` ${files.join(", ")}` : "") +
+          (args.dry_run === true ? " (dry run)" : ""),
+      };
+    }
     case "write_docx":
       return {
         summary: `${name} ${path ?? "(missing path)"}`,
@@ -82,10 +101,6 @@ export function buildToolCallDisplay(
           (edits.length > 0 ? ` edits=${edits.length}` : ""),
       };
     }
-    case "apply_patch":
-      return {
-        summary: `${name}`,
-      };
     case "run_shell": {
       const command = readStringField(args, "command");
       const runCwd = readStringField(args, "cwd");
@@ -108,6 +123,26 @@ export function buildToolCallDisplay(
       const jobId = readStringField(args, "job_id");
       return {
         summary: `${name} ${jobId ?? "recent"}`.trim(),
+      };
+    }
+    case "dreaming_start": {
+      const objective = readStringField(args, "objective");
+      return {
+        summary: `${name}${objective ? ` "${truncate(objective, maxChars)}"` : ""}`,
+      };
+    }
+    case "runtime_event_search": {
+      const executionId = readStringField(args, "execution_id");
+      const limit = typeof args.limit === "number" ? Math.trunc(args.limit) : undefined;
+      return {
+        summary: `${name}${executionId ? ` ${executionId}` : ""}${limit ? ` limit=${limit}` : ""}`.trim(),
+      };
+    }
+    case "session_final_output": {
+      const sessionId = readStringField(args, "session_id");
+      const limit = typeof args.limit === "number" ? Math.trunc(args.limit) : undefined;
+      return {
+        summary: `${name}${sessionId ? ` ${sessionId}` : ""}${limit ? ` limit=${limit}` : ""}`.trim(),
       };
     }
     case "task": {

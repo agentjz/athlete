@@ -59,8 +59,12 @@ export function collectFailedTools(sessionRecord: SessionRecordLike | null): Fai
     return [];
   }
   const failures: FailedToolSummary[] = [];
+  const successfulTools = collectSuccessfulTools(sessionRecord);
   for (const message of sessionRecord.messages) {
     if (message?.role !== "tool" || typeof message.name !== "string") {
+      continue;
+    }
+    if (successfulTools.has(message.name)) {
       continue;
     }
     const parsed = safeParse(message.content);
@@ -72,6 +76,20 @@ export function collectFailedTools(sessionRecord: SessionRecordLike | null): Fai
     }
   }
   return failures;
+}
+
+function collectSuccessfulTools(sessionRecord: SessionRecordLike): Set<string> {
+  const names = new Set<string>();
+  for (const message of sessionRecord.messages ?? []) {
+    if (message?.role !== "tool" || typeof message.name !== "string") {
+      continue;
+    }
+    const parsed = safeParse(message.content);
+    if (parsed && parsed.ok !== false) {
+      names.add(message.name);
+    }
+  }
+  return names;
 }
 
 function safeParse(value: unknown): Record<string, unknown> | null {

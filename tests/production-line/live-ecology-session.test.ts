@@ -21,5 +21,5 @@ test("live ecology extracts session id from one-shot closeout JSON", () => {
 test("live ecology session monitor uses the same runtime session directory as Kitty", () => {
   const root = process.cwd();
   assert.equal(getLiveTaskSessionsDir(root), path.join(getAppPaths(root).dataDir, "sessions"));
-  assert.match(getLiveTaskSessionsDir(root), /[\\/]\\.kitty[\\/]sessions$/);
+  assert.equal(getLiveTaskSessionsDir(root).replace(/\\/g, "/").endsWith("/.kitty/sessions"), true);
 });

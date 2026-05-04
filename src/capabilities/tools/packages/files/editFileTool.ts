@@ -4,6 +4,7 @@ import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
 import { decodeTextFileEnvelope, encodeTextFileEnvelope } from "../../../../utils/text.js";
 import { recordToolChange } from "../../core/changeTracking.js";
 import { ToolExecutionError } from "../../core/errors.js";
+import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { buildDiffPreview, okResult, parseArgs, readPossiblyEmptyString, readString } from "../../core/shared.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
@@ -123,6 +124,7 @@ export const editFileTool: RegisteredTool = {
     const expectedIdentity = readFileEditIdentity(args.expected_identity, "expected_identity");
     const edits = readRequestedEdits(args.edits);
     const resolved = resolveUserPath(targetPath, context.cwd);
+    const displayPath = toToolRelativePath(context.cwd, resolved);
 
     return withFileEditLock(resolved, async () => {
       const beforeBuffer = await fs.readFile(resolved);
@@ -165,7 +167,7 @@ export const editFileTool: RegisteredTool = {
       await fs.writeFile(resolved, encodeTextFileEnvelope(after, beforeEnvelope));
       const changeRecord = await recordToolChange(context, {
         toolName: "edit_file",
-        summary: `edit_file ${resolved}`,
+        summary: `edit_file ${displayPath}`,
         preview: diff,
         operations: [
           {
@@ -190,11 +192,13 @@ export const editFileTool: RegisteredTool = {
       return okResult(
         JSON.stringify(
           {
-            path: resolved,
+            path: displayPath,
+            absolutePath: resolved,
             requestedEdits: edits.length,
             appliedEdits: plannedEdits.length,
             identityChangedBeforeEdit: hasFileEditIdentityContentChanged(expectedIdentity, currentIdentity),
-            changedPaths: [resolved],
+            changedPaths: [displayPath],
+            absoluteChangedPaths: [resolved],
             changeId: changeRecord.change?.id,
             changeHistoryWarning: changeRecord.warning,
             diff: feedback.diff,

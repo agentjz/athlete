@@ -38,10 +38,12 @@ test("governance workflow hints do not hide governed tools from the default agen
   assert.equal(names.has("find_files"), true);
   assert.equal(names.has("read_file"), true);
   assert.equal(names.has("search_files"), true);
+  assert.equal(names.has("git_status"), true);
+  assert.equal(names.has("git_diff"), true);
   assert.equal(names.has("run_shell"), true);
   assert.equal(names.has("write_file"), true);
+  assert.equal(names.has("patch_file"), true);
   assert.equal(names.has("edit_file"), true);
-  assert.equal(names.has("apply_patch"), true);
 });
 
 test("registry fails closed when an included tool omits governance metadata", () => {

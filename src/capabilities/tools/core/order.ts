@@ -27,6 +27,10 @@ function getExposureRank(entry: ToolRegistryEntry): number {
     return 30;
   }
 
+  if (entry.governance.specialty === "git" && entry.governance.mutation === "read") {
+    return 35;
+  }
+
   if (entry.governance.specialty === "external") {
     return 40;
   }

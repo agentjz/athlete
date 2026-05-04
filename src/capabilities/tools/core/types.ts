@@ -21,6 +21,7 @@ export type ToolGovernanceSpecialty =
   | "document"
   | "external"
   | "filesystem"
+  | "git"
   | "history"
   | "messaging"
   | "shell"

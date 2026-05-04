@@ -527,13 +527,14 @@ test("telegram service can locate a workspace file and send it back through the 
         toolContext as never,
       );
       const matches = JSON.parse(searchResult.output) as {
-        matches?: Array<{ path: string }>;
+        matches?: Array<{ path: string; absolutePath?: string }>;
       };
       assert.equal(Array.isArray(matches.matches) && matches.matches.length > 0, true);
+      const matchedPath = matches.matches?.[0]?.absolutePath ?? matches.matches?.[0]?.path ?? "";
       await options.toolRegistry!.execute(
         "telegram_send_file",
         JSON.stringify({
-          path: path.relative(root, matches.matches?.[0]?.path ?? ""),
+          path: path.relative(root, matchedPath),
         }),
         toolContext as never,
       );

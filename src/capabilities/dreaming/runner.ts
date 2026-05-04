@@ -9,6 +9,7 @@ import { closeExecution } from "../../execution/closeout.js";
 import { appendForegroundStreamEvent, readForegroundStreamText } from "../../execution/foregroundStream.js";
 import type { ExecutionRecord } from "../../execution/types.js";
 import { ExecutionStore } from "../../execution/store.js";
+import { createExecutionForegroundCallbacks } from "../../execution/foregroundCallbacks.js";
 import { createDreamingMirrorWorld } from "./mirrorWorld.js";
 import { getDreamingDir, readDreamingState, writeDreamingState } from "./state.js";
 import {
@@ -149,40 +150,11 @@ export async function runDreamingExecution(rootDir: string, config: RuntimeConfi
 }
 
 function createDreamingCallbacks(rootDir: string, executionId: string) {
-  return {
-    onStatus: (text: string) => {
-      void appendDreaming(rootDir, executionId, text);
-    },
-    onAssistantText: (text: string) => {
-      void appendDreaming(rootDir, executionId, compactLine(text));
-    },
-    onToolCall: (name: string, args: string) => {
-      void appendDreaming(rootDir, executionId, `tool ${name}`, "info", {
-        eventKind: "tool_call",
-        toolName: name,
-        payload: args,
-      });
-    },
-    onToolResult: (name: string, output: string) => {
-      void appendDreaming(rootDir, executionId, `result ${name}`, "info", {
-        eventKind: "tool_result",
-        toolName: name,
-        payload: output,
-        ok: true,
-      });
-    },
-    onToolError: (name: string, error: string) => {
-      void appendDreaming(rootDir, executionId, `tool ${name} failed`, "error", {
-        eventKind: "tool_error",
-        toolName: name,
-        payload: error,
-        ok: false,
-      });
-    },
-    onDispatch: (event: { profile: string; actorName: string; executionId: string }) => {
-      void appendDreaming(rootDir, executionId, `dispatch ${event.profile} ${event.actorName} ${event.executionId}`);
-    },
-  };
+  return createExecutionForegroundCallbacks({
+    rootDir,
+    executionId,
+    label: "dreaming",
+  });
 }
 
 async function appendDreaming(
@@ -276,8 +248,4 @@ function readLatestAssistantText(messages: StoredMessage[]): string {
     }
   }
   return "(Dreaming returned no visible closeout.)";
-}
-
-function compactLine(value: string): string {
-  return value.replace(/\s+/g, " ").trim().slice(0, 500);
 }

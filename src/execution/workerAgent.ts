@@ -15,6 +15,7 @@ import { normalizeCloseoutText } from "../protocol/closeout.js";
 import { ExecutionStore } from "./store.js";
 import { prepareExecutionTaskContext } from "./taskBinding.js";
 import { recordExecutionStarted } from "./workerObservability.js";
+import { createExecutionForegroundCallbacks } from "./foregroundCallbacks.js";
 import type { ExecutionRecord } from "./types.js";
 
 export async function runAgentExecution(rootDir: string, config: RuntimeConfig, execution: ExecutionRecord): Promise<void> {
@@ -49,6 +50,11 @@ export async function runAgentExecution(rootDir: string, config: RuntimeConfig, 
     const inputText = buildAgentExecutionInput(execution, prepared);
     const boundaryResult = await runWithinAgentExecutionBoundary({
       boundary: execution.boundary,
+      callbacks: createExecutionForegroundCallbacks({
+        rootDir,
+        executionId: execution.id,
+        label: execution.profile,
+      }),
       run: ({ abortSignal, callbacks }) => execution.profile === "subagent"
         ? runSubagentExecutionSlice({
             input: inputText,

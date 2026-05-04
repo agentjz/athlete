@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 
 import { resolveUserPath } from "../../../../utils/fs.js";
 import { isPathIgnored } from "../../../../utils/ignore.js";
+import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { clampNumber, okResult, parseArgs, readBoolean, readString, walkDirectory } from "../../core/shared.js";
 import type { RegisteredTool } from "../../core/types.js";
 
@@ -46,16 +47,19 @@ export const listFilesTool: RegisteredTool = {
     const stats = await fs.stat(resolved);
 
     if (stats.isFile()) {
+      const relativePath = toToolRelativePath(context.cwd, resolved);
       return okResult(
         JSON.stringify(
           compact
             ? {
-                path: resolved,
+                path: relativePath,
+                absolutePath: resolved,
                 type: "file",
                 compact: true,
               }
             : {
-                path: resolved,
+                path: relativePath,
+                absolutePath: resolved,
                 type: "file",
                 size: stats.size,
                 modifiedAt: stats.mtime.toISOString(),
@@ -74,16 +78,22 @@ export const listFilesTool: RegisteredTool = {
     return okResult(
       JSON.stringify(
         {
-          path: resolved,
+          path: toToolRelativePath(context.cwd, resolved),
+          absolutePath: resolved,
           recursive,
           compact,
           total: entries.length,
           entries: compact
             ? entries.map((entry) => ({
-                path: entry.path,
+                path: toToolRelativePath(context.cwd, entry.path),
+                absolutePath: entry.path,
                 type: entry.type,
               }))
-            : entries,
+            : entries.map((entry) => ({
+                ...entry,
+                path: toToolRelativePath(context.cwd, entry.path),
+                absolutePath: entry.path,
+              })),
         },
         null,
         2,

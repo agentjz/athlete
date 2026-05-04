@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 
 import { getProjectStatePaths } from "../project/statePaths.js";
@@ -45,6 +46,31 @@ export async function appendForegroundStreamEvent(input: {
   const file = getForegroundStreamPath(input.rootDir, input.executionId);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.appendFile(
+    file,
+    `${JSON.stringify({
+      protocol: FOREGROUND_STREAM_PROTOCOL,
+      executionId: input.executionId,
+      label: input.label,
+      level: input.level ?? "info",
+      message: input.message,
+      data: input.data,
+      createdAt: new Date().toISOString(),
+    })}\n`,
+    "utf8",
+  );
+}
+
+export function appendForegroundStreamEventSync(input: {
+  rootDir: string;
+  executionId: string;
+  label: string;
+  message: string;
+  level?: "info" | "warn" | "error";
+  data?: Record<string, unknown>;
+}): void {
+  const file = getForegroundStreamPath(input.rootDir, input.executionId);
+  fsSync.mkdirSync(path.dirname(file), { recursive: true });
+  fsSync.appendFileSync(
     file,
     `${JSON.stringify({
       protocol: FOREGROUND_STREAM_PROTOCOL,

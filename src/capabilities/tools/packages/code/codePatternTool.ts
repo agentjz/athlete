@@ -1,6 +1,7 @@
 import { buildSearchPattern, clampNumber, okResult, parseArgs, readBoolean, readString } from "../../core/shared.js";
 import {
   collectCodeFiles,
+  buildReadArgs,
   readCodeLines,
   truncateLine,
 } from "./codeFacts.js";
@@ -83,11 +84,7 @@ export const codePatternTool: RegisteredTool = {
           path: filePath,
           line: lineNumber,
           text: truncateLine(line),
-          readArgs: {
-            path: filePath,
-            start_line: Math.max(1, lineNumber - contextLines),
-            end_line: Math.min(lines.length, lineNumber + contextLines),
-          },
+          readArgs: buildReadArgs(filePath, lineNumber, lines.length, contextLines),
         });
 
         if (matches.length >= limit) {

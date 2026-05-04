@@ -20,46 +20,33 @@ test("Dreaming write boundary allows mirror-world writes and blocks real-world w
   });
 
   assert.equal(enforceDreamingToolBoundary(context("write_file", { path: "src/new.ts" }), boundary), undefined);
+  assert.equal(
+    enforceDreamingToolBoundary(
+      context("patch_file", {
+        patch: ["--- a/src/a.ts", "+++ b/src/a.ts", "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n"),
+      }),
+      boundary,
+    ),
+    undefined,
+  );
   assert.equal(enforceDreamingToolBoundary(context("download_url", { url: "https://example.com/a", path: "tmp/a.pdf" }), boundary), undefined);
   assert.match(
     enforceDreamingToolBoundary(context("write_file", { path: path.join(real, "src/main.ts") }), boundary)?.reason ?? "",
     /Mirror World/i,
   );
   assert.match(
+    enforceDreamingToolBoundary(
+      context("patch_file", {
+        patch: ["--- a/src/main.ts", `+++ b/${path.join(real, "src/main.ts").replace(/\\/g, "/")}`, "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n"),
+      }),
+      boundary,
+    )?.reason ?? "",
+    /Mirror World/i,
+  );
+  assert.match(
     enforceDreamingToolBoundary(context("run_shell", { command: "npm test", cwd: real }), boundary)?.reason ?? "",
     /shell cwd/i,
   );
-});
-
-test("Dreaming write boundary blocks patch targets outside Mirror World", () => {
-  const real = path.resolve("C:/repo/real");
-  const mirror = path.resolve("C:/repo/real/.kitty/worktrees/dreaming-x");
-  const boundary = createDreamingWriteBoundary({
-    realWorldPath: real,
-    mirrorWorldPath: mirror,
-  });
-
-  const accepted = enforceDreamingToolBoundary(context("apply_patch", {
-    patch: [
-      "--- a/src/a.ts",
-      "+++ b/src/a.ts",
-      "@@ -1 +1 @@",
-      "-old",
-      "+new",
-    ].join("\n"),
-  }), boundary);
-  const blocked = enforceDreamingToolBoundary(context("apply_patch", {
-    patch: [
-      `--- ${path.join(real, "src/a.ts")}`,
-      `+++ ${path.join(real, "src/a.ts")}`,
-      "@@ -1 +1 @@",
-      "-old",
-      "+new",
-    ].join("\n"),
-  }), boundary);
-
-  assert.equal(accepted, undefined);
-  assert.match(blocked?.reason ?? "", /patch target/i);
 });
 
 test("Dreaming blocks nested orchestration tools inside its own execution channel", () => {

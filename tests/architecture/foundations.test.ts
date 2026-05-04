@@ -11,6 +11,7 @@ test("agent registry exposes the core tool surface", () => {
   assert(names.has("todo_write"));
   assert(names.has("load_skill"));
   assert(names.has("write_file"));
+  assert(names.has("patch_file"));
   assert(names.has("spawn_teammate"));
   assert(names.has("coordination_policy"));
 });
@@ -20,12 +21,14 @@ test("subagent profiles stay isolated from coordination tools", () => {
   const exploreProfile = getSubagentProfile("explore");
 
   assert(codeProfile.toolNames.includes("write_file"));
+  assert(codeProfile.toolNames.includes("patch_file"));
   assert.equal(codeProfile.toolNames.includes("spawn_teammate"), false);
   assert.equal(codeProfile.toolNames.includes("send_message"), false);
   assert.equal(codeProfile.toolNames.includes("coordination_policy"), false);
   assert.equal(codeProfile.toolNames.includes("task"), false);
 
   assert.equal(exploreProfile.toolNames.includes("write_file"), false);
+  assert.equal(exploreProfile.toolNames.includes("patch_file"), false);
 });
 
 test("local command layer recognizes English commands and multiline command", async () => {

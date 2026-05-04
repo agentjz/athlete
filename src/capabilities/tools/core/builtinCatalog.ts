@@ -1,4 +1,3 @@
-import { applyPatchTool } from "../packages/files/applyPatchTool.js";
 import { agentTraceListTool } from "../packages/trace/agentTraceListTool.js";
 import { agentTraceReadTool } from "../packages/trace/agentTraceReadTool.js";
 import { backgroundCheckTool } from "../packages/background/backgroundCheckTool.js";
@@ -20,6 +19,8 @@ import {
 import { editDocxTool } from "../packages/documents/editDocxTool.js";
 import { editFileTool } from "../packages/files/editFileTool.js";
 import { findFilesTool } from "../packages/files/findFilesTool.js";
+import { gitDiffTool } from "../packages/git/gitDiffTool.js";
+import { gitStatusTool } from "../packages/git/gitStatusTool.js";
 import { idleTool } from "../packages/team/idleTool.js";
 import { httpProbeTool } from "../packages/network/httpProbeTool.js";
 import { httpRequestTool } from "../packages/network/httpRequestTool.js";
@@ -36,6 +37,7 @@ import { mineruPptReadTool } from "../packages/documents/mineruPptReadTool.js";
 import { networkTraceTool } from "../packages/network/networkTraceTool.js";
 import { openapiInspectTool } from "../packages/network/openapiInspectTool.js";
 import { openapiLintTool } from "../packages/network/openapiLintTool.js";
+import { patchFileTool } from "../packages/files/patchFileTool.js";
 import { planApprovalTool } from "../packages/team/planApprovalTool.js";
 import { readDocxTool } from "../packages/documents/readDocxTool.js";
 import { readFileTool } from "../packages/files/readFileTool.js";
@@ -88,6 +90,8 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(findFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
   defineBuiltinTool(readFileTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
   defineBuiltinTool(searchFilesTool, readTool("filesystem", { secondaryInWorkflows: WEB_WORKFLOWS, concurrencySafe: true })),
+  defineBuiltinTool(gitStatusTool, readTool("git", { concurrencySafe: true })),
+  defineBuiltinTool(gitDiffTool, readTool("git", { concurrencySafe: true })),
   defineBuiltinTool(codeSymbolsTool, readTool("code", { concurrencySafe: true })),
   defineBuiltinTool(codeReferencesTool, readTool("code", { concurrencySafe: true })),
   defineBuiltinTool(codePatternTool, readTool("code", { concurrencySafe: true })),
@@ -141,8 +145,8 @@ const BUILTIN_TOOL_CATALOG: readonly RegisteredTool[] = [
   defineBuiltinTool(writeFileTool, writeTool("filesystem", { changeSignal: "required" })),
   defineBuiltinTool(writeDocxTool, writeTool("document", { changeSignal: "required" })),
   defineBuiltinTool(editDocxTool, writeTool("document", { changeSignal: "required" })),
+  defineBuiltinTool(patchFileTool, writeTool("filesystem", { changeSignal: "required" })),
   defineBuiltinTool(editFileTool, writeTool("filesystem", { changeSignal: "required" })),
-  defineBuiltinTool(applyPatchTool, writeTool("filesystem", { changeSignal: "required" })),
   defineBuiltinTool(undoLastChangeTool, writeTool("filesystem", { risk: "high", destructive: true, changeSignal: "required" })),
   defineBuiltinTool(downloadUrlTool, writeTool("external", { changeSignal: "required" })),
   defineBuiltinTool(runShellTool, writeTool("shell", { risk: "high", changeSignal: "none", verificationSignal: "optional", secondaryInWorkflows: WEB_WORKFLOWS })),

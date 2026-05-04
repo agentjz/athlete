@@ -250,7 +250,7 @@
           "en": "Starts one Mirror World Dreaming execution.",
           "zh": "启动一次 Mirror World 做梦执行。",
           "live": {
-            "group": "execution-ecology",
+            "group": "dreaming-ecology",
             "enabled": true
           }
         },
@@ -260,7 +260,7 @@
           "en": "Creates a Dreaming Loop ledger.",
           "zh": "创建 Dreaming Loop 账本。",
           "live": {
-            "group": "execution-ecology",
+            "group": "dreaming-ecology",
             "enabled": true
           }
         },
@@ -270,7 +270,7 @@
           "en": "Starts one explicit Dreaming round from a loop.",
           "zh": "从 loop 启动一轮明确的 Dreaming。",
           "live": {
-            "group": "execution-ecology",
+            "group": "dreaming-ecology",
             "enabled": true
           }
         },
@@ -280,7 +280,7 @@
           "en": "Reads Dreaming Loop state and round evidence.",
           "zh": "查看 Dreaming Loop 状态和轮次证据。",
           "live": {
-            "group": "execution-ecology",
+            "group": "dreaming-ecology",
             "enabled": true
           }
         }
@@ -298,7 +298,7 @@
           "en": "Lists files and directories.",
           "zh": "列出文件和目录。",
           "live": {
-            "group": "files-code",
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -308,7 +308,7 @@
           "en": "Finds files by path pattern.",
           "zh": "按路径模式找文件。",
           "live": {
-            "group": "files-code",
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -318,7 +318,7 @@
           "en": "Reads local files with anchors for later edits.",
           "zh": "读取文件，并给后续编辑提供锚点。",
           "live": {
-            "group": "files-code",
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -328,7 +328,7 @@
           "en": "Searches file contents.",
           "zh": "搜索文件内容。",
           "live": {
-            "group": "files-code",
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -338,7 +338,17 @@
           "en": "Creates new files.",
           "zh": "创建新文件。",
           "live": {
-            "group": "files-code",
+            "group": "patch-edit-tools",
+            "enabled": true
+          }
+        },
+        {
+          "name": "patch_file",
+          "status": "✅",
+          "en": "Applies unified diff patches as the fast structured edit path.",
+          "zh": "应用 unified diff 补丁，作为快速结构化编辑通道。",
+          "live": {
+            "group": "patch-edit-tools",
             "enabled": true
           }
         },
@@ -348,17 +358,7 @@
           "en": "Edits existing files with read anchors.",
           "zh": "基于锚点编辑已有文件。",
           "live": {
-            "group": "files-code",
-            "enabled": true
-          }
-        },
-        {
-          "name": "apply_patch",
-          "status": "✅",
-          "en": "Applies structured patches.",
-          "zh": "应用结构化补丁。",
-          "live": {
-            "group": "files-code",
+            "group": "patch-edit-tools",
             "enabled": true
           }
         },
@@ -368,7 +368,27 @@
           "en": "Reverts the latest recorded file change.",
           "zh": "回滚最近一次记录的文件修改。",
           "live": {
-            "group": "files-code",
+            "group": "patch-edit-tools",
+            "enabled": true
+          }
+        },
+        {
+          "name": "git_status",
+          "status": "✅",
+          "en": "Reads structured Git worktree status facts.",
+          "zh": "读取结构化 Git 工作区状态事实。",
+          "live": {
+            "group": "foundation-tools",
+            "enabled": true
+          }
+        },
+        {
+          "name": "git_diff",
+          "status": "✅",
+          "en": "Reads Git diff facts for the worktree or one path.",
+          "zh": "读取工作区或单一路径的 Git diff 事实。",
+          "live": {
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -378,7 +398,7 @@
           "en": "Lists code symbols.",
           "zh": "列出代码符号。",
           "live": {
-            "group": "files-code",
+            "group": "code-intelligence",
             "enabled": true
           }
         },
@@ -388,7 +408,7 @@
           "en": "Finds code references.",
           "zh": "查找代码引用。",
           "live": {
-            "group": "files-code",
+            "group": "code-intelligence",
             "enabled": true
           }
         },
@@ -398,7 +418,7 @@
           "en": "Finds structural code patterns.",
           "zh": "查找代码结构模式。",
           "live": {
-            "group": "files-code",
+            "group": "code-intelligence",
             "enabled": true
           }
         }
@@ -508,7 +528,7 @@
           "en": "Checks a URL quickly.",
           "zh": "快速探测 URL。",
           "live": {
-            "group": "network-api",
+            "group": "network-http",
             "enabled": true
           }
         },
@@ -518,7 +538,7 @@
           "en": "Sends one HTTP request.",
           "zh": "发送一次 HTTP 请求。",
           "live": {
-            "group": "network-api",
+            "group": "network-http",
             "enabled": true
           }
         },
@@ -528,7 +548,7 @@
           "en": "Manages reusable HTTP session state.",
           "zh": "管理可复用 HTTP 会话状态。",
           "live": {
-            "group": "network-api",
+            "group": "network-http",
             "enabled": true
           }
         },
@@ -538,7 +558,7 @@
           "en": "Runs a small HTTP check suite.",
           "zh": "运行一组轻量 HTTP 检查。",
           "live": {
-            "group": "network-api",
+            "group": "network-http",
             "enabled": true
           }
         },
@@ -548,7 +568,7 @@
           "en": "Records network evidence.",
           "zh": "记录网络取证。",
           "live": {
-            "group": "network-api",
+            "group": "network-openapi",
             "enabled": true
           }
         },
@@ -558,7 +578,7 @@
           "en": "Inspects OpenAPI documents.",
           "zh": "检查 OpenAPI 文档。",
           "live": {
-            "group": "network-api",
+            "group": "network-openapi",
             "enabled": true
           }
         },
@@ -568,7 +588,7 @@
           "en": "Lints OpenAPI documents.",
           "zh": "校验 OpenAPI 文档。",
           "live": {
-            "group": "network-api",
+            "group": "network-openapi",
             "enabled": true
           }
         },
@@ -578,7 +598,7 @@
           "en": "Downloads a URL into a file.",
           "zh": "下载 URL 到文件。",
           "live": {
-            "group": "network-api",
+            "group": "network-http",
             "enabled": true
           }
         }
@@ -694,7 +714,7 @@
           "en": "Updates the visible todo list.",
           "zh": "更新可见 todo。",
           "live": {
-            "group": "files-code",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -704,7 +724,7 @@
           "en": "Creates a delegated task with a selected subagent type.",
           "zh": "创建带 subagent 类型的委派任务。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -714,7 +734,7 @@
           "en": "Creates a persistent task.",
           "zh": "创建持久任务。",
           "live": {
-            "group": "execution-ecology",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -724,7 +744,7 @@
           "en": "Reads one task.",
           "zh": "读取一个任务。",
           "live": {
-            "group": "execution-ecology",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -734,7 +754,7 @@
           "en": "Lists tasks.",
           "zh": "列出任务。",
           "live": {
-            "group": "execution-ecology",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -744,7 +764,7 @@
           "en": "Updates task state.",
           "zh": "更新任务状态。",
           "live": {
-            "group": "execution-ecology",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -754,7 +774,7 @@
           "en": "Claims a task and binds a worktree.",
           "zh": "认领任务并绑定 worktree。",
           "live": {
-            "group": "execution-ecology",
+            "group": "task-ecology",
             "enabled": true
           }
         },
@@ -764,7 +784,7 @@
           "en": "Updates team coordination policy.",
           "zh": "更新团队协作策略。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -774,7 +794,7 @@
           "en": "Starts a teammate execution.",
           "zh": "启动队友执行。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -784,7 +804,7 @@
           "en": "Lists teammates.",
           "zh": "列出队友。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -794,7 +814,7 @@
           "en": "Sends a message to a teammate.",
           "zh": "给队友发消息。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -804,7 +824,7 @@
           "en": "Reads Lead inbox messages.",
           "zh": "读取 Lead inbox。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -814,7 +834,7 @@
           "en": "Broadcasts a message to teammates.",
           "zh": "向队友广播消息。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -824,7 +844,7 @@
           "en": "Requests teammate shutdown.",
           "zh": "请求队友关闭。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -834,7 +854,7 @@
           "en": "Responds to a shutdown request.",
           "zh": "响应关闭请求。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -844,7 +864,7 @@
           "en": "Records plan approval state.",
           "zh": "记录计划批准状态。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         },
@@ -854,7 +874,7 @@
           "en": "Records idle state.",
           "zh": "记录空闲状态。",
           "live": {
-            "group": "execution-ecology",
+            "group": "subagent-team-ecology",
             "enabled": true
           }
         }
@@ -872,7 +892,7 @@
           "en": "Lists worktrees.",
           "zh": "列出 worktree。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": true
           }
         },
@@ -882,7 +902,7 @@
           "en": "Reads one worktree record.",
           "zh": "读取一个 worktree 记录。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": true
           }
         },
@@ -892,7 +912,7 @@
           "en": "Reads worktree events.",
           "zh": "读取 worktree 事件。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": true
           }
         },
@@ -902,7 +922,7 @@
           "en": "Creates an isolated worktree.",
           "zh": "创建隔离 worktree。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": true
           }
         },
@@ -912,7 +932,7 @@
           "en": "Marks a worktree to keep.",
           "zh": "标记保留 worktree。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": true
           }
         },
@@ -922,7 +942,7 @@
           "en": "Removes a worktree.",
           "zh": "删除 worktree。",
           "live": {
-            "group": "execution-ecology",
+            "group": "worktree-ecology",
             "enabled": false,
             "skipReason": "Destructive worktree removal is disabled in the default live ecology pass; enable only for an explicit cleanup test."
           }
@@ -933,7 +953,7 @@
           "en": "Runs a foreground shell command.",
           "zh": "运行前台 shell 命令。",
           "live": {
-            "group": "files-code",
+            "group": "foundation-tools",
             "enabled": true
           }
         },
@@ -943,7 +963,7 @@
           "en": "Starts a background command.",
           "zh": "启动后台命令。",
           "live": {
-            "group": "execution-ecology",
+            "group": "background-ecology",
             "enabled": true
           }
         },
@@ -953,7 +973,7 @@
           "en": "Reads background command status.",
           "zh": "查看后台命令状态。",
           "live": {
-            "group": "execution-ecology",
+            "group": "background-ecology",
             "enabled": true
           }
         },
@@ -963,7 +983,7 @@
           "en": "Terminates a background command.",
           "zh": "终止后台命令。",
           "live": {
-            "group": "execution-ecology",
+            "group": "background-ecology",
             "enabled": true
           }
         },
@@ -973,7 +993,7 @@
           "en": "Loads a local skill package.",
           "zh": "加载本地 skill 包。",
           "live": {
-            "group": "execution-ecology",
+            "group": "skill-package-ecology",
             "enabled": true
           }
         }

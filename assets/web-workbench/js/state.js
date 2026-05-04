@@ -1,0 +1,18 @@
+export const state = {
+  project: null,
+  sessionId: null,
+  tree: null,
+  gitFiles: [],
+  selectedPath: "",
+  selectedType: "directory",
+  activePath: "",
+  activeView: "file",
+  openTabs: [],
+  editor: null,
+  diffEditor: null,
+  syncingEditor: false,
+  originalModel: null,
+  modifiedModel: null,
+  running: false,
+  expandedPaths: new Set([""]),
+};

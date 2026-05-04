@@ -21,7 +21,7 @@ test("runtime UI renders Dreaming foreground tool events through the shared tool
       channel: "dream",
       kind: "tool_call",
       toolName: "read_file",
-      payload: JSON.stringify({ path: "package.json", start_line: 1, end_line: 10 }),
+      payload: JSON.stringify({ path: "package.json", offset: 1, limit: 10 }),
     }));
     renderer.render(createRuntimeUiEvent({
       channel: "dream",
@@ -110,6 +110,52 @@ test("runtime UI renders reasoning as low-emphasis dark text", async () => {
   const plain = stripAnsi(output);
 
   assert.match(plain, /\[决策主脑\]\n\[reasoning\]\nthinking text/);
+});
+
+test("runtime UI streams assistant and reasoning under the event channel instead of forcing lead", async () => {
+  const output = await captureStdout(async () => {
+    const renderer = createRuntimeUiTerminalRenderer({
+      showReasoning: true,
+    });
+    renderer.render(createRuntimeUiEvent({
+      channel: "subagent",
+      kind: "reasoning",
+      message: "子代理正在分析",
+    }));
+    renderer.render(createRuntimeUiEvent({
+      channel: "subagent",
+      kind: "assistant_text",
+      message: "子代理回复",
+    }));
+    renderer.render(createRuntimeUiEvent({
+      channel: "dream",
+      kind: "reasoning",
+      message: "做梦正在推演",
+    }));
+  });
+  const plain = stripAnsi(output);
+
+  assert.match(plain, /\[子代理\]\n\[reasoning\]\n子代理正在分析\n子代理回复/);
+  assert.match(plain, /\[做梦\]\n\[reasoning\]\n做梦正在推演/);
+  assert.doesNotMatch(plain, /\[决策主脑\]\n\[reasoning\]\n子代理/);
+});
+
+test("runtime UI event labels come from the shared channel identity registry", () => {
+  const leadAssistant = createRuntimeUiEvent({
+    channel: "lead",
+    kind: "assistant_text",
+    message: "hi",
+  });
+  const subReasoning = createRuntimeUiEvent({
+    channel: "subagent",
+    kind: "reasoning",
+    message: "analyze",
+  });
+
+  assert.equal(leadAssistant.protocol, "kitty.runtime-ui-event");
+  assert.equal(subReasoning.protocol, "kitty.runtime-ui-event");
+  assert.equal(leadAssistant.channel, "lead");
+  assert.equal(subReasoning.channel, "subagent");
 });
 
 function stripAnsi(value: string): string {

@@ -46,6 +46,9 @@ test("system prompt exposes static and profile runtime facts layers without a hi
   assert.equal(layers.profilePersonaBlocks.length, 1);
   assert.equal(layers.runtimeFactBlocks.length > 0, true);
   assert.match(prompt, /Work loop contract:/);
+  assert.match(prompt, /Before giving a final user-facing response, review the current todo list/i);
+  assert.match(prompt, /use todo_write to mark completed items as completed first/i);
+  assert.match(prompt, /if anything remains pending or in_progress, state the blocker/i);
   assert.match(prompt, /Prompt boundary contract:/);
   assert.match(prompt, /Diligence \/ budget contract:/);
   assert.match(prompt, /Tool-use contract:/);

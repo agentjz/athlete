@@ -52,7 +52,8 @@ test("read_file returns fine-grained anchors and edit_file uses them to disambig
 
   assert.equal(editResult.ok, true);
   assert.equal(payload.appliedEdits, 1);
-  assert.deepEqual(payload.changedPaths, [filePath]);
+  assert.deepEqual(payload.changedPaths, ["story.txt"]);
+  assert.deepEqual(payload.absoluteChangedPaths, [filePath]);
   assert.equal(updated, "beta\nalpha\nBETA\n");
 });
 
@@ -229,39 +230,10 @@ test("write_file returns formal diff, diagnostics, and session diff feedback aft
   assert.equal(Array.isArray(diagnostics.files), true);
   assert.equal(Array.isArray(sessionDiff.changedPaths), true);
   assert.deepEqual(sessionDiff.changedPaths, [path.join(root, "broken.json")]);
-  assert.deepEqual(payload.changedPaths, [path.join(root, "broken.json")]);
+  assert.deepEqual(payload.changedPaths, ["broken.json"]);
+  assert.deepEqual(payload.absoluteChangedPaths, [path.join(root, "broken.json")]);
   assert.equal(result.metadata?.diagnostics?.status, "issues");
   assert.deepEqual(result.metadata?.sessionDiff?.changedPaths, [path.join(root, "broken.json")]);
-});
-
-test("apply_patch returns formal write feedback metadata after patching", async (t) => {
-  const root = await createTempWorkspace("patch-feedback", t);
-  const filePath = path.join(root, "story.txt");
-  await fs.writeFile(filePath, "alpha\nbeta\n", "utf8");
-  const registry = createToolRegistry();
-
-  const result = await registry.execute(
-    "apply_patch",
-    JSON.stringify({
-      patch: [
-        "--- a/story.txt",
-        "+++ b/story.txt",
-        "@@ -1,2 +1,2 @@",
-        " alpha",
-        "-beta",
-        "+BETA",
-      ].join("\n"),
-    }),
-    makeToolContext(root, root) as never,
-  );
-  const payload = JSON.parse(result.output) as Record<string, unknown>;
-
-  assert.equal(result.ok, true);
-  assert.equal(typeof payload.diff, "string");
-  assert.equal(typeof payload.sessionDiff, "object");
-  assert.deepEqual(payload.changedPaths, [filePath]);
-  assert.equal(result.metadata?.sessionDiff?.toolName, "apply_patch");
-  assert.match(await fs.readFile(filePath, "utf8"), /BETA/);
 });
 
 test("runManagedAgentTurn persists session diff into the formal session truth after a write batch", async (t) => {

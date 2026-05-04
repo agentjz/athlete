@@ -47,11 +47,11 @@ export function createRuntimeUiTerminalRenderer(options: {
     state.assistantOpen = false;
   };
 
-  const beginReasoning = (): void => {
+  const beginReasoning = (channel: RuntimeUiChannel): void => {
     if (options.showReasoning !== true) {
       return;
     }
-    ensureChannel("lead");
+    ensureChannel(channel);
     if (!state.reasoningOpen) {
       const label = colorRuntimeUiText("system", "[reasoning]");
       writeStdout(options.reasoningLeadingBlankLine ? `\n${label}\n` : `${label}\n`);
@@ -59,8 +59,8 @@ export function createRuntimeUiTerminalRenderer(options: {
     }
   };
 
-  const beginAssistant = (): void => {
-    ensureChannel("lead");
+  const beginAssistant = (channel: RuntimeUiChannel): void => {
+    ensureChannel(channel);
     if (state.reasoningOpen) {
       writeStdout("\n");
       state.reasoningOpen = false;
@@ -94,15 +94,15 @@ export function createRuntimeUiTerminalRenderer(options: {
     render(event) {
       switch (event.kind) {
         case "assistant_text":
-          beginAssistant();
+          beginAssistant(event.channel);
           writeStdout(event.message ?? "");
           return;
         case "reasoning":
           if (options.showReasoning !== true) {
             return;
           }
-          beginReasoning();
-          writeStdout(colorRuntimeUiText("system", event.message ?? ""));
+          beginReasoning(event.channel);
+          writeStdout(colorRuntimeUiText(event.channel, event.message ?? ""));
           return;
         case "status":
           flush();

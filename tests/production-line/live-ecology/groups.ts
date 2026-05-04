@@ -11,6 +11,7 @@ export interface LiveEcologyGroup {
   title: string;
   tools: LiveEcologyToolSwitch[];
   promptLines: string[];
+  reportFile: string;
 }
 
 export interface LiveEcologyInventoryFinding {
@@ -19,25 +20,56 @@ export interface LiveEcologyInventoryFinding {
 }
 
 const LIVE_GROUP_TITLES: Record<string, string> = {
-  "files-code": "file and code tools",
+  "foundation-tools": "foundation read, Git, and shell tools",
+  "patch-edit-tools": "foundation write, patch, edit, and undo tools",
+  "code-intelligence": "code intelligence read-only tools",
   documents: "document tools",
-  "network-api": "network and API tools",
+  "network-http": "HTTP and download tools",
+  "network-openapi": "network trace and OpenAPI tools",
   "history-trace": "history and trace tools",
-  "execution-ecology": "task, worktree, background, dreaming, workflow, subagent, team, and package ecology",
+  "dreaming-ecology": "dreaming ecology",
+  "task-ecology": "task ecology",
+  "worktree-ecology": "worktree ecology",
+  "background-ecology": "background process ecology",
+  "subagent-team-ecology": "subagent and team ecology",
+  "skill-package-ecology": "skill and capability package ecology",
 };
 
 const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
-  "files-code": [
-    "Run a real API smoke test for file and code tools.",
-    "Hard constraints: write, edit, patch, undo, and generated evidence are allowed only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
+  "foundation-tools": [
+    "Run a real API smoke test for foundation read, Git, and shell tools.",
+    "Hard constraints: generated evidence is allowed only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Use todo_write first to record the test plan. The todo text must be Simplified Chinese.",
-    "Actually call list_files, find_files, search_files, and read_file to locate and read a small part of package.json and README.md.",
-    "Inside __RUN_DIR__, use write_file to create utf8-sample.txt, bom-sample.txt, crlf-sample.txt, and patch-target.txt.",
-    "Call edit_file twice on utf8-sample.txt; call edit_file once on crlf-sample.txt; call apply_patch once on patch-target.txt.",
-    "Call undo_last_change once, and undo only one test change created inside __RUN_DIR__.",
-    "Call code_symbols, code_references, and code_pattern for minimal read-only code observation.",
-    "Call run_shell for read-only checks: node --version and git status --short.",
-    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/files-code-report.md in Simplified Chinese.",
+    "Actually call list_files on __RUN_DIR__ to confirm the test directory.",
+    "Actually call find_files from the repository root to locate package.json and README.md.",
+    "Actually call search_files from the repository root with a narrow pattern that should exist in package.json or README.md.",
+    "Actually call read_file to read a small part of package.json and README.md.",
+    "Actually call git_status and git_diff from the repository root. Do not replace these Git tools with run_shell.",
+    "Call run_shell for exactly these read-only checks: node --version and git status --short.",
+    "If useful, write one non-empty report file under __RUN_DIR__. The recommended path is __RUN_DIR__/foundation-tools-report.md.",
+    "When writing a report, include each tool result, success or failure, original failure summary, and evidence path in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "patch-edit-tools": [
+    "Run a real API smoke test for write_file, patch_file, edit_file, and undo_last_change only.",
+    "Hard constraints: write, edit, undo, and generated evidence are allowed only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
+    "Use todo_write first to record the test plan. The todo text must be Simplified Chinese.",
+    "Inside __RUN_DIR__, first use write_file to create utf8-sample.txt with exactly these three lines: alpha, beta, gamma.",
+    "Then call read_file on utf8-sample.txt to observe the current content.",
+    "Then call patch_file for a successful minimal unified diff that changes only beta to BETA in utf8-sample.txt. Do not skip patch_file. Do not replace this step with edit_file. A parse or hunk failure is a real tool failure and does not count as coverage.",
+    "Then call read_file again and use edit_file to change gamma to GAMMA from fresh identity and anchors.",
+    "Then call undo_last_change once, undoing only the edit_file change created inside __RUN_DIR__, leaving the patch_file change in place.",
+    "After undo_last_change, call read_file to verify the final sample content is alpha, BETA, gamma.",
+    "If useful, write one non-empty report file under __RUN_DIR__. The recommended path is __RUN_DIR__/patch-edit-tools-report.md.",
+    "When writing a report, include each tool result, success or failure, original failure summary, and evidence path in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "code-intelligence": [
+    "Run a real API smoke test for read-only code intelligence tools.",
+    "Hard constraints: generated evidence may be written only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
+    "Actually call code_symbols, code_references, and code_pattern for minimal read-only code observation.",
+    "Use read_file only when needed to inspect the returned readArgs, and do not edit files in this group.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/code-intelligence-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
   documents: [
@@ -49,12 +81,20 @@ const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
     "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/documents-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
-  "network-api": [
-    "Run a real API smoke test for network and OpenAPI tools.",
+  "network-http": [
+    "Run a real API smoke test for HTTP and download tools.",
     "Hard constraints: write or download evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call http_probe, http_request, http_session, and http_suite, preferably against https://example.com or another public read-only endpoint.",
-    "Actually call network_trace to record network evidence, call openapi_inspect and openapi_lint against a minimal OpenAPI JSON inside __RUN_DIR__, and call download_url to download a public read-only page into __RUN_DIR__.",
-    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/network-api-report.md in Simplified Chinese.",
+    "Actually call download_url to download a public read-only page into __RUN_DIR__.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/network-http-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "network-openapi": [
+    "Run a real API smoke test for network trace and OpenAPI tools.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
+    "Actually call network_trace to record network evidence.",
+    "Create a minimal OpenAPI JSON inside __RUN_DIR__, then call openapi_inspect and openapi_lint against it.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/network-openapi-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
   "history-trace": [
@@ -65,19 +105,50 @@ const LIVE_GROUP_PROMPTS: Record<string, string[]> = {
     "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/history-trace-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
-  "execution-ecology": [
-    "Run a real API smoke test for the execution ecology.",
+  "dreaming-ecology": [
+    "Run a real API smoke test for the dreaming ecology.",
     "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files; for disabled tools, write skipped only and do not call them.",
     "Actually call dreaming_start for a no-op run under 30 seconds: read-only observation, enter Mirror World, close out quickly, and never merge Real World.",
     "Actually call dreaming_loop_start, dreaming_loop_next, and dreaming_loop_status for one minimal no-op loop.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/dreaming-ecology-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "task-ecology": [
+    "Run a real API smoke test for task ecology.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call task_create, task_get, task_list, task_update, and claim_task; claim_task may bind only a test task.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/task-ecology-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "worktree-ecology": [
+    "Run a real API smoke test for worktree ecology.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files; for disabled tools, write skipped only and do not call them.",
     "Actually call worktree_list, worktree_create, worktree_get, worktree_events, and worktree_keep; do not call disabled tools.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/worktree-ecology-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "background-ecology": [
+    "Run a real API smoke test for background process ecology.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call background_run with a very short read-only command, then call background_check and background_terminate.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/background-ecology-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "subagent-team-ecology": [
+    "Run a real API smoke test for subagent and team ecology.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
     "Actually call load_skill with test-guardrails or spec-alignment.",
     "Actually call task to dispatch one minimal read-only subagent that only observes whether __RUN_DIR__ exists and then closes out.",
     "Actually call coordination_policy, spawn_teammate, list_teammates, send_message, read_inbox, broadcast, shutdown_request, shutdown_response, plan_approval, and idle; teammate work must be read-only, short, and closed out quickly.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/subagent-team-ecology-report.md in Simplified Chinese.",
+    "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
+  ],
+  "skill-package-ecology": [
+    "Run a real API smoke test for skill and capability package ecology.",
+    "Hard constraints: write evidence only inside __RUN_DIR__; never delete __RUN_DIR__; never modify project source, package.json, src, spec, tests, ref, README, or configuration files.",
+    "Actually call load_skill with test-guardrails or spec-alignment.",
     "Use run_shell to exercise the kitty capability package CLI: create a minimal external manifest inside __RUN_DIR__ and produce install, list, doctor, and test evidence.",
-    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/execution-ecology-report.md in Simplified Chinese.",
+    "Write each tool result, success or failure, original failure summary, and evidence path into __RUN_DIR__/skill-package-ecology-report.md in Simplified Chinese.",
     "Finally confirm in Simplified Chinese that __RUN_DIR__ still exists and Real World source files were not modified.",
   ],
 };
@@ -119,8 +190,14 @@ export async function loadLiveEcologyGroups(root: string): Promise<LiveEcologyGr
       title: LIVE_GROUP_TITLES[id] ?? id,
       tools,
       promptLines: LIVE_GROUP_PROMPTS[id] ?? [],
+      reportFile: `${id}-report.md`,
     }))
-    .sort((left, right) => Object.keys(LIVE_GROUP_TITLES).indexOf(left.id) - Object.keys(LIVE_GROUP_TITLES).indexOf(right.id));
+    .sort((left, right) => getLiveGroupOrder(left.id) - getLiveGroupOrder(right.id) || left.id.localeCompare(right.id));
+}
+
+function getLiveGroupOrder(id: string): number {
+  const index = Object.keys(LIVE_GROUP_TITLES).indexOf(id);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
 export function getEnabledTools(group: LiveEcologyGroup): string[] {

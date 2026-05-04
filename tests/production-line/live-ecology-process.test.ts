@@ -5,7 +5,7 @@ import { createLinePrefixWriter, type StreamWriterTarget } from "./live-ecology/
 
 test("live ecology stream prefix is written once per line, not once per token", () => {
   const chunks: string[] = [];
-  const writer = createLinePrefixWriter(makeTarget(chunks), "execution-ecology");
+  const writer = createLinePrefixWriter(makeTarget(chunks), "subagent-team-ecology");
 
   writer("Let me");
   writer(" batch");
@@ -14,7 +14,7 @@ test("live ecology stream prefix is written once per line, not once per token", 
 
   assert.equal(
     chunks.join(""),
-    "[execution-ecology] Let me batch as many independent calls as possible.\n[execution-ecology] Next line continues",
+    "[subagent-team-ecology] Let me batch as many independent calls as possible.\n[subagent-team-ecology] Next line continues",
   );
 });
 

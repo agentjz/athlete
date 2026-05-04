@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 
 import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../../../utils/fs.js";
 import { recordToolChange } from "../../core/changeTracking.js";
+import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { buildDiffPreview, okResult, parseArgs, readBoolean, readPossiblyEmptyString, readString } from "../../core/shared.js";
 import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
@@ -40,6 +41,7 @@ export const writeFileTool: RegisteredTool = {
     const content = readPossiblyEmptyString(args.content, "content");
     const createDirectories = readBoolean(args.create_directories, true);
     const resolved = resolveUserPath(targetPath, context.cwd);
+    const displayPath = toToolRelativePath(context.cwd, resolved);
     const existed = await fileExists(resolved);
     const before = existed ? await fs.readFile(resolved, "utf8") : "";
     const preview = buildDiffPreview(before, content);
@@ -51,7 +53,7 @@ export const writeFileTool: RegisteredTool = {
     await fs.writeFile(resolved, content, "utf8");
     const changeRecord = await recordToolChange(context, {
       toolName: "write_file",
-      summary: `write_file ${resolved}`,
+      summary: `write_file ${displayPath}`,
       preview,
       operations: [
         {
@@ -75,11 +77,13 @@ export const writeFileTool: RegisteredTool = {
 
     return okResult(
       JSON.stringify(
-        {
-          path: resolved,
+          {
+          path: displayPath,
+          absolutePath: resolved,
           existed,
           bytes: Buffer.byteLength(content, "utf8"),
-          changedPaths: [resolved],
+          changedPaths: [displayPath],
+          absoluteChangedPaths: [resolved],
           changeId: changeRecord.change?.id,
           changeHistoryWarning: changeRecord.warning,
           diff: feedback.diff,

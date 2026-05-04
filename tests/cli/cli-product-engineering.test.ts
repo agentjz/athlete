@@ -137,6 +137,15 @@ test("npm package allowlist includes built-in capability skill packages for runt
   assert.equal(packageJson.files?.includes("src/capabilities/skills/packages"), true);
 });
 
+test("web command exposes a direct --spec switch instead of a generic mode flag", async () => {
+  const help = await captureStdout(async () => {
+    await parseCommander(buildCliProgram(), ["web", "--help"]);
+  });
+
+  assert.match(help, /--spec/);
+  assert.doesNotMatch(help, /--mode/);
+});
+
 test("CLI error rendering classifies network failures instead of only echoing the raw exception", () => {
   const message = getErrorMessage(
     Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:443"), {

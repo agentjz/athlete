@@ -114,11 +114,6 @@ function formatCompletedAction(toolName: string, payload: Record<string, unknown
     return `find_files ${count} file${count === 1 ? "" : "s"}`;
   }
 
-  if (toolName === "apply_patch") {
-    const count = Array.isArray(payload?.applied) ? payload.applied.length : 0;
-    return `apply_patch ${count} file(s)`;
-  }
-
   if (toolName === "load_skill") {
     return "load_skill";
   }

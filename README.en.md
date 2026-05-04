@@ -103,9 +103,11 @@ If you're interested in **building your own Agent** from scratch, join our group
 | `read_file` | Reads local files with anchors for later edits. | ✅ |
 | `search_files` | Searches file contents. | ✅ |
 | `write_file` | Creates new files. | ✅ |
+| `patch_file` | Applies unified diff patches as the fast structured edit path. | ✅ |
 | `edit_file` | Edits existing files with read anchors. | ✅ |
-| `apply_patch` | Applies structured patches. | ✅ |
 | `undo_last_change` | Reverts the latest recorded file change. | ✅ |
+| `git_status` | Reads structured Git worktree status facts. | ✅ |
+| `git_diff` | Reads Git diff facts for the worktree or one path. | ✅ |
 | `code_symbols` | Lists code symbols. | ✅ |
 | `code_references` | Finds code references. | ✅ |
 | `code_pattern` | Finds structural code patterns. | ✅ |

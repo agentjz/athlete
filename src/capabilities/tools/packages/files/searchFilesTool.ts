@@ -4,6 +4,7 @@ import fg from "fast-glob";
 
 import { resolveUserPath } from "../../../../utils/fs.js";
 import { isPathIgnored } from "../../../../utils/ignore.js";
+import { toToolRelativePath } from "../../core/pathDisplay.js";
 import { buildSearchPattern, clampNumber, okResult, parseArgs, readBoolean, readString, tryReadTextFile } from "../../core/shared.js";
 import type { RegisteredTool } from "../../core/types.js";
 
@@ -86,6 +87,7 @@ export const searchFilesTool: RegisteredTool = {
 
     const matches: Array<{
       path: string;
+      absolutePath: string;
       line: number;
       text: string;
       before: string[];
@@ -93,18 +95,19 @@ export const searchFilesTool: RegisteredTool = {
       lineTruncated: boolean;
       readArgs: {
         path: string;
-        start_line: number;
-        end_line: number;
+        offset: number;
+        limit: number;
       };
     }> = [];
     const fileSummaries = new Map<string, {
       path: string;
+      absolutePath: string;
       matches: number;
       firstLine: number;
       readArgs: {
         path: string;
-        start_line: number;
-        end_line: number;
+        offset: number;
+        limit: number;
       };
     }>();
     let totalMatches = 0;
@@ -130,14 +133,16 @@ export const searchFilesTool: RegisteredTool = {
         }
 
         const lineNumber = index + 1;
-        const readArgs = buildReadArgs(filePath, lineNumber, contextLines, lines.length);
+        const displayPath = toToolRelativePath(context.cwd, filePath);
+        const readArgs = buildReadArgs(displayPath, lineNumber, contextLines, lines.length);
         totalMatches += 1;
         const existingSummary = fileSummaries.get(filePath);
         if (existingSummary) {
           existingSummary.matches += 1;
         } else {
           fileSummaries.set(filePath, {
-            path: filePath,
+            path: displayPath,
+            absolutePath: filePath,
             matches: 1,
             firstLine: lineNumber,
             readArgs,
@@ -145,7 +150,8 @@ export const searchFilesTool: RegisteredTool = {
         }
 
         matches.push({
-          path: filePath,
+          path: toToolRelativePath(context.cwd, filePath),
+          absolutePath: filePath,
           line: lineNumber,
           text: truncateLine(line),
           before: lines.slice(Math.max(0, index - contextLines), index).map((value) => truncateLine(value)),
@@ -221,18 +227,20 @@ function truncateLine(value: string): string {
 }
 
 function buildReadArgs(
-  filePath: string,
+  displayPath: string,
   line: number,
   contextLines: number,
   totalLines: number,
 ): {
   path: string;
-  start_line: number;
-  end_line: number;
+  offset: number;
+  limit: number;
 } {
+  const offset = Math.max(1, line - contextLines);
+  const endLine = Math.min(totalLines, line + contextLines);
   return {
-    path: filePath,
-    start_line: Math.max(1, line - contextLines),
-    end_line: Math.min(totalLines, line + contextLines),
+    path: displayPath,
+    offset,
+    limit: Math.max(1, endLine - offset + 1),
   };
 }

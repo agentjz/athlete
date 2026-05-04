@@ -19,7 +19,7 @@
 
 这四条主干直接作用于：
 
-- `read_file / edit_file / apply_patch / write_file`
+- `read_file / edit_file / write_file`
 - 共享 `runTurn` 主路径
 - 会话现场中的 checkpoint、session diff 和恢复状态
 - 一条 assistant 消息内的多工具执行

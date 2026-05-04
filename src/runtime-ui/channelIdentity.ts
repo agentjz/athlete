@@ -5,6 +5,8 @@ export interface RuntimeUiChannelIdentity {
   label: string;
 }
 
+export type RuntimeUiLineRole = "assistant" | "reasoning";
+
 export const RUNTIME_UI_CHANNEL_IDENTITIES: Record<RuntimeUiChannel, RuntimeUiChannelIdentity> = {
   lead: {
     channel: "lead",
@@ -38,4 +40,12 @@ export const RUNTIME_UI_CHANNEL_IDENTITIES: Record<RuntimeUiChannel, RuntimeUiCh
 
 export function getRuntimeUiChannelIdentity(channel: RuntimeUiChannel): RuntimeUiChannelIdentity {
   return RUNTIME_UI_CHANNEL_IDENTITIES[channel];
+}
+
+export function formatRuntimeUiRoleLabel(channel: RuntimeUiChannel, role: RuntimeUiLineRole): string {
+  const identity = getRuntimeUiChannelIdentity(channel);
+  if (role === "reasoning") {
+    return `${identity.label}思考`;
+  }
+  return identity.label;
 }

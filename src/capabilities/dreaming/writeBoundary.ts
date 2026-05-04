@@ -1,5 +1,7 @@
 import path from "node:path";
 
+import { parsePatch } from "diff";
+
 import type {
   AgentCallbacks,
   BeforeToolCallHookContext,
@@ -7,6 +9,7 @@ import type {
 } from "../../agent/types.js";
 import { loadExeca } from "../../utils/execa.js";
 import { parseArgs } from "../tools/core/shared.js";
+import { normalizeDiffPath } from "../tools/core/shared.js";
 
 export const DREAMING_WRITE_BOUNDARY_PROTOCOL = "kitty.dreaming-write-boundary" as const;
 
@@ -102,11 +105,16 @@ export function enforceDreamingToolBoundary(
     return undefined;
   }
 
-  if (toolName === "apply_patch" && typeof args.patch === "string") {
-    for (const target of parsePatchTargets(args.patch)) {
-      const resolved = resolveAgainst(target, boundary.mirrorWorldPath);
+  if (toolName === "patch_file") {
+    const patchText = typeof args.patch === "string" ? args.patch : "";
+    for (const patch of parsePatch(patchText)) {
+      const targetPath = normalizeDiffPath(patch.newFileName) ?? normalizeDiffPath(patch.oldFileName);
+      if (!targetPath) {
+        continue;
+      }
+      const resolved = resolveAgainst(targetPath, boundary.mirrorWorldPath);
       if (!isInsidePath(resolved, boundary.mirrorWorldPath)) {
-        return block(`Dreaming patch target must stay inside Mirror World: ${target}`);
+        return block(`Dreaming patch path must stay inside Mirror World: ${targetPath}`);
       }
     }
     return undefined;
@@ -169,28 +177,6 @@ function resolveAgainst(inputPath: string, cwd: string): string {
 function isInsidePath(candidate: string, root: string): boolean {
   const relative = path.relative(path.resolve(root), path.resolve(candidate));
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-function parsePatchTargets(patchText: string): string[] {
-  const targets: string[] = [];
-  for (const line of patchText.replace(/\r\n/g, "\n").split("\n")) {
-    if (!line.startsWith("--- ") && !line.startsWith("+++ ")) {
-      continue;
-    }
-    const raw = line.slice(4).trim().split(/\s+/)[0] ?? "";
-    const normalized = normalizePatchPath(raw);
-    if (normalized) {
-      targets.push(normalized);
-    }
-  }
-  return targets;
-}
-
-function normalizePatchPath(value: string): string | null {
-  if (!value || value === "/dev/null") {
-    return null;
-  }
-  return value.replace(/^([ab])\//, "");
 }
 
 function isRuntimeStateStatusLine(line: string): boolean {

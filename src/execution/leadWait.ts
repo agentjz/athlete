@@ -28,13 +28,13 @@ export async function waitForLeadWaitExecutionsToSettle(input: {
     const snapshot = await snapshotExecutionWakeSignal(context.stateRootDir);
     const active = await listActiveLeadWaitExecutions(input.cwd, input.objectiveText, context.stateRootDir);
     for (const execution of active) {
-      if (execution.profile !== "dreaming" || announced.has(execution.id)) {
+      if (announced.has(execution.id)) {
         continue;
       }
       announced.add(execution.id);
       await input.onForegroundStream?.({
         executionId: execution.id,
-        label: "dreaming",
+        label: execution.profile,
         streamPath: getForegroundStreamPath(context.stateRootDir, execution.id),
       });
     }

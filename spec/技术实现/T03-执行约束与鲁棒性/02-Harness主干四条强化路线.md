@@ -77,7 +77,7 @@
 
 ### 2. 写后反馈主路径
 
-`write_file`、`edit_file` 和 `apply_patch` 在写入后统一返回 diff、diagnostics 和 session diff 摘要。
+`write_file` 和 `edit_file` 在写入后统一返回 diff、diagnostics 和 session diff 摘要。
 
 ### 3. 退化恢复主路径
 

@@ -3,6 +3,7 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 
 import { createRuntimeUiEvent, normalizeRuntimeUiChannel } from "./events.js";
+import { parseForegroundStreamRuntimeUiEvent } from "./foregroundEvent.js";
 import { createRuntimeUiTerminalRenderer } from "./terminalRenderer.js";
 
 export async function followExecutionForegroundStream(input: {
@@ -29,7 +30,7 @@ export async function followExecutionForegroundStream(input: {
     const next = content.slice(offset);
     offset = content.length;
     for (const line of next.split(/\r?\n/).filter(Boolean)) {
-      renderer.render(toRuntimeUiEvent(input.label, input.executionId, line));
+      renderer.render(parseForegroundStreamRuntimeUiEvent(input.label, input.executionId, line));
     }
   };
 
@@ -96,52 +97,5 @@ async function waitForStreamTerminal(streamPath: string, executionId: string): P
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 1_000));
-  }
-}
-
-function toRuntimeUiEvent(label: string, executionId: string, line: string) {
-  const channel = normalizeRuntimeUiChannel(label);
-  try {
-    const parsed = JSON.parse(line) as {
-      label?: string;
-      message?: string;
-      level?: "info" | "warn" | "error";
-      data?: {
-        eventKind?: string;
-        toolName?: string;
-        payload?: string;
-        ok?: boolean;
-      };
-      createdAt?: string;
-    };
-    const parsedChannel = normalizeRuntimeUiChannel(parsed.label || label);
-    const eventKind = parsed.data?.eventKind;
-    if (eventKind === "tool_call" || eventKind === "tool_result" || eventKind === "tool_error") {
-      return createRuntimeUiEvent({
-        channel: parsedChannel,
-        kind: eventKind,
-        executionId,
-        toolName: parsed.data?.toolName,
-        payload: parsed.data?.payload ?? parsed.message,
-        ok: parsed.data?.ok,
-        level: parsed.level,
-        createdAt: parsed.createdAt,
-      });
-    }
-    return createRuntimeUiEvent({
-      channel: parsedChannel,
-      kind: "foreground_message",
-      executionId,
-      message: parsed.message ?? "",
-      level: parsed.level,
-      createdAt: parsed.createdAt,
-    });
-  } catch {
-    return createRuntimeUiEvent({
-      channel,
-      kind: "foreground_message",
-      executionId,
-      message: line,
-    });
   }
 }

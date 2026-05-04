@@ -19,6 +19,8 @@ export function buildLiveEcologyPrompt(group: LiveEcologyGroup, groupDir: string
     skipped.length > 0 ? `Tools explicitly skipped in this group: ${skipped.join(", ")}.` : "",
     Object.keys(skipReasons).length > 0 ? `Skip reasons: ${Object.entries(skipReasons).map(([tool, reason]) => `${tool}=${reason}`).join("; ")}.` : "",
     `Except for explicitly skipped tools, call only these registered tools: ${activeTools.join(", ")}.`,
+    `Optionally write one non-empty report file under ${groupDir}. Recommended report path: ${groupDir}/${group.reportFile}.`,
+    "The harness records report files when present, but session logs and tool traces are the primary evidence.",
     "Before any tool smoke-test work, output exactly one model trace line first: model: <active model name>.",
     group.promptLines.join(" ").replaceAll("__RUN_DIR__", groupDir),
     "All todo text, reports, final summaries, and user-visible conclusions must be written in Simplified Chinese.",

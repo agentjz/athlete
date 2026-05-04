@@ -12,6 +12,7 @@ import { registerRegressionCommands } from "./commands/regression.js";
 import { registerAgentCommand } from "./commands/agent.js";
 import { registerSessionCommands } from "./commands/session.js";
 import { registerSpecCommand } from "./commands/spec.js";
+import { registerWebCommand } from "./commands/web.js";
 import { registerWorkerCommands } from "./commands/worker.js";
 import { writeStderr, writeStdout, writeStdoutLine } from "../utils/stdio.js";
 import { registerTelegramCommands } from "../telegram/cli.js";
@@ -91,6 +92,10 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
     acquireProcessLock: dependencies.acquireProcessLock,
   });
   registerWorkerCommands(program, {
+    getCliOverrides,
+    resolveRuntime,
+  });
+  registerWebCommand(program, {
     getCliOverrides,
     resolveRuntime,
   });

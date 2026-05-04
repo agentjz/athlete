@@ -8,7 +8,7 @@ import { orderToolDefinitionsForLead } from "../../src/agent/capabilityPresentat
 import { createToolRegistry } from "../../src/capabilities/tools/core/registry.js";
 import { createRuntimeToolRegistry } from "../../src/capabilities/tools/core/runtimeRegistry.js";
 import type { ProjectContext } from "../../src/types.js";
-import { createTempWorkspace, createTestRuntimeConfig, makeToolContext } from "../helpers.js";
+import { createTempWorkspace, createTestRuntimeConfig, initGitRepo, makeToolContext } from "../helpers.js";
 
 function createProjectContext(root: string): ProjectContext {
   return {
@@ -217,7 +217,7 @@ test("read_file returns continuation metadata when a limited read truncates the 
     "read_file",
     JSON.stringify({
       path: "big.txt",
-      offset: 0,
+      offset: 1,
       limit: 2,
     }),
     makeToolContext(root, root) as never,
@@ -230,8 +230,230 @@ test("read_file returns continuation metadata when a limited read truncates the 
   assert.doesNotMatch(String(payload.content ?? ""), /line-3/);
   assert(continuation);
   assert.equal(continuation.hasMore, true);
-  assert.equal(continuation.nextOffset, 2);
-  assert.equal(continuation.nextStartLine, 3);
+  assert.equal(continuation.nextOffset, 3);
+  assert.deepEqual(continuation.continuationArgs, {
+    path: "big.txt",
+    offset: 3,
+    limit: 2,
+  });
+});
+
+test("git fact tools expose structured status and diff without shell-first parsing", async (t) => {
+  const root = await createTempWorkspace("git-fact-tools", t);
+  await initGitRepo(root);
+  await fs.writeFile(path.join(root, "README.md"), "# test repo\n\nchanged\n", "utf8");
+  await fs.writeFile(path.join(root, "new.txt"), "new file\n", "utf8");
+
+  const registry = createToolRegistry();
+  const statusEntry = registry.entries?.find((entry) => entry.name === "git_status");
+  const diffEntry = registry.entries?.find((entry) => entry.name === "git_diff");
+  assert.equal(statusEntry?.governance.specialty, "git");
+  assert.equal(statusEntry?.governance.mutation, "read");
+  assert.equal(diffEntry?.governance.concurrencySafe, true);
+
+  const statusResult = await registry.execute(
+    "git_status",
+    JSON.stringify({
+      include_untracked: true,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const diffResult = await registry.execute(
+    "git_diff",
+    JSON.stringify({
+      path: "README.md",
+      stat: true,
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const statusPayload = JSON.parse(statusResult.output) as Record<string, unknown>;
+  const diffPayload = JSON.parse(diffResult.output) as Record<string, unknown>;
+  const files = statusPayload.files as Array<Record<string, unknown>>;
+  const stats = diffPayload.stats as Record<string, unknown>;
+
+  assert.equal(statusResult.ok, true);
+  assert(files.some((file) => file.path === "README.md" && String(file.status).includes("M")));
+  assert(files.some((file) => file.path === "new.txt" && file.untracked === true));
+  assert.equal((statusPayload.summary as Record<string, unknown>).modified, 1);
+  assert.equal((statusPayload.summary as Record<string, unknown>).untracked, 1);
+  assert.equal(diffResult.ok, true);
+  assert.match(String(diffPayload.diff ?? ""), /\+changed/);
+  assert.equal(stats.filesChanged, 1);
+  assert.equal(stats.insertions, 2);
+});
+
+test("git_diff can include untracked text files for full agent-visible change review", async (t) => {
+  const root = await createTempWorkspace("git-diff-untracked", t);
+  await initGitRepo(root);
+  await fs.writeFile(path.join(root, "new.txt"), "first\nsecond\n", "utf8");
+
+  const registry = createToolRegistry();
+  const defaultResult = await registry.execute(
+    "git_diff",
+    JSON.stringify({
+      stat: true,
+    }),
+    makeToolContext(root, root) as never,
+  );
+  const untrackedResult = await registry.execute(
+    "git_diff",
+    JSON.stringify({
+      stat: true,
+      include_untracked: true,
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const defaultPayload = JSON.parse(defaultResult.output) as Record<string, unknown>;
+  const untrackedPayload = JSON.parse(untrackedResult.output) as Record<string, unknown>;
+  const stats = untrackedPayload.stats as Record<string, unknown>;
+
+  assert.equal(defaultPayload.diff, "");
+  assert.match(String(untrackedPayload.diff ?? ""), /new file mode/);
+  assert.match(String(untrackedPayload.diff ?? ""), /\+first/);
+  assert.equal(stats.filesChanged, 1);
+  assert.equal(stats.insertions, 2);
+});
+
+test("patch_file applies a multi-file unified diff and records structured change evidence", async (t) => {
+  const root = await createTempWorkspace("patch-file-multi", t);
+  await fs.writeFile(path.join(root, "a.txt"), "alpha\nbeta\n", "utf8");
+  await fs.writeFile(path.join(root, "b.txt"), "one\ntwo\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "patch_file",
+    JSON.stringify({
+      patch: [
+        "--- a/a.txt",
+        "+++ b/a.txt",
+        "@@ -1,2 +1,2 @@",
+        " alpha",
+        "-beta",
+        "+BETA",
+        "--- a/b.txt",
+        "+++ b/b.txt",
+        "@@ -1,2 +1,2 @@",
+        "-one",
+        "+ONE",
+        " two",
+        "",
+      ].join("\n"),
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+  const changedPaths = payload.changedPaths as string[];
+
+  assert.equal(result.ok, true);
+  assert.equal(payload.applied, true);
+  assert.equal(payload.appliedHunks, 2);
+  assert.equal(changedPaths.length, 2);
+  assert.equal(await fs.readFile(path.join(root, "a.txt"), "utf8"), "alpha\nBETA\n");
+  assert.equal(await fs.readFile(path.join(root, "b.txt"), "utf8"), "ONE\ntwo\n");
+  assert.match(String(payload.diff ?? ""), /\+ BETA/);
+  assert.match(String(payload.diff ?? ""), /\+ ONE/);
+  assert.equal(typeof payload.sessionDiff, "object");
+  assert.equal(Array.isArray(result.metadata?.changedPaths), true);
+});
+
+test("patch_file dry_run validates a patch without writing files", async (t) => {
+  const root = await createTempWorkspace("patch-file-dry-run", t);
+  await fs.writeFile(path.join(root, "a.txt"), "alpha\nbeta\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "patch_file",
+    JSON.stringify({
+      dry_run: true,
+      patch: [
+        "--- a/a.txt",
+        "+++ b/a.txt",
+        "@@ -1,2 +1,2 @@",
+        " alpha",
+        "-beta",
+        "+BETA",
+        "",
+      ].join("\n"),
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+  assert.equal(result.ok, true);
+  assert.equal(payload.dryRun, true);
+  assert.equal(payload.applied, false);
+  assert.equal(await fs.readFile(path.join(root, "a.txt"), "utf8"), "alpha\nbeta\n");
+  assert.equal(payload.changeId, undefined);
+  assert.equal(payload.sessionDiff, undefined);
+});
+
+test("patch_file fails closed on stale hunks with actionable read evidence", async (t) => {
+  const root = await createTempWorkspace("patch-file-stale", t);
+  await fs.writeFile(path.join(root, "a.txt"), "alpha\ngamma\n", "utf8");
+
+  const registry = createToolRegistry();
+  await assert.rejects(
+    () =>
+      registry.execute(
+        "patch_file",
+        JSON.stringify({
+          patch: [
+            "--- a/a.txt",
+            "+++ b/a.txt",
+            "@@ -1,2 +1,2 @@",
+            " alpha",
+            "-beta",
+            "+BETA",
+            "",
+          ].join("\n"),
+        }),
+        makeToolContext(root, root) as never,
+      ),
+    (error) => {
+      assert(error instanceof Error);
+      assert.match(error.message, /Fresh read_file/i);
+      assert.equal((error as { code?: string }).code, "PATCH_HUNK_NOT_FOUND");
+      assert.equal(typeof ((error as { details?: Record<string, unknown> }).details?.readArgs), "object");
+      return true;
+    },
+  );
+});
+
+test("patch_file can create and delete files through unified diff headers", async (t) => {
+  const root = await createTempWorkspace("patch-file-create-delete", t);
+  await fs.writeFile(path.join(root, "old.txt"), "gone\n", "utf8");
+
+  const registry = createToolRegistry();
+  const result = await registry.execute(
+    "patch_file",
+    JSON.stringify({
+      patch: [
+        "--- /dev/null",
+        "+++ b/new.txt",
+        "@@ -0,0 +1,2 @@",
+        "+one",
+        "+two",
+        "--- a/old.txt",
+        "+++ /dev/null",
+        "@@ -1,1 +0,0 @@",
+        "-gone",
+        "",
+      ].join("\n"),
+    }),
+    makeToolContext(root, root) as never,
+  );
+
+  const payload = JSON.parse(result.output) as Record<string, unknown>;
+  const appliedFiles = payload.appliedFiles as Array<Record<string, unknown>>;
+
+  assert.equal(result.ok, true);
+  assert.equal(await fs.readFile(path.join(root, "new.txt"), "utf8"), "one\ntwo\n");
+  await assert.rejects(() => fs.readFile(path.join(root, "old.txt"), "utf8"), /ENOENT/);
+  assert(appliedFiles.some((file) => file.kind === "create" && String(file.path).endsWith("new.txt")));
+  assert(appliedFiles.some((file) => file.kind === "delete" && String(file.path).endsWith("old.txt")));
 });
 
 test("search_files keeps the base path search flow while adding literal, context, ignoreCase, and limit", async (t) => {
@@ -295,7 +517,7 @@ test("search_files keeps the base path search flow while adding literal, context
   assert.match(String(firstMatch?.path ?? ""), /src[\\/](one|two)\.ts$/);
   assert.deepEqual(firstMatch?.before, ["const intro = 'alpha';"]);
   assert.deepEqual(firstMatch?.after, ["const outro = 'omega';"]);
-  assert.deepEqual(Object.keys((firstMatch?.readArgs as Record<string, unknown>) ?? {}).sort(), ["end_line", "path", "start_line"]);
+  assert.deepEqual(Object.keys((firstMatch?.readArgs as Record<string, unknown>) ?? {}).sort(), ["limit", "offset", "path"]);
 });
 
 test("read_file accepts copied paths with surrounding whitespace and quotes", async (t) => {
@@ -314,7 +536,8 @@ test("read_file accepts copied paths with surrounding whitespace and quotes", as
   const payload = JSON.parse(result.output) as Record<string, unknown>;
 
   assert.equal(result.ok, true);
-  assert.equal(payload.path, filePath);
+  assert.equal(payload.path, "notes.txt");
+  assert.equal(payload.absolutePath, filePath);
   assert.match(String(payload.content ?? ""), /alpha/);
 });
 
@@ -345,6 +568,8 @@ test("search_files files mode returns low-noise file evidence with read continua
   assert.equal(Array.isArray(payload.matches), false);
   assert.equal(files.length, 2);
   assert(files.every((file) => typeof file.path === "string"));
+  assert(files.every((file) => !path.isAbsolute(String(file.path))));
+  assert(files.every((file) => typeof file.absolutePath === "string" && path.isAbsolute(String(file.absolutePath))));
   assert(files.every((file) => typeof file.matches === "number"));
   assert(files.every((file) => typeof file.firstLine === "number"));
   assert(files.every((file) => typeof file.readArgs === "object" && file.readArgs !== null));
@@ -459,7 +684,7 @@ test("code fact tools expose symbols, references, and structural patterns as rea
   assert(references.every((reference) => typeof reference.readArgs === "object" && reference.readArgs !== null));
   assert.equal(matches.length, 1);
   assert.match(String(matches[0]?.text ?? ""), /fetchUser/);
-  assert.deepEqual(Object.keys((matches[0]?.readArgs as Record<string, unknown>) ?? {}).sort(), ["end_line", "path", "start_line"]);
+  assert.deepEqual(Object.keys((matches[0]?.readArgs as Record<string, unknown>) ?? {}).sort(), ["limit", "offset", "path"]);
 });
 
 test("list_files compact mode returns a lightweight directory confirmation without changing the tool name", async (t) => {
@@ -484,6 +709,8 @@ test("list_files compact mode returns a lightweight directory confirmation witho
   const fileEntry = entries.find((entry) => String(entry.path).endsWith(`src${path.sep}app.ts`) || String(entry.path).endsWith("src/app.ts"));
   assert.equal(payload.compact, true);
   assert(fileEntry);
+  assert.equal(path.isAbsolute(String(fileEntry.path)), false);
+  assert.equal(path.isAbsolute(String(fileEntry.absolutePath)), true);
   assert.equal(Object.hasOwn(fileEntry, "modifiedAt"), false);
   assert.equal(Object.hasOwn(fileEntry, "size"), false);
   assert.equal(Object.hasOwn(fileEntry, "extension"), false);
@@ -500,6 +727,10 @@ test("system prompt steers path discovery toward find_files instead of shell-fir
   );
 
   assert.match(prompt, /find_files/i);
+  assert.match(prompt, /git_status/i);
+  assert.match(prompt, /git_diff/i);
+  assert.match(prompt, /locate facts -> focused read -> patch_file\/edit_file\/write_file -> git_diff -> run_shell/i);
+  assert.match(prompt, /patch_file/i);
   assert.match(prompt, /shell workaround/i);
 });
 

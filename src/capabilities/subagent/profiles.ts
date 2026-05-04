@@ -33,8 +33,8 @@ const CODE_SUBAGENT_TOOLS = [
   "write_file",
   "write_docx",
   "edit_docx",
+  "patch_file",
   "edit_file",
-  "apply_patch",
   "undo_last_change",
   "run_shell",
 ] as const;

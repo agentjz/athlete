@@ -41,6 +41,9 @@ export interface LiveEcologyGroupSummary {
   skipReasons: Record<string, string>;
   promptPath: string;
   outputPath: string;
+  reportPath: string;
+  reportExists: boolean;
+  reportCandidates: string[];
 }
 
 export interface LiveEcologySummary {
@@ -57,7 +60,7 @@ export interface LiveEcologySummary {
 
 export async function runLiveEcology(rootDir: string, options: LiveEcologyOptions): Promise<LiveEcologySummary> {
   const timestamp = createTimestamp();
-  const runRoot = path.resolve(rootDir, options.outputDir || `live-ecology-test-${timestamp}`);
+  const runRoot = path.resolve(rootDir, options.outputDir || await createDefaultRunRoot(rootDir, timestamp));
   await fs.mkdir(runRoot, { recursive: true });
   const mode = options.dryRun === true ? "dry-run" : "live";
 
@@ -118,6 +121,24 @@ export async function runLiveEcology(rootDir: string, options: LiveEcologyOption
   return summary;
 }
 
+async function createDefaultRunRoot(rootDir: string, timestamp: string): Promise<string> {
+  const baseName = `live-ecology-test-${timestamp}`;
+  for (let index = 0; index < 100; index += 1) {
+    const name = index === 0 ? baseName : `${baseName}-${index + 1}`;
+    try {
+      await fs.mkdir(path.resolve(rootDir, name), { recursive: false });
+      return name;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(`Could not allocate a unique live ecology run directory for ${baseName}.`);
+}
+
 async function dryRunGroup(
   mirror: LiveEcologyMirror,
   group: LiveEcologyGroup,
@@ -159,6 +180,9 @@ async function dryRunGroup(
     skipReasons: Object.fromEntries(group.tools.filter((tool) => !tool.enabled).map((tool) => [tool.name, tool.skipReason ?? "disabled"])),
     promptPath,
     outputPath,
+    reportPath: path.join(mirrorEvidenceDir, group.reportFile),
+    reportExists: false,
+    reportCandidates: [],
   };
 }
 
@@ -252,6 +276,7 @@ async function runGroup(
   const missingTools = expectedTools.filter((name) => !coveredTools.includes(name));
   const failedTools = collectFailedTools(sessionRecord);
   const skippedTools = getSkippedTools(group);
+  const reportCheck = await findGroupReport(mirrorEvidenceDir, group.reportFile);
   const groupSummary: LiveEcologyGroupSummary = {
     id: group.id,
     title: group.title,
@@ -269,9 +294,52 @@ async function runGroup(
     skipReasons: Object.fromEntries(group.tools.filter((tool) => !tool.enabled).map((tool) => [tool.name, tool.skipReason ?? "disabled"])),
     promptPath,
     outputPath,
+    reportPath: reportCheck.path,
+    reportExists: reportCheck.exists,
+    reportCandidates: reportCheck.candidates,
   };
   await writeJson(path.join(groupDir, "coverage.json"), groupSummary);
   return groupSummary;
+}
+
+interface GroupReportCheck {
+  path: string;
+  exists: boolean;
+  candidates: string[];
+}
+
+async function findGroupReport(groupDir: string, preferredFile: string): Promise<GroupReportCheck> {
+  const preferredPath = path.join(groupDir, preferredFile);
+  if (await isNonEmptyFile(preferredPath)) {
+    return { path: preferredPath, exists: true, candidates: [preferredPath] };
+  }
+
+  const entries = await fs.readdir(groupDir, { withFileTypes: true }).catch(() => []);
+  const candidates: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const candidate = path.join(groupDir, entry.name);
+    if (await isLikelyReportFile(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+
+  candidates.sort();
+  return { path: candidates[0] ?? preferredPath, exists: candidates.length > 0, candidates };
+}
+
+async function isLikelyReportFile(filePath: string): Promise<boolean> {
+  const name = path.basename(filePath).toLowerCase();
+  if (!name.includes("report") && !name.includes("报告")) {
+    return false;
+  }
+  return isNonEmptyFile(filePath);
+}
+
+async function isNonEmptyFile(filePath: string): Promise<boolean> {
+  return fs.stat(filePath).then((stat) => stat.isFile() && stat.size > 0, () => false);
 }
 
 function logLiveEcology(message: string): void {
@@ -288,5 +356,11 @@ function logGroupResult(group: LiveEcologyGroupSummary): void {
   }
   if (group.failedTools.length > 0) {
     logLiveEcology(`group failed ${group.id}: ${group.failedTools.map((item) => item.tool).join(", ")}`);
+  }
+  if (group.mode === "live" && !group.reportExists) {
+    logLiveEcology(`group missing report ${group.id}: ${group.reportPath}`);
+  }
+  if (group.mode === "live" && group.reportExists) {
+    logLiveEcology(`group report ${group.id}: ${group.reportPath}`);
   }
 }

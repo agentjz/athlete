@@ -37,8 +37,8 @@ export interface CodeLineFact {
 
 export interface ReadArgs {
   path: string;
-  start_line: number;
-  end_line: number;
+  offset: number;
+  limit: number;
 }
 
 export const DEFAULT_CODE_GLOB =
@@ -160,22 +160,20 @@ export function findIdentifierReferences(
       path: filePath,
       line: lineNumber,
       text: truncateLine(line),
-      readArgs: {
-        path: filePath,
-        start_line: Math.max(1, lineNumber - contextLines),
-        end_line: Math.min(lines.length, lineNumber + contextLines),
-      },
+      readArgs: buildReadArgs(filePath, lineNumber, lines.length, contextLines),
     });
   }
 
   return results;
 }
 
-export function buildReadArgs(filePath: string, line: number, totalLines: number): ReadArgs {
+export function buildReadArgs(filePath: string, line: number, totalLines: number, contextLines = 3): ReadArgs {
+  const offset = Math.max(1, line - contextLines);
+  const endLine = Math.min(totalLines, line + contextLines);
   return {
     path: filePath,
-    start_line: Math.max(1, line - 3),
-    end_line: Math.min(totalLines, line + 3),
+    offset,
+    limit: Math.max(1, endLine - offset + 1),
   };
 }
 
