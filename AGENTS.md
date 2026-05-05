@@ -18,6 +18,7 @@
 - `docs/core.md`：六大核心模块和边界。
 - `src/agent/`：Agent 循环、prompt、turn 执行。
 - `src/context/`：项目上下文、运行时上下文、长上下文压缩。
+- `src/extensions/`：`super` 模式扩展协议和当前 Socratic workflow。
 - `src/session/`：session、checkpoint、工作记忆、连续性。
 - `src/provider/`：模型 provider 调用链、API 适配、请求恢复。
 - `src/config/`：配置、环境变量、provider 设置。

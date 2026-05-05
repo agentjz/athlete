@@ -4,20 +4,20 @@ import type { SessionStoreLike } from "../session/index.js";
 import { runHostTurn } from "../host/turn.js";
 import type { HostTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
+import type { KittyProductMode } from "../extensions/index.js";
 import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";
 import { handleLocalCommand, type LocalCommandResult } from "./localCommands.js";
 import type { InteractionShell } from "./shell.js";
-import type { PromptRuntimeState } from "../agent/prompt/types.js";
 
 export interface InteractiveTurnContext {
   cwd?: string;
   stateRootDir?: string;
-  runtimePromptState?: Partial<PromptRuntimeState>;
 }
 
 export interface InteractiveSessionDriverOptions {
   cwd: string;
   config: RuntimeConfig;
+  mode?: KittyProductMode;
   session: SessionRecord;
   sessionStore: SessionStoreLike;
   shell: InteractionShell;
@@ -268,7 +268,7 @@ export class InteractiveSessionDriver {
         sessionStore: this.options.sessionStore,
         abortSignal: controller.signal,
         callbacks: turnDisplay.callbacks,
-        runtimePromptState: turnContext?.runtimePromptState,
+        mode: this.options.mode,
       }, {
         runTurn: this.options.runTurn,
       });

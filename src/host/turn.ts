@@ -5,6 +5,7 @@ import { enterCrashContext } from "../observability/crashRecorder.js";
 import { recordHostTurnFinished, recordHostTurnStarted } from "../observability/hostEvents.js";
 import { isAbortError } from "../utils/abort.js";
 import { createDefaultAgentToolRegistry } from "../tools/registry.js";
+import { buildExtensionRuntimeState } from "../extensions/runtime.js";
 import type { HostTurnDependencies, HostTurnOptions, HostTurnOutcome } from "./types.js";
 
 const DEFAULT_IDENTITY = {
@@ -72,6 +73,14 @@ export async function runHostTurn(
       };
     }
 
+    const mode = options.mode ?? "agent";
+    const extensionRuntimeState = await buildExtensionRuntimeState({
+      cwd: options.cwd,
+      config: options.config,
+      mode,
+      sessionId: options.session.id,
+    });
+
     const resultPromise = runTurn({
       input: options.input,
       cwd: options.cwd,
@@ -83,7 +92,7 @@ export async function runHostTurn(
       toolRegistry,
       identity: options.identity ?? DEFAULT_IDENTITY,
       runtimePromptState: {
-        ...(options.runtimePromptState ?? {}),
+        extensions: extensionRuntimeState,
       },
     });
     dependencies.onRunTurnStarted?.();

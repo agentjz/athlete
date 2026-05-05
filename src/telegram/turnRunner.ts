@@ -6,6 +6,7 @@ import { ensureBoundSession, persistBoundSession } from "../host/session.js";
 import type { HostTurnRunner } from "../host/types.js";
 import { resolveHostStateRoot } from "../observability/hostEvents.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
+import type { KittyProductMode } from "../extensions/index.js";
 import type { TelegramAttachmentStoreLike } from "./attachmentStore.js";
 import type { TelegramBotApiClient } from "./botApiClient.js";
 import { buildFileTurnInput, buildTextTurnInput, downloadTelegramAttachment } from "./inboundFiles.js";
@@ -39,6 +40,7 @@ export async function runTelegramTurn(options: {
   };
   logger: TelegramLogger;
   message: TelegramPrivateMessage | TelegramPrivateFileMessage;
+  mode?: KittyProductMode;
   runTurn?: HostTurnRunner;
   enqueueReply: (chatId: number, text: string) => Promise<void>;
   markQueuedTurnStarted: (peerKey: string) => void;
@@ -108,7 +110,6 @@ export async function runTelegramTurn(options: {
       inputKind: options.message.kind === "private_file_message" ? "file" : "text",
       fileName: options.message.kind === "private_file_message" ? options.message.fileName : undefined,
     });
-
     session = await runBoundHostTurn<TelegramActiveTurn>(
       {
         host: "telegram",
@@ -121,6 +122,7 @@ export async function runTelegramTurn(options: {
         output,
         display,
         callbacks,
+        mode: options.mode ?? "agent",
         shouldAbortOnStart: () => options.consumePendingStop(options.message.peerKey),
         markQueuedTurnStarted: () => options.markQueuedTurnStarted(options.message.peerKey),
         createActiveTurn: (controller, sessionId) => ({

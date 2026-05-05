@@ -34,6 +34,12 @@ Tools 是模型的手脚。
 
 默认核心只有 `read`、`edit`、`write`、`bash`。搜索、Git、构建、测试都通过 `bash` 做。
 
+## Extensions
+
+Extensions 是 `super` 模式的扩展入口。
+
+默认 `agent` 不加载扩展。当前真实扩展只有 Socratic workflow，用来围绕学习资料提问、解释、记录卡点和沉淀笔记。
+
 ## Observability
 
 Observability 是记录仪。

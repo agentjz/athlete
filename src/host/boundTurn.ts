@@ -1,6 +1,7 @@
 import type { AgentCallbacks, RunTurnResult } from "../agent/types.js";
 import type { SessionStoreLike } from "../session/index.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
+import type { KittyProductMode } from "../extensions/index.js";
 import { runHostTurn } from "./turn.js";
 import type { HostTurnDependencies } from "./types.js";
 
@@ -27,6 +28,7 @@ export interface BoundHostTurnOptions<TActiveTurn> {
   output: BoundHostTurnOutput;
   display: BoundHostTurnDisplay;
   callbacks?: AgentCallbacks;
+  mode?: KittyProductMode;
   shouldAbortOnStart?: () => boolean;
   markQueuedTurnStarted: () => void;
   createActiveTurn: (controller: AbortController, sessionId: string) => TActiveTurn;
@@ -61,6 +63,7 @@ export async function runBoundHostTurn<TActiveTurn>(
         sessionStore: options.sessionStore,
         abortSignal: controller.signal,
         callbacks: options.callbacks,
+        mode: options.mode,
       },
       {
         ...dependencies,

@@ -1,11 +1,11 @@
 import type { Command } from "commander";
 
 import type { CliProgramDependencies } from "../dependencies.js";
-import { createHostSession, loadLatestSession } from "../../host/session.js";
+import { loadLatestSession } from "../../host/session.js";
 import type { CliOverrides, RuntimeConfig, SessionRecord } from "../../types.js";
 import { writeStdoutLine } from "../../utils/stdio.js";
 import { ui } from "../../utils/console.js";
-import { createSessionStore, runOneShot, startInteractive } from "./sessionHelpers.js";
+import { createSessionStore, resolveCliSession, runCliMode } from "./sessionHelpers.js";
 
 export function registerSessionCommands(
   program: Command,
@@ -26,26 +26,21 @@ export function registerSessionCommands(
       const prompt = promptParts.join(" ").trim();
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const sessionStore = await createSessionStore(runtime.paths.sessionsDir);
-      const session = await createHostSession(sessionStore, runtime.cwd);
-
-      if (!prompt) {
-        await startInteractive(options.dependencies, {
-          cwd: runtime.cwd,
-          config: runtime.config,
-          session,
-          sessionStore,
-        });
-        return;
-      }
-
-      const result = await runOneShot(options.dependencies, {
+      const session = await resolveCliSession({
+        sessionStore,
+        cwd: runtime.cwd,
+      });
+      const result = await runCliMode(options.dependencies, {
         prompt,
         cwd: runtime.cwd,
         config: runtime.config,
         session,
         sessionStore,
+        mode: "agent",
       });
-      writeStdoutLine(JSON.stringify(result.closeout));
+      if (result) {
+        writeStdoutLine(JSON.stringify(result.closeout));
+      }
     });
 
   program
@@ -56,15 +51,21 @@ export function registerSessionCommands(
       const prompt = promptParts.join(" ").trim();
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const sessionStore = await createSessionStore(runtime.paths.sessionsDir);
-      const session = await createHostSession(sessionStore, runtime.cwd);
-      const result = await runOneShot(options.dependencies, {
+      const session = await resolveCliSession({
+        sessionStore,
+        cwd: runtime.cwd,
+      });
+      const result = await runCliMode(options.dependencies, {
         prompt,
         cwd: runtime.cwd,
         config: runtime.config,
         session,
         sessionStore,
+        mode: "agent",
       });
-      writeStdoutLine(JSON.stringify(result.closeout));
+      if (result) {
+        writeStdoutLine(JSON.stringify(result.closeout));
+      }
     });
 
   program
@@ -80,11 +81,13 @@ export function registerSessionCommands(
         throw new Error("No saved sessions found.");
       }
 
-      await startInteractive(options.dependencies, {
+      await runCliMode(options.dependencies, {
+        prompt: "",
         cwd: runtime.overrides.cwd ? runtime.cwd : session.cwd,
         config: runtime.config,
         session,
         sessionStore,
+        mode: "agent",
       });
     });
 

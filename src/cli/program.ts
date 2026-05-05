@@ -9,6 +9,7 @@ import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerAgentCommand } from "./commands/agent.js";
 import { registerSessionCommands } from "./commands/session.js";
+import { registerSuperCommand } from "./commands/super.js";
 import { registerWebCommand } from "./commands/web.js";
 import { writeStderr, writeStdout, writeStdoutLine } from "../utils/stdio.js";
 import { registerTelegramCommands } from "../telegram/cli.js";
@@ -51,6 +52,11 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
     dependencies,
   });
   registerSessionCommands(program, {
+    getCliOverrides,
+    resolveRuntime,
+    dependencies,
+  });
+  registerSuperCommand(program, {
     getCliOverrides,
     resolveRuntime,
     dependencies,

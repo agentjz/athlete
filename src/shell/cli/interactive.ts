@@ -13,12 +13,14 @@ import {
   createCliInteractionShell,
 } from "./shell.js";
 import type { RuntimeConfig, SessionRecord } from "../../types.js";
+import type { KittyProductMode } from "../../extensions/index.js";
 
 interface InteractiveOptions {
   cwd: string;
   config: RuntimeConfig;
   session: SessionRecord;
   sessionStore: SessionStoreLike;
+  mode?: KittyProductMode;
 }
 
 export interface StartInteractiveChatDependencies {

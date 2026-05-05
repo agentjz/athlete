@@ -11,6 +11,7 @@ import { getErrorMessage } from "../agent/errors.js";
 import { createPersistedSession } from "../host/session.js";
 import { runHostTurn } from "../host/turn.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
+import type { KittyProductMode } from "../extensions/index.js";
 import { formatRuntimeUiRoleLabel } from "../runtime-ui/channelIdentity.js";
 import {
   createProjectDirectory,
@@ -33,6 +34,7 @@ export interface StartWorkbenchServerOptions {
   host?: string;
   port?: number;
   staticDir?: string;
+  mode?: KittyProductMode;
 }
 
 export interface WorkbenchServerHandle {
@@ -195,6 +197,7 @@ export async function startWorkbenchServer(options: StartWorkbenchServerOptions)
       config: options.config,
       session: currentSession,
       sessionStore,
+      mode: options.mode ?? "agent",
       abortSignal: activeAbortController.signal,
       callbacks: {
         onModelWaitStart: () => broadcaster.send({ type: "session.status", status: "running", message: "waiting for model", createdAt: nowEventTime() }),

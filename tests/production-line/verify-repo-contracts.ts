@@ -6,6 +6,7 @@ const CURRENT_SOURCE_ROOTS = [
   "src/agent",
   "src/context",
   "src/config",
+  "src/extensions",
   "src/host",
   "src/interaction",
   "src/observability",

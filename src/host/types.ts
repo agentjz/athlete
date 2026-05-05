@@ -3,7 +3,7 @@ import type { RunTurnResult, AgentCallbacks, AgentIdentity } from "../agent/type
 import type { SessionStoreLike } from "../session/index.js";
 import type { ToolRegistry } from "../tools/core/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import type { PromptRuntimeState } from "../agent/prompt/types.js";
+import type { KittyProductMode } from "../extensions/index.js";
 
 export type HostTurnRunner = (options: RunTurnOptions) => Promise<RunTurnResult>;
 
@@ -18,7 +18,7 @@ export interface HostTurnOptions {
   callbacks?: AgentCallbacks;
   abortSignal?: AbortSignal;
   identity?: AgentIdentity;
-  runtimePromptState?: Partial<PromptRuntimeState>;
+  mode?: KittyProductMode;
 }
 
 export interface HostTurnDependencies {

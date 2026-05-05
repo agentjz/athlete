@@ -23,13 +23,15 @@ export function registerWebCommand(
     .description("Open the local Kitty web workbench.")
     .option("--host <host>", "Host to bind the local workbench server.", "127.0.0.1")
     .option("-p, --port <port>", "Port to bind. Defaults to an available port.", parsePort)
-    .action(async (commandOptions: { host: string; port?: number }) => {
+    .option("--super", "Run web workbench turns in super mode.")
+    .action(async (commandOptions: { host: string; port?: number; super?: boolean }) => {
       const runtime = await options.resolveRuntime(options.getCliOverrides());
       const handle = await startWorkbenchServer({
         cwd: runtime.cwd,
         config: runtime.config,
         host: commandOptions.host,
         port: commandOptions.port,
+        mode: commandOptions.super ? "super" : "agent",
       });
 
       writeStdoutLine(`Kitty web workbench: ${handle.url}`);
