@@ -1,11 +1,11 @@
-import { buildForegroundProcessProtocol } from "../../../../execution/processProtocol.js";
-import type { ToolExecutionMetadata } from "../../../../types.js";
-import { classifyCommand } from "../../../../utils/commandPolicy.js";
-import { runCommandWithPolicy } from "../../../../utils/commandRunner.js";
-import { getShellRuntimeInfo } from "../../../../utils/commandRunner/shellRuntime.js";
-import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
-import { clampNumber, okResult, parseArgs, readString } from "../../core/shared.js";
-import type { RegisteredTool } from "../../core/types.js";
+import { buildForegroundProcessProtocol } from "../../execution/processProtocol.js";
+import type { ToolExecutionMetadata } from "../../types.js";
+import { classifyCommand } from "../../utils/commandPolicy.js";
+import { runCommandWithPolicy } from "../../utils/commandRunner.js";
+import { getShellRuntimeInfo } from "../../utils/commandRunner/shellRuntime.js";
+import { resolveUserPath, truncateText } from "../../utils/fs.js";
+import { clampNumber, okResult, parseArgs, readString } from "../../capabilities/tools/core/shared.js";
+import type { RegisteredTool } from "../../capabilities/tools/core/types.js";
 
 const SHELL_RUNTIME = getShellRuntimeInfo();
 

@@ -1,4 +1,4 @@
-import type { SessionDiffChange, ToolDiagnosticsReport, ToolExecutionMetadata } from "../../../../types.js";
+import type { SessionDiffChange, ToolDiagnosticsReport, ToolExecutionMetadata } from "../../types.js";
 
 export function buildToolChangeFeedback(input: {
   toolName: string;

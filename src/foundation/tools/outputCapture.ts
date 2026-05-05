@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { getProjectStatePaths } from "../../../../project/statePaths.js";
+import { getProjectStatePaths } from "../../project/statePaths.js";
 
 export interface ShellOutputCapture {
   outputPreview: string;
@@ -99,5 +99,5 @@ async function createAbsoluteOutputPath(stateRootDir: string, sessionId: string)
   const paths = getProjectStatePaths(stateRootDir);
   const sessionDir = path.join(paths.toolResultsDir, sessionId);
   await fs.mkdir(sessionDir, { recursive: true });
-  return path.join(sessionDir, `${Date.now()}-run-shell-${crypto.randomUUID().slice(0, 8)}.txt`);
+  return path.join(sessionDir, `${Date.now()}-bash-output-${crypto.randomUUID().slice(0, 8)}.txt`);
 }

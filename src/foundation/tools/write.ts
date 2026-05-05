@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 
-import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../../../utils/fs.js";
-import { recordToolChange } from "../../core/changeTracking.js";
-import { toToolRelativePath } from "../../core/pathDisplay.js";
-import { buildDiffPreview, okResult, parseArgs, readBoolean, readPossiblyEmptyString, readString } from "../../core/shared.js";
-import type { RegisteredTool } from "../../core/types.js";
-import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
+import { ensureParentDirectory, fileExists, resolveUserPath, truncateText } from "../../utils/fs.js";
+import { recordToolChange } from "../../capabilities/tools/core/changeTracking.js";
+import { toToolRelativePath } from "../../capabilities/tools/core/pathDisplay.js";
+import { buildDiffPreview, okResult, parseArgs, readBoolean, readPossiblyEmptyString, readString } from "../../capabilities/tools/core/shared.js";
+import type { RegisteredTool } from "../../capabilities/tools/core/types.js";
+import { buildToolChangeFeedback } from "./changeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
 
 export const writeToolDefinition: RegisteredTool = {

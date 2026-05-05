@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { ToolDiagnosticFileReport, ToolDiagnosticItem, ToolDiagnosticsReport } from "../../../../types.js";
+import type { ToolDiagnosticFileReport, ToolDiagnosticItem, ToolDiagnosticsReport } from "../../types.js";
 
 const TYPE_SCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 

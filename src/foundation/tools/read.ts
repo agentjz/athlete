@@ -1,10 +1,10 @@
-import { formatFileWithLineNumbers, resolveUserPath } from "../../../../utils/fs.js";
-import { ToolExecutionError } from "../../core/errors.js";
-import { inspectTextFile } from "../../core/fileIntrospection.js";
-import { findPathSuggestions } from "../../core/pathSuggestions.js";
-import { toToolRelativePath } from "../../core/pathDisplay.js";
-import { okResult, parseArgs, readOptionalNumber, readString } from "../../core/shared.js";
-import type { RegisteredTool } from "../../core/types.js";
+import { formatFileWithLineNumbers, resolveUserPath } from "../../utils/fs.js";
+import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
+import { inspectTextFile } from "../../capabilities/tools/core/fileIntrospection.js";
+import { findPathSuggestions } from "../../capabilities/tools/core/pathSuggestions.js";
+import { toToolRelativePath } from "../../capabilities/tools/core/pathDisplay.js";
+import { okResult, parseArgs, readOptionalNumber, readString } from "../../capabilities/tools/core/shared.js";
+import type { RegisteredTool } from "../../capabilities/tools/core/types.js";
 
 interface ReadWindow {
   start: number;

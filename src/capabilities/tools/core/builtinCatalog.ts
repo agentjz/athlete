@@ -17,7 +17,12 @@ import {
   dreamingLoopStatusTool,
 } from "../packages/dreaming/dreamingLoopTools.js";
 import { editDocxTool } from "../packages/documents/editDocxTool.js";
-import { editToolDefinition } from "../packages/files/editTool.js";
+import {
+  bashToolDefinition,
+  editToolDefinition,
+  readToolDefinition,
+  writeToolDefinition,
+} from "../../../foundation/tools/index.js";
 import { idleTool } from "../packages/team/idleTool.js";
 import { httpProbeTool } from "../packages/network/httpProbeTool.js";
 import { httpRequestTool } from "../packages/network/httpRequestTool.js";
@@ -35,11 +40,9 @@ import { openapiInspectTool } from "../packages/network/openapiInspectTool.js";
 import { openapiLintTool } from "../packages/network/openapiLintTool.js";
 import { planApprovalTool } from "../packages/team/planApprovalTool.js";
 import { readDocxTool } from "../packages/documents/readDocxTool.js";
-import { readToolDefinition } from "../packages/files/readTool.js";
 import { readInboxTool } from "../packages/team/readInboxTool.js";
 import { readSpreadsheetTool } from "../packages/documents/readSpreadsheetTool.js";
 import { runtimeEventSearchTool } from "../packages/history/runtimeEventSearchTool.js";
-import { bashToolDefinition } from "../packages/shell/bashTool.js";
 import { sendMessageTool } from "../packages/team/sendMessageTool.js";
 import { sessionFinalOutputTool } from "../packages/history/sessionFinalOutputTool.js";
 import { sessionListTool } from "../packages/history/sessionListTool.js";
@@ -55,7 +58,7 @@ import { taskGetTool } from "../packages/tasks/taskGetTool.js";
 import { taskListTool } from "../packages/tasks/taskListTool.js";
 import { taskUpdateTool } from "../packages/tasks/taskUpdateTool.js";
 import { toolArtifactReadTool } from "../packages/history/toolArtifactReadTool.js";
-import { undoLastChangeTool } from "../packages/files/undoLastChangeTool.js";
+import { undoLastChangeTool } from "../packages/changes/undoLastChangeTool.js";
 import { worktreeCreateTool } from "../packages/worktrees/worktreeCreateTool.js";
 import { worktreeEventsTool } from "../packages/worktrees/worktreeEventsTool.js";
 import { worktreeGetTool } from "../packages/worktrees/worktreeGetTool.js";
@@ -63,7 +66,6 @@ import { worktreeKeepTool } from "../packages/worktrees/worktreeKeepTool.js";
 import { worktreeListTool } from "../packages/worktrees/worktreeListTool.js";
 import { worktreeRemoveTool } from "../packages/worktrees/worktreeRemoveTool.js";
 import { writeDocxTool } from "../packages/documents/writeDocxTool.js";
-import { writeToolDefinition } from "../packages/files/writeTool.js";
 import {
   WEB_WORKFLOWS,
   documentReadTool,

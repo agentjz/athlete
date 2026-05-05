@@ -1,13 +1,13 @@
 import fs from "node:fs/promises";
 
-import { resolveUserPath, truncateText } from "../../../../utils/fs.js";
-import { decodeTextFileEnvelope, encodeTextFileEnvelope } from "../../../../utils/text.js";
-import { recordToolChange } from "../../core/changeTracking.js";
-import { ToolExecutionError } from "../../core/errors.js";
-import { toToolRelativePath } from "../../core/pathDisplay.js";
-import { buildDiffPreview, okResult, parseArgs, readOptionalNumber, readPossiblyEmptyString, readString } from "../../core/shared.js";
-import type { RegisteredTool } from "../../core/types.js";
-import { buildToolChangeFeedback } from "./toolChangeFeedback.js";
+import { resolveUserPath, truncateText } from "../../utils/fs.js";
+import { decodeTextFileEnvelope, encodeTextFileEnvelope } from "../../utils/text.js";
+import { recordToolChange } from "../../capabilities/tools/core/changeTracking.js";
+import { ToolExecutionError } from "../../capabilities/tools/core/errors.js";
+import { toToolRelativePath } from "../../capabilities/tools/core/pathDisplay.js";
+import { buildDiffPreview, okResult, parseArgs, readOptionalNumber, readPossiblyEmptyString, readString } from "../../capabilities/tools/core/shared.js";
+import type { RegisteredTool } from "../../capabilities/tools/core/types.js";
+import { buildToolChangeFeedback } from "./changeFeedback.js";
 import { collectWriteDiagnostics } from "./writeDiagnostics.js";
 
 interface RequestedEdit {
