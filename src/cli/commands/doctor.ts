@@ -1,9 +1,6 @@
 import type { Command } from "commander";
 
 import { probeProviderConnection } from "../../agent/provider/connection.js";
-import { resolveProjectRoots } from "../../context/repoRoots.js";
-import { formatObservabilityDoctorReport } from "../../observability/doctor.js";
-import { buildObservabilityReport } from "../../observability/report.js";
 import type { CliOverrides, RuntimeConfig } from "../../types.js";
 import { ui } from "../../utils/console.js";
 
@@ -19,7 +16,7 @@ export function registerDoctorCommand(
     }>;
   },
 ): void {
-  const doctorCommand = program
+  program
     .command("doctor")
     .description("Check local setup and validate the API connection.")
     .action(async () => {
@@ -52,21 +49,6 @@ export function registerDoctorCommand(
       }
 
       throw new Error(diagnosis.message);
-    });
-
-  doctorCommand
-    .command("observability")
-    .description("Show recent operator observability files, failures, crashes, and slow events.")
-    .action(async () => {
-      const runtime = await options.resolveRuntime(options.getCliOverrides());
-      const projectRoots = await resolveProjectRoots(runtime.cwd).catch(() => ({
-        rootDir: runtime.cwd,
-        stateRootDir: runtime.cwd,
-      }));
-      const report = await buildObservabilityReport(projectRoots.stateRootDir);
-      for (const line of formatObservabilityDoctorReport(report)) {
-        ui.plain(line);
-      }
     });
 }
 

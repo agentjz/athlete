@@ -1,5 +1,5 @@
 import type { AgentCallbacks } from "../agent/types.js";
-import { buildToolResultVisiblePreview } from "../runtime-ui/toolDisplay.js";
+import { buildToolResultVisiblePreview } from "./toolDisplay.js";
 
 export interface VisibleTurnEvent {
   kind: "assistant" | "tool_call" | "tool_result_preview";
@@ -187,4 +187,3 @@ function normalizeVisibleText(value: string | null | undefined): string {
 
   return value.trim() ? value : "";
 }
-

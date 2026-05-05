@@ -71,8 +71,6 @@ export interface AssistantResponse {
 export interface RunTurnResult {
   session: SessionRecord;
   changedPaths: string[];
-  verificationAttempted: boolean;
-  verificationPassed?: boolean;
   yielded: boolean;
   yieldReason?: string;
   paused?: boolean;

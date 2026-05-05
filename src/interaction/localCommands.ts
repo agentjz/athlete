@@ -1,5 +1,4 @@
 import { resetProjectRuntime } from "../project/reset.js";
-import { buildRuntimePromptDiagnostics, formatSessionRuntimeSummary } from "../host/summary/index.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import type { ShellOutputPort } from "./shell.js";
 
@@ -16,7 +15,6 @@ const RESET_COMMANDS = new Set(["reset", "/reset"]);
 const HELP_COMMANDS = new Set(["/help"]);
 const SESSION_COMMANDS = new Set(["/session"]);
 const CONFIG_COMMANDS = new Set(["/config"]);
-const RUNTIME_COMMANDS = new Set(["/runtime", "/stats"]);
 const MULTILINE_COMMANDS = new Set(["/multi"]);
 
 export function isExplicitExitCommand(input: string): boolean {
@@ -54,7 +52,6 @@ export async function handleLocalCommand(
         "/help        Show help",
         "/session     Show current session ID",
         "/config      Show current runtime config",
-        "/runtime     Show current session runtime summary",
         "/multi       Enter multiline input; use ::end to submit and ::cancel to cancel",
         "/reset       Clear current project runtime state and exit",
         "quit         Exit the session",
@@ -78,16 +75,6 @@ export async function handleLocalCommand(
 
   if (CONFIG_COMMANDS.has(normalized)) {
     output.info(`model=${context.config.model} baseUrl=${context.config.baseUrl}`);
-    return "handled";
-  }
-
-  if (RUNTIME_COMMANDS.has(normalized)) {
-    const promptDiagnostics = await buildRuntimePromptDiagnostics({
-      cwd: context.cwd,
-      session: context.session,
-      config: context.config,
-    });
-    output.plain(formatSessionRuntimeSummary(context.session, { promptDiagnostics }));
     return "handled";
   }
 

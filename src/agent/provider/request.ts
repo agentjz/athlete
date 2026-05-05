@@ -1,13 +1,7 @@
 ﻿import type OpenAI from "openai";
 
-import {
-  isContentPolicyError,
-  isContextLengthError,
-  sanitizeMessagesForContentPolicy,
-  shrinkMessagesForContextLimit,
-  withApiRetries,
-} from "../turn/recovery.js";
-import type { ModelRequestMetric, ProviderUsageSnapshot } from "../runtimeMetrics.js";
+import { withApiRetries } from "./apiRetry.js";
+import type { ModelRequestMetric, ProviderUsageSnapshot } from "./metrics.js";
 import { isAbortError } from "../../utils/abort.js";
 import type { AssistantResponse, AgentCallbacks } from "../types.js";
 import { recordObservabilityEvent } from "../../observability/writer.js";
@@ -45,69 +39,18 @@ export async function fetchAssistantResponse(
   const capabilities = resolveProviderCapabilities(request);
   const adapter = selectProviderWireAdapter(capabilities.wireApi);
 
-  try {
-    return await tryFetch(
-      adapter,
-      client,
-      messages,
-      request,
-      tools,
-      callbacks,
-      false,
-      abortSignal,
-      onRequestMetric,
-      observability,
-      {
-        recoveryFallback: false,
-      },
-    );
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw error;
-    }
-
-    if (isContextLengthError(error)) {
-      const compactedMessages = shrinkMessagesForContextLimit(messages);
-      return tryFetch(
-        adapter,
-        client,
-        compactedMessages,
-        request,
-        tools,
-        callbacks,
-        false,
-        abortSignal,
-        onRequestMetric,
-        observability,
-        {
-          recoveryFallback: true,
-          recoveryReason: "context_length",
-        },
-      );
-    }
-
-    if (!isContentPolicyError(error)) {
-      throw error;
-    }
-
-    const sanitizedMessages = sanitizeMessagesForContentPolicy(messages);
-    return tryFetch(
-      adapter,
-      client,
-      sanitizedMessages,
-      request,
-      tools,
-      callbacks,
-      false,
-      abortSignal,
-      onRequestMetric,
-      observability,
-      {
-        recoveryFallback: true,
-        recoveryReason: "content_policy",
-      },
-    );
-  }
+  return tryFetch(
+    adapter,
+    client,
+    messages,
+    request,
+    tools,
+    callbacks,
+    false,
+    abortSignal,
+    onRequestMetric,
+    observability,
+  );
 }
 
 async function tryFetch(
@@ -133,12 +76,6 @@ async function tryFetch(
     identityName?: string;
     configuredModel: string;
   },
-  recovery: {
-    recoveryFallback: boolean;
-    recoveryReason?: string;
-  } = {
-    recoveryFallback: false,
-  },
 ): Promise<AssistantResponse> {
   const startedAt = Date.now();
   let latestMetric: ModelRequestMetric | undefined;
@@ -162,8 +99,6 @@ async function tryFetch(
         requestModel: request.model,
         wireApi: adapter.wireApi,
         baseUrl: resolvedBaseUrl,
-        recoveryFallback: recovery.recoveryFallback,
-        recoveryReason: recovery.recoveryReason,
       },
     });
   }
@@ -205,8 +140,6 @@ async function tryFetch(
           wireApi: adapter.wireApi,
           baseUrl: resolvedBaseUrl,
           usageAvailable: hasUsageSnapshot(latestMetric?.usage),
-          recoveryFallback: recovery.recoveryFallback,
-          recoveryReason: recovery.recoveryReason,
         },
       });
     }
@@ -253,8 +186,6 @@ async function tryFetch(
             wireApi: adapter.wireApi,
             baseUrl: resolvedBaseUrl,
             usageAvailable: hasUsageSnapshot(latestMetric?.usage),
-            recoveryFallback: recovery.recoveryFallback,
-            recoveryReason: recovery.recoveryReason,
           },
         });
       }
@@ -277,8 +208,6 @@ async function tryFetch(
             wireApi: adapter.wireApi,
             baseUrl: resolvedBaseUrl,
             usageAvailable: hasUsageSnapshot(latestMetric?.usage),
-            recoveryFallback: recovery.recoveryFallback,
-            recoveryReason: recovery.recoveryReason,
           },
         });
       }

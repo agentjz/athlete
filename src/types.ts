@@ -1,14 +1,4 @@
 export type {
-  AcceptanceCommandRequirement,
-  AcceptanceContract,
-  AcceptanceContractKind,
-  AcceptanceFileFormat,
-  AcceptanceFileRequirement,
-  AcceptanceFileRole,
-  AcceptanceState,
-  AcceptanceStatus,
-} from "./types/acceptance.js";
-export type {
   ChangeOperationRecord,
   ChangeRecord,
 } from "./types/change.js";
@@ -31,7 +21,6 @@ export type {
   ProjectIgnoreRule,
 } from "./types/project.js";
 export type {
-  CompactionRecoveryState,
   PendingToolCall,
   SessionCheckpoint,
   SessionCheckpointFlow,
@@ -44,14 +33,9 @@ export type {
   SessionRunState,
   SessionRunStateSource,
   SessionRunStateStatus,
-  SessionRuntimeStats,
-  SessionRuntimeToolStats,
-  SessionRuntimeUsageStats,
   StoredMessage,
   TaskState,
   ToolCallRecord,
-  VerificationState,
-  VerificationStatus,
 } from "./types/session.js";
 export type {
   RuntimeContinueEmptyAssistantResponseReason,
@@ -62,12 +46,10 @@ export type {
   RuntimeFinalizeCompletedReason,
   RuntimeFinalizeReason,
   RuntimeFinalizeTransition,
-  RuntimePauseDegradationRecoveryExhaustedReason,
   RuntimePauseManagedSliceBudgetExhaustedReason,
   RuntimePauseProviderRecoveryBudgetExhaustedReason,
   RuntimePauseReason,
   RuntimePauseTransition,
-  RuntimeRecoverPostCompactionDegradationReason,
   RuntimeRecoverProviderRequestReason,
   RuntimeRecoverReason,
   RuntimeRecoverTransition,
@@ -83,5 +65,4 @@ export type {
   ToolExecutionProtocolPhase,
   ToolExecutionProtocolPolicy,
   ToolExecutionResult,
-  VerificationAttempt,
 } from "./types/toolExecution.js";

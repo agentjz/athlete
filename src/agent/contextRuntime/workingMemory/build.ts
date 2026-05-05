@@ -1,24 +1,16 @@
 import { normalizeCheckpoint } from "../../checkpoint.js";
 import { fingerprintObjective, normalizeText, takeLastUnique } from "../../checkpoint/shared.js";
-import type {
-  AcceptanceState,
-  SessionCheckpoint,
-  TaskState,
-  VerificationState,
-} from "../../../types.js";
-import type { AgentWorkingMemory, WorkingMemoryVerification } from "./types.js";
+import type { SessionCheckpoint, TaskState } from "../../../types.js";
+import type { AgentWorkingMemory } from "./types.js";
 
 const MAX_ACTIVE_FILES = 10;
 const MAX_PLANNED_ACTIONS = 8;
 const MAX_COMPLETED_ACTIONS = 8;
 const MAX_BLOCKERS = 6;
-const MAX_PENDING_CHECKS = 6;
 
 export interface BuildWorkingMemoryInput {
   taskState?: TaskState;
   checkpoint?: SessionCheckpoint;
-  verificationState?: VerificationState;
-  acceptanceState?: AcceptanceState;
   timestamp?: string;
 }
 
@@ -26,8 +18,6 @@ export function buildAgentWorkingMemory(input: BuildWorkingMemoryInput): AgentWo
   const timestamp = input.timestamp ?? new Date().toISOString();
   const objective = normalizeText(input.taskState?.objective) || undefined;
   const checkpoint = normalizeCurrentObjectiveCheckpoint(input.checkpoint, objective, timestamp);
-  const verification = normalizeVerification(input.verificationState);
-  const acceptance = normalizeAcceptance(input.acceptanceState);
 
   return {
     version: 1,
@@ -48,16 +38,12 @@ export function buildAgentWorkingMemory(input: BuildWorkingMemoryInput): AgentWo
           recordedAt: checkpoint.recentToolBatch.recordedAt,
         }
       : undefined,
-    verification,
-    acceptance,
     checkpointPhase: checkpoint?.flow.reason
       ? `${checkpoint.flow.phase} (${checkpoint.flow.reason})`
       : checkpoint?.flow.phase,
     checkpointStatus: checkpoint?.status,
     updatedAt: latestTimestamp([
       input.taskState?.lastUpdatedAt,
-      input.verificationState?.updatedAt,
-      input.acceptanceState?.updatedAt,
       checkpoint?.updatedAt,
       timestamp,
     ]),
@@ -80,45 +66,6 @@ function normalizeCurrentObjectiveCheckpoint(
   return normalized.objectiveFingerprint === fingerprintObjective(objective)
     ? normalized
     : undefined;
-}
-
-function normalizeVerification(state: VerificationState | undefined): WorkingMemoryVerification | undefined {
-  if (!state) {
-    return undefined;
-  }
-
-  const observedPaths = takeLastUnique(state.observedPaths ?? [], 8);
-  const hasSignal =
-    state.status !== "idle" ||
-    observedPaths.length > 0 ||
-    state.attempts > 0 ||
-    Boolean(state.lastCommand);
-  if (!hasSignal) {
-    return undefined;
-  }
-
-  return {
-    status: state.status,
-    attempts: Math.max(0, Math.trunc(state.attempts)),
-    observedPaths,
-    lastCommand: normalizeText(state.lastCommand) || undefined,
-    lastKind: normalizeText(state.lastKind) || undefined,
-    lastExitCode: state.lastExitCode,
-  };
-}
-
-function normalizeAcceptance(state: AcceptanceState | undefined): AgentWorkingMemory["acceptance"] | undefined {
-  if (!state?.contract) {
-    return undefined;
-  }
-
-  return {
-    kind: state.contract.kind,
-    phase: normalizeText(state.currentPhase) || undefined,
-    status: state.status,
-    pendingChecks: takeLastUnique(state.pendingChecks ?? [], MAX_PENDING_CHECKS),
-    lastIssueSummary: normalizeText(state.lastIssueSummary) || undefined,
-  };
 }
 
 function latestTimestamp(values: Array<string | undefined>): string {

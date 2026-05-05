@@ -71,8 +71,6 @@ export function validateToolExecutionResult(
   }
 
   const changedPaths = result.metadata?.changedPaths?.length ?? 0;
-  const verificationAttempted = result.metadata?.verification?.attempted === true;
-
   if (entry.governance.changeSignal === "required" && changedPaths === 0) {
     throw new ToolExecutionError(
       `${entry.name} must emit changedPaths metadata.`,
@@ -84,20 +82,6 @@ export function validateToolExecutionResult(
     throw new ToolExecutionError(
       `${entry.name} emitted changedPaths metadata even though its governance marks it as non-changing.`,
       { code: "CHANGE_SIGNAL_FORBIDDEN", details: { toolName: entry.name } },
-    );
-  }
-
-  if (entry.governance.verificationSignal === "required" && !verificationAttempted) {
-    throw new ToolExecutionError(
-      `${entry.name} must emit verification metadata.`,
-      { code: "VERIFICATION_SIGNAL_REQUIRED", details: { toolName: entry.name } },
-    );
-  }
-
-  if (entry.governance.verificationSignal === "none" && verificationAttempted) {
-    throw new ToolExecutionError(
-      `${entry.name} emitted verification metadata even though its governance marks it as verification-free.`,
-      { code: "VERIFICATION_SIGNAL_FORBIDDEN", details: { toolName: entry.name } },
     );
   }
 
@@ -113,7 +97,6 @@ function normalizeToolGovernance(name: string, partial: Partial<ToolGovernance>)
     destructive: partial.destructive ?? false,
     concurrencySafe: requireField(name, partial.concurrencySafe, "concurrencySafe"),
     changeSignal: requireField(name, partial.changeSignal, "changeSignal"),
-    verificationSignal: requireField(name, partial.verificationSignal, "verificationSignal"),
   };
 
   if (governance.mutation === "read" && governance.destructive) {

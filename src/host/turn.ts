@@ -99,8 +99,6 @@ export async function runHostTurn(
       cwd: options.cwd,
       details: {
         changedPathCount: result.changedPaths.length,
-        verificationAttempted: result.verificationAttempted,
-        verificationPassed: result.verificationPassed,
       },
     });
 

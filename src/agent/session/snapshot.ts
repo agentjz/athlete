@@ -3,10 +3,7 @@ import type {
   StoredMessage,
   ToolCallRecord,
 } from "../../types.js";
-import { deriveAcceptanceState, normalizeAcceptanceState } from "../acceptance.js";
 import { normalizeSessionCheckpoint } from "../checkpoint.js";
-import { normalizeSessionRuntimeStats } from "../runtimeMetrics.js";
-import { createEmptyVerificationState, normalizeSessionVerificationState } from "../verification/state.js";
 import { normalizeSessionDiffState } from "./sessionDiff.js";
 import {
   createInvalidSessionJsonError,
@@ -28,9 +25,6 @@ const SESSION_SNAPSHOT_KEYS = new Set([
   "messages",
   "taskState",
   "checkpoint",
-  "verificationState",
-  "acceptanceState",
-  "runtimeStats",
   "sessionDiff",
 ]);
 
@@ -73,9 +67,6 @@ export function parseSessionSnapshot(raw: string, sessionPath: string): SessionR
     messages: readMessages(record.messages, sessionPath),
     taskState: readOptionalObject(record.taskState, "taskState", sessionPath) as SessionRecord["taskState"],
     checkpoint: readOptionalObject(record.checkpoint, "checkpoint", sessionPath) as SessionRecord["checkpoint"],
-    verificationState: readOptionalObject(record.verificationState, "verificationState", sessionPath) as SessionRecord["verificationState"],
-    acceptanceState: readOptionalObject(record.acceptanceState, "acceptanceState", sessionPath) as SessionRecord["acceptanceState"],
-    runtimeStats: readOptionalObject(record.runtimeStats, "runtimeStats", sessionPath) as SessionRecord["runtimeStats"],
     sessionDiff: readOptionalObject(record.sessionDiff, "sessionDiff", sessionPath) as SessionRecord["sessionDiff"],
   };
 
@@ -84,7 +75,6 @@ export function parseSessionSnapshot(raw: string, sessionPath: string): SessionR
 
 export function prepareSessionRecordForSave(session: SessionRecord): SessionRecord {
   const normalizedMessages = Array.isArray(session.messages) ? session.messages : [];
-  const verificationState = normalizeSessionVerificationState(session).verificationState ?? createEmptyVerificationState();
   const prepared = {
     ...session,
     updatedAt: new Date().toISOString(),
@@ -92,28 +82,17 @@ export function prepareSessionRecordForSave(session: SessionRecord): SessionReco
     messageCount: normalizedMessages.length,
     messages: normalizedMessages,
     taskState: deriveTaskState(normalizedMessages, session.taskState),
-    verificationState,
-    acceptanceState: normalizeAcceptanceState(
-      deriveAcceptanceState(normalizedMessages, session.acceptanceState),
-    ),
   };
 
-  return normalizeSessionDiffState(normalizeSessionRuntimeStats(normalizeSessionCheckpoint({
+  return normalizeSessionDiffState(normalizeSessionCheckpoint({
     ...prepared,
-  })));
+  }));
 }
 
 export function normalizeLoadedSessionRecord(session: SessionRecord): SessionRecord {
-  const normalized = normalizeSessionDiffState(normalizeSessionRuntimeStats(normalizeSessionCheckpoint(
-    normalizeSessionVerificationState(normalizeTaskStateSessionRecord(session)),
-  )));
-
-  return {
-    ...normalized,
-    acceptanceState: normalizeAcceptanceState(
-      deriveAcceptanceState(normalized.messages ?? [], normalized.acceptanceState),
-    ),
-  };
+  return normalizeSessionDiffState(normalizeSessionCheckpoint(
+    normalizeTaskStateSessionRecord(session),
+  ));
 }
 
 function rejectUnknownSessionKeys(record: Record<string, unknown>, sessionPath: string): void {

@@ -10,7 +10,6 @@ import type {
   RuntimeTerminalTransition,
   RuntimeYieldTransition,
   SessionRecord,
-  VerificationState,
 } from "../../types.js";
 import { clampWholeNumber, normalizeText, takeLastUnique, truncate } from "./shared.js";
 
@@ -67,28 +66,6 @@ export function createProviderRecoveryTransition(
       maxContextChars: Math.max(1, Math.trunc(input.requestConfig.maxContextChars)),
       contextSummaryChars: Math.max(1, Math.trunc(input.requestConfig.contextSummaryChars)),
       delayMs: Math.max(0, Math.trunc(input.delayMs)),
-    },
-    timestamp,
-  };
-}
-
-export function createCompactionDegradationRecoveryTransition(
-  input: {
-    consecutiveFailures: number;
-    noTextStreak: number;
-    recoveryAttempt: number;
-    maxRecoveryAttempts: number;
-  },
-  timestamp = new Date().toISOString(),
-) {
-  return {
-    action: "recover" as const,
-    reason: {
-      code: "recover.post_compaction_degradation" as const,
-      consecutiveFailures: Math.max(1, Math.trunc(input.consecutiveFailures)),
-      noTextStreak: Math.max(1, Math.trunc(input.noTextStreak)),
-      recoveryAttempt: Math.max(1, Math.trunc(input.recoveryAttempt)),
-      maxRecoveryAttempts: Math.max(1, Math.trunc(input.maxRecoveryAttempts)),
     },
     timestamp,
   };
@@ -151,49 +128,17 @@ export function createManagedSliceBudgetPauseTransition(
   };
 }
 
-export function createCompactionDegradationPauseTransition(
-  input: {
-    noTextStreak: number;
-    recoveryAttempts: number;
-    maxRecoveryAttempts: number;
-  },
-  timestamp = new Date().toISOString(),
-) {
-  return {
-    action: "pause" as const,
-    reason: {
-      code: "pause.degradation_recovery_exhausted" as const,
-      pauseReason:
-        "Repeated post-compaction empty responses exhausted formal recovery attempts. Current objective frame was preserved.",
-      noTextStreak: Math.max(1, Math.trunc(input.noTextStreak)),
-      recoveryAttempts: Math.max(1, Math.trunc(input.recoveryAttempts)),
-      maxRecoveryAttempts: Math.max(1, Math.trunc(input.maxRecoveryAttempts)),
-    },
-    timestamp,
-  };
-}
-
 export function createFinalizeTransition(
   input: {
     changedPaths: Iterable<string>;
-    verificationState?: VerificationState;
   },
   timestamp = new Date().toISOString(),
 ): RuntimeFinalizeTransition {
-  const verificationOutcome =
-    input.verificationState?.status === "passed"
-      ? "passed"
-      : input.verificationState?.status === "failed"
-        ? "failed"
-        : "not_attempted";
   return {
     action: "finalize",
     reason: {
       code: "finalize.completed",
       changedPaths: takeLastUnique([...input.changedPaths]),
-      verificationOutcome,
-      verificationKind:
-        verificationOutcome === "passed" ? normalizeText(input.verificationState?.lastKind) || undefined : undefined,
     },
     timestamp,
   };
@@ -202,15 +147,11 @@ export function createFinalizeTransition(
 export function buildRunTurnResult(input: {
   session: SessionRecord;
   changedPaths: Iterable<string>;
-  verificationAttempted: boolean;
-  verificationPassed?: boolean;
   transition: RuntimeTerminalTransition;
 }): RunTurnResult {
   return {
     session: input.session,
     changedPaths: [...input.changedPaths],
-    verificationAttempted: input.verificationAttempted,
-    verificationPassed: input.verificationPassed,
     yielded: input.transition.action === "yield",
     yieldReason:
       input.transition.action === "yield"

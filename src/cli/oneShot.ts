@@ -1,11 +1,9 @@
 import type { SessionStore } from "../agent/session.js";
 import { runHostTurn } from "../host/turn.js";
 import type {
-  AcceptanceState,
   RuntimeConfig,
   RuntimeTerminalTransition,
   SessionRecord,
-  VerificationState,
 } from "../types.js";
 import { createRuntimeUiAgentCallbacks } from "../runtime-ui/agentCallbacks.js";
 import { ui } from "../utils/console.js";
@@ -15,17 +13,6 @@ export interface OneShotCloseoutReport {
   completed: boolean;
   unfinishedReason?: string;
   terminalTransition: RuntimeTerminalTransition | null;
-  verification: {
-    status: string;
-    observedPaths: string[];
-    attempts: number;
-  };
-  acceptance: {
-    status: string;
-    phase?: string;
-    pendingChecks: string[];
-    stalledPhaseCount: number;
-  };
 }
 
 export interface OneShotPromptRunResult {
@@ -90,28 +77,5 @@ export function buildOneShotCloseoutReport(
     completed,
     unfinishedReason: completed ? undefined : terminalTransition?.reason.code ?? defaultUnfinishedReason ?? "unfinished",
     terminalTransition,
-    verification: buildVerificationCloseout(session.verificationState),
-    acceptance: buildAcceptanceCloseout(session.acceptanceState),
-  };
-}
-
-function buildVerificationCloseout(
-  state: VerificationState | undefined,
-): OneShotCloseoutReport["verification"] {
-  return {
-    status: state?.status ?? "idle",
-    observedPaths: [...(state?.observedPaths ?? [])],
-    attempts: state?.attempts ?? 0,
-  };
-}
-
-function buildAcceptanceCloseout(
-  state: AcceptanceState | undefined,
-): OneShotCloseoutReport["acceptance"] {
-  return {
-    status: state?.status ?? "idle",
-    phase: state?.currentPhase,
-    pendingChecks: [...(state?.pendingChecks ?? [])],
-    stalledPhaseCount: state?.stalledPhaseCount ?? 0,
   };
 }

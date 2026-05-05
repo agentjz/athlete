@@ -1,4 +1,4 @@
-import { isRetryableApiError } from "../turn/recovery.js";
+import { isRetryableApiError } from "./apiRetry.js";
 import { sleepWithSignal, throwIfAborted } from "../../utils/abort.js";
 import type { RuntimeConfig, RuntimeRecoverTransition } from "../../types.js";
 
@@ -63,13 +63,6 @@ export function buildRecoveryStatus(
   transition: RuntimeRecoverTransition,
 ): string {
   const reason = transition.reason;
-  if (reason.code === "recover.post_compaction_degradation") {
-    return [
-      `Detected repeated post-compaction empty responses (streak=${reason.noTextStreak}).`,
-      `Recovery attempt ${reason.recoveryAttempt}/${reason.maxRecoveryAttempts} will keep the current objective frame active.`,
-    ].join(" ");
-  }
-
   const fragments = [
     `Model request failed (${truncateForStatus(reason.error, 160)}).`,
     `Auto-retrying in ${formatDelay(reason.delayMs)}.`,

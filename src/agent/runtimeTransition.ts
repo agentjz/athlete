@@ -13,8 +13,6 @@ export {
   buildRunTurnResult,
   createFinalizeTransition,
   createManagedSliceBudgetPauseTransition,
-  createCompactionDegradationPauseTransition,
-  createCompactionDegradationRecoveryTransition,
   createProviderRecoveryBudgetPauseTransition,
   createProviderRecoveryTransition,
   createToolBatchTransition,

@@ -25,14 +25,6 @@ export interface RuntimeRecoverProviderRequestReason {
   delayMs: number;
 }
 
-export interface RuntimeRecoverPostCompactionDegradationReason {
-  code: "recover.post_compaction_degradation";
-  consecutiveFailures: number;
-  noTextStreak: number;
-  recoveryAttempt: number;
-  maxRecoveryAttempts: number;
-}
-
 export interface RuntimeYieldToolStepLimitReason {
   code: "yield.tool_step_limit";
   toolSteps: number;
@@ -58,19 +50,9 @@ export interface RuntimePauseManagedSliceBudgetExhaustedReason {
   maxElapsedMs?: number;
 }
 
-export interface RuntimePauseDegradationRecoveryExhaustedReason {
-  code: "pause.degradation_recovery_exhausted";
-  pauseReason: string;
-  noTextStreak: number;
-  recoveryAttempts: number;
-  maxRecoveryAttempts: number;
-}
-
 export interface RuntimeFinalizeCompletedReason {
   code: "finalize.completed";
   changedPaths: string[];
-  verificationOutcome: "not_attempted" | "passed" | "failed";
-  verificationKind?: string;
 }
 
 export type RuntimeContinueReason =
@@ -78,16 +60,13 @@ export type RuntimeContinueReason =
   | RuntimeContinueToolBatchReason
   | RuntimeContinueEmptyAssistantResponseReason;
 
-export type RuntimeRecoverReason =
-  | RuntimeRecoverProviderRequestReason
-  | RuntimeRecoverPostCompactionDegradationReason;
+export type RuntimeRecoverReason = RuntimeRecoverProviderRequestReason;
 
 export type RuntimeYieldReason = RuntimeYieldToolStepLimitReason;
 
 export type RuntimePauseReason =
   | RuntimePauseProviderRecoveryBudgetExhaustedReason
-  | RuntimePauseManagedSliceBudgetExhaustedReason
-  | RuntimePauseDegradationRecoveryExhaustedReason;
+  | RuntimePauseManagedSliceBudgetExhaustedReason;
 
 export type RuntimeFinalizeReason = RuntimeFinalizeCompletedReason;
 

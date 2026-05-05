@@ -3,7 +3,7 @@
 import type { FunctionToolDefinition } from "../tools/index.js";
 import type { ModelReasoningEffort, ToolCallRecord } from "../../types.js";
 import type { AgentCallbacks, AssistantResponse } from "../types.js";
-import type { ModelRequestMetric } from "../runtimeMetrics.js";
+import type { ModelRequestMetric } from "./metrics.js";
 
 export interface ProviderMessage {
   role: "system" | "user" | "assistant" | "tool";

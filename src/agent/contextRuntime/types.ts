@@ -1,16 +1,13 @@
 import type { ProviderMessage } from "../provider/contract.js";
-import type { PromptContextDiagnostics } from "../prompt/requestDiagnostics.js";
 import type { PromptLayerMetrics, PromptLayers, PromptRuntimeState } from "../prompt/types.js";
 import type { SessionConversationBrief } from "./sessionBrief/types.js";
 import type { AgentWorkingMemory } from "./workingMemory/types.js";
 import type {
-  AcceptanceState,
   ProjectContext,
   RuntimeConfig,
   SessionCheckpoint,
   SessionRecord,
   TaskState,
-  VerificationState,
 } from "../../types.js";
 
 export interface ContextRuntimeToolProgress {
@@ -34,7 +31,7 @@ export interface ContextRuntimeSnapshot {
 export interface BuildContextRuntimeSnapshotInput {
   session: Pick<
     SessionRecord,
-    "messages" | "taskState" | "checkpoint" | "verificationState" | "acceptanceState"
+    "messages" | "taskState" | "checkpoint"
   >;
   toolProgress?: ContextRuntimeToolProgress;
 }
@@ -44,10 +41,8 @@ export interface BuildContextRuntimePromptLayersInput {
   config: RuntimeConfig;
   projectContext: ProjectContext;
   taskState?: TaskState;
-  verificationState?: VerificationState;
   runtimeState?: PromptRuntimeState;
   checkpoint?: SessionCheckpoint;
-  acceptanceState?: AcceptanceState;
   messages?: SessionRecord["messages"];
 }
 
@@ -63,5 +58,4 @@ export interface ContextRuntimeRequest {
   estimatedChars: number;
   summary?: string;
   promptMetrics?: PromptLayerMetrics;
-  contextDiagnostics: PromptContextDiagnostics;
 }

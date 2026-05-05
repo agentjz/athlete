@@ -29,7 +29,6 @@ export function writeCliInteractiveIntro(options: {
   options.output.dim("Tools: read, edit, write, bash");
   options.output.dim("Commands:");
   options.output.dim("/help        Show help");
-  options.output.dim("/runtime     Show runtime summary");
   options.output.dim("/multi       Enter multiline input");
   options.output.dim("/reset       Reset runtime and exit");
   options.output.dim("quit         Exit");

@@ -56,12 +56,6 @@ function buildCutLineBlock(input: RuntimeFactsProfileInput): string | undefined 
   if (input.workingMemory.objective) {
     fields.push({ label: "Target locked", value: "yes" });
   }
-  if (input.workingMemory.verification) {
-    fields.push({ label: "Recorded evidence", value: "present" });
-  }
-  if (input.workingMemory.acceptance) {
-    fields.push({ label: "Acceptance", value: input.workingMemory.acceptance.status });
-  }
   if (input.workingMemory.checkpointStatus) {
     fields.push({ label: "Checkpoint", value: input.workingMemory.checkpointStatus });
   }

@@ -3,7 +3,6 @@ export const TELEGRAM_HELP_TEXT = [
   "/stop            Stop the current Telegram task without shutting down the bot service",
   "/session         Show the session ID bound to this Telegram chat",
   "/config          Show current runtime configuration",
-  "/runtime         Show current session runtime summary",
   "/multi           Telegram does not support interactive multiline mode; send the full message directly",
   "",
   "File usage:",

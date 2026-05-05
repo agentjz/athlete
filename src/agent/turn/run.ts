@@ -3,7 +3,6 @@ import { fetchAssistantResponse } from "../provider/index.js";
 import { evaluateProviderRecoveryBudget, resolveProviderRecoveryBudget } from "../provider/recoveryBudget.js";
 import { createProviderClientPool } from "../provider/client.js";
 import { buildRecoveryRequestConfig, buildRecoveryStatus, computeRecoveryDelayMs, isRecoverableTurnError, pickRequestModel, sleep } from "../provider/retryPolicy.js";
-import { noteRuntimeCompression, noteRuntimeModelRequests, type ModelRequestMetric } from "../runtimeMetrics.js";
 import { injectInboxMessagesIfNeeded, loadPromptRuntimeState } from "./runtimeState.js";
 import {
   buildContextRuntimePromptLayers,
@@ -12,10 +11,7 @@ import {
 } from "../contextRuntime/index.js";
 import { buildRunTurnResult, createProviderRecoveryBudgetPauseTransition, createProviderRecoveryTransition, createYieldTransition } from "../runtimeTransition.js";
 import { resolveAgentProfile } from "../profiles/registry.js";
-import { clearCompactionRecovery, noteCompactionObserved, notePostCompactionNoText } from "./compactionRecovery.js";
-import { persistRecoveryOrPauseFromCompaction } from "./compactionPersistence.js";
 import { emitAssistantFinalOutput, emitAssistantReasoning } from "./finalize.js";
-import { refreshAcceptanceStateForTurn } from "./acceptance.js";
 import { ToolLoopGuard } from "./loopGuard.js";
 import {
   initializeTurnSession,
@@ -26,7 +22,6 @@ import {
 import { processToolCallBatch } from "./toolBatchLifecycle.js";
 import { resolveToollessTurn } from "./toolless.js";
 import { emitTurnProgressStatus, extendPromptLayersForTurnState } from "./state.js";
-import { readVerificationProgress } from "../verification/signals.js";
 import type { AgentIdentity, RunTurnOptions, RunTurnResult } from "../types.js";
 import { ChangeStore } from "../changes/store.js";
 import { loadProjectContext } from "../../context/projectContext.js";
@@ -52,9 +47,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
   const softToolLimit = Math.max(1, options.config.maxToolIterations);
   const continuationWindow = softToolLimit * Math.max(1, options.config.maxContinuationBatches);
   const recoveryBudget = resolveProviderRecoveryBudget(options.config);
-  let compressionAnnounced = false;
   let changedPaths = new Set<string>();
-  let { validationAttempted, validationPassed } = readVerificationProgress(session);
   let consecutiveRequestFailures = 0;
   let recoveryStartedAtMs: number | undefined;
   try {
@@ -73,17 +66,11 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         return buildRunTurnResult({
           session,
           changedPaths,
-          verificationAttempted: validationAttempted,
-          verificationPassed: validationPassed,
           transition,
         });
       }
       session = await injectInboxMessagesIfNeeded(session, options, identity, projectContext.stateRootDir);
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
-      session = await refreshAcceptanceStateForTurn(session, {
-        cwd: options.cwd,
-        sessionStore: options.sessionStore,
-      });
       const runtimeState = await loadPromptRuntimeState(
         projectContext.stateRootDir,
         identity,
@@ -100,10 +87,8 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         config: turnModelConfig,
         projectContext,
         taskState: session.taskState,
-        verificationState: session.verificationState,
         runtimeState: turnRuntimeState,
         checkpoint: session.checkpoint,
-        acceptanceState: session.acceptanceState,
         profile,
         messages: session.messages,
       });
@@ -116,16 +101,11 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         config: requestConfig,
       });
       const turnToolDefinitions = toolRegistry.definitions;
-      session = requestContext.compressed
-        ? noteCompactionObserved(noteRuntimeCompression(session))
-        : session;
-      if (requestContext.compressed && !compressionAnnounced) {
+      if (requestContext.compressed) {
         options.callbacks?.onStatus?.(`Context compressed automatically at ~${requestContext.estimatedChars} chars to keep the turn running.`);
-        compressionAnnounced = true;
       }
       emitTurnProgressStatus(options.callbacks, iteration, softToolLimit, continuationWindow);
       let response;
-      const modelRequestMetrics: ModelRequestMetric[] = [];
       options.callbacks?.onModelWaitStart?.();
       try {
         response = await fetchAssistantResponse(
@@ -141,7 +121,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           turnToolDefinitions,
           options.callbacks,
           options.abortSignal,
-          (metric) => modelRequestMetrics.push(metric),
+          undefined,
           {
             rootDir: projectContext.stateRootDir,
             sessionId: session.id,
@@ -150,11 +130,9 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
             configuredModel: turnModelConfig.model,
           },
         );
-        session = noteRuntimeModelRequests(session, modelRequestMetrics);
         consecutiveRequestFailures = 0;
         recoveryStartedAtMs = undefined;
       } catch (error) {
-        session = noteRuntimeModelRequests(session, modelRequestMetrics);
         if (!isRecoverableTurnError(error)) {
           throw error;
         }
@@ -173,8 +151,6 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
           return buildRunTurnResult({
             session,
             changedPaths,
-            verificationAttempted: validationAttempted,
-            verificationPassed: validationPassed,
             transition,
           });
         }
@@ -197,35 +173,6 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
       emitAssistantReasoning(response, options);
       throwIfAborted(options.abortSignal, "Turn aborted by user.");
       if (response.toolCalls.length === 0) {
-        if (!response.content?.trim()) {
-          const degradation = notePostCompactionNoText(session);
-          session = degradation.session;
-          if (degradation.transition) {
-            const persisted = await persistRecoveryOrPauseFromCompaction({
-              session,
-              response,
-              options,
-              transition: degradation.transition,
-            });
-
-            if (degradation.transition.action === "pause") {
-              return buildRunTurnResult({
-                session: persisted,
-                changedPaths,
-                verificationAttempted: validationAttempted,
-                verificationPassed: validationPassed,
-                transition: degradation.transition,
-              });
-            }
-
-            session = persisted;
-            options.callbacks?.onStatus?.("Detected repeated post-compaction empty responses. Recovering with the current frame preserved...");
-            continue;
-          }
-        } else {
-          session = clearCompactionRecovery(session);
-        }
-
         const completed = await resolveToollessTurn({
           session,
           response,
@@ -240,7 +187,6 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         emitAssistantFinalOutput(response, options);
         return completed.result;
       }
-      session = clearCompactionRecovery(session);
       const batchResult = await processToolCallBatch({
         session,
         response,
@@ -251,13 +197,9 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         changeStore,
         loopGuard,
         changedPaths,
-        validationAttempted,
-        validationPassed,
       });
       session = batchResult.session;
       changedPaths = batchResult.changedPaths;
-      validationAttempted = batchResult.validationAttempted;
-      validationPassed = batchResult.validationPassed;
     }
   } catch (error) {
     const timestamp = new Date().toISOString();

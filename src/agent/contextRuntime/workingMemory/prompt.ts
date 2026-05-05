@@ -60,12 +60,6 @@ export function buildSessionWorkingMemoryBlock(
   if (memory.recentToolBatch?.changedPaths.length) {
     fields.push({ label: "Changed paths", value: formatLimitedList(memory.recentToolBatch.changedPaths, 5) });
   }
-  if (memory.verification) {
-    fields.push({ label: "Verification", value: formatVerification(memory) });
-  }
-  if (memory.acceptance) {
-    fields.push({ label: "Acceptance", value: formatAcceptance(memory) });
-  }
   if (memory.checkpointPhase) {
     fields.push({ label: "Checkpoint", value: `${memory.checkpointStatus ?? "active"} / ${memory.checkpointPhase}` });
   }
@@ -84,43 +78,4 @@ function buildHistoryBoundaryBlock(memory: AgentWorkingMemory): string | undefin
       value: "Raw session history stays in session state; same-session conversation brief and this current-objective working memory are the only automatic continuity surfaces.",
     },
   ]);
-}
-
-function formatVerification(memory: AgentWorkingMemory): string {
-  const verification = memory.verification;
-  if (!verification) {
-    return "";
-  }
-
-  const parts: string[] = [verification.status];
-  if (verification.lastCommand) {
-    parts.push(`${verification.lastKind ?? "verification"} ${verification.lastCommand} (exit ${String(verification.lastExitCode ?? "unknown")})`);
-  }
-  if (verification.observedPaths.length > 0) {
-    parts.push(`paths ${formatLimitedList(verification.observedPaths, 4)}`);
-  }
-  if (verification.attempts > 0) {
-    parts.push(`${verification.attempts} attempt(s)`);
-  }
-
-  return parts.join("; ");
-}
-
-function formatAcceptance(memory: AgentWorkingMemory): string {
-  const acceptance = memory.acceptance;
-  if (!acceptance) {
-    return "";
-  }
-
-  const parts = [
-    acceptance.kind,
-    acceptance.phase ? `phase ${acceptance.phase}` : undefined,
-    acceptance.status,
-    acceptance.pendingChecks.length > 0
-      ? `pending ${formatLimitedList(acceptance.pendingChecks, 4)}`
-      : undefined,
-    acceptance.lastIssueSummary,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.join("; ");
 }

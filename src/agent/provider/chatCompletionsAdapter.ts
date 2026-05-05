@@ -7,7 +7,7 @@ import type {
 import { collapseContentParts, readReasoningContent } from "../session/messages.js";
 import { buildProviderRequestBody } from "./chatRequestBody.js";
 import type { ProviderAdapterRequest, ProviderMessage, ProviderWireAdapter } from "./contract.js";
-import type { ProviderUsageSnapshot } from "../runtimeMetrics.js";
+import type { ProviderUsageSnapshot } from "./metrics.js";
 import { createAbortError, throwIfAborted } from "../../utils/abort.js";
 
 export const chatCompletionsAdapter: ProviderWireAdapter = {

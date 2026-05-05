@@ -7,7 +7,6 @@ import {
 } from "../checkpoint.js";
 import { createMessage } from "../session/messages.js";
 import { applyCurrentTurnFrame } from "../session/taskState.js";
-import { noteRuntimeRecovery, noteRuntimeTurnInput, noteRuntimeYield } from "../runtimeMetrics.js";
 import type { SessionStoreLike } from "../session/store.js";
 import type {
   RuntimeRecoverTransition,
@@ -36,7 +35,7 @@ export async function initializeTurnSession(
 
   const framed = applyCurrentTurnFrame(appended, input);
 
-  return sessionStore.save(noteRuntimeTurnInput(noteCheckpointTurnInput(framed, input), input));
+  return sessionStore.save(noteCheckpointTurnInput(framed, input));
 }
 
 export async function persistYieldedTurn(
@@ -44,7 +43,7 @@ export async function persistYieldedTurn(
   sessionStore: SessionStoreLike,
   transition: RuntimeYieldTransition,
 ): Promise<SessionRecord> {
-  return sessionStore.save(noteRuntimeYield(noteCheckpointYield(session, transition)));
+  return sessionStore.save(noteCheckpointYield(session, transition));
 }
 
 export async function persistRecoveryTurn(
@@ -52,7 +51,7 @@ export async function persistRecoveryTurn(
   sessionStore: SessionStoreLike,
   transition: RuntimeRecoverTransition,
 ): Promise<SessionRecord> {
-  return sessionStore.save(noteRuntimeRecovery(noteCheckpointRecovery(session, transition)));
+  return sessionStore.save(noteCheckpointRecovery(session, transition));
 }
 
 export async function persistToolBatchCheckpoint(

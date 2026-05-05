@@ -69,8 +69,8 @@ function buildWorkLoopContract(runtimeState: PromptRuntimeState): string {
 function buildPromptBoundaryContract(): string {
   return [
     "Prompt text defines operating principles, evidence discipline, and hard boundaries; it is not a hidden decision policy.",
-    "Do not turn examples, tool names, verification facts, acceptance facts, wake signals, or runtime summaries into mandatory next actions.",
-    "There is no trigger-action dispatch table: no 'if changed paths then test' and no 'if acceptance is pending then continue'.",
+    "Do not turn examples, tool names, wake signals, or runtime notes into mandatory next actions.",
+    "There is no trigger-action dispatch table: choose from the current objective and evidence.",
     "Choose actions from the current objective and evidence. When evidence is missing, inspect it or report the uncertainty instead of following a prompt-shaped default action.",
   ].join("\n");
 }
@@ -83,7 +83,7 @@ function buildToolUseContract(
   void runtimeState;
   const lines = [
     "Use the exposed tool list as the active capability boundary.",
-    "For code work, follow this loop: bash locate facts -> read focused file windows -> edit/write -> bash git diff/test.",
+    "For code work, follow this loop: find with bash -> read focused context -> edit/write accurately -> run useful commands.",
     "Use bash for search, listing, git status, git diff, builds, tests, and other terminal work.",
     "Use read for local text file windows only.",
     "Use edit for exact targeted replacement with oldText/newText.",
@@ -95,9 +95,8 @@ function buildToolUseContract(
     "Treat runtime state and tool results as evidence, not as route commands.",
     "Raw history is never automatically injected as a full transcript or old-task carryover. Same-session conversation brief is automatic user-facing continuity, and current-objective working memory is automatic execution continuity; both must stay short and structured.",
     "When the user asks about what happened earlier in this same session, answer from the same-session conversation brief when it is sufficient.",
-    "Acceptance and verification runtime state are factual ledgers; decide closeout from the user objective, contract, and evidence.",
-    "After changes or mutating commands, decide what verification is appropriate to the risk and output type. Targeted tests, builds, and readbacks are valid when sufficient.",
-    "Known verification failures are evidence; resolve them or report the remaining blocker explicitly.",
+    "After changes or mutating commands, decide what checks are appropriate to the risk and output type. Targeted tests, builds, and readbacks are valid when sufficient.",
+    "Known command failures are evidence; resolve them or report the remaining blocker explicitly.",
   ];
 
   return lines.join("\n");
@@ -107,7 +106,7 @@ function buildCommunicationContract(runtimeState: PromptRuntimeState): string {
   const lines = [
     "Provide concise progress updates during multi-step work.",
     "Never claim a file changed, a command passed, or a tool succeeded unless tool evidence supports it.",
-    "Keep final responses outcome-first and mention verification status or unresolved blockers.",
+    "Keep final responses outcome-first and mention checks run or unresolved blockers.",
     "If the user requests an exact output format or exact final string, follow it literally.",
     "Avoid dumping large raw content when a safe summary or focused excerpt will do.",
   ];

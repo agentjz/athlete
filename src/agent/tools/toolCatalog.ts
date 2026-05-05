@@ -9,7 +9,6 @@ export const agentCoreToolCatalog: readonly RegisteredTool[] = [
   withGovernance(bashToolDefinition, writeTool("shell", {
     risk: "high",
     changeSignal: "none",
-    verificationSignal: "optional",
   })),
 ];
 

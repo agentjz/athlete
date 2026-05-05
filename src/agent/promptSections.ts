@@ -6,10 +6,8 @@ import type { AgentProfile } from "./profiles/types.js";
 import type {
   ProjectContext,
   RuntimeConfig,
-  AcceptanceState,
   SessionCheckpoint,
   TaskState,
-  VerificationState,
   StoredMessage,
 } from "../types.js";
 
@@ -22,10 +20,8 @@ export function buildSystemPromptLayers(
   config: RuntimeConfig,
   projectContext: ProjectContext,
   taskState?: TaskState,
-  verificationState?: VerificationState,
   runtimeState: PromptRuntimeState = {},
   checkpoint?: SessionCheckpoint,
-  acceptanceState?: AcceptanceState,
   profile?: AgentProfile,
   messages: StoredMessage[] = [],
 ): PromptLayers {
@@ -34,10 +30,8 @@ export function buildSystemPromptLayers(
     config,
     projectContext,
     taskState,
-    verificationState,
     runtimeState,
     checkpoint,
-    acceptanceState,
     profile,
     messages,
   });

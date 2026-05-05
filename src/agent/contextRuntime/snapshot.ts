@@ -12,8 +12,6 @@ export function buildContextRuntimeSnapshot(
     workingMemory: buildAgentWorkingMemory({
       taskState: input.session.taskState,
       checkpoint: input.session.checkpoint,
-      verificationState: input.session.verificationState,
-      acceptanceState: input.session.acceptanceState,
     }),
     historyBoundary: {
       rawHistoryPolicy: "evidence_lookup_only",

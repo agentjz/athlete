@@ -26,6 +26,7 @@ test("static prompt describes a minimal four-tool coding workbench", () => {
   }).join("\n");
 
   assert.match(prompt, /read, edit, write, and bash/);
-  assert.match(prompt, /bash locate facts -> read focused file windows -> edit\/write -> bash git diff\/test/);
+  assert.match(prompt, /find with bash -> read focused context -> edit\/write accurately -> run useful commands/);
+  assert.match(prompt, /Keep final responses outcome-first and mention checks run or unresolved blockers/);
   assert.doesNotMatch(prompt, /extra default tools/i);
 });

@@ -4,9 +4,7 @@ import path from "node:path";
 
 import type { SessionRecord, StoredMessage } from "../../types.js";
 import { createEmptyCheckpoint } from "../checkpoint.js";
-import { createEmptyRuntimeStats } from "../runtimeMetrics.js";
 import { createEmptyTaskState } from "./taskState.js";
-import { createEmptyVerificationState } from "../verification/state.js";
 import { createEmptySessionDiff } from "./sessionDiff.js";
 import { createSessionNotFoundError, SessionStoreError } from "./errors.js";
 import { parseSessionSnapshot, prepareSessionRecordForSave, serializeSessionSnapshot } from "./snapshot.js";
@@ -188,8 +186,6 @@ export async function createSessionRecord(cwd: string): Promise<SessionRecord> {
     messages: [],
     taskState: createEmptyTaskState(timestamp),
     checkpoint: createEmptyCheckpoint(timestamp),
-    verificationState: createEmptyVerificationState(timestamp),
-    runtimeStats: createEmptyRuntimeStats(timestamp),
     sessionDiff: createEmptySessionDiff(timestamp),
   });
 }

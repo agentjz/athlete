@@ -28,8 +28,6 @@ export async function resolveToollessTurn(
     response: params.response,
     identity: params.identity,
     changedPaths: params.changedPaths,
-    verificationState: params.session.verificationState,
-    acceptanceState: params.session.acceptanceState,
     options: params.options,
   });
 }

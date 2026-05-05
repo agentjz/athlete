@@ -7,15 +7,13 @@ import {
 } from "../runtimeTransition.js";
 import { persistCheckpointTransition } from "./persistence.js";
 import type { AgentIdentity, AssistantResponse, RunTurnOptions, RunTurnResult } from "../types.js";
-import type { AcceptanceState, RuntimeContinueTransition, SessionRecord, VerificationState } from "../../types.js";
+import type { RuntimeContinueTransition, SessionRecord } from "../../types.js";
 
 interface HandleCompletedAssistantResponseParams {
   session: SessionRecord;
   response: AssistantResponse;
   identity: AgentIdentity;
   changedPaths: Set<string>;
-  verificationState?: VerificationState;
-  acceptanceState?: AcceptanceState;
   options: RunTurnOptions;
 }
 
@@ -33,13 +31,10 @@ export async function handleCompletedAssistantResponse(
     }
 > {
   void params.identity;
-  void params.acceptanceState;
 
   const assistantMessage = createMessage("assistant", params.response.content ?? "", {
     reasoningContent: params.response.reasoningContent,
   });
-  const validationAttempted = (params.verificationState?.attempts ?? 0) > 0;
-  const validationPassed = params.verificationState?.status === "passed";
 
   if (!hasVisibleAssistantResult(params.response.content)) {
     const transition = createEmptyAssistantResponseTransition();
@@ -58,7 +53,6 @@ export async function handleCompletedAssistantResponse(
 
   const transition = createFinalizeTransition({
     changedPaths: params.changedPaths,
-    verificationState: params.session.verificationState,
   });
   const session = await params.options.sessionStore.save(
     noteCheckpointCompleted(
@@ -71,8 +65,6 @@ export async function handleCompletedAssistantResponse(
     result: buildRunTurnResult({
       session,
       changedPaths: params.changedPaths,
-      verificationAttempted: validationAttempted,
-      verificationPassed: validationPassed,
       transition,
     }),
   };

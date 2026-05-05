@@ -1,16 +1,15 @@
 import { expandStartToToolBoundary, shouldIncludeStoredAssistantReasoning } from "../../session/messages.js";
-import { createPromptContextDiagnostics } from "../../prompt/requestDiagnostics.js";
 import { renderPromptLayers } from "../../prompt/format.js";
 import { measurePromptLayers } from "../../prompt/metrics.js";
 import { findLatestUserInputIndex, isInternalMessage, sliceCurrentUserInputFrame } from "../../session/turnFrame.js";
 import type { ProviderMessage } from "../../provider/contract.js";
 import type { PromptLayerMetrics, PromptLayers } from "../../prompt/types.js";
 import type { RuntimeConfig, StoredMessage } from "../../../types.js";
-import type { PromptContextDiagnostics } from "../../prompt/requestDiagnostics.js";
 import type { ContextRuntimeRequest } from "../types.js";
 
 const MIN_TAIL_MESSAGES = 8;
 const DETAILED_RECENT_MESSAGES = 8;
+const HARD_TAIL_COUNTS = [8, 6, 4, 2, 1];
 const MAX_SUMMARY_MESSAGE_COUNT = 48;
 
 export function buildCompressedContextRequest(
@@ -32,7 +31,7 @@ export function buildCompressedContextRequest(
         : undefined;
     const summaryPrompt = appendSummary(systemPrompt, summary);
 
-    let workingTail = compactTailMessages(tailMessages, false);
+    let workingTail = compactTailMessages(tailMessages, "normal");
     let requestMessages = composeChatMessages(summaryPrompt, workingTail, config.model);
     let estimatedChars = estimateChatMessagesChars(requestMessages);
     let promptMetrics = measureSystemPrompt(summaryPrompt);
@@ -44,18 +43,10 @@ export function buildCompressedContextRequest(
         estimatedChars,
         summary,
         promptMetrics,
-        contextDiagnostics: createPromptContextDiagnostics({
-          maxContextChars: safeMaxChars,
-          initialEstimatedChars,
-          finalEstimatedChars: estimatedChars,
-          summaryChars: summary?.length,
-          tailMessageCount: tailMessages.length,
-          compactedTail: false,
-        }),
       };
     }
 
-    workingTail = compactTailMessages(tailMessages, true);
+    workingTail = compactTailMessages(tailMessages, "aggressive");
     requestMessages = composeChatMessages(summaryPrompt, workingTail, config.model);
     estimatedChars = estimateChatMessagesChars(requestMessages);
     promptMetrics = measureSystemPrompt(summaryPrompt);
@@ -67,14 +58,6 @@ export function buildCompressedContextRequest(
         estimatedChars,
         summary,
         promptMetrics,
-        contextDiagnostics: createPromptContextDiagnostics({
-          maxContextChars: safeMaxChars,
-          initialEstimatedChars,
-          finalEstimatedChars: estimatedChars,
-          summaryChars: summary?.length,
-          tailMessageCount: tailMessages.length,
-          compactedTail: true,
-        }),
       };
     }
 
@@ -83,31 +66,27 @@ export function buildCompressedContextRequest(
       continue;
     }
 
-    const lastResortSummary = summary
-      ? truncate(summary, Math.max(1_200, Math.floor(config.contextSummaryChars * 0.6)))
-      : undefined;
-    const lastResortTail = sliceTailMessages(frameMessages, MIN_TAIL_MESSAGES);
-    const lastResortMessages = composeChatMessages(
-      appendSummary(systemPrompt, lastResortSummary),
-      compactTailMessages(lastResortTail, true),
-      config.model,
-    );
+    const hardSummary = summary ? truncate(summary, Math.max(600, Math.floor(config.contextSummaryChars * 0.4))) : undefined;
+    const hardPrompt = appendSummary(systemPrompt, hardSummary);
 
-    return {
-      messages: lastResortMessages,
-      compressed: true,
-      estimatedChars: estimateChatMessagesChars(lastResortMessages),
-      summary: lastResortSummary,
-      promptMetrics: measureSystemPrompt(appendSummary(systemPrompt, lastResortSummary)),
-      contextDiagnostics: createPromptContextDiagnostics({
-        maxContextChars: safeMaxChars,
-        initialEstimatedChars,
-        finalEstimatedChars: estimateChatMessagesChars(lastResortMessages),
-        summaryChars: lastResortSummary?.length,
-        tailMessageCount: lastResortTail.length,
-        compactedTail: true,
-      }),
-    };
+    for (const hardTailCount of HARD_TAIL_COUNTS) {
+      const hardTail = sliceTailMessages(frameMessages, Math.min(hardTailCount, frameMessages.length));
+      const hardMessages = composeChatMessages(
+        hardPrompt,
+        compactTailMessages(hardTail, "hard"),
+        config.model,
+      );
+      const hardEstimatedChars = estimateChatMessagesChars(hardMessages);
+      if (hardEstimatedChars <= safeMaxChars || hardTailCount === 1) {
+        return {
+          messages: hardMessages,
+          compressed: true,
+          estimatedChars: hardEstimatedChars,
+          summary: hardSummary,
+          promptMetrics: measureSystemPrompt(hardPrompt),
+        };
+      }
+    }
   }
 }
 
@@ -144,8 +123,9 @@ function composeChatMessages(
   ];
 }
 
-function compactTailMessages(messages: StoredMessage[], aggressive: boolean): StoredMessage[] {
-  const protectedStart = Math.max(0, messages.length - DETAILED_RECENT_MESSAGES);
+function compactTailMessages(messages: StoredMessage[], mode: "normal" | "aggressive" | "hard"): StoredMessage[] {
+  const protectedRecentCount = mode === "normal" ? DETAILED_RECENT_MESSAGES : mode === "aggressive" ? 4 : 0;
+  const protectedStart = Math.max(0, messages.length - protectedRecentCount);
 
   return messages.map((message, index) => {
     if (index >= protectedStart) {
@@ -155,22 +135,22 @@ function compactTailMessages(messages: StoredMessage[], aggressive: boolean): St
     if (message.role === "tool") {
       return {
         ...message,
-        content: truncate(message.content ?? "", aggressive ? 320 : 700),
+        content: truncate(message.content ?? "", mode === "hard" ? 120 : mode === "aggressive" ? 320 : 700),
       };
     }
 
     if (message.role === "assistant") {
       return {
         ...message,
-        content: truncate(message.content ?? "", aggressive ? 300 : 700),
-        reasoningContent: message.reasoningContent,
+        content: truncate(message.content ?? "", mode === "hard" ? 120 : mode === "aggressive" ? 300 : 700),
+        reasoningContent: mode === "hard" ? undefined : message.reasoningContent,
       };
     }
 
     if (message.role === "user") {
       return {
         ...message,
-        content: truncate(message.content ?? "", aggressive ? 320 : 800),
+        content: truncate(message.content ?? "", mode === "hard" ? 180 : mode === "aggressive" ? 320 : 800),
       };
     }
 

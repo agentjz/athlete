@@ -18,7 +18,7 @@ export type ToolGovernanceSpecialty =
   | "shell";
 export type ToolGovernanceMutation = "read" | "state" | "write";
 export type ToolGovernanceRisk = "low" | "medium" | "high";
-export type ToolGovernanceSignal = "none" | "optional" | "required";
+export type ToolChangeSignal = "none" | "required";
 
 export interface ToolGovernance {
   source: ToolGovernanceSource;
@@ -27,8 +27,7 @@ export interface ToolGovernance {
   risk: ToolGovernanceRisk;
   destructive: boolean;
   concurrencySafe: boolean;
-  changeSignal: ToolGovernanceSignal;
-  verificationSignal: ToolGovernanceSignal;
+  changeSignal: ToolChangeSignal;
 }
 
 export interface ToolOrigin {

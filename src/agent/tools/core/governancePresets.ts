@@ -35,6 +35,5 @@ function buildGovernance(
     destructive: overrides.destructive ?? false,
     concurrencySafe: overrides.concurrencySafe ?? false,
     changeSignal: overrides.changeSignal ?? "none",
-    verificationSignal: overrides.verificationSignal ?? "none",
   };
 }

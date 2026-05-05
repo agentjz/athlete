@@ -83,17 +83,6 @@ export const bashToolDefinition: RegisteredTool = {
         outputPath: result.outputPath,
         outputPreview: result.output,
       },
-      ...(classification.validationKind
-        ? {
-            verification: {
-              attempted: true,
-              command,
-              exitCode: result.exitCode,
-              kind: classification.validationKind,
-              passed: result.exitCode === 0 && !result.stalled && !result.timedOut && !result.aborted,
-            },
-          }
-        : {}),
     };
 
     return okResult(

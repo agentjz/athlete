@@ -15,8 +15,6 @@ export function buildContextRuntimePromptLayers(
       messages: input.messages ?? [],
       taskState: input.taskState,
       checkpoint: input.checkpoint,
-      verificationState: input.verificationState,
-      acceptanceState: input.acceptanceState,
     },
   });
   const sessionBriefBlock = buildSessionConversationBriefBlock(snapshot.sessionBrief);
@@ -25,12 +23,10 @@ export function buildContextRuntimePromptLayers(
     config: input.config,
     projectContext: input.projectContext,
     taskState: input.taskState,
-    verificationState: input.verificationState,
     runtimeState: input.runtimeState ?? {},
     sessionBrief: snapshot.sessionBrief,
     workingMemory: snapshot.workingMemory,
     checkpoint: input.checkpoint,
-    acceptanceState: input.acceptanceState,
   });
 
   return {

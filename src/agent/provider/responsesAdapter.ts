@@ -1,7 +1,7 @@
 import type OpenAI from "openai";
 
 import { resolveProviderCapabilities } from "./capabilities.js";
-import type { ProviderUsageSnapshot } from "../runtimeMetrics.js";
+import type { ProviderUsageSnapshot } from "./metrics.js";
 import type { ProviderAdapterRequest, ProviderMessage, ProviderWireAdapter } from "./contract.js";
 import { createAbortError, throwIfAborted } from "../../utils/abort.js";
 

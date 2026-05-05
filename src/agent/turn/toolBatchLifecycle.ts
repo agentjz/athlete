@@ -1,11 +1,8 @@
 ﻿import { noteSessionDiff } from "../session/sessionDiff.js";
 import { createMessage, createToolMessage } from "../session/messages.js";
 import { projectToolResultForModel } from "../toolResults/modelProjection.js";
-import { noteRuntimeToolExecution } from "../runtimeMetrics.js";
 import { persistToolBatchCheckpoint } from "./persistence.js";
 import { executeToolBatch } from "./toolBatch.js";
-import { getLightweightVerificationAttempt, readVerificationProgress } from "../verification/signals.js";
-import { recordVerificationAttempt, recordVerificationObservedPaths } from "../verification/state.js";
 import { recordObservabilityEvent } from "../../observability/writer.js";
 import { throwIfAborted } from "../../utils/abort.js";
 import type { ChangeStore } from "../changes/store.js";
@@ -25,22 +22,16 @@ export interface ProcessToolCallBatchInput {
   changeStore: ChangeStore;
   loopGuard: ToolLoopGuard;
   changedPaths: Set<string>;
-  validationAttempted: boolean;
-  validationPassed: boolean;
 }
 
 export interface ProcessToolCallBatchResult {
   session: SessionRecord;
   changedPaths: Set<string>;
-  validationAttempted: boolean;
-  validationPassed: boolean;
 }
 
 export async function processToolCallBatch(input: ProcessToolCallBatchInput): Promise<ProcessToolCallBatchResult> {
   let session = input.session;
   let changedPaths = new Set(input.changedPaths);
-  let validationAttempted = input.validationAttempted;
-  let validationPassed = input.validationPassed;
   const { response, options, identity, toolRegistry, projectContext, changeStore, loopGuard } = input;
 
   if (response.content && !response.streamedAssistantContent) {
@@ -95,7 +86,6 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       loopGuard.reset();
       session = await options.sessionStore.save(noteSessionDiff({
         ...session,
-        verificationState: recordVerificationObservedPaths(session.verificationState, metadata.changedPaths),
       }, metadata.sessionDiff));
     } else if (metadata?.sessionDiff) {
       session = await options.sessionStore.save(noteSessionDiff(session, metadata.sessionDiff));
@@ -109,21 +99,6 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       }
     }
 
-    const verificationAttempt = metadata?.verification?.attempted
-      ? metadata.verification
-      : getLightweightVerificationAttempt({
-          toolName: toolCall.function.name,
-          rawArgs: toolCall.function.arguments,
-          observedPaths: session.verificationState?.observedPaths ?? [...changedPaths],
-          resultOk: result.ok,
-        });
-    if (verificationAttempt) {
-      session = await options.sessionStore.save({
-        ...session,
-        verificationState: recordVerificationAttempt(session.verificationState, verificationAttempt),
-      });
-      ({ validationAttempted, validationPassed } = readVerificationProgress(session));
-    }
     await recordObservabilityEvent(projectContext.stateRootDir, {
       event: "tool.execution",
       status: result.ok ? "completed" : "failed",
@@ -135,8 +110,6 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
       error: result.ok ? undefined : readToolFailureError(result.output),
       details: {
         changedPathCount: metadata?.changedPaths?.length ?? 0,
-        verificationAttempted: verificationAttempt?.attempted ?? false,
-        verificationPassed: verificationAttempt?.passed ?? false,
       },
     });
     if (result.ok) {
@@ -150,14 +123,7 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
     });
     const storedToolMessage = createToolMessage(toolCall.id, modelOutput, toolCall.function.name);
     batchToolMessages.push(storedToolMessage);
-    session = await options.sessionStore.appendMessages(
-      noteRuntimeToolExecution(session, {
-        toolName: toolCall.function.name,
-        durationMs,
-        ok: result.ok,
-      }),
-      [storedToolMessage],
-    );
+    session = await options.sessionStore.appendMessages(session, [storedToolMessage]);
   }
 
   session = await persistToolBatchCheckpoint({
@@ -170,7 +136,5 @@ export async function processToolCallBatch(input: ProcessToolCallBatchInput): Pr
   return {
     session,
     changedPaths,
-    validationAttempted,
-    validationPassed,
   };
 }

@@ -160,16 +160,12 @@ function shouldReturnToLeadDecision(result: RunTurnResult): boolean {
   }
 
   const code = result.transition.reason.code;
-  return code === "pause.provider_recovery_budget_exhausted" || code === "pause.degradation_recovery_exhausted";
+  return code === "pause.provider_recovery_budget_exhausted";
 }
 
 function buildLeadReboundStatus(reasonCode: string | undefined, pauseReason: string | undefined): string {
   if (reasonCode === "pause.provider_recovery_budget_exhausted") {
     return "Provider recovery budget was reached in this slice. Returning control to Lead.";
-  }
-
-  if (reasonCode === "pause.degradation_recovery_exhausted") {
-    return "Post-compaction degradation recovery budget was reached in this slice. Returning control to Lead.";
   }
 
   return pauseReason || "Slice paused. Returning control to Lead.";

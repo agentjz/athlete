@@ -1,7 +1,7 @@
 import {
   DurableTurnDisplay,
   type DurableTurnDisplayScheduler,
-} from "../chat/durableTurnDisplay.js";
+} from "../runtime-ui/durableTurnDisplay.js";
 
 export type TelegramTurnDisplayScheduler = DurableTurnDisplayScheduler;
 

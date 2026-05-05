@@ -54,12 +54,6 @@ function buildSignalBlock(input: RuntimeFactsProfileInput): string | undefined {
   if (input.workingMemory.objective) {
     fields.push({ label: "Target", value: "current user input" });
   }
-  if (input.workingMemory.verification) {
-    fields.push({ label: "Evidence", value: "recorded" });
-  }
-  if (input.workingMemory.acceptance) {
-    fields.push({ label: "Acceptance", value: input.workingMemory.acceptance.status });
-  }
   if (input.workingMemory.checkpointStatus) {
     fields.push({ label: "Checkpoint", value: "current objective only" });
   }

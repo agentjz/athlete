@@ -1,14 +1,6 @@
 import type { SessionDiffChange } from "./session.js";
 import type { ToolDiagnosticsReport } from "./diagnostics.js";
 
-export interface VerificationAttempt {
-  attempted: boolean;
-  command: string;
-  exitCode: number | null;
-  kind?: string;
-  passed?: boolean;
-}
-
 export type ToolExecutionProtocolPolicy = "sequential" | "parallel";
 
 export type ToolExecutionProtocolPhase = "prepare" | "execute" | "finalize";
@@ -29,7 +21,6 @@ export interface ToolExecutionProtocolMetadata {
 export interface ToolExecutionMetadata {
   changedPaths?: string[];
   changeId?: string;
-  verification?: VerificationAttempt;
   protocol?: ToolExecutionProtocolMetadata;
   runtime?: {
     status: "completed" | "failed" | "timed_out" | "stalled" | "aborted";

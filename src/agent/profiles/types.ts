@@ -2,12 +2,10 @@ import type { PromptRuntimeState } from "../prompt/types.js";
 import type { SessionConversationBrief } from "../contextRuntime/sessionBrief/types.js";
 import type { AgentWorkingMemory } from "../contextRuntime/workingMemory/types.js";
 import type {
-  AcceptanceState,
   ProjectContext,
   RuntimeConfig,
   SessionCheckpoint,
   TaskState,
-  VerificationState,
 } from "../../types.js";
 
 export interface AgentProfileBlock {
@@ -20,8 +18,6 @@ export interface RuntimeFactsProfileInput {
   config: RuntimeConfig;
   projectContext: ProjectContext;
   taskState?: TaskState;
-  verificationState?: VerificationState;
-  acceptanceState?: AcceptanceState;
   runtimeState: PromptRuntimeState;
   sessionBrief?: SessionConversationBrief;
   workingMemory: AgentWorkingMemory;

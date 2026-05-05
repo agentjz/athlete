@@ -91,20 +91,6 @@ function normalizeRecoverTransition(
   reason: RuntimeRecoverTransition["reason"],
   timestamp: string,
 ): RuntimeRecoverTransition | undefined {
-  if (reason.code === "recover.post_compaction_degradation") {
-    return {
-      action: "recover",
-      reason: {
-        code: reason.code,
-        consecutiveFailures: clampWholeNumber(reason.consecutiveFailures, 1, 50, 1) ?? 1,
-        noTextStreak: clampWholeNumber(reason.noTextStreak, 1, 50, 1) ?? 1,
-        recoveryAttempt: clampWholeNumber(reason.recoveryAttempt, 1, 50, 1) ?? 1,
-        maxRecoveryAttempts: clampWholeNumber(reason.maxRecoveryAttempts, 1, 50, 1) ?? 1,
-      },
-      timestamp,
-    };
-  }
-
   if (reason.code !== "recover.provider_request_retry") {
     return undefined;
   }
@@ -190,25 +176,6 @@ function normalizePauseTransition(
     };
   }
 
-  if (reason.code === "pause.degradation_recovery_exhausted") {
-    return {
-      action: "pause",
-      reason: {
-        code: reason.code,
-        pauseReason:
-          truncate(
-            normalizeText(reason.pauseReason) ||
-              "Repeated post-compaction empty responses exhausted formal recovery attempts.",
-          ) ||
-          "Repeated post-compaction empty responses exhausted formal recovery attempts.",
-        noTextStreak: clampWholeNumber(reason.noTextStreak, 1, 50, 1) ?? 1,
-        recoveryAttempts: clampWholeNumber(reason.recoveryAttempts, 1, 50, 1) ?? 1,
-        maxRecoveryAttempts: clampWholeNumber(reason.maxRecoveryAttempts, 1, 50, 1) ?? 1,
-      },
-      timestamp,
-    };
-  }
-
   return undefined;
 }
 
@@ -225,13 +192,6 @@ function normalizeFinalizeTransition(
     reason: {
       code: reason.code,
       changedPaths: takeLastUnique(reason.changedPaths ?? []),
-      verificationOutcome:
-        reason.verificationOutcome === "passed"
-          ? "passed"
-          : reason.verificationOutcome === "failed"
-            ? "failed"
-            : "not_attempted",
-      verificationKind: normalizeText(reason.verificationKind) || undefined,
     },
     timestamp,
   };

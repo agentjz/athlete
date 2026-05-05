@@ -1,4 +1,3 @@
-import type { AcceptanceState } from "./acceptance.js";
 import type { RuntimeTransition } from "./runtimeTransitions.js";
 import type { ToolExecutionProtocolPolicy } from "./toolExecution.js";
 import type { ToolDiagnosticsReport } from "./diagnostics.js";
@@ -32,47 +31,7 @@ export interface SessionRecord {
   messages: StoredMessage[];
   taskState?: TaskState;
   checkpoint?: SessionCheckpoint;
-  verificationState?: VerificationState;
-  acceptanceState?: AcceptanceState;
-  runtimeStats?: SessionRuntimeStats;
   sessionDiff?: SessionDiffState;
-}
-
-export interface SessionRuntimeUsageStats {
-  requestsWithUsage: number;
-  requestsWithoutUsage: number;
-  inputTokensTotal: number;
-  outputTokensTotal: number;
-  totalTokensTotal: number;
-  reasoningTokensTotal: number;
-}
-
-export interface SessionRuntimeToolStats {
-  callCount: number;
-  durationMsTotal: number;
-  okCount: number;
-  errorCount: number;
-}
-
-export interface SessionRuntimeStats {
-  version: 1;
-  model: {
-    requestCount: number;
-    waitDurationMsTotal: number;
-    usage: SessionRuntimeUsageStats;
-  };
-  tools: {
-    callCount: number;
-    durationMsTotal: number;
-    byName: Record<string, SessionRuntimeToolStats>;
-  };
-  events: {
-    continuationCount: number;
-    yieldCount: number;
-    recoveryCount: number;
-    compressionCount: number;
-  };
-  updatedAt: string;
 }
 
 export interface SessionDiffChange {
@@ -121,22 +80,12 @@ export interface SessionRunState {
   updatedAt: string;
 }
 
-export interface CompactionRecoveryState {
-  active: boolean;
-  compressedSince: string;
-  noTextStreak: number;
-  recoveryAttempts: number;
-  lastRecoveryAt?: string;
-  pausedAt?: string;
-}
-
 export interface SessionCheckpointFlow {
   phase: SessionCheckpointPhase;
   reason?: string;
   recoveryFailures?: number;
   runState?: SessionRunState;
   pendingToolCalls?: PendingToolCall[];
-  compactionRecovery?: CompactionRecoveryState;
   lastTransition?: RuntimeTransition;
   updatedAt: string;
 }
@@ -159,16 +108,4 @@ export interface TaskState {
   completedActions: string[];
   blockers: string[];
   lastUpdatedAt: string;
-}
-
-export type VerificationStatus = "idle" | "passed" | "failed";
-
-export interface VerificationState {
-  status: VerificationStatus;
-  attempts: number;
-  observedPaths: string[];
-  lastCommand?: string;
-  lastKind?: string;
-  lastExitCode?: number | null;
-  updatedAt: string;
 }

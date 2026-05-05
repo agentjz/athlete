@@ -1,6 +1,5 @@
 import { isInternalMessage } from "../session/turnFrame.js";
 import type {
-  CompactionRecoveryState,
   PendingToolCall,
   SessionRunState,
   SessionRunStateSource,
@@ -23,7 +22,6 @@ interface BuildCheckpointFlowInput {
     source?: SessionRunStateSource;
   };
   pendingToolCalls?: PendingToolCall[];
-  compactionRecovery?: CompactionRecoveryState;
   timestamp?: string;
 }
 
@@ -53,7 +51,6 @@ export function normalizeCheckpointFlow(
           : undefined,
     runState,
     pendingToolCalls,
-    compactionRecovery: status === "completed" ? undefined : normalizeCompactionRecovery(flow?.compactionRecovery, timestamp),
     lastTransition,
     updatedAt: normalizeTimestamp(flow?.updatedAt, timestamp),
   };
@@ -83,9 +80,6 @@ export function buildCheckpointFlow(input: BuildCheckpointFlowInput): SessionChe
     recoveryFailures: transition?.action === "recover" ? transition.reason.consecutiveFailures : undefined,
     runState,
     pendingToolCalls,
-    compactionRecovery: input.status === "completed"
-      ? undefined
-      : normalizeCompactionRecovery(input.compactionRecovery ?? input.current?.compactionRecovery, timestamp),
     lastTransition: transition,
     updatedAt: timestamp,
   };
@@ -115,10 +109,6 @@ export function formatRuntimeTransitionReason(transition: RuntimeTransition): st
 
 export function getRuntimeTransitionPhase(transition: RuntimeTransition): SessionCheckpointPhase {
   if (transition.action === "recover") {
-    return "recovery";
-  }
-
-  if (transition.action === "pause" && transition.reason.code === "pause.degradation_recovery_exhausted") {
     return "recovery";
   }
 
@@ -183,24 +173,6 @@ function normalizePendingToolCalls(
   }
 
   return result.length > 0 ? result : undefined;
-}
-
-function normalizeCompactionRecovery(
-  recovery: CompactionRecoveryState | undefined,
-  timestamp: string,
-): CompactionRecoveryState | undefined {
-  if (!recovery || typeof recovery !== "object" || recovery.active !== true) {
-    return undefined;
-  }
-
-  return {
-    active: true,
-    compressedSince: normalizeTimestamp(recovery.compressedSince, timestamp),
-    noTextStreak: clampWholeNumber(recovery.noTextStreak, 0, 99, 0) ?? 0,
-    recoveryAttempts: clampWholeNumber(recovery.recoveryAttempts, 0, 99, 0) ?? 0,
-    lastRecoveryAt: normalizeTimestamp(recovery.lastRecoveryAt, "") || undefined,
-    pausedAt: normalizeTimestamp(recovery.pausedAt, "") || undefined,
-  };
 }
 
 function normalizeRunState(input: {
