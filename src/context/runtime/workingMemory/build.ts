@@ -1,15 +1,18 @@
 import { normalizeCheckpoint } from "../../../session/checkpoint.js";
 import { fingerprintObjective, normalizeText, takeLastUnique } from "../../../session/checkpoint/shared.js";
-import type { SessionCheckpoint, TaskState } from "../../../types.js";
+import { normalizeTodoItems } from "../../../session/todos.js";
+import type { SessionCheckpoint, TaskState, TodoItem } from "../../../types.js";
 import type { AgentWorkingMemory } from "./types.js";
 
 const MAX_ACTIVE_FILES = 10;
 const MAX_PLANNED_ACTIONS = 8;
 const MAX_COMPLETED_ACTIONS = 8;
 const MAX_BLOCKERS = 6;
+const MAX_TODOS = 12;
 
 export interface BuildWorkingMemoryInput {
   taskState?: TaskState;
+  todoItems?: TodoItem[];
   checkpoint?: SessionCheckpoint;
   timestamp?: string;
 }
@@ -30,6 +33,7 @@ export function buildAgentWorkingMemory(input: BuildWorkingMemoryInput): AgentWo
       MAX_COMPLETED_ACTIONS,
     ),
     blockers: takeLastUnique(input.taskState?.blockers ?? [], MAX_BLOCKERS),
+    todos: normalizeTodoItems(input.todoItems).slice(0, MAX_TODOS),
     recentToolBatch: checkpoint?.recentToolBatch
       ? {
           tools: checkpoint.recentToolBatch.tools,

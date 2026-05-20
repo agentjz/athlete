@@ -11,6 +11,7 @@ import {
   createUnsupportedSessionSchemaError,
 } from "./errors.js";
 import { deriveTaskState, normalizeSessionRecord as normalizeTaskStateSessionRecord } from "./taskState.js";
+import { deriveTodoItems, normalizeSessionTodos, normalizeTodoItems } from "./todos.js";
 import { readUserInput } from "./turnFrame.js";
 
 const CURRENT_SESSION_SCHEMA_VERSION = 1;
@@ -23,6 +24,7 @@ const SESSION_SNAPSHOT_KEYS = new Set([
   "title",
   "messageCount",
   "messages",
+  "todoItems",
   "taskState",
   "checkpoint",
   "sessionDiff",
@@ -65,6 +67,7 @@ export function parseSessionSnapshot(raw: string, sessionPath: string): SessionR
     title: readOptionalString(record.title, "title", sessionPath),
     messageCount: typeof record.messageCount === "number" ? Math.trunc(record.messageCount) : 0,
     messages: readMessages(record.messages, sessionPath),
+    todoItems: readTodoItems(record.todoItems, sessionPath),
     taskState: readOptionalObject(record.taskState, "taskState", sessionPath) as SessionRecord["taskState"],
     checkpoint: readOptionalObject(record.checkpoint, "checkpoint", sessionPath) as SessionRecord["checkpoint"],
     sessionDiff: readOptionalObject(record.sessionDiff, "sessionDiff", sessionPath) as SessionRecord["sessionDiff"],
@@ -81,6 +84,7 @@ export function prepareSessionRecordForSave(session: SessionRecord): SessionReco
     title: session.title ?? deriveSessionTitle(normalizedMessages),
     messageCount: normalizedMessages.length,
     messages: normalizedMessages,
+    todoItems: deriveTodoItems(normalizedMessages, session.todoItems ?? []),
     taskState: deriveTaskState(normalizedMessages, session.taskState),
   };
 
@@ -91,7 +95,7 @@ export function prepareSessionRecordForSave(session: SessionRecord): SessionReco
 
 export function normalizeLoadedSessionRecord(session: SessionRecord): SessionRecord {
   return normalizeSessionDiffState(normalizeSessionCheckpoint(
-    normalizeTaskStateSessionRecord(session),
+    normalizeSessionTodos(normalizeTaskStateSessionRecord(session)),
   ));
 }
 
@@ -108,6 +112,18 @@ function readMessages(value: unknown, sessionPath: string): StoredMessage[] {
   }
 
   return value.map((entry, index) => readMessage(entry, index, sessionPath));
+}
+
+function readTodoItems(value: unknown, sessionPath: string): SessionRecord["todoItems"] {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  try {
+    return normalizeTodoItems(value);
+  } catch (error) {
+    throw createSessionCorruptError(sessionPath, error instanceof Error ? error.message : String(error));
+  }
 }
 
 function readMessage(value: unknown, index: number, sessionPath: string): StoredMessage {

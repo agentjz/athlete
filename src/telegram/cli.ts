@@ -4,12 +4,10 @@ import type { Command } from "commander";
 
 import { getErrorMessage } from "../agent/errors.js";
 import type { CliOverrides, RuntimeConfig } from "../types.js";
-import type { KittyProductMode } from "../extensions/index.js";
 
 export async function createTelegramService(options: {
   cwd: string;
   config: RuntimeConfig;
-  mode?: KittyProductMode;
 }) {
   const [
     { SessionStore },
@@ -42,7 +40,6 @@ export async function createTelegramService(options: {
   return new TelegramService({
     cwd: options.cwd,
     config: options.config,
-    mode: options.mode,
     bot,
     sessionStore: new SessionStore(options.config.paths.sessionsDir),
     sessionMapStore: new FileTelegramSessionMapStore(path.join(stateDir, "session-map.json")),
@@ -83,7 +80,6 @@ export function registerTelegramCommands(
     createTelegramService?: (options: {
       cwd: string;
       config: RuntimeConfig;
-      mode?: KittyProductMode;
     }) => Promise<{
       run(signal?: AbortSignal): Promise<void>;
       stop?(): void;
@@ -99,8 +95,7 @@ export function registerTelegramCommands(
   telegramCommand
     .command("serve")
     .description("Run the Telegram private-chat service via long polling.")
-    .option("--super", "Run Telegram turns in super mode.")
-    .action(async (commandOptions: { super?: boolean }) => {
+    .action(async () => {
       const runtime = await dependencies.resolveRuntime(dependencies.getCliOverrides());
       if (!runtime.config.telegram.token) {
         throw new Error("Telegram token missing. Set KITTY_TELEGRAM_TOKEN or config.telegram.token.");
@@ -119,7 +114,6 @@ export function registerTelegramCommands(
       const service = await serviceFactory({
         cwd: runtime.cwd,
         config: runtime.config,
-        mode: commandOptions.super ? "super" : "agent",
       });
       console.log(
         `[telegram] starting private chat service allowed=${runtime.config.telegram.allowedUserIds.join(",")} state=${runtime.config.telegram.stateDir} proxy=${runtime.config.telegram.proxyUrl || "direct"}`,

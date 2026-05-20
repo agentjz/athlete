@@ -32,8 +32,8 @@ export function shouldShowToolCallPreview(_name: string, _verbosity: TerminalVer
   return false;
 }
 
-export function shouldShowToolResultPreview(_name: string, _verbosity: TerminalVerbosity): boolean {
-  return false;
+export function shouldShowToolResultPreview(name: string, _verbosity: TerminalVerbosity): boolean {
+  return name === "todo_write";
 }
 
 export function normalizeTerminalVerbosity(

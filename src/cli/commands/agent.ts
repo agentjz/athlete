@@ -36,7 +36,6 @@ export function registerAgentCommand(
         config: runtime.config,
         session,
         sessionStore,
-        mode: "agent",
         incompleteMessage: "Agent one-shot did not complete.",
         onIncomplete: (message) => {
           ui.error(message);

@@ -28,6 +28,7 @@ export interface SessionRecord {
   title?: string;
   messageCount: number;
   messages: StoredMessage[];
+  todoItems?: TodoItem[];
   taskState?: TaskState;
   checkpoint?: SessionCheckpoint;
   sessionDiff?: SessionDiffState;
@@ -90,6 +91,14 @@ export interface SessionCheckpoint {
   recentToolBatch?: SessionCheckpointToolBatch;
   flow: SessionCheckpointFlow;
   updatedAt: string;
+}
+
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  status: TodoStatus;
 }
 
 export interface TaskState {

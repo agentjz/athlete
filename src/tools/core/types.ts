@@ -5,6 +5,7 @@ import type { AgentCallbacks, AgentIdentity } from "../../agent/types.js";
 import type {
   ProjectContext,
   RuntimeConfig,
+  TodoItem,
   ToolExecutionResult,
 } from "../../types.js";
 
@@ -61,6 +62,9 @@ export interface ToolContext {
   identity: AgentIdentity;
   callbacks?: AgentCallbacks;
   abortSignal?: AbortSignal;
+  runtimeState?: {
+    todoItems?: TodoItem[];
+  };
   projectContext: ProjectContext;
   changeStore: ChangeStore;
   createToolRegistry: ToolRegistryFactory;

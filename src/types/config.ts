@@ -1,4 +1,5 @@
 import type { TelegramConfig, TelegramRuntimeConfig } from "../config/hosts.js";
+import type { ExtensionToggleConfig } from "../config/extensions.js";
 
 export type ModelThinkingMode = "enabled" | "disabled";
 export type ModelReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -28,6 +29,7 @@ export interface AppConfig {
   commandStallTimeoutMs: number;
   showReasoning: boolean;
   telegram: TelegramConfig;
+  extensions: ExtensionToggleConfig;
 }
 
 export interface RuntimeConfig extends AppConfig {

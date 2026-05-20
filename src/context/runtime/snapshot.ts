@@ -11,6 +11,7 @@ export function buildContextRuntimeSnapshot(
     }),
     workingMemory: buildAgentWorkingMemory({
       taskState: input.session.taskState,
+      todoItems: input.session.todoItems,
       checkpoint: input.session.checkpoint,
     }),
     historyBoundary: {

@@ -6,6 +6,7 @@ import {
   truncateVisiblePreview,
   type TerminalVerbosity,
 } from "./previewPolicy.js";
+import { colorizeTodoMarkers } from "./todoStyling.js";
 import { writeStdout, writeStdoutLine } from "../utils/stdio.js";
 import type { RuntimeUiChannel, RuntimeUiEvent } from "./events.js";
 import { colorRuntimeUiText, formatRuntimeUiChannelHeader, formatRuntimeUiSemanticTag } from "./theme.js";
@@ -167,7 +168,10 @@ function renderToolResult(
     writeSemanticLine("result", formatRuntimeUiEventMessage(event, options, verbosity, detail), "failed");
   }
   if (display.preview && shouldShowToolResultPreview(name, verbosity)) {
-    writePreview(event.channel, "preview", truncateVisiblePreview(display.preview), verbosity);
+    const preview = name === "todo_write"
+      ? colorizeTodoMarkers(display.preview)
+      : truncateVisiblePreview(display.preview);
+    writePreview(event.channel, "preview", preview, verbosity);
   }
 }
 

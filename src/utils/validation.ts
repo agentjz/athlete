@@ -6,7 +6,7 @@ const VALIDATION_PATTERNS: Array<{
   { kind: "node-test", match: /\bnode(?:\.exe)?\b.*(?:^|\s)--test(?:\s|$)/i },
   { kind: "node-script-check", match: /\bnode(?:\.exe)?\b.*\b[^\s"']*(?:test|spec|verify|verification)[^\s"']*\.(?:[cm]?js|ts)\b/i },
   { kind: "python-inline", match: /\bpython(?:\.exe)?\b.*(?:\s|^)-c\b/i },
-  { kind: "typescript", match: /\btsc(?:\.cmd)?\b.*\b--noEmit\b/i },
+  { kind: "typescript", match: /\btsc(?:\.cmd)?\b.*(?:^|\s)--noEmit(?:\s|$)/i },
   { kind: "npm-build", match: /\bnpm(?:\.cmd)?\b.*\brun\s+build\b/i },
   { kind: "npm-test", match: /\bnpm(?:\.cmd)?\b.*\btest\b/i },
   { kind: "pnpm-build", match: /\bpnpm(?:\.cmd)?\b.*\brun\s+build\b/i },

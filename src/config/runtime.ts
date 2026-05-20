@@ -81,6 +81,7 @@ export async function resolveRuntimeConfig(overrides: CliOverrides = {}): Promis
       showReasoning:
         parseBooleanEnv(process.env.KITTY_SHOW_REASONING) ?? fileConfig.showReasoning,
       telegram: telegramConfig,
+      extensions: fileConfig.extensions,
     },
     {
       cwd,

@@ -2,6 +2,11 @@ import {
   DEFAULT_TELEGRAM_CONFIG,
   normalizeTelegramConfig,
 } from "../config/hosts.js";
+import {
+  getDefaultExtensions,
+  mergeExtensions,
+  normalizeExtensions,
+} from "./extensions.js";
 import type { AppConfig } from "../types.js";
 
 export const CURRENT_CONFIG_SCHEMA_VERSION = 1 as const;
@@ -11,7 +16,7 @@ const DEFAULT_CONFIG: AppConfig = {
   provider: "deepseek",
   baseUrl: "https://api.deepseek.com",
   model: "deepseek-v4-flash",
-  profile: "",
+  profile: "intp",
   contextWindowMessages: 30,
   maxContextChars: 48_000,
   contextSummaryChars: 8_000,
@@ -19,6 +24,7 @@ const DEFAULT_CONFIG: AppConfig = {
   commandStallTimeoutMs: 30_000,
   showReasoning: true,
   telegram: DEFAULT_TELEGRAM_CONFIG,
+  extensions: getDefaultExtensions(),
 };
 
 export function getDefaultConfig(): AppConfig {
@@ -38,7 +44,7 @@ export function normalizeConfig(
     provider: String(config.provider ?? DEFAULT_CONFIG.provider).trim() || DEFAULT_CONFIG.provider,
     baseUrl: config.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     model: config.model?.trim() || DEFAULT_CONFIG.model,
-    profile: String(config.profile ?? "").trim(),
+    profile: String(config.profile ?? DEFAULT_CONFIG.profile).trim() || DEFAULT_CONFIG.profile,
     thinking: normalizeThinking(config.thinking),
     reasoningEffort: normalizeReasoningEffort(config.reasoningEffort),
     maxOutputTokens: clampOptionalNumber(config.maxOutputTokens, 1, 384_000),
@@ -54,6 +60,7 @@ export function normalizeConfig(
     commandStallTimeoutMs: clampNumber(config.commandStallTimeoutMs, 2_000, 300_000, DEFAULT_CONFIG.commandStallTimeoutMs),
     showReasoning: Boolean(config.showReasoning),
     telegram: normalizeTelegramConfig(config.telegram),
+    extensions: normalizeExtensions(config.extensions),
   };
 }
 
@@ -104,6 +111,7 @@ export function mergeAppConfig(base: AppConfig, patch: Partial<AppConfig>): AppC
         ...(patch.telegram?.delivery ?? {}),
       },
     },
+    extensions: mergeExtensions(base.extensions, patch.extensions),
   };
 }
 

@@ -52,6 +52,7 @@ export function registerConfigCommands(
               token: runtime.config.telegram.token ? "set" : "missing",
               stateDir: runtime.config.telegram.stateDir,
             },
+            extensions: runtime.config.extensions,
             configFile: runtime.paths.configFile,
             sessionsDir: runtime.paths.sessionsDir,
             changesDir: runtime.paths.changesDir,

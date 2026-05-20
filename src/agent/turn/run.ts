@@ -52,6 +52,7 @@ export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResu
         config: turnModelConfig,
         projectContext,
         taskState: session.taskState,
+        todoItems: session.todoItems,
         runtimeState: turnRuntimeState,
         checkpoint: session.checkpoint,
         profile,

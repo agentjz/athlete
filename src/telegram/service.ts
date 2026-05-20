@@ -4,7 +4,6 @@ import path from "node:path";
 import type { SessionStoreLike } from "../session/index.js";
 import type { HostTurnRunner } from "../host/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
-import type { KittyProductMode } from "../extensions/index.js";
 import { PerPeerCommandQueue } from "./commandQueue.js";
 import {
   FileTelegramAttachmentStore,
@@ -36,7 +35,6 @@ export interface TelegramServiceOptions {
   sessionMapStore: TelegramSessionMapStoreLike;
   offsetStore: TelegramOffsetStoreLike;
   deliveryQueue: TelegramDeliveryQueue;
-  mode?: KittyProductMode;
   attachmentStore?: TelegramAttachmentStoreLike;
   commandQueue?: PerPeerCommandQueue;
   runTurn?: HostTurnRunner;
@@ -214,7 +212,6 @@ export class TelegramService {
         deliveryQueue: this.options.deliveryQueue,
         logger: this.logger,
         message: classified,
-        mode: this.options.mode ?? "agent",
         runTurn: this.options.runTurn,
         enqueueReply: (chatId, text) => this.enqueueReply(chatId, text),
         markQueuedTurnStarted: (peerKey) => this.turnState.decrementQueuedTurns(peerKey),

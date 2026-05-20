@@ -1,66 +1,138 @@
 # Kitty
 
-## 开发
+<p align="center">
+  <strong>A local agent workbench for durable coding sessions.</strong>
+</p>
 
-| 命令 | 作用 |
-| --- | --- |
-| `npm.cmd install` | 安装项目依赖。 |
-| `npm.cmd run build` | 构建 `dist/` 产物。 |
-| `npm.cmd run typecheck` | 检查 TypeScript 类型。 |
-| `npm.cmd run test:core` | 运行核心测试。 |
-| `npm.cmd run verify:repo-contracts` | 检查仓库结构契约。 |
-| `npm.cmd run verify` | 运行完整验证。 |
+<p align="center">
+  <a href="https://www.npmjs.com/package/@jun133/kitty"><img alt="npm" src="https://img.shields.io/npm/v/%40jun133%2Fkitty?color=111827&label=npm"></a>
+  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D20-339933">
+  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-0f766e">
+  <img alt="agent" src="https://img.shields.io/badge/mode-agent-7c3aed">
+</p>
+
+Kitty 是一个本地 agent 编程工作台。
+
+它的目标很直接：搜得到、看得懂、改得准、跑得通、记得住、能继续。
+
+## Highlights
+
+- **Single agent loop**: 一个主循环驱动模型、工具、session 和收口。
+- **Durable context**: 工作记忆、session brief、checkpoint 和长上下文压缩让任务能继续。
+- **Four core tools**: `read`、`edit`、`write`、`bash` 覆盖基础编程闭环。
+- **Pluggable extensions**: `todo`、`worktree`、`network`、`spec` 作为可启用工具集合存在。
+- **Provider-ready**: 配置、provider adapter、重试和连接诊断集中管理。
+- **Runtime evidence**: observability 只记录事实，不替模型判断路线。
+
+## Install
+
+```bash
+npm.cmd install
+npm.cmd run build
+```
+
+本地运行：
+
+```bash
+npm.cmd run dev
+```
+
+构建后运行：
+
+```bash
+node dist/cli.js
+```
 
 ## CLI
 
-| 命令 | 作用 |
+```bash
+kitty
+kitty "inspect this repository"
+kitty agent
+kitty agent "fix the failing tests"
+kitty resume <sessionId>
+kitty sessions
+kitty config show
+kitty doctor
+kitty telegram serve
+```
+
+## Tools
+
+Core 工具固定为：
+
+| Tool | Purpose |
 | --- | --- |
-| `node dist/cli.js` | 启动默认交互模式。 |
-| `node dist/cli.js <prompt>` | 用默认模式执行一次提示。 |
-| `node dist/cli.js agent` | 启动 Agent 交互模式。 |
-| `node dist/cli.js agent <prompt>` | 用 Agent 模式执行一次提示。 |
-| `node dist/cli.js super` | 启动 Super 交互模式。 |
-| `node dist/cli.js super <prompt>` | 用 Super 模式执行一次提示。 |
-| `node dist/cli.js super --resume <sessionId>` | 用 Super 模式恢复指定 session。 |
-| `node dist/cli.js resume <sessionId>` | 用默认模式恢复指定 session。 |
-| `node dist/cli.js sessions` | 列出最近的 session。 |
+| `read` | 读取文件和上下文事实 |
+| `edit` | 精确修改已有文件 |
+| `write` | 写入新文件或完整内容 |
+| `bash` | 搜索、Git、构建、测试和本地命令 |
 
-## Web
+扩展工具由配置控制：
 
-| 命令 | 作用 |
+| Extension | Purpose |
 | --- | --- |
-| `node dist/cli.js web` | 启动本地 Web 工作台。 |
-| `node dist/cli.js web --host 127.0.0.1` | 指定 Web 监听地址。 |
-| `node dist/cli.js web --host 127.0.0.1 --port 3000` | 指定 Web 监听地址和端口。 |
-| `node dist/cli.js web --super` | 用 Super 模式启动 Web 工作台。 |
-| `node dist/cli.js web --super --host 127.0.0.1 --port 3000` | 用 Super 模式启动指定地址和端口的 Web 工作台。 |
+| `todo` | 会话级 todo 列表 |
+| `worktree` | Git worktree 事实和操作 |
+| `network` | HTTP、下载、trace、OpenAPI 检查 |
+| `spec` | 单文档 spec 工作流 |
 
-## Telegram
+## Configuration
 
-| 命令 | 作用 |
+查看配置：
+
+```bash
+kitty config show
+```
+
+设置扩展开关：
+
+```bash
+kitty config set extensions '{"todo":true,"worktree":false,"network":false,"spec":false}'
+```
+
+初始化项目配置：
+
+```bash
+kitty project init
+```
+
+## Architecture
+
+| Area | Path |
 | --- | --- |
-| `node dist/cli.js telegram serve` | 启动 Telegram 私聊服务。 |
-| `node dist/cli.js telegram serve --super` | 用 Super 模式启动 Telegram 私聊服务。 |
+| Agent loop | `src/agent/` |
+| Context | `src/context/` |
+| Session | `src/session/` |
+| Provider / Config | `src/provider/`, `src/config/` |
+| Core tools | `src/tools/` |
+| Extensions | `src/extensions/` |
+| Host boundary | `src/host/` |
+| CLI / Shell / Telegram | `src/cli/`, `src/shell/`, `src/telegram/` |
+| Runtime UI | `src/runtime-ui/` |
+| Observability | `src/observability/` |
+| Specs | `spec/` |
+| Tests | `tests/` |
 
-## 配置
+## Development
 
-| 命令 | 作用 |
-| --- | --- |
-| `node dist/cli.js config path` | 显示配置文件路径。 |
-| `node dist/cli.js project init` | 初始化当前项目的 `.kitty` 配置文件。 |
-| `node dist/cli.js doctor` | 检查本地配置和模型连接。 |
-| `node dist/cli.js version` | 显示 Kitty 版本号。 |
+```bash
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run test:core
+npm.cmd run verify
+```
 
-## 开发直跑
+`npm.cmd run verify` 是交付前的标准验证入口。
 
-| 命令 | 作用 |
-| --- | --- |
-| `npm.cmd run dev -- agent` | 从源码启动 Agent 交互模式。 |
-| `npm.cmd run dev -- agent <prompt>` | 从源码用 Agent 模式执行一次提示。 |
-| `npm.cmd run dev -- super` | 从源码启动 Super 交互模式。 |
-| `npm.cmd run dev -- super <prompt>` | 从源码用 Super 模式执行一次提示。 |
-| `npm.cmd run dev -- super --resume <sessionId>` | 从源码用 Super 模式恢复指定 session。 |
-| `npm.cmd run dev -- web` | 从源码启动 Web 工作台。 |
-| `npm.cmd run dev -- web --super` | 从源码用 Super 模式启动 Web 工作台。 |
-| `npm.cmd run dev -- telegram serve` | 从源码启动 Telegram 私聊服务。 |
-| `npm.cmd run dev -- telegram serve --super` | 从源码用 Super 模式启动 Telegram 私聊服务。 |
+## Project Rules
+
+项目规则、宪法原则和当前架构事实都在 `spec/`：
+
+- `spec/用户审阅/项目规则/用户偏好.md`
+- `spec/用户审阅/宪法原则/`
+- `spec/用户审阅/系统核心/核心地图.md`
+- `spec/技术实现/`
+
+Spec、代码和测试必须描述同一个当前现实。

@@ -1,34 +1,35 @@
 # Kitty Agent 运行地图
 
-先阅读 `docs/user-preferences.md`。
+先阅读 `spec/用户审阅/项目规则/用户偏好.md`。
 
-然后仔细 research 当前仓库。任何判断、决策、修改和结论都必须基于当前代码事实。如果不是基于事实说话，我们的工作将失去任何意义。
+然后 research 当前仓库。任何判断、决策、修改和结论都必须基于当前代码、测试和 spec 事实。
 
-测试只写当前架构的正向事实。不要写“为了防止回退到旧设计”的负向测试，不要用旧概念黑名单当测试。
+测试只写当前架构的正向事实。不要写旧概念黑名单。
 
-## 用户偏好
+## 真相源
 
-做任何事前，先读 `docs/user-preferences.md`。
+- `spec/用户审阅/项目规则/用户偏好.md`：项目所有者不要什么。
+- `spec/用户审阅/系统核心/核心地图.md`：当前核心体验和模块边界。
+- `spec/用户审阅/宪法原则/`：长期原则，必须基于当前现状维护。
+- `spec/用户审阅/`：用户可审阅的当前产品和架构事实。
+- `spec/技术实现/`：当前代码实现事实。
+- `src/`：实现。
+- `tests/`：当前架构正向事实测试。
 
-这个文件只记录项目所有者不要什么。不要把用户偏好写成教程、计划、流程或技术说明书。
+## 当前源码地图
 
-## 仓库地图
-
-- `docs/user-preferences.md`：项目所有者不要什么。
-- `docs/core.md`：六大核心模块和边界。
 - `src/agent/`：Agent 循环、prompt、turn 执行。
 - `src/context/`：项目上下文、运行时上下文、长上下文压缩。
-- `src/extensions/`：`super` 模式扩展协议和当前 Socratic workflow。
 - `src/session/`：session、checkpoint、工作记忆、连续性。
 - `src/provider/`：模型 provider 调用链、API 适配、请求恢复。
-- `src/config/`：配置、环境变量、provider 设置。
-- `src/tools/`：四个基础工具和共享工具 runtime。
-- `src/host/`：CLI、Web、Telegram 共用运行边界。
+- `src/config/`：配置、环境变量、provider 和 extension 开关。
+- `src/tools/`：四个 core 工具和共享工具 runtime。
+- `src/extensions/`：可插拔 extension 工具集合。
+- `src/host/`：宿主共享运行边界。
+- `src/interaction/`、`src/shell/`、`src/telegram/`：交互终端和 Telegram 产品面。
 - `src/runtime-ui/`：运行时展示。
 - `src/observability/`：事件、终端日志、崩溃记录。
-- `src/shell/`、`src/web/`、`src/telegram/`：具体产品入口。
-- `tests/core/`：核心行为测试。
-- `tests/production-line/`：仓库结构契约。
+- `src/project/`、`src/types/`、`src/utils/`：项目状态、公开类型和通用工具。
 
 ## 验证
 

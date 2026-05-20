@@ -6,7 +6,6 @@ import type {
   SessionRecord,
 } from "../types.js";
 import { createRuntimeUiAgentCallbacks } from "../runtime-ui/agentCallbacks.js";
-import type { KittyProductMode } from "../extensions/index.js";
 import { ui } from "../utils/console.js";
 
 export interface OneShotCloseoutReport {
@@ -27,10 +26,9 @@ export async function runOneShotPrompt(
   config: RuntimeConfig,
   session: SessionRecord,
   sessionStore: SessionStore,
-  options: {
-    mode?: KittyProductMode;
-  } = {},
+  options: Record<string, never> = {},
 ): Promise<OneShotPromptRunResult> {
+  void options;
   const runtimeUi = createRuntimeUiAgentCallbacks({
     channel: "lead",
     config,
@@ -49,7 +47,6 @@ export async function runOneShotPrompt(
     session,
     sessionStore,
     callbacks: runtimeUi.callbacks,
-    mode: options.mode,
   });
 
   if (outcome.status === "failed" || outcome.status === "aborted") {

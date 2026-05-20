@@ -36,7 +36,6 @@ export function registerSessionCommands(
         config: runtime.config,
         session,
         sessionStore,
-        mode: "agent",
       });
       if (result) {
         writeStdoutLine(JSON.stringify(result.closeout));
@@ -61,7 +60,6 @@ export function registerSessionCommands(
         config: runtime.config,
         session,
         sessionStore,
-        mode: "agent",
       });
       if (result) {
         writeStdoutLine(JSON.stringify(result.closeout));
@@ -87,7 +85,6 @@ export function registerSessionCommands(
         config: runtime.config,
         session,
         sessionStore,
-        mode: "agent",
       });
     });
 

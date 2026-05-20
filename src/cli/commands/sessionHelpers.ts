@@ -1,7 +1,6 @@
 import type { CliProgramDependencies } from "../dependencies.js";
 import type { RuntimeConfig, SessionRecord } from "../../types.js";
 import { createHostSession } from "../../host/session.js";
-import type { KittyProductMode } from "../../extensions/index.js";
 
 export async function createSessionStore(sessionsDir: string) {
   const { SessionStore } = await import("../../session/index.js");
@@ -15,7 +14,6 @@ export async function startInteractive(
     config: RuntimeConfig;
     session: SessionRecord;
     sessionStore: Awaited<ReturnType<typeof createSessionStore>>;
-    mode?: KittyProductMode;
   },
 ): Promise<void> {
   if (dependencies.startInteractive) {
@@ -35,7 +33,6 @@ export async function runOneShot(
     config: RuntimeConfig;
     session: SessionRecord;
     sessionStore: Awaited<ReturnType<typeof createSessionStore>>;
-    mode?: KittyProductMode;
   },
 ) {
   if (dependencies.runOneShot) {
@@ -44,7 +41,6 @@ export async function runOneShot(
 
   const { runOneShotPrompt } = await import("../oneShot.js");
   return runOneShotPrompt(options.prompt, options.cwd, options.config, options.session, options.sessionStore, {
-    mode: options.mode,
   });
 }
 
@@ -68,7 +64,6 @@ export async function runCliMode(
     config: RuntimeConfig;
     session: SessionRecord;
     sessionStore: Awaited<ReturnType<typeof createSessionStore>>;
-    mode?: KittyProductMode;
     incompleteMessage?: string;
     onIncomplete?: (message: string) => void;
   },
@@ -79,7 +74,6 @@ export async function runCliMode(
       config: options.config,
       session: options.session,
       sessionStore: options.sessionStore,
-      mode: options.mode,
     });
     return undefined;
   }
@@ -90,7 +84,6 @@ export async function runCliMode(
     config: options.config,
     session: options.session,
     sessionStore: options.sessionStore,
-    mode: options.mode,
   });
   if (!result.closeout.completed && options.onIncomplete) {
     options.onIncomplete(result.closeout.unfinishedReason ?? options.incompleteMessage ?? "Run did not complete.");

@@ -1,10 +1,8 @@
 import type { AgentIdentity } from "../types.js";
-import type { ExtensionRuntimeState } from "../../extensions/runtime.js";
 
 export interface PromptRuntimeState {
   identity?: AgentIdentity;
   taskSummary?: string;
-  extensions?: ExtensionRuntimeState;
 }
 
 export interface PromptLayers {

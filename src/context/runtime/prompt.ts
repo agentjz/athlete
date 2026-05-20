@@ -1,7 +1,6 @@
 import { buildStaticPromptBlocks } from "../../agent/prompt/static.js";
 import { buildSessionConversationBriefBlock } from "./sessionBrief/index.js";
 import { buildProfilePersonaPromptBlocks, resolveAgentProfile } from "../../agent/profiles/registry.js";
-import { buildExtensionPromptBlocks } from "../../extensions/prompt.js";
 import type { PromptLayers } from "../../agent/prompt/types.js";
 import type { AgentProfile } from "../../agent/profiles/types.js";
 import type { BuildContextRuntimePromptLayersInput } from "./types.js";
@@ -14,6 +13,7 @@ export function buildContextRuntimePromptLayers(
   const snapshot = buildContextRuntimeSnapshot({
     session: {
       messages: input.messages ?? [],
+      todoItems: input.todoItems,
       taskState: input.taskState,
       checkpoint: input.checkpoint,
     },
@@ -30,8 +30,6 @@ export function buildContextRuntimePromptLayers(
     checkpoint: input.checkpoint,
   });
 
-  const extensionBlocks = buildExtensionPromptBlocks(input.runtimeState?.extensions);
-
   return {
     staticBlocks: buildStaticPromptBlocks({
       config: input.config,
@@ -40,7 +38,7 @@ export function buildContextRuntimePromptLayers(
     }),
     profilePersonaBlocks: buildProfilePersonaPromptBlocks(resolvedProfile),
     runtimeFactBlocks: sessionBriefBlock
-      ? [sessionBriefBlock, ...runtimeFactBlocks, ...extensionBlocks]
-      : [...runtimeFactBlocks, ...extensionBlocks],
+      ? [sessionBriefBlock, ...runtimeFactBlocks]
+      : [...runtimeFactBlocks],
   };
 }

@@ -34,6 +34,8 @@ export type {
   SessionRunStateStatus,
   StoredMessage,
   TaskState,
+  TodoItem,
+  TodoStatus,
   ToolCallRecord,
 } from "./types/session.js";
 export type {

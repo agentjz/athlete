@@ -30,6 +30,10 @@ export function buildCurrentWorksetBlock(
       value: memory.objective,
     });
   }
+  const inProgressTodo = memory.todos.find((todo) => todo.status === "in_progress");
+  if (inProgressTodo) {
+    fields.push({ label: "In progress", value: inProgressTodo.text });
+  }
   if (memory.plannedActions.length > 0) {
     fields.push({ label: "Planned actions", value: formatLimitedList(memory.plannedActions, 5) });
   }
@@ -50,6 +54,10 @@ export function buildSessionWorkingMemoryBlock(
   const fields: PromptField[] = [];
   if (memory.completedActions.length > 0) {
     fields.push({ label: "Completed", value: formatLimitedList(memory.completedActions, 5) });
+  }
+  const pendingTodos = memory.todos.filter((todo) => todo.status === "pending");
+  if (pendingTodos.length > 0) {
+    fields.push({ label: "Pending todos", value: formatLimitedList(pendingTodos.map((todo) => todo.text), 5) });
   }
   if (memory.recentToolBatch) {
     fields.push({

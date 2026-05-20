@@ -14,7 +14,6 @@
   "exclude": [
     "dist",
     "node_modules",
-    "learn-claude-code",
-    "tests/production-line"
+    "learn-claude-code"
   ]
 }

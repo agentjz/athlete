@@ -2,7 +2,7 @@ import type { AgentCallbacks } from "../agent/types.js";
 import { buildToolResultVisiblePreview } from "./toolDisplay.js";
 
 export interface VisibleTurnEvent {
-  kind: "assistant" | "tool_call" | "tool_result_preview";
+  kind: "assistant" | "tool_call" | "todo_preview" | "tool_result_preview";
   text: string;
 }
 
@@ -105,6 +105,11 @@ export function createVisibleTurnCallbacks(options: {
     onToolResult: (name, output) => {
       options.onActivity();
       handleBufferedAssistantBeforeToolEvent();
+      if (name === "todo_write") {
+        emitExactVisibleText(options, "todo_preview", extractTodoPreview(output));
+        return;
+      }
+
       emitNormalizedVisibleText(options, "tool_result_preview", buildToolResultVisiblePreview(name, output));
     },
     onToolError: () => {
@@ -115,6 +120,19 @@ export function createVisibleTurnCallbacks(options: {
       return;
     },
   };
+}
+
+export function extractTodoPreview(rawOutput: string): string | null {
+  try {
+    const parsed = JSON.parse(rawOutput) as { preview?: unknown };
+    if (typeof parsed.preview === "string" && parsed.preview.length > 0) {
+      return parsed.preview;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function emitAssistantText(

@@ -17,6 +17,7 @@ export const APP_CONFIG_KEYS = [
   "commandStallTimeoutMs",
   "showReasoning",
   "telegram",
+  "extensions",
 ] as const satisfies ReadonlyArray<keyof AppConfig>;
 
 const KNOWN_CONFIG_KEYS = new Set<keyof AppConfig>(APP_CONFIG_KEYS);
@@ -35,6 +36,7 @@ const MUTABLE_CONFIG_KEYS = new Set<keyof AppConfig>([
   "commandStallTimeoutMs",
   "showReasoning",
   "telegram",
+  "extensions",
 ]);
 
 export function isKnownConfigKey(key: string): key is keyof AppConfig {
@@ -67,7 +69,8 @@ export function coerceConfigValue(key: keyof AppConfig, rawValue: string): AppCo
     case "provider":
     case "profile":
       return rawValue.trim() as AppConfig[keyof AppConfig];
-    case "telegram": {
+    case "telegram":
+    case "extensions": {
       const parsed = tryParseJson(rawValue);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         throw new Error(`Expected a JSON object for ${key}.`);

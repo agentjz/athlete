@@ -24,6 +24,9 @@ export async function executeToolCallWithRecovery(
       },
       callbacks: options.callbacks,
       abortSignal: options.abortSignal,
+      runtimeState: {
+        todoItems: session.todoItems,
+      },
       projectContext,
       changeStore,
       createToolRegistry,
