@@ -19,7 +19,18 @@ export function buildCompressedContextRequest(
 ): ContextRuntimeRequest {
   const safeMaxChars = Math.max(8_000, config.maxContextChars);
   const frameMessages = sliceCurrentUserInputFrame(messages);
+  const fullMessages = composeChatMessages(systemPrompt, frameMessages, config.model);
   const initialEstimatedChars = estimateChatMessagesChars(composeChatMessages(systemPrompt, frameMessages, config.model));
+
+  if (initialEstimatedChars <= safeMaxChars) {
+    return {
+      messages: fullMessages,
+      compressed: false,
+      estimatedChars: initialEstimatedChars,
+      promptMetrics: measureSystemPrompt(systemPrompt),
+    };
+  }
+
   let tailCount = Math.max(1, Math.min(frameMessages.length, config.contextWindowMessages));
 
   while (true) {

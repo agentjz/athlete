@@ -24,5 +24,9 @@ test("config schema normalizes model, context, telegram, and extensions", () => 
   assert.equal(normalized.model, "deepseek-v4-flash");
   assert.equal(normalized.contextWindowMessages, 6);
   assert.equal(normalized.maxContextChars, 8_000);
+  assert.equal(config.contextWindowMessages, 120);
+  assert.equal(config.maxContextChars, 900_000);
+  assert.equal(config.contextSummaryChars, 120_000);
+  assert.equal(config.maxOutputTokens, 384_000);
   assert.equal(normalized.extensions.network, true);
 });

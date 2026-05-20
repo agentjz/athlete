@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildStaticPromptBlocks } from "../../src/agent/prompt/static.js";
+import { buildSystemPrompt } from "../../src/agent/systemPrompt.js";
+import { INTP_PROFILE } from "../../src/agent/profiles/intp/index.js";
 import { createTestRuntimeConfig } from "../helpers.js";
 
 test("agent static prompt names the lead loop and foundation tools", () => {
   const config = createTestRuntimeConfig(process.cwd());
-  const blocks = buildStaticPromptBlocks({
+  const text = buildSystemPrompt(
+    process.cwd(),
     config,
-    projectContext: {
+    {
       rootDir: process.cwd(),
       stateRootDir: process.cwd(),
       cwd: process.cwd(),
@@ -17,16 +19,23 @@ test("agent static prompt names the lead loop and foundation tools", () => {
       instructionTruncated: false,
       ignoreRules: [],
     },
-    runtimeState: {
+    undefined,
+    {
       identity: {
         kind: "lead",
         name: "lead",
       },
       taskSummary: "",
     },
-  });
+  );
 
-  const text = blocks.join("\n");
   assert.match(text, /lead agent/);
   assert.match(text, /read, edit, write, and bash/);
+});
+
+test("intp profile carries compressed communication policy", () => {
+  const profileText = INTP_PROFILE.personaBlocks.map((block) => block.content).join("\n");
+
+  assert.match(profileText, /short, exact, no fluff/);
+  assert.match(profileText, /Keep detail only when it changes action or prevents ambiguity/);
 });

@@ -47,10 +47,10 @@ test("project env templates expose the runtime environment contract", () => {
   assert.equal(example.get("KITTY_TELEGRAM_TOKEN"), "replace-with-your-telegram-bot-token");
   assert.equal(local.get("KITTY_API_KEY"), "");
   assert.equal(local.get("KITTY_TELEGRAM_TOKEN"), "");
-  assert.equal(local.get("KITTY_CONTEXT_WINDOW_MESSAGES"), "30");
-  assert.equal(local.get("KITTY_MAX_CONTEXT_CHARS"), "48000");
-  assert.equal(local.get("KITTY_CONTEXT_SUMMARY_CHARS"), "8000");
-  assert.equal(local.get("KITTY_MAX_OUTPUT_TOKENS"), "8192");
+  assert.equal(local.get("KITTY_CONTEXT_WINDOW_MESSAGES"), "120");
+  assert.equal(local.get("KITTY_MAX_CONTEXT_CHARS"), "900000");
+  assert.equal(local.get("KITTY_CONTEXT_SUMMARY_CHARS"), "120000");
+  assert.equal(local.get("KITTY_MAX_OUTPUT_TOKENS"), "384000");
   assert.equal(local.get("KITTY_PROJECT_DOC_MAX_BYTES"), "24576");
   assert.equal(local.get("KITTY_PROFILE"), "intp");
   assert.equal(local.get("KITTY_PROVIDER"), "deepseek");
