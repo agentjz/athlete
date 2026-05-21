@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import dotenv from "dotenv";
+import { PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_FILE_NAME } from "../project/statePaths.js";
 
 const managedEnvValues = new Map<string, string>();
 
@@ -45,7 +46,7 @@ function findProjectDotEnvFiles(cwd: string): string[] {
   let currentDir = path.resolve(cwd);
 
   while (true) {
-    candidates.push(path.join(currentDir, ".kitty", ".env"));
+    candidates.push(path.join(currentDir, PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_FILE_NAME));
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
       break;

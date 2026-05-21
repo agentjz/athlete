@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { ProjectIgnoreRule } from "../types.js";
+import { PROJECT_STATE_DIR_NAME, PROJECT_STATE_IGNORE_FILE_NAME } from "../project/statePaths.js";
 
 const BUILTIN_PATTERNS = [
   ".git/",
@@ -20,11 +21,11 @@ export async function loadProjectIgnoreRules(rootDir: string, cwd: string): Prom
 
   const candidateFiles = uniqueIgnoreFiles([
     {
-      path: path.join(rootDir, ".kitty", ".kittyignore"),
+      path: path.join(rootDir, PROJECT_STATE_DIR_NAME, PROJECT_STATE_IGNORE_FILE_NAME),
       baseDir: rootDir,
     },
     {
-      path: path.join(cwd, ".kitty", ".kittyignore"),
+      path: path.join(cwd, PROJECT_STATE_DIR_NAME, PROJECT_STATE_IGNORE_FILE_NAME),
       baseDir: cwd,
     },
   ]);

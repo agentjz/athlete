@@ -12,6 +12,10 @@ export function getBuiltinTools(): readonly RegisteredTool[] {
   return agentCoreToolCatalog;
 }
 
+export function getBuiltinToolNames(): string[] {
+  return getBuiltinTools().map((tool) => tool.definition.function.name);
+}
+
 function withChangeSignal(
   tool: RegisteredTool,
   changeSignal: NonNullable<RegisteredTool["changeSignal"]>,

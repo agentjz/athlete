@@ -3,75 +3,63 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import { KITTY_ENV } from "../../src/config/envKeys.js";
+import { getInitialRuntimeConfig } from "../../src/config/initialConfig.js";
+import {
+  PROJECT_STATE_DIR_NAME,
+  PROJECT_STATE_ENV_EXAMPLE_FILE_NAME,
+  PROJECT_STATE_ENV_FILE_NAME,
+} from "../../src/project/statePaths.js";
+import { getDefaultProviderPreset, PROVIDER_PRESETS } from "../../src/config/providerPresets.js";
 import { buildProjectEnvTemplate } from "../../src/config/projectEnvTemplate.js";
 
-const DEFAULT_ENV_KEYS = [
-  "KITTY_API_KEY",
-  "KITTY_BASE_URL",
-  "KITTY_COMMAND_STALL_TIMEOUT_MS",
-  "KITTY_CONTEXT_SUMMARY_CHARS",
-  "KITTY_CONTEXT_WINDOW_MESSAGES",
-  "KITTY_MAX_CONTEXT_CHARS",
-  "KITTY_MAX_OUTPUT_TOKENS",
-  "KITTY_MAX_READ_BYTES",
-  "KITTY_MODEL",
-  "KITTY_PROFILE",
-  "KITTY_PROJECT_DOC_MAX_BYTES",
-  "KITTY_PROVIDER",
-  "KITTY_REASONING_EFFORT",
-  "KITTY_SHOW_REASONING",
-  "KITTY_TELEGRAM_ALLOWED_USER_IDS",
-  "KITTY_TELEGRAM_API_BASE_URL",
-  "KITTY_TELEGRAM_DELIVERY_BASE_DELAY_MS",
-  "KITTY_TELEGRAM_DELIVERY_MAX_DELAY_MS",
-  "KITTY_TELEGRAM_DELIVERY_MAX_RETRIES",
-  "KITTY_TELEGRAM_MESSAGE_CHUNK_CHARS",
-  "KITTY_TELEGRAM_POLLING_LIMIT",
-  "KITTY_TELEGRAM_POLLING_RETRY_BACKOFF_MS",
-  "KITTY_TELEGRAM_POLLING_TIMEOUT_SECONDS",
-  "KITTY_TELEGRAM_PROXY_URL",
-  "KITTY_TELEGRAM_TOKEN",
-  "KITTY_TELEGRAM_TYPING_INTERVAL_MS",
-  "KITTY_THINKING",
-] as const;
+test("local project env template writes one active provider and keeps provider presets visible", () => {
+  const initialConfig = getInitialRuntimeConfig();
+  const defaultPreset = getDefaultProviderPreset();
+  const template = buildProjectEnvTemplate(false);
+  const local = readEnvAssignments(template);
 
-test("project env templates expose the runtime environment contract", () => {
-  const local = readEnvAssignments(buildProjectEnvTemplate(false));
-  const example = readEnvAssignments(buildProjectEnvTemplate(true));
+  assert.deepEqual([...local.keys()].sort(), expectedActiveEnvKeys());
+  assert.equal(local.get(KITTY_ENV.apiKey), "");
+  assert.equal(local.get(KITTY_ENV.profile), initialConfig.profile);
+  assert.equal(local.get(KITTY_ENV.provider), defaultPreset.provider);
+  assert.equal(local.get(KITTY_ENV.baseUrl), defaultPreset.baseUrl);
+  assert.equal(local.get(KITTY_ENV.model), defaultPreset.model);
+  assert.equal(local.get(KITTY_ENV.thinking), defaultPreset.thinking);
+  assert.equal(local.get(KITTY_ENV.reasoningEffort), defaultPreset.reasoningEffort);
+  assertProviderPresets(template);
+  assertCommonOptionalEntries(template);
+});
 
-  assert.deepEqual([...local.keys()].sort(), [...DEFAULT_ENV_KEYS].sort());
-  assert.deepEqual([...example.keys()].sort(), [...DEFAULT_ENV_KEYS].sort());
-  assert.deepEqual(readMentionedEnvKeys(buildProjectEnvTemplate(false)), [...DEFAULT_ENV_KEYS].sort());
-  assert.deepEqual(readMentionedEnvKeys(buildProjectEnvTemplate(true)), [...DEFAULT_ENV_KEYS].sort());
-  assert.equal(example.get("KITTY_API_KEY"), "replace-with-your-provider-key");
-  assert.equal(example.get("KITTY_TELEGRAM_TOKEN"), "replace-with-your-telegram-bot-token");
-  assert.equal(local.get("KITTY_API_KEY"), "");
-  assert.equal(local.get("KITTY_TELEGRAM_TOKEN"), "");
-  assert.equal(local.get("KITTY_CONTEXT_WINDOW_MESSAGES"), "120");
-  assert.equal(local.get("KITTY_MAX_CONTEXT_CHARS"), "900000");
-  assert.equal(local.get("KITTY_CONTEXT_SUMMARY_CHARS"), "120000");
-  assert.equal(local.get("KITTY_MAX_OUTPUT_TOKENS"), "384000");
-  assert.equal(local.get("KITTY_PROJECT_DOC_MAX_BYTES"), "24576");
-  assert.equal(local.get("KITTY_PROFILE"), "intp");
-  assert.equal(local.get("KITTY_PROVIDER"), "deepseek");
-  assert.equal(local.get("KITTY_BASE_URL"), "https://api.deepseek.com");
-  assert.equal(local.get("KITTY_MODEL"), "deepseek-v4-flash");
-  assert.equal(local.get("KITTY_THINKING"), "enabled");
-  assert.equal(local.get("KITTY_REASONING_EFFORT"), "max");
-  assertProviderPresets(buildProjectEnvTemplate(false));
+test("project env example documents provider presets and optional env entry points", () => {
+  const example = buildProjectEnvTemplate(true);
+  const assignments = readEnvAssignments(example);
+
+  assert.equal(assignments.get(KITTY_ENV.apiKey), "replace-with-your-provider-key");
+  assert.equal(assignments.get(KITTY_ENV.telegramToken), "replace-with-your-telegram-bot-token");
+  assert.equal(assignments.get(KITTY_ENV.telegramAllowedUserIds), "replace-with-your-telegram-user-id");
+  assert.deepEqual([...assignments.keys()].sort(), expectedActiveEnvKeys());
+  assertProviderPresets(example);
+  assertCommonOptionalEntries(example);
+});
+
+test("provider presets are rendered from the preset registry", () => {
   assertProviderPresets(buildProjectEnvTemplate(true));
 });
 
 test("project env example is generated from the current template", () => {
   const projectRoot = process.cwd();
-  const exampleEnv = fs.readFileSync(path.join(projectRoot, ".kitty", ".env.example"), "utf8").replace(/\r\n/g, "\n");
+  const exampleEnv = fs.readFileSync(
+    path.join(projectRoot, PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_EXAMPLE_FILE_NAME),
+    "utf8",
+  ).replace(/\r\n/g, "\n");
 
   assert.equal(exampleEnv.trimEnd(), buildProjectEnvTemplate(true).trimEnd());
 });
 
 test("local project env may contain real secrets while keeping the current contract", () => {
   const projectRoot = process.cwd();
-  const envPath = path.join(projectRoot, ".kitty", ".env");
+  const envPath = path.join(projectRoot, PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_FILE_NAME);
   if (!fs.existsSync(envPath)) {
     return;
   }
@@ -79,11 +67,9 @@ test("local project env may contain real secrets while keeping the current contr
   const localEnv = fs.readFileSync(envPath, "utf8").replace(/\r\n/g, "\n");
   const assignments = readEnvAssignments(localEnv);
 
-  assert.deepEqual([...assignments.keys()].sort(), [...DEFAULT_ENV_KEYS].sort());
+  assert.deepEqual([...assignments.keys()].sort(), expectedActiveEnvKeys());
   assertProviderPresets(localEnv);
-  assert.equal(assignments.get("KITTY_PROVIDER"), "deepseek");
-  assert.equal(assignments.get("KITTY_BASE_URL"), "https://api.deepseek.com");
-  assert.equal(assignments.get("KITTY_MODEL"), "deepseek-v4-flash");
+  assertActiveProviderMatchesKnownPreset(assignments);
 });
 
 function readEnvAssignments(content: string): Map<string, string> {
@@ -108,11 +94,96 @@ function readMentionedEnvKeys(content: string): string[] {
   return [...keys].sort();
 }
 
+function assertMentioned(content: string, keys: readonly string[]): void {
+  const mentioned = readMentionedEnvKeys(content);
+  for (const key of keys) {
+    assert.equal(mentioned.includes(key), true, `${key} should be mentioned`);
+  }
+}
+
 function assertProviderPresets(content: string): void {
-  assert.match(content, /Provider preset: YLS Codex \+ GPT-5\.4/u);
-  assert.match(content, /KITTY_BASE_URL=https:\/\/code\.ylsagi\.com\/codex/u);
-  assert.match(content, /Provider preset: TTAPI \+ GPT-5\.4/u);
-  assert.match(content, /KITTY_BASE_URL=https:\/\/w\.ciykj\.cn/u);
-  assert.match(content, /Provider preset: DeepSeek official V4/u);
-  assert.match(content, /KITTY_BASE_URL=https:\/\/api\.deepseek\.com/u);
+  for (const preset of PROVIDER_PRESETS) {
+    assert.match(content, new RegExp(escapeRegExp(`Provider preset: ${preset.label}`), "u"));
+    assert.match(content, new RegExp(escapeRegExp(`${KITTY_ENV.baseUrl}=${preset.baseUrl}`), "u"));
+  }
+}
+
+function assertCommonOptionalEntries(content: string): void {
+  assertMentioned(content, [
+    KITTY_ENV.telegramToken,
+    KITTY_ENV.telegramAllowedUserIds,
+    KITTY_ENV.telegramApiBaseUrl,
+    KITTY_ENV.telegramProxyUrl,
+    KITTY_ENV.telegramPollingTimeoutSeconds,
+    KITTY_ENV.telegramPollingLimit,
+    KITTY_ENV.telegramPollingRetryBackoffMs,
+    KITTY_ENV.telegramMessageChunkChars,
+    KITTY_ENV.telegramTypingIntervalMs,
+    KITTY_ENV.telegramDeliveryMaxRetries,
+    KITTY_ENV.telegramDeliveryBaseDelayMs,
+    KITTY_ENV.telegramDeliveryMaxDelayMs,
+    KITTY_ENV.extensionTodo,
+    KITTY_ENV.extensionWorktree,
+    KITTY_ENV.extensionNetwork,
+    KITTY_ENV.extensionSpec,
+    KITTY_ENV.maxOutputTokens,
+    KITTY_ENV.contextWindowMessages,
+    KITTY_ENV.maxContextChars,
+    KITTY_ENV.contextSummaryChars,
+    KITTY_ENV.maxReadBytes,
+    KITTY_ENV.projectDocMaxBytes,
+    KITTY_ENV.commandStallTimeoutMs,
+    KITTY_ENV.showReasoning,
+  ]);
+}
+
+function assertActiveProviderMatchesKnownPreset(assignments: Map<string, string>): void {
+  const matching = PROVIDER_PRESETS.some((preset) => (
+    assignments.get(KITTY_ENV.provider) === preset.provider &&
+    assignments.get(KITTY_ENV.baseUrl) === preset.baseUrl &&
+    assignments.get(KITTY_ENV.model) === preset.model &&
+    assignments.get(KITTY_ENV.thinking) === preset.thinking &&
+    assignments.get(KITTY_ENV.reasoningEffort) === preset.reasoningEffort
+  ));
+  assert.equal(matching, true, "active provider block should match a known provider preset");
+}
+
+function expectedActiveEnvKeys(): string[] {
+  return [
+    KITTY_ENV.apiKey,
+    KITTY_ENV.provider,
+    KITTY_ENV.baseUrl,
+    KITTY_ENV.model,
+    KITTY_ENV.profile,
+    KITTY_ENV.thinking,
+    KITTY_ENV.reasoningEffort,
+    KITTY_ENV.telegramToken,
+    KITTY_ENV.telegramAllowedUserIds,
+    KITTY_ENV.telegramApiBaseUrl,
+    KITTY_ENV.telegramProxyUrl,
+    KITTY_ENV.telegramPollingTimeoutSeconds,
+    KITTY_ENV.telegramPollingLimit,
+    KITTY_ENV.telegramPollingRetryBackoffMs,
+    KITTY_ENV.telegramMessageChunkChars,
+    KITTY_ENV.telegramTypingIntervalMs,
+    KITTY_ENV.telegramDeliveryMaxRetries,
+    KITTY_ENV.telegramDeliveryBaseDelayMs,
+    KITTY_ENV.telegramDeliveryMaxDelayMs,
+    KITTY_ENV.extensionTodo,
+    KITTY_ENV.extensionWorktree,
+    KITTY_ENV.extensionNetwork,
+    KITTY_ENV.extensionSpec,
+    KITTY_ENV.maxOutputTokens,
+    KITTY_ENV.contextWindowMessages,
+    KITTY_ENV.maxContextChars,
+    KITTY_ENV.contextSummaryChars,
+    KITTY_ENV.maxReadBytes,
+    KITTY_ENV.projectDocMaxBytes,
+    KITTY_ENV.commandStallTimeoutMs,
+    KITTY_ENV.showReasoning,
+  ].sort();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -1,14 +1,12 @@
+import path from "node:path";
 import type { Command } from "commander";
 
-import { getAppPaths } from "../../config/paths.js";
-import type { CliOverrides, RuntimeConfig, AppConfig } from "../../types.js";
-import { ui } from "../../utils/console.js";
-import { writeStdoutLine } from "../../utils/stdio.js";
 import {
-  coerceConfigValue,
-  isKnownConfigKey,
-  isMutableConfigKey,
-} from "../configValues.js";
+  PROJECT_STATE_DIR_NAME,
+  PROJECT_STATE_ENV_FILE_NAME,
+} from "../../project/statePaths.js";
+import type { CliOverrides, RuntimeConfig } from "../../types.js";
+import { writeStdoutLine } from "../../utils/stdio.js";
 
 export function registerConfigCommands(
   program: Command,
@@ -22,94 +20,55 @@ export function registerConfigCommands(
     }>;
   },
 ): void {
-  const configCommand = program.command("config").description("Read or update kitty config.");
+  const configCommand = program.command("config").description("Show Kitty runtime configuration from .kitty/.env.");
 
   configCommand
     .command("show")
-    .description("Show config file values and API key status.")
+    .description("Show resolved runtime configuration and secret status.")
     .action(async () => {
       const runtime = await options.resolveRuntime(options.getCliOverrides());
-      writeStdoutLine(
-        JSON.stringify(
-          {
-            schemaVersion: runtime.config.schemaVersion,
-            provider: runtime.config.provider,
-            model: runtime.config.model,
-            profile: runtime.config.profile,
-            thinking: runtime.config.thinking,
-            reasoningEffort: runtime.config.reasoningEffort,
-            maxOutputTokens: runtime.config.maxOutputTokens,
-            baseUrl: runtime.config.baseUrl,
-            runtimeBudget: {
-              contextWindowMessages: runtime.config.contextWindowMessages,
-              maxContextChars: runtime.config.maxContextChars,
-              contextSummaryChars: runtime.config.contextSummaryChars,
-            },
-            pathAccess: "unrestricted",
-            apiKey: runtime.config.apiKey ? "set" : "missing",
-            telegram: {
-              ...runtime.config.telegram,
-              token: runtime.config.telegram.token ? "set" : "missing",
-              stateDir: runtime.config.telegram.stateDir,
-            },
-            extensions: runtime.config.extensions,
-            configFile: runtime.paths.configFile,
-            sessionsDir: runtime.paths.sessionsDir,
-            changesDir: runtime.paths.changesDir,
-          },
-          null,
-          2,
-        ),
-      );
+      writeStdoutLine(JSON.stringify(toDisplayConfig(runtime.config), null, 2));
     });
 
   configCommand
     .command("path")
-    .description("Show the config file path.")
-    .action(async () => {
+    .description("Show the project .kitty/.env path.")
+    .action(() => {
       const overrides = options.getCliOverrides();
-      writeStdoutLine(getAppPaths(overrides.cwd ?? process.cwd()).configFile);
+      const cwd = path.resolve(overrides.cwd ?? process.cwd());
+      writeStdoutLine(path.join(cwd, PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_FILE_NAME));
     });
+}
 
-  configCommand
-    .command("get")
-    .description("Read a config key.")
-    .argument("<key>", "Config key")
-    .action(async (key: string) => {
-      if (!isKnownConfigKey(key)) {
-        throw new Error(`Unknown config key: ${key}`);
-      }
-
-      const overrides = options.getCliOverrides();
-      const { loadConfig } = await import("../../config/store.js");
-      const config = await loadConfig(overrides.cwd ?? process.cwd());
-      writeStdoutLine(JSON.stringify(config[key], null, 2));
-    });
-
-  configCommand
-    .command("set")
-    .description("Set a config key. Arrays can be JSON or comma-separated.")
-    .argument("<key>", "Config key")
-    .argument("<value>", "Config value")
-    .action(async (key: string, value: string) => {
-      if (!isKnownConfigKey(key)) {
-        throw new Error(`Unknown config key: ${key}`);
-      }
-
-      if (!isMutableConfigKey(key)) {
-        throw new Error(`${key} is managed by Kitty and cannot be changed with config set.`);
-      }
-
-      const overrides = options.getCliOverrides();
-      const { updateConfig } = await import("../../config/store.js");
-      const next = await updateConfig((config) => {
-        return {
-          ...config,
-          [key]: coerceConfigValue(key, value),
-        } as AppConfig;
-      }, overrides.cwd ?? process.cwd());
-
-      ui.success(`Updated ${key}`);
-      writeStdoutLine(JSON.stringify(next[key], null, 2));
-    });
+function toDisplayConfig(config: RuntimeConfig): Record<string, unknown> {
+  return {
+    schemaVersion: config.schemaVersion,
+    provider: config.provider,
+    model: config.model,
+    profile: config.profile,
+    thinking: config.thinking,
+    reasoningEffort: config.reasoningEffort,
+    maxOutputTokens: config.maxOutputTokens,
+    baseUrl: config.baseUrl,
+    runtimeBudget: {
+      contextWindowMessages: config.contextWindowMessages,
+      maxContextChars: config.maxContextChars,
+      contextSummaryChars: config.contextSummaryChars,
+      maxReadBytes: config.maxReadBytes,
+      projectDocMaxBytes: config.projectDocMaxBytes,
+      commandStallTimeoutMs: config.commandStallTimeoutMs,
+    },
+    showReasoning: config.showReasoning,
+    pathAccess: "unrestricted",
+    apiKey: config.apiKey ? "set" : "missing",
+    telegram: {
+      ...config.telegram,
+      token: config.telegram.token ? "set" : "missing",
+      stateDir: config.telegram.stateDir,
+    },
+    extensions: config.extensions,
+    envFile: path.join(config.paths.configDir, PROJECT_STATE_ENV_FILE_NAME),
+    sessionsDir: config.paths.sessionsDir,
+    changesDir: config.paths.changesDir,
+  };
 }

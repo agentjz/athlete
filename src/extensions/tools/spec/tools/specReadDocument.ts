@@ -1,26 +1,33 @@
+import { parseArgs, readString } from "../../../../tools/core/shared.js";
 import type { RegisteredTool } from "../../../../tools/core/types.js";
-import { jsonResult } from "../../../shared.js";
-import { readSpecDocument, specDocumentFile } from "../state.js";
+import { SpecStore } from "../../../../spec/store.js";
+import { readSpecDocumentName, SPEC_DOCUMENT_NAMES, specJsonResult } from "../shared.js";
 
 export const specReadDocumentTool: RegisteredTool = {
   definition: {
     type: "function",
     function: {
       name: "spec_read_document",
-      description: "Read the current session spec.md document.",
+      description: "Read one spec document or all documents from a durable spec.",
       parameters: {
         type: "object",
-        properties: {},
+        properties: {
+          specId: { type: "string" },
+          document: { type: "string", enum: [...SPEC_DOCUMENT_NAMES] },
+        },
+        required: ["specId"],
         additionalProperties: false,
       },
     },
   },
-  async execute(_rawArgs, context) {
-    const documentPath = await specDocumentFile(context.projectContext.stateRootDir, context.sessionId);
-    return jsonResult({
-      ok: true,
-      documentPath,
-      document: await readSpecDocument(context.projectContext.stateRootDir, context.sessionId),
-    });
+  async execute(rawArgs, context) {
+    const args = parseArgs(rawArgs);
+    const store = new SpecStore(context.projectContext.stateRootDir);
+    const specId = readString(args.specId, "specId");
+    if (typeof args.document === "string") {
+      const document = readSpecDocumentName(args.document);
+      return specJsonResult({ specId, document, content: await store.readDocument(specId, document) });
+    }
+    return specJsonResult({ specId, documents: await store.readAllDocuments(specId) });
   },
 };

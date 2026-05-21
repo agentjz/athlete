@@ -22,11 +22,14 @@ export function writeCliInteractiveIntro(options: {
   cwd: string;
   session: Pick<SessionRecord, "id">;
   output: ShellOutputPort;
+  toolsLabel?: string;
 }): void {
   options.output.plain(chalk.bold(chalk.greenBright(renderKittyBanner())));
   options.output.dim(`session: ${options.session.id}`);
   options.output.dim(`cwd: ${options.cwd}`);
-  options.output.dim("Tools: read, edit, write, bash");
+  if (options.toolsLabel) {
+    options.output.dim(`Tools: ${options.toolsLabel}`);
+  }
   options.output.dim("Commands:");
   options.output.dim("/help        Show help");
   options.output.dim("/multi       Enter multiline input");

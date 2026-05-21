@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { getAppPaths } from "../../src/config/paths.js";
+import { resolveTelegramRuntimeConfig } from "../../src/config/hosts.js";
+import { getInitialRuntimeConfig } from "../../src/config/initialConfig.js";
 import type {
   RuntimeConfig,
   RuntimeTransition,
@@ -9,45 +12,17 @@ import type {
 } from "../../src/types.js";
 
 test("public type barrel exposes runtime, session, transition, and tool result contracts", () => {
+  const initialConfig = getInitialRuntimeConfig();
   const config = {
-    schemaVersion: 1,
+    ...initialConfig,
     provider: "openai",
     apiKey: "test",
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-5.5",
-    profile: "intp",
     thinking: "enabled",
-    contextWindowMessages: 120,
-    maxContextChars: 900_000,
-    contextSummaryChars: 120_000,
-    maxReadBytes: 120_000,
-    commandStallTimeoutMs: 30_000,
-    showReasoning: true,
-    telegram: {
-      token: "",
-      apiBaseUrl: "https://api.telegram.org",
-      proxyUrl: "",
-      allowedUserIds: [],
-      polling: { timeoutSeconds: 10, limit: 10, retryBackoffMs: 1_000 },
-      delivery: { maxRetries: 4, baseDelayMs: 250, maxDelayMs: 10_000 },
-      messageChunkChars: 3_500,
-      typingIntervalMs: 4_000,
-      stateDir: ".kitty/telegram",
-    },
-    extensions: {
-      todo: true,
-      worktree: false,
-      network: false,
-      spec: false,
-    },
-    paths: {
-      configDir: ".kitty",
-      dataDir: ".kitty",
-      cacheDir: ".kitty/cache",
-      configFile: ".kitty/config.json",
-      sessionsDir: ".kitty/sessions",
-      changesDir: ".kitty/changes",
-    },
+    telegram: resolveTelegramRuntimeConfig(initialConfig.telegram, "."),
+    extensions: { ...initialConfig.extensions },
+    paths: getAppPaths("."),
   } satisfies RuntimeConfig;
 
   const session = {

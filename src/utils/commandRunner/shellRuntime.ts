@@ -13,7 +13,7 @@ export function getShellRuntimeInfo(platform: NodeJS.Platform = process.platform
       shell: "powershell",
       executable: "powershell.exe",
       invocation: "powershell.exe -NoLogo -NoProfile -EncodedCommand <command>",
-      guidance: "Windows runs commands through PowerShell; use PowerShell syntax, semicolon-separated commands, node -e, or python -c. Do not use Bash heredoc or POSIX-only commands unless you explicitly invoke bash.",
+      guidance: "Windows runs commands through PowerShell; use PowerShell syntax, semicolon-separated commands, node -e, python -c, or an explicit bash invocation for Bash/POSIX syntax.",
     };
   }
 

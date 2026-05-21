@@ -119,7 +119,11 @@ function collectSelectedTools(options: ToolRegistryOptions): Array<{
   source: ToolRegistrySource;
   tool: RegisteredTool;
 }> {
-  const builtinSource = createToolSource("builtin", "builtin:catalog", getBuiltinTools());
+  const builtinSource = createToolSource(
+    "builtin",
+    "builtin:catalog",
+    getBuiltinTools().filter(options.builtinToolFilter ?? (() => true)),
+  );
   const allSources = [builtinSource, ...(options.sources ?? [])];
   const onlyNames = options.onlyNames ? new Set(options.onlyNames) : null;
   const excludeNames = new Set(options.excludeNames ?? []);

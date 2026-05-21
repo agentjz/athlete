@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
-import path from "node:path";
 import test from "node:test";
 
+import { getAppPaths } from "../../src/config/paths.js";
 import { SessionStore } from "../../src/session/store.js";
 import { createTempWorkspace } from "../helpers.js";
 
 test("session store persists and reloads session snapshots", async (t) => {
   const root = await createTempWorkspace("session-store", t);
-  const store = new SessionStore(path.join(root, ".kitty", "sessions"));
+  const store = new SessionStore(getAppPaths(root).sessionsDir);
   const session = await store.create(root);
   await store.save(session);
 

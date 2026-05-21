@@ -1,8 +1,9 @@
 ﻿import type { RunTurnOptions } from "../agent/turn.js";
 import type { RunTurnResult, AgentCallbacks, AgentIdentity } from "../agent/types.js";
 import type { SessionStoreLike } from "../session/index.js";
-import type { ToolRegistry } from "../tools/core/types.js";
+import type { RegisteredTool, ToolFilter, ToolRegistry } from "../tools/core/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
+import type { HostToolRegistryOptions } from "./toolRegistry.js";
 
 export type HostTurnRunner = (options: RunTurnOptions) => Promise<RunTurnResult>;
 
@@ -17,11 +18,14 @@ export interface HostTurnOptions {
   callbacks?: AgentCallbacks;
   abortSignal?: AbortSignal;
   identity?: AgentIdentity;
+  builtinToolFilter?: ToolFilter;
+  extraTools?: readonly RegisteredTool[];
+  runtimePromptState?: RunTurnOptions["runtimePromptState"];
 }
 
 export interface HostTurnDependencies {
   runTurn?: HostTurnRunner;
-  createToolRegistry?: (config: RuntimeConfig) => Promise<ToolRegistry>;
+  createToolRegistry?: (config: RuntimeConfig, options?: HostToolRegistryOptions) => Promise<ToolRegistry>;
   onRunTurnStarted?: () => void;
 }
 

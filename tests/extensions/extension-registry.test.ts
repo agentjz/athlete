@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { EXTENSION_IDS, type ExtensionToggleConfig } from "../../src/config/extensions.js";
+import { getExtensionDefinition } from "../../src/extensions/definitions.js";
 import { createExtensionRegistry } from "../../src/extensions/index.js";
 import { createDefaultAgentToolRegistry } from "../../src/tools/registry.js";
 import { createTempWorkspace, createTestRuntimeConfig, createToolContext } from "../helpers.js";
@@ -9,29 +11,18 @@ test("extension registry is driven by one toggle map", async (t) => {
   const root = await createTempWorkspace("extension-registry", t);
   const config = {
     ...createTestRuntimeConfig(root),
-    extensions: {
-      todo: true,
-      worktree: true,
-      network: true,
-      spec: true,
-    },
+    extensions: Object.fromEntries(EXTENSION_IDS.map((id) => [id, true])) as ExtensionToggleConfig,
   };
 
   const registry = createExtensionRegistry(config);
   const enabled = registry.entries.filter((entry) => entry.enabled).map((entry) => entry.id);
   const names = registry.entries.flatMap((entry) => entry.tools.map((tool) => tool.definition.function.name));
 
-  assert.deepEqual(enabled, ["todo", "worktree", "network", "spec"]);
-  for (const name of [
-    "todo_write",
-    "worktree_list",
-    "worktree_get",
-    "http_request",
-    "http_session",
-    "spec_create",
-    "spec_write_document",
-    "spec_checkpoint_create",
-  ]) {
+  assert.deepEqual(enabled, EXTENSION_IDS);
+  for (const id of EXTENSION_IDS) {
+    assert.equal(registry.entries.find((entry) => entry.id === id)?.tools.length, getExtensionDefinition(id).createTools().length);
+  }
+  for (const name of getExtensionDefinition("spec").createTools().map((tool) => tool.definition.function.name)) {
     assert.equal(names.includes(name), true, `${name} should be registered`);
   }
 });

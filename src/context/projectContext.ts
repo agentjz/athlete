@@ -7,12 +7,12 @@ import { resolveProjectRoots } from "./repoRoots.js";
 import type { LoadedInstructionFile, ProjectContext } from "../types.js";
 import { isPathIgnored, loadProjectIgnoreRules } from "../utils/ignore.js";
 
-const DEFAULT_PROJECT_DOC_MAX_BYTES = 24 * 1024;
-
-export async function loadProjectContext(cwd: string): Promise<ProjectContext> {
+export async function loadProjectContext(cwd: string, input: {
+  projectDocMaxBytes: number;
+}): Promise<ProjectContext> {
   const roots = await resolveProjectRoots(cwd);
   const instructions = await getInstructionFiles(roots.rootDir, cwd);
-  const { content, truncated } = concatInstructionFiles(instructions);
+  const { content, truncated } = concatInstructionFiles(instructions, input.projectDocMaxBytes);
   const ignoreRules = await loadProjectIgnoreRules(roots.rootDir, cwd);
 
   return {
@@ -88,8 +88,10 @@ async function readInstructionFile(
   };
 }
 
-function concatInstructionFiles(files: LoadedInstructionFile[]): { content: string; truncated: boolean } {
-  const maxBytes = readProjectDocMaxBytes();
+function concatInstructionFiles(files: LoadedInstructionFile[], maxBytes: number): { content: string; truncated: boolean } {
+  if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
+    throw new Error("Missing or invalid projectDocMaxBytes runtime config.");
+  }
   let totalBytes = 0;
   let truncated = false;
   const parts: string[] = [];
@@ -124,12 +126,6 @@ function concatInstructionFiles(files: LoadedInstructionFile[]): { content: stri
     content: parts.join(""),
     truncated,
   };
-}
-
-function readProjectDocMaxBytes(): number {
-  const raw = process.env.KITTY_PROJECT_DOC_MAX_BYTES;
-  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PROJECT_DOC_MAX_BYTES;
 }
 
 function truncateUtf8(value: string, bytes: number): string {

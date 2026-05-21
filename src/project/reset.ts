@@ -3,10 +3,10 @@ import path from "node:path";
 
 import type { ChangeRecord, RuntimeConfig, SessionRecord } from "../types.js";
 import { resolveProjectRoots } from "../context/repoRoots.js";
-import { getProjectStatePaths } from "./statePaths.js";
+import { getProjectStatePaths, PRESERVED_PROJECT_STATE_ENTRY_NAMES } from "./statePaths.js";
 import { isSameOrDescendant, waitForRemovedPaths } from "./resetSupport.js";
 
-const PRESERVED_KITTY_ENTRIES = new Set([".env", ".env.example"]);
+const PRESERVED_PROJECT_STATE_ENTRIES = new Set<string>(PRESERVED_PROJECT_STATE_ENTRY_NAMES);
 
 export interface ResetProjectRuntimeInput {
   cwd: string;
@@ -143,7 +143,7 @@ async function clearProjectKittyDirectory(kittyDir: string): Promise<{
     const entries = await fs.readdir(kittyDir, { withFileTypes: true });
     for (const entry of entries) {
       const absolutePath = path.join(kittyDir, entry.name);
-      if (PRESERVED_KITTY_ENTRIES.has(entry.name)) {
+      if (PRESERVED_PROJECT_STATE_ENTRIES.has(entry.name)) {
         preservedEntries.push(entry.name);
         continue;
       }

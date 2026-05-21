@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { recordObservabilityEvent } from "./writer.js";
+import { PROJECT_STATE_DIR_NAME } from "../project/statePaths.js";
 
 export interface HostIdentityInput {
   identityKind?: string;
@@ -110,7 +111,7 @@ export class QueuedHostMessageRecorder {
 
 export function resolveHostStateRoot(stateDir: string, fallbackCwd: string): string {
   const kittyDir = path.dirname(stateDir);
-  return path.basename(kittyDir).toLowerCase() === ".kitty"
+  return path.basename(kittyDir).toLowerCase() === PROJECT_STATE_DIR_NAME
     ? path.dirname(kittyDir)
     : fallbackCwd;
 }

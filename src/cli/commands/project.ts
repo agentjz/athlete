@@ -3,7 +3,7 @@ import type { Command } from "commander";
 import type { CliOverrides, RuntimeConfig } from "../../types.js";
 import { ui } from "../../utils/console.js";
 import { writeStdoutLine } from "../../utils/stdio.js";
-import { truncateCliValue } from "../configValues.js";
+import { truncateCliValue } from "../cliValues.js";
 
 export function registerProjectCommands(
   program: Command,

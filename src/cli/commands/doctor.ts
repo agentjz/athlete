@@ -23,7 +23,7 @@ export function registerDoctorCommand(
       const runtime = await options.resolveRuntime(options.getCliOverrides());
 
       ui.heading("kitty doctor");
-      ui.info(`config: ${runtime.paths.configFile}`);
+      ui.info(`env: ${runtime.paths.configDir}`);
       ui.info(`provider: ${runtime.config.provider}`);
       ui.info(`model: ${runtime.config.model}`);
       ui.info(`baseUrl: ${runtime.config.baseUrl}`);

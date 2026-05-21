@@ -1,0 +1,1 @@
+export const INITIAL_PROJECT_DOC_MAX_BYTES = 24 * 1024;

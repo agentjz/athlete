@@ -1,23 +1,25 @@
+import path from "node:path";
+
 import { parseArgs, readPossiblyEmptyString, readString } from "../../../../tools/core/shared.js";
 import type { RegisteredTool } from "../../../../tools/core/types.js";
+import { SpecStore, summarizeSpec } from "../../../../spec/store.js";
 import { changedJsonResult } from "../../../shared.js";
-import { readSpecState, renderSpecDocument, writeSpecDocument, writeSpecState } from "../state.js";
+import { readSpecDocumentName, SPEC_DOCUMENT_NAMES } from "../shared.js";
 
 export const specWriteDocumentTool: RegisteredTool = {
   definition: {
     type: "function",
     function: {
       name: "spec_write_document",
-      description: "Write the current session spec.md document.",
+      description: "Write one durable spec document. The model owns the content; the tool only persists it.",
       parameters: {
         type: "object",
         properties: {
-          title: { type: "string" },
-          requirements: { type: "string" },
-          design: { type: "string" },
-          tasks: { type: "string" },
+          specId: { type: "string" },
+          document: { type: "string", enum: [...SPEC_DOCUMENT_NAMES] },
+          content: { type: "string" },
         },
-        required: ["title", "requirements", "design", "tasks"],
+        required: ["specId", "document", "content"],
         additionalProperties: false,
       },
     },
@@ -25,17 +27,19 @@ export const specWriteDocumentTool: RegisteredTool = {
   changeSignal: "required",
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
-    const title = readString(args.title, "title").trim();
-    const document = renderSpecDocument({
-      title,
-      requirements: readPossiblyEmptyString(args.requirements, "requirements"),
-      design: readPossiblyEmptyString(args.design, "design"),
-      tasks: readPossiblyEmptyString(args.tasks, "tasks"),
-    });
-    const state = await readSpecState(context.projectContext.stateRootDir, context.sessionId);
-    state.title = title;
-    const documentPath = await writeSpecDocument(context.projectContext.stateRootDir, context.sessionId, document);
-    const statePath = await writeSpecState(context.projectContext.stateRootDir, context.sessionId, state);
-    return changedJsonResult({ ok: true, documentPath, statePath, bytes: Buffer.byteLength(document, "utf8") }, [documentPath, statePath]);
+    const store = new SpecStore(context.projectContext.stateRootDir);
+    const specId = readString(args.specId, "specId");
+    const document = readSpecDocumentName(args.document);
+    const result = await store.writeDocument(
+      specId,
+      document,
+      readPossiblyEmptyString(args.content, "content"),
+    );
+    return changedJsonResult({
+      ok: true,
+      spec: summarizeSpec(result.state),
+      document,
+      path: path.relative(context.projectContext.rootDir, result.path),
+    }, [result.path]);
   },
 };

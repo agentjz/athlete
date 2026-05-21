@@ -50,8 +50,11 @@ export interface ToolRegistry {
 export interface ToolRegistryOptions {
   onlyNames?: readonly string[];
   excludeNames?: readonly string[];
+  builtinToolFilter?: ToolFilter;
   sources?: readonly ToolRegistrySource[];
 }
+
+export type ToolFilter = (tool: RegisteredTool) => boolean;
 
 export type ToolRegistryFactory = (options?: ToolRegistryOptions) => ToolRegistry;
 

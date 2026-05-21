@@ -1,13 +1,10 @@
 export {
   CURRENT_CONFIG_SCHEMA_VERSION,
-  getDefaultConfig,
+  normalizeRuntimeConfig,
 } from "./schema.js";
 
 export {
   ensureAppDirectories,
-  loadConfig,
-  saveConfig,
-  updateConfig,
-} from "./fileStore.js";
+} from "./directories.js";
 
 export { resolveRuntimeConfig } from "./runtime.js";

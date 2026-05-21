@@ -25,7 +25,7 @@ export interface TelegramRuntimeConfig extends TelegramConfig {
   stateDir: string;
 }
 
-export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
+export const INITIAL_TELEGRAM_CONFIG: TelegramConfig = {
   token: "",
   apiBaseUrl: "https://api.telegram.org",
   proxyUrl: "",
@@ -46,7 +46,7 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
 
 export function normalizeTelegramConfig(config: Partial<TelegramConfig> = {}): TelegramConfig {
   return {
-    token: String(config.token ?? DEFAULT_TELEGRAM_CONFIG.token).trim(),
+    token: String(config.token ?? "").trim(),
     apiBaseUrl: normalizeApiBaseUrl(config.apiBaseUrl),
     proxyUrl: normalizeProxyUrl(config.proxyUrl),
     allowedUserIds: normalizeAllowedUserIds(config.allowedUserIds),
@@ -55,42 +55,42 @@ export function normalizeTelegramConfig(config: Partial<TelegramConfig> = {}): T
         config.polling?.timeoutSeconds,
         1,
         50,
-        DEFAULT_TELEGRAM_CONFIG.polling.timeoutSeconds,
+        "telegram.polling.timeoutSeconds",
       ),
-      limit: clampNumber(config.polling?.limit, 1, 100, DEFAULT_TELEGRAM_CONFIG.polling.limit),
+      limit: clampNumber(config.polling?.limit, 1, 100, "telegram.polling.limit"),
       retryBackoffMs: clampNumber(
         config.polling?.retryBackoffMs,
         250,
         60_000,
-        DEFAULT_TELEGRAM_CONFIG.polling.retryBackoffMs,
+        "telegram.polling.retryBackoffMs",
       ),
     },
     delivery: {
-      maxRetries: clampNumber(config.delivery?.maxRetries, 1, 32, DEFAULT_TELEGRAM_CONFIG.delivery.maxRetries),
+      maxRetries: clampNumber(config.delivery?.maxRetries, 1, 32, "telegram.delivery.maxRetries"),
       baseDelayMs: clampNumber(
         config.delivery?.baseDelayMs,
         250,
         120_000,
-        DEFAULT_TELEGRAM_CONFIG.delivery.baseDelayMs,
+        "telegram.delivery.baseDelayMs",
       ),
       maxDelayMs: clampNumber(
         config.delivery?.maxDelayMs,
         1_000,
         120_000,
-        DEFAULT_TELEGRAM_CONFIG.delivery.maxDelayMs,
+        "telegram.delivery.maxDelayMs",
       ),
     },
     messageChunkChars: clampNumber(
       config.messageChunkChars,
       128,
       4_096,
-      DEFAULT_TELEGRAM_CONFIG.messageChunkChars,
+      "telegram.messageChunkChars",
     ),
     typingIntervalMs: clampNumber(
       config.typingIntervalMs,
       500,
       60_000,
-      DEFAULT_TELEGRAM_CONFIG.typingIntervalMs,
+      "telegram.typingIntervalMs",
     ),
   };
 }
@@ -120,12 +120,15 @@ export function parseTelegramAllowedUserIds(raw: string | undefined): number[] {
 }
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
-  const value = String(raw ?? DEFAULT_TELEGRAM_CONFIG.apiBaseUrl).trim();
-  return value.replace(/\/+$/u, "") || DEFAULT_TELEGRAM_CONFIG.apiBaseUrl;
+  const value = String(raw ?? "").trim().replace(/\/+$/u, "");
+  if (!value) {
+    throw new Error("Missing Telegram API base URL.");
+  }
+  return value;
 }
 
 function normalizeProxyUrl(raw: string | undefined): string {
-  const value = String(raw ?? DEFAULT_TELEGRAM_CONFIG.proxyUrl).trim();
+  const value = String(raw ?? "").trim();
   return value.replace(/\/+$/u, "");
 }
 
@@ -145,9 +148,9 @@ function normalizeAllowedUserIds(values: readonly number[] | undefined): number[
   return [...unique];
 }
 
-function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {
+function clampNumber(value: number | undefined, min: number, max: number, name: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback;
+    throw new Error(`Missing or invalid config value: ${name}.`);
   }
 
   const normalized = Math.trunc(value);

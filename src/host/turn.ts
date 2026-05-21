@@ -4,7 +4,7 @@ import { resolveProjectRoots } from "../context/repoRoots.js";
 import { enterCrashContext } from "../observability/crashRecorder.js";
 import { recordHostTurnFinished, recordHostTurnStarted } from "../observability/hostEvents.js";
 import { isAbortError } from "../utils/abort.js";
-import { createDefaultAgentToolRegistry } from "../tools/registry.js";
+import { createHostToolRegistry } from "./toolRegistry.js";
 import type { HostTurnDependencies, HostTurnOptions, HostTurnOutcome } from "./types.js";
 
 const DEFAULT_IDENTITY = {
@@ -23,7 +23,7 @@ export async function runHostTurn(
     host,
     sessionId: options.session.id,
   });
-  const createToolRegistry = dependencies.createToolRegistry ?? createDefaultAgentToolRegistry;
+  const createToolRegistry = dependencies.createToolRegistry ?? createHostToolRegistry;
   const runTurn = dependencies.runTurn ?? runAgentTurn;
   let toolRegistry: Awaited<ReturnType<typeof createToolRegistry>> | null = null;
 
@@ -53,7 +53,10 @@ export async function runHostTurn(
       };
     }
 
-    toolRegistry = await createToolRegistry(options.config);
+    toolRegistry = await createToolRegistry(options.config, {
+      builtinToolFilter: options.builtinToolFilter,
+      extraTools: options.extraTools,
+    });
 
     if (options.abortSignal?.aborted) {
       await recordHostTurnFinished(stateRootDir, {
@@ -82,8 +85,7 @@ export async function runHostTurn(
       callbacks: options.callbacks,
       toolRegistry,
       identity: options.identity ?? DEFAULT_IDENTITY,
-      runtimePromptState: {
-      },
+      runtimePromptState: options.runtimePromptState,
     });
     dependencies.onRunTurnStarted?.();
     const result = await resultPromise;

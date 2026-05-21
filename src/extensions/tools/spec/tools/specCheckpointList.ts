@@ -1,46 +1,29 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-
+import { parseArgs, readString } from "../../../../tools/core/shared.js";
 import type { RegisteredTool } from "../../../../tools/core/types.js";
-import { jsonResult } from "../../../shared.js";
-import { checkpointsDir } from "../state.js";
+import { SpecStore } from "../../../../spec/store.js";
+import { specJsonResult } from "../shared.js";
 
 export const specCheckpointListTool: RegisteredTool = {
   definition: {
     type: "function",
     function: {
       name: "spec_checkpoint_list",
-      description: "List checkpoints for the current session spec.",
+      description: "List recovery checkpoints for a durable spec.",
       parameters: {
         type: "object",
-        properties: {},
+        properties: {
+          specId: { type: "string" },
+        },
+        required: ["specId"],
         additionalProperties: false,
       },
     },
   },
-  async execute(_rawArgs, context) {
-    const dir = await checkpointsDir(context.projectContext.stateRootDir, context.sessionId);
-    const entries = await fs.readdir(dir, { withFileTypes: true }).catch((error) => {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return [];
-      }
-      throw error;
-    });
-    const checkpoints = [];
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith(".json")) {
-        continue;
-      }
-      const filePath = path.join(dir, entry.name);
-      const parsed = JSON.parse(await fs.readFile(filePath, "utf8")) as Record<string, unknown>;
-      checkpoints.push({
-        id: parsed.id,
-        label: parsed.label,
-        createdAt: parsed.createdAt,
-        path: filePath,
-      });
-    }
-    checkpoints.sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)));
-    return jsonResult({ ok: true, checkpoints });
+  async execute(rawArgs, context) {
+    const args = parseArgs(rawArgs);
+    const checkpoints = await new SpecStore(context.projectContext.stateRootDir).listCheckpoints(
+      readString(args.specId, "specId"),
+    );
+    return specJsonResult({ checkpoints });
   },
 };

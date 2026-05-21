@@ -4,6 +4,9 @@ import path from "node:path";
 import type { TestContext } from "node:test";
 
 import { ChangeStore } from "../src/agent/changes/store.js";
+import { getAppPaths } from "../src/config/paths.js";
+import { resolveTelegramRuntimeConfig } from "../src/config/hosts.js";
+import { getInitialRuntimeConfig } from "../src/config/initialConfig.js";
 import type { ToolContext } from "../src/tools/core/types.js";
 import type { RuntimeConfig } from "../src/types.js";
 
@@ -15,54 +18,42 @@ export async function createTempWorkspace(prefix: string, t: TestContext): Promi
   return dir;
 }
 
+export async function initGitRepo(root: string): Promise<void> {
+  const { execa } = await import("execa");
+  await fs.writeFile(path.join(root, "README.md"), "# test\n", "utf8");
+  for (const args of [
+    ["init"],
+    ["config", "user.email", "kitty@example.test"],
+    ["config", "user.name", "Kitty Test"],
+    ["add", "README.md"],
+    ["commit", "-m", "initial"],
+  ]) {
+    const result = await execa("git", args, {
+      cwd: root,
+      all: true,
+      reject: false,
+      windowsHide: true,
+    });
+    if (result.exitCode !== 0) {
+      throw new Error(result.all ?? `git ${args.join(" ")} failed`);
+    }
+  }
+}
+
 export function createTestRuntimeConfig(root: string): RuntimeConfig {
+  const initialConfig = getInitialRuntimeConfig();
   return {
-    schemaVersion: 1,
+    ...initialConfig,
     provider: "openai",
     apiKey: "test-key",
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-5.5",
-    profile: "intp",
     thinking: "enabled",
-    contextWindowMessages: 120,
-    maxContextChars: 900_000,
-    contextSummaryChars: 120_000,
-    maxReadBytes: 120_000,
-    commandStallTimeoutMs: 30_000,
-    showReasoning: true,
-    telegram: {
-      token: "",
-      apiBaseUrl: "https://api.telegram.org",
-      proxyUrl: "",
-      allowedUserIds: [],
-      polling: {
-        timeoutSeconds: 10,
-        limit: 10,
-        retryBackoffMs: 1_000,
-      },
-      delivery: {
-        maxRetries: 4,
-        baseDelayMs: 250,
-        maxDelayMs: 10_000,
-      },
-      messageChunkChars: 3_500,
-      typingIntervalMs: 4_000,
-      stateDir: path.join(root, ".kitty", "telegram"),
-    },
+    telegram: resolveTelegramRuntimeConfig(initialConfig.telegram, root),
     extensions: {
-      todo: true,
-      worktree: false,
-      network: false,
-      spec: false,
+      ...initialConfig.extensions,
     },
-    paths: {
-      configDir: path.join(root, ".kitty"),
-      dataDir: path.join(root, ".kitty"),
-      cacheDir: path.join(root, ".kitty", "cache"),
-      configFile: path.join(root, ".kitty", "config.json"),
-      sessionsDir: path.join(root, ".kitty", "sessions"),
-      changesDir: path.join(root, ".kitty", "changes"),
-    },
+    paths: getAppPaths(root),
   };
 }
 

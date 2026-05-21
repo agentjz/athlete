@@ -13,5 +13,3 @@ export type {
   ToolRegistryOptions,
   ToolRegistrySource,
 } from "./core/types.js";
-
-export const AGENT_CORE_TOOL_NAMES = ["read", "edit", "write", "bash"] as const;

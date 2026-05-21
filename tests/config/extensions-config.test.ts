@@ -1,30 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getDefaultExtensions, mergeExtensions, normalizeExtensions, readEnabledExtensionIds } from "../../src/config/extensions.js";
+import { getInitialExtensionSwitches, normalizeExtensions, readEnabledExtensionIds } from "../../src/config/extensions.js";
+import { EXTENSION_DEFINITIONS, type ExtensionId } from "../../src/extensions/definitions.js";
 
-test("extension config has one default toggle map", () => {
-  assert.deepEqual(getDefaultExtensions(), {
-    todo: true,
-    worktree: false,
-    network: false,
-    spec: false,
-  });
+test("extension config has one initial switch map", () => {
+  const expected = Object.fromEntries(
+    EXTENSION_DEFINITIONS.map((definition) => [definition.id, definition.defaultEnabled]),
+  );
+  assert.deepEqual(getInitialExtensionSwitches(), expected);
 });
 
-test("extension config normalizes and merges known extension ids", () => {
+test("extension config normalizes known extension ids", () => {
+  const initialSwitches = getInitialExtensionSwitches();
   const normalized = normalizeExtensions({
+    ...initialSwitches,
     todo: false,
     worktree: true,
     unknown: true,
   });
-  assert.deepEqual(normalized, {
-    todo: false,
-    worktree: true,
-    network: false,
-    spec: false,
-  });
+  assert.equal(normalized.todo, false);
+  assert.equal(normalized.worktree, true);
+  assert.equal("unknown" in normalized, false);
 
-  const merged = mergeExtensions(normalized, { spec: true });
-  assert.deepEqual(readEnabledExtensionIds({ extensions: merged }), ["worktree", "spec"]);
+  const expectedEnabled = EXTENSION_DEFINITIONS
+    .map((definition) => definition.id)
+    .filter((id) => normalized[id as ExtensionId]);
+  assert.deepEqual(readEnabledExtensionIds({ extensions: normalized }), expectedEnabled);
+});
+
+test("extension config requires every current switch to be explicit", () => {
+  assert.throws(
+    () => normalizeExtensions({ todo: true }),
+    /Missing or invalid extension switch: worktree/,
+  );
 });

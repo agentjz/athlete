@@ -1,58 +1,46 @@
 import type { AppConfig } from "../types.js";
+import { EXTENSION_DEFINITIONS, EXTENSION_IDS, type ExtensionId } from "../extensions/definitions.js";
 
-export const EXTENSION_IDS = ["todo", "worktree", "network", "spec"] as const;
+export { EXTENSION_IDS, type ExtensionId };
 
-export type ExtensionId = (typeof EXTENSION_IDS)[number];
+export type ExtensionToggleConfig = Record<ExtensionId, boolean>;
 
-export interface ExtensionToggleConfig {
-  todo: boolean;
-  worktree: boolean;
-  network: boolean;
-  spec: boolean;
-}
+const INITIAL_EXTENSION_SWITCHES: ExtensionToggleConfig = createInitialExtensionSwitches();
 
-const DEFAULT_EXTENSIONS: ExtensionToggleConfig = {
-  todo: true,
-  worktree: false,
-  network: false,
-  spec: false,
-};
-
-export function getDefaultExtensions(): ExtensionToggleConfig {
-  return { ...DEFAULT_EXTENSIONS };
+export function getInitialExtensionSwitches(): ExtensionToggleConfig {
+  return { ...INITIAL_EXTENSION_SWITCHES };
 }
 
 export function normalizeExtensions(value: unknown): ExtensionToggleConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return getDefaultExtensions();
+    throw new Error("Missing extension switch configuration.");
   }
 
   const record = value as Record<string, unknown>;
-  return {
-    todo: readBoolean(record.todo, DEFAULT_EXTENSIONS.todo),
-    worktree: readBoolean(record.worktree, DEFAULT_EXTENSIONS.worktree),
-    network: readBoolean(record.network, DEFAULT_EXTENSIONS.network),
-    spec: readBoolean(record.spec, DEFAULT_EXTENSIONS.spec),
-  };
-}
-
-export function mergeExtensions(
-  current: ExtensionToggleConfig,
-  patch: Partial<ExtensionToggleConfig> | undefined,
-): ExtensionToggleConfig {
-  if (!patch) {
-    return { ...current };
+  const normalized = {} as ExtensionToggleConfig;
+  for (const id of EXTENSION_IDS) {
+    normalized[id] = readRequiredBoolean(record[id], id);
   }
-  return normalizeExtensions({
-    ...current,
-    ...patch,
-  });
+  return normalized;
 }
 
 export function readEnabledExtensionIds(config: Pick<AppConfig, "extensions">): ExtensionId[] {
   return EXTENSION_IDS.filter((id) => config.extensions[id]);
 }
 
-function readBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
+function readRequiredBoolean(value: unknown, id: ExtensionId): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`Missing or invalid extension switch: ${id}.`);
+  }
+  return value;
+}
+
+function createInitialExtensionSwitches(): ExtensionToggleConfig {
+  const switches = Object.fromEntries(
+    EXTENSION_IDS.map((id) => [id, false]),
+  ) as ExtensionToggleConfig;
+  for (const definition of EXTENSION_DEFINITIONS) {
+    switches[definition.id] = definition.defaultEnabled;
+  }
+  return switches;
 }

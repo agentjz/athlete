@@ -1,6 +1,7 @@
-import { parseArgs, okResult } from "../../../../tools/core/shared.js";
+import { parseArgs } from "../../../../tools/core/shared.js";
 import type { RegisteredTool } from "../../../../tools/core/types.js";
 import { formatTodoBlock, normalizeTodoItems } from "../../../../session/todos.js";
+import { jsonResult } from "../../../shared.js";
 
 export const todoWriteTool: RegisteredTool = {
   definition: {
@@ -45,13 +46,13 @@ export const todoWriteTool: RegisteredTool = {
     const completed = items.filter((item) => item.status === "completed").length;
     const inProgress = items.find((item) => item.status === "in_progress")?.id ?? null;
 
-    return okResult(JSON.stringify({
+    return jsonResult({
       ok: true,
       items,
       total: items.length,
       completed,
       inProgress,
       preview: formatTodoBlock(items),
-    }, null, 2));
+    });
   },
 };

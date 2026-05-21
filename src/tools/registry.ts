@@ -2,7 +2,7 @@ import { createRuntimeToolRegistry } from "./core/runtimeRegistry.js";
 import { createToolSource } from "./core/sources.js";
 import { createExtensionRegistry } from "../extensions/index.js";
 import type { RuntimeConfig } from "../types.js";
-import { AGENT_CORE_TOOL_NAMES } from "./index.js";
+import { getBuiltinToolNames } from "./toolCatalog.js";
 
 export function createDefaultAgentToolRegistry(config: RuntimeConfig) {
   const extensionRegistry = createExtensionRegistry(config);
@@ -14,7 +14,7 @@ export function createDefaultAgentToolRegistry(config: RuntimeConfig) {
     .flatMap((entry) => entry.tools.map((tool) => tool.definition.function.name));
 
   return createRuntimeToolRegistry(config, {
-    onlyNames: [...AGENT_CORE_TOOL_NAMES, ...extensionToolNames],
+    onlyNames: [...getBuiltinToolNames(), ...extensionToolNames],
     sources: extensionSources,
   });
 }

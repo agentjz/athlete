@@ -40,7 +40,9 @@ export async function startInteractiveChat(
   dependencies: StartInteractiveChatDependencies = {},
 ): Promise<void> {
   const shell = resolveInteractiveShell(dependencies);
-  const projectContext = await loadProjectContext(options.cwd);
+  const projectContext = await loadProjectContext(options.cwd, {
+    projectDocMaxBytes: options.config.projectDocMaxBytes,
+  });
   const terminalLogWriter = createTerminalLogWriter(projectContext.stateRootDir, options.session.id);
   const disposeTerminalOutputMirror = mirrorProcessOutputToTerminalLog(terminalLogWriter);
   const terminalShell = mirrorInteractionShellToTerminalLog(

@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 
+import path from "node:path";
+
 import packageJson from "../package.json";
 import { getErrorMessage } from "./agent/errors.js";
 import type { CliProgramDependencies } from "./cli/program.js";
-import { getAppPaths } from "./config/paths.js";
+import {
+  PROJECT_STATE_DIR_NAME,
+  PROJECT_STATE_ENV_FILE_NAME,
+} from "./project/statePaths.js";
 import { installStdioGuards, writeStderrLine, writeStdoutLine } from "./utils/stdio.js";
 
 function loadCliProgramModule(): typeof import("./cli/program.js") {
@@ -31,7 +36,7 @@ function maybeHandleEntryFastPath(argv: string[]): boolean {
   }
 
   if (userArgs.length === 2 && userArgs[0] === "config" && userArgs[1] === "path") {
-    writeStdoutLine(getAppPaths(process.cwd()).configFile);
+    writeStdoutLine(path.join(process.cwd(), PROJECT_STATE_DIR_NAME, PROJECT_STATE_ENV_FILE_NAME));
     return true;
   }
 

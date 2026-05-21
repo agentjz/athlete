@@ -1,12 +1,9 @@
-import { createNetworkTools } from "./tools/network/index.js";
-import { createSpecTools } from "./tools/spec/index.js";
-import { createTodoTools } from "./tools/todo/index.js";
-import { createWorktreeTools } from "./tools/worktree/index.js";
+import { EXTENSION_IDS, getExtensionDefinition, type ExtensionId } from "./definitions.js";
 import type { RegisteredTool } from "../tools/core/types.js";
 import type { RuntimeConfig } from "../types.js";
 
 export interface ExtensionRegistryEntry {
-  id: "todo" | "worktree" | "network" | "spec";
+  id: ExtensionId;
   enabled: boolean;
   tools: readonly RegisteredTool[];
 }
@@ -17,17 +14,12 @@ export interface ExtensionRegistrySnapshot {
 
 export function createExtensionRegistry(config: RuntimeConfig): ExtensionRegistrySnapshot {
   return {
-    entries: [
-      createEntry("todo", config),
-      createEntry("worktree", config),
-      createEntry("network", config),
-      createEntry("spec", config),
-    ],
+    entries: EXTENSION_IDS.map((id) => createEntry(id, config)),
   };
 }
 
 function createEntry(
-  id: ExtensionRegistryEntry["id"],
+  id: ExtensionId,
   config: RuntimeConfig,
 ): ExtensionRegistryEntry {
   return {
@@ -37,15 +29,6 @@ function createEntry(
   };
 }
 
-function createExtensionTools(id: ExtensionRegistryEntry["id"]): readonly RegisteredTool[] {
-  switch (id) {
-    case "todo":
-      return createTodoTools();
-    case "worktree":
-      return createWorktreeTools();
-    case "network":
-      return createNetworkTools();
-    case "spec":
-      return createSpecTools();
-  }
+function createExtensionTools(id: ExtensionId): readonly RegisteredTool[] {
+  return getExtensionDefinition(id).createTools();
 }

@@ -8,7 +8,6 @@ export interface AppPaths {
   configDir: string;
   dataDir: string;
   cacheDir: string;
-  configFile: string;
   sessionsDir: string;
   changesDir: string;
 }
@@ -21,11 +20,12 @@ export interface AppConfig {
   profile: string;
   thinking?: ModelThinkingMode;
   reasoningEffort?: ModelReasoningEffort;
-  maxOutputTokens?: number;
+  maxOutputTokens: number;
   contextWindowMessages: number;
   maxContextChars: number;
   contextSummaryChars: number;
   maxReadBytes: number;
+  projectDocMaxBytes: number;
   commandStallTimeoutMs: number;
   showReasoning: boolean;
   telegram: TelegramConfig;

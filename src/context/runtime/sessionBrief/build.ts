@@ -1,7 +1,7 @@
 import { buildFieldBlock, formatLimitedList } from "../../../agent/prompt/structured.js";
 import { isInternalMessage, readUserInput } from "../../../session/turnFrame.js";
 import type { StoredMessage } from "../../../types.js";
-import type { SessionBriefSignals, SessionBriefTurn, SessionConversationBrief } from "./types.js";
+import type { SessionBriefTurn, SessionConversationBrief } from "./types.js";
 
 const MAX_RECENT_TURNS = 8;
 const MAX_TURN_CHARS = 180;
@@ -36,7 +36,7 @@ export function buildSessionConversationBrief(
     assistantTurnCount,
     omittedLongTurnCount: omittedTurns.length,
     recentTurns,
-    signals: inferSignals(includedTurns),
+    toolActivity: collectToolActivity(includedTurns),
     currentThread: inferCurrentThread(recentTurns),
     updatedAt: input.timestamp ?? new Date().toISOString(),
   };
@@ -52,11 +52,11 @@ export function buildSessionConversationBriefBlock(
   return buildFieldBlock("Current session conversation brief", [
     {
       label: "Purpose",
-      value: "Answer direct questions about this same session's recent conversation and keep the user experience continuous; do not treat this as a plan, policy, or cross-session memory.",
+      value: "Show recent same-session conversation text so the model can read continuity itself; treat this as local conversation evidence only.",
     },
     {
       label: "Briefed turns",
-      value: `${brief.userTurnCount} user turn(s) including the current input / ${brief.assistantTurnCount} assistant response(s)`,
+      value: `${brief.userTurnCount} user turn(s) with current input / ${brief.assistantTurnCount} assistant response(s)`,
     },
     brief.omittedLongTurnCount > 0
       ? {
@@ -69,24 +69,8 @@ export function buildSessionConversationBriefBlock(
       value: brief.currentThread,
     },
     {
-      label: "Confirmed facts",
-      value: formatSignals(brief.signals.confirmedFacts),
-    },
-    {
-      label: "Decisions",
-      value: formatSignals(brief.signals.decisions),
-    },
-    {
-      label: "Open questions",
-      value: formatSignals(brief.signals.openQuestions),
-    },
-    {
-      label: "Next signals",
-      value: formatSignals(brief.signals.nextSignals),
-    },
-    {
       label: "Tool activity",
-      value: formatSignals(brief.signals.toolActivity),
+      value: formatSignals(brief.toolActivity),
     },
     {
       label: "Recent turns",
@@ -137,40 +121,11 @@ function inferCurrentThread(turns: SessionBriefTurn[]): string | undefined {
   return truncate(userTurns.slice(-3).join(" -> "), MAX_THREAD_CHARS);
 }
 
-function inferSignals(turns: SessionBriefTurn[]): SessionBriefSignals {
-  return {
-    confirmedFacts: collectSignals(turns, isConfirmedFact),
-    decisions: collectSignals(turns, isDecision),
-    openQuestions: collectSignals(turns, isOpenQuestion),
-    nextSignals: collectSignals(turns, isNextSignal),
-    toolActivity: collectSignals(turns, isToolActivity),
-  };
-}
-
-function collectSignals(
-  turns: SessionBriefTurn[],
-  predicate: (turn: SessionBriefTurn) => boolean,
-): string[] {
+function collectToolActivity(turns: SessionBriefTurn[]): string[] {
   const values = turns
-    .filter(predicate)
+    .filter(isToolActivity)
     .map((turn) => truncate(turn.text, MAX_SIGNAL_CHARS));
   return takeLastUnique(values, MAX_SIGNALS_PER_KIND);
-}
-
-function isConfirmedFact(turn: SessionBriefTurn): boolean {
-  return turn.role === "user" && /确认|确定|没问题|就这样|可以|OK|ok|yes|agree|confirmed|accepted/i.test(turn.text);
-}
-
-function isDecision(turn: SessionBriefTurn): boolean {
-  return /决定|选择|方案|原则|边界|设计|改成|保留|删除|不需要|暂时不|decision|choose|keep|remove|delete|disable|enable/i.test(turn.text);
-}
-
-function isOpenQuestion(turn: SessionBriefTurn): boolean {
-  return turn.role === "user" && /[?？]|请问|能不能|是不是|有没有|为什么|怎么|如何|是什么|上下文|what|why|how|whether/i.test(turn.text);
-}
-
-function isNextSignal(turn: SessionBriefTurn): boolean {
-  return /下一步|继续|开始|去做|执行|修|改|提交|测试|验证|next|continue|start|run|fix|implement|verify/i.test(turn.text);
 }
 
 function isToolActivity(turn: SessionBriefTurn): boolean {

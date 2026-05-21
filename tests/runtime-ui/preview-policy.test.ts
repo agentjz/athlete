@@ -90,8 +90,9 @@ test("extension tool call display keeps summaries readable", () => {
   );
   assert.equal(
     buildToolCallDisplay("spec_task_update", JSON.stringify({
-      task_id: "T01",
-      text: "Update design",
+      specId: "S01",
+      taskId: "T01",
+      title: "Update design",
       status: "completed",
     }), 80).summary,
     "spec_task_update task=T01",

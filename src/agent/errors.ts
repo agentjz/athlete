@@ -1,5 +1,4 @@
 import type { SessionRecord } from "../types.js";
-import { ConfigFileError } from "../config/errors.js";
 
 export class AgentTurnError extends Error {
   readonly session: SessionRecord;
@@ -20,10 +19,6 @@ export function getErrorMessage(error: unknown): string {
   const code = String((error as { code?: unknown }).code ?? "");
   const status = (error as { status?: unknown }).status;
   const lower = message.toLowerCase();
-
-  if (error instanceof ConfigFileError) {
-    return error.message;
-  }
 
   if (
     lower.includes("api key missing") ||

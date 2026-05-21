@@ -25,7 +25,9 @@ import { throwIfAborted } from "../../utils/abort.js";
 export type { AgentCallbacks, RunTurnOptions } from "../types.js";
 
 export async function runAgentTurn(options: RunTurnOptions): Promise<RunTurnResult> {
-  const projectContext = await loadProjectContext(options.cwd);
+  const projectContext = await loadProjectContext(options.cwd, {
+    projectDocMaxBytes: options.config.projectDocMaxBytes,
+  });
   const identity = options.identity ?? { kind: "lead" as const, name: "lead" };
   const turnModelConfig = options.config;
   const profile = resolveAgentProfile(options.config.profile);

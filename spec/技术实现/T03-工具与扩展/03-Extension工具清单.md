@@ -26,15 +26,26 @@
 
 ## spec
 
-- `spec_list`
-- `spec_search`
-- `spec_create`
-- `spec_open`
-- `spec_update_state`
-- `spec_append_note`
-- `spec_write_document`
-- `spec_read_document`
-- `spec_checkpoint_create`
-- `spec_checkpoint_list`
-- `spec_checkpoint_restore`
-- `spec_task_update`
+- `spec_list`：列出 `.kitty/specs/changes` 下的 durable spec。
+- `spec_search`：按 title、summary 和四个文档内容搜索 spec。
+- `spec_create`：创建 spec、初始化带骨架的四个文档、绑定当前 session，并创建隔离 git worktree。
+- `spec_open`：按 `specId` 打开 spec，绑定当前 session，并返回四个文档。
+- `spec_update_state`：更新 title、summary、stage、status 和确认标记。
+- `spec_append_note`：追加事实笔记到 `notes.md`。
+- `spec_write_document`：写入 `requirements`、`design`、`tasks` 或 `notes` 文档。
+- `spec_read_document`：读取单个文档，或读取全部文档。
+- `spec_checkpoint_create`：保存 spec state、四个文档和隔离 worktree checkpoint。
+- `spec_checkpoint_list`：列出一个 spec 的 checkpoint。
+- `spec_checkpoint_restore`：恢复 spec state、四个文档和隔离 worktree。
+- `spec_task_update`：更新 spec task 状态、标题、证据，可选择同时创建 checkpoint。
+
+实现落点：
+
+- `src/spec/`
+- `src/extensions/tools/spec/`
+- `src/spec/runtime.ts`
+- `src/host/toolRegistry.ts`
+- `tests/spec/`
+- `tests/extensions/spec-tools.test.ts`
+
+`kitty spec` 入口通过 `src/spec/runtime.ts` 决定阶段工具面。没有 active spec 或尚未确认 requirements、design、tasks 时，只暴露 `read`、`bash` 和 spec 工具；确认后进入 implement、validate、archive 才暴露完整 core 工具。

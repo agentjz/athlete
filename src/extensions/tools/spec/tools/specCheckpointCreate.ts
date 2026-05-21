@@ -1,22 +1,23 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-
-import { parseArgs } from "../../../../tools/core/shared.js";
+import { parseArgs, readString } from "../../../../tools/core/shared.js";
 import type { RegisteredTool } from "../../../../tools/core/types.js";
-import { changedJsonResult, sanitizeStateSegment } from "../../../shared.js";
-import { checkpointsDir, readSpecDocument, readSpecState } from "../state.js";
+import { getSpecPaths } from "../../../../spec/layout.js";
+import { SpecStore } from "../../../../spec/store.js";
+import { changedJsonResult } from "../../../shared.js";
 
 export const specCheckpointCreateTool: RegisteredTool = {
   definition: {
     type: "function",
     function: {
       name: "spec_checkpoint_create",
-      description: "Create a checkpoint for current session spec document and state.",
+      description: "Create a durable recovery checkpoint for spec state, documents, and isolated worktree.",
       parameters: {
         type: "object",
         properties: {
+          specId: { type: "string" },
           label: { type: "string" },
+          reason: { type: "string" },
         },
+        required: ["specId", "label"],
         additionalProperties: false,
       },
     },
@@ -24,18 +25,20 @@ export const specCheckpointCreateTool: RegisteredTool = {
   changeSignal: "required",
   async execute(rawArgs, context) {
     const args = parseArgs(rawArgs);
-    const label = typeof args.label === "string" && args.label.trim() ? args.label.trim() : "checkpoint";
-    const createdAt = new Date().toISOString();
-    const checkpoint = {
-      id: `${createdAt.replace(/[:.]/g, "-")}-${sanitizeStateSegment(label)}`,
-      label,
-      createdAt,
-      document: await readSpecDocument(context.projectContext.stateRootDir, context.sessionId),
-      state: await readSpecState(context.projectContext.stateRootDir, context.sessionId),
-    };
-    const filePath = path.join(await checkpointsDir(context.projectContext.stateRootDir, context.sessionId), `${checkpoint.id}.json`);
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, `${JSON.stringify(checkpoint, null, 2)}\n`, "utf8");
-    return changedJsonResult({ ok: true, checkpoint: { id: checkpoint.id, label, createdAt }, path: filePath }, [filePath]);
+    const checkpoint = await new SpecStore(context.projectContext.stateRootDir, {
+      rootDir: context.projectContext.rootDir,
+    }).createCheckpoint(
+      readString(args.specId, "specId"),
+      {
+        label: readString(args.label, "label"),
+        reason: typeof args.reason === "string" ? args.reason : undefined,
+      },
+    );
+    const paths = getSpecPaths(context.projectContext.stateRootDir, readString(args.specId, "specId"));
+    return changedJsonResult({ ok: true, checkpoint }, [
+      paths.stateFile,
+      paths.checkpointsDir,
+      ...(checkpoint.workspace ? [checkpoint.workspace.path] : []),
+    ]);
   },
 };

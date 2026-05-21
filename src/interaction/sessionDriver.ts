@@ -3,6 +3,8 @@ import process from "node:process";
 import type { SessionStoreLike } from "../session/index.js";
 import { runHostTurn } from "../host/turn.js";
 import type { HostTurnRunner } from "../host/types.js";
+import type { PromptRuntimeState } from "../agent/prompt/types.js";
+import type { RegisteredTool, ToolFilter } from "../tools/core/types.js";
 import type { RuntimeConfig, SessionRecord } from "../types.js";
 import { defaultInteractiveExitGuard, type InteractiveExitGuard, type InteractiveExitProcess } from "./exitGuard.js";
 import { handleLocalCommand, type LocalCommandResult } from "./localCommands.js";
@@ -11,6 +13,9 @@ import type { InteractionShell } from "./shell.js";
 export interface InteractiveTurnContext {
   cwd?: string;
   stateRootDir?: string;
+  builtinToolFilter?: ToolFilter;
+  extraTools?: readonly RegisteredTool[];
+  runtimePromptState?: Partial<PromptRuntimeState>;
 }
 
 export interface InteractiveSessionDriverOptions {
@@ -264,6 +269,9 @@ export class InteractiveSessionDriver {
         config: this.options.config,
         session: this.session,
         sessionStore: this.options.sessionStore,
+        builtinToolFilter: turnContext?.builtinToolFilter,
+        extraTools: turnContext?.extraTools,
+        runtimePromptState: turnContext?.runtimePromptState,
         abortSignal: controller.signal,
         callbacks: turnDisplay.callbacks,
       }, {

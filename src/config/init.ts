@@ -3,6 +3,12 @@ import path from "node:path";
 
 import { buildProjectEnvTemplate } from "./projectEnvTemplate.js";
 import { getDefaultKittyIgnoreContent } from "../utils/ignore.js";
+import {
+  PROJECT_STATE_DIR_NAME,
+  PROJECT_STATE_ENV_EXAMPLE_FILE_NAME,
+  PROJECT_STATE_ENV_FILE_NAME,
+  PROJECT_STATE_IGNORE_FILE_NAME,
+} from "../project/statePaths.js";
 
 export interface InitProjectResult {
   created: string[];
@@ -13,14 +19,13 @@ export async function initializeProjectFiles(cwd: string): Promise<InitProjectRe
   const created: string[] = [];
   const skipped: string[] = [];
 
-  const kittyDir = path.join(cwd, ".kitty");
-  const envPath = path.join(kittyDir, ".env");
-  const envExamplePath = path.join(kittyDir, ".env.example");
-  const ignorePath = path.join(kittyDir, ".kittyignore");
+  const kittyDir = path.join(cwd, PROJECT_STATE_DIR_NAME);
+  const envPath = path.join(kittyDir, PROJECT_STATE_ENV_FILE_NAME);
+  const envExamplePath = path.join(kittyDir, PROJECT_STATE_ENV_EXAMPLE_FILE_NAME);
+  const ignorePath = path.join(kittyDir, PROJECT_STATE_IGNORE_FILE_NAME);
   const envTemplate = buildProjectEnvTemplate(false);
   const envExampleTemplate = buildProjectEnvTemplate(true);
 
-  // Ensure .kitty directory exists
   await fs.mkdir(kittyDir, { recursive: true });
 
   if (await fileExists(envPath)) {

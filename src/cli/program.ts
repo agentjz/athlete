@@ -1,13 +1,14 @@
 import { Command } from "commander";
 
 import packageJson from "../../package.json";
-import { extractCliOverrides } from "./configValues.js";
+import { extractCliOverrides } from "./cliValues.js";
 import type { CliProgramDependencies } from "./dependencies.js";
 import { resolveCliRuntime } from "./runtime.js";
 import { registerConfigCommands } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerAgentCommand } from "./commands/agent.js";
+import { registerSpecCommand } from "./commands/spec.js";
 import { registerSessionCommands } from "./commands/session.js";
 import { writeStderr, writeStdout, writeStdoutLine } from "../utils/stdio.js";
 import { registerTelegramCommands } from "../telegram/cli.js";
@@ -45,6 +46,11 @@ export function buildCliProgram(dependencies: CliProgramDependencies = {}): Comm
     });
 
   registerAgentCommand(program, {
+    getCliOverrides,
+    resolveRuntime,
+    dependencies,
+  });
+  registerSpecCommand(program, {
     getCliOverrides,
     resolveRuntime,
     dependencies,

@@ -135,8 +135,9 @@ export function buildToolCallDisplay(
     case "spec_create":
     case "spec_write_document": {
       const title = readStringField(args, "title");
+      const specId = readStringField(args, "specId");
       return {
-        summary: `${name}${title ? ` ${title}` : ""}`.trim(),
+        summary: `${name}${title ? ` ${title}` : specId ? ` spec=${specId}` : ""}`.trim(),
       };
     }
     case "spec_open":
@@ -145,9 +146,10 @@ export function buildToolCallDisplay(
     case "spec_read_document":
     case "spec_checkpoint_list":
     case "spec_task_update": {
-      const taskId = readStringField(args, "task_id");
+      const specId = readStringField(args, "specId");
+      const taskId = readStringField(args, "taskId");
       return {
-        summary: `${name}${taskId ? ` task=${taskId}` : ""}`.trim(),
+        summary: `${name}${taskId ? ` task=${taskId}` : specId ? ` spec=${specId}` : ""}`.trim(),
       };
     }
     case "spec_checkpoint_create": {
@@ -157,7 +159,7 @@ export function buildToolCallDisplay(
       };
     }
     case "spec_checkpoint_restore": {
-      const checkpointId = readStringField(args, "checkpoint_id");
+      const checkpointId = readStringField(args, "checkpointId");
       return {
         summary: `${name}${checkpointId ? ` ${checkpointId}` : ""}`.trim(),
       };

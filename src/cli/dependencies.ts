@@ -10,6 +10,12 @@ export interface CliProgramDependencies {
     session: SessionRecord;
     sessionStore: SessionStore;
   }) => Promise<void>;
+  startSpecInteractive?: (options: {
+    cwd: string;
+    config: RuntimeConfig;
+    session: SessionRecord;
+    sessionStore: SessionStore;
+  }) => Promise<void>;
   createTelegramService?: (options: {
     cwd: string;
     config: RuntimeConfig;
@@ -18,6 +24,13 @@ export interface CliProgramDependencies {
     stop?(): void;
   }>;
   runOneShot?: (options: {
+    prompt: string;
+    cwd: string;
+    config: RuntimeConfig;
+    session: SessionRecord;
+    sessionStore: SessionStore;
+  }) => Promise<OneShotPromptRunResult>;
+  runSpecOneShot?: (options: {
     prompt: string;
     cwd: string;
     config: RuntimeConfig;

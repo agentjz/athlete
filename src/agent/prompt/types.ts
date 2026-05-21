@@ -3,6 +3,8 @@ import type { AgentIdentity } from "../types.js";
 export interface PromptRuntimeState {
   identity?: AgentIdentity;
   taskSummary?: string;
+  mode?: "agent" | "spec";
+  extraStaticBlocks?: string[];
 }
 
 export interface PromptLayers {
